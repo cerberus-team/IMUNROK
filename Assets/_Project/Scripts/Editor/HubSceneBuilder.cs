@@ -101,6 +101,9 @@ namespace IMUNROK.Common.Editor
 
             // 비-VR 테스트용 마우스 레이 선택기(사건 큐브 클릭 검증). VR 단계에서 컨트롤러 레이로 대체.
             camGO.AddComponent<MouseRaySelector>();
+
+            // 비-VR 테스트용 자유 비행 카메라(RMB 누른 채 WASD로 방을 둘러봄). VR 단계에서 제거/비활성.
+            camGO.AddComponent<DebugFlyCamera>();
         }
 
         private static void CreateWall(Transform parent, string name, Vector3 pos, Vector3 scale)
@@ -175,10 +178,14 @@ namespace IMUNROK.Common.Editor
             table.transform.localPosition = new Vector3(0, 0.45f, 0);
             table.transform.localScale = new Vector3(1.2f, 0.9f, 1.6f);
 
-            // 판결이 쌓일 기준점(빈 오브젝트). 4단계에서 이 위에 오브젝트를 얹음.
+            // 판결이 쌓일 기준점(빈 오브젝트). 완료된 사건마다 이 위에 판결패가 쌓인다.
             var stackAnchor = new GameObject("StackAnchor");
             stackAnchor.transform.SetParent(zone.transform);
             stackAnchor.transform.localPosition = new Vector3(0, 0.9f, 0); // 상판 위
+
+            // 기록대 로직: 완료 사건 수만큼 판결패를 쌓아 표시.
+            var stand = zone.AddComponent<RecordStand>();
+            stand.Initialize(stackAnchor.transform);
         }
 
         // ─────────────────────────────────────────────
