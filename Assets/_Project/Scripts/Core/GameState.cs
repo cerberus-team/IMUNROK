@@ -91,6 +91,10 @@ namespace IMUNROK.Common
         [SerializeField]
         private bool _gapriHandled = false;
 
+        // 현재 플레이어가 들어가 있는 사건(챕터). 조사청(사건 밖)에선 null.
+        // 수첩은 이 값에 해당하는 사건의 단서만 보여준다.
+        private CaseId? _currentCase = null;
+
         // CaseId → CaseRecord 빠른 조회용(런타임 캐시)
         private readonly Dictionary<CaseId, CaseRecord> _lookup = new Dictionary<CaseId, CaseRecord>();
 
@@ -201,6 +205,30 @@ namespace IMUNROK.Common
             EnsureInitialized();
             _gapriHandled = handled;
             Debug.Log($"[GameState] 갑리 처리 여부: {handled}");
+        }
+
+        // ── 현재 사건(챕터) 컨텍스트 ──
+        // 사건 씬에 들어가면 EnterCase, 조사청으로 나오면 ExitToHub 를 호출한다.
+        // 수첩(JournalView)이 "지금 사건의 단서만" 보여주는 근거가 된다.
+
+        /// <summary>지금 플레이어가 들어가 있는 사건. 조사청(사건 밖)이면 null.</summary>
+        public CaseId? CurrentCase => _currentCase;
+
+        /// <summary>사건 안에 있는가(조사청이 아니라).</summary>
+        public bool InCase => _currentCase.HasValue;
+
+        /// <summary>사건 씬에 진입할 때 호출(허브의 사건 큐브 선택 시 자동 호출됨).</summary>
+        public void EnterCase(CaseId id)
+        {
+            _currentCase = id;
+            Debug.Log($"[GameState] 사건 진입: {id}");
+        }
+
+        /// <summary>조사청(사건 밖)으로 나올 때 호출.</summary>
+        public void ExitToHub()
+        {
+            _currentCase = null;
+            Debug.Log("[GameState] 조사청(사건 밖)으로 이동");
         }
 
         /// <summary>모든 상태를 초기화(디버그/재시작용).</summary>

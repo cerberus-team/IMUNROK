@@ -48,7 +48,9 @@ namespace IMUNROK.Common.Editor
             BuildCaseBoard();     // 사건판 + 사건 큐브 3개
             BuildRecordStand();   // 기록대
             BuildToolShelf();     // 도구선반 + 도구 5개
+            BuildSampleInspectable(); // 데모용 살펴보기 대상(팀원이 실제 단서로 교체)
             BuildWorldState();    // 세계 상태(어둠→밝음 전환) 컨트롤러
+            BuildJournalView();   // 수첩 뷰어(J키)
             BuildDebugHelper();   // 키보드 디버그 도구
 
             // 저장
@@ -128,6 +130,9 @@ namespace IMUNROK.Common.Editor
 
             // 비-VR 테스트용 자유 비행 카메라(RMB 누른 채 WASD로 방을 둘러봄). VR 단계에서 제거/비활성.
             camGO.AddComponent<DebugFlyCamera>();
+
+            // 비-VR 테스트용 살펴보기(확대경 대역). 가리키면 IInspectable 정보 표시.
+            camGO.AddComponent<MouseInspector>();
         }
 
         private static void CreateWall(Transform parent, string name, Vector3 pos, Vector3 scale)
@@ -243,6 +248,26 @@ namespace IMUNROK.Common.Editor
         }
 
         // ─────────────────────────────────────────────
+        //  도구 사용 튜토리얼용 살펴보기 대상: 확대경으로 보면 정보가 뜨는 것을 연습.
+        //  조사청은 "사건 밖"이라 단서를 기록하지 않는다(RecordClue off).
+        //  실제 사건 단서는 팀원이 각 사건 씬에서 InspectableNote로 만든다.
+        // ─────────────────────────────────────────────
+        private static void BuildSampleInspectable()
+        {
+            var note = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            note.name = "TutorialInspectable";
+            note.transform.position = new Vector3(-1.6f, 1.2f, Half - 0.3f); // 사건판 왼쪽 벽 앞
+            note.transform.localScale = new Vector3(0.3f, 0.4f, 0.05f);
+
+            var insp = note.AddComponent<InspectableNote>();
+            var so = new SerializedObject(insp);
+            so.FindProperty("_title").stringValue = "도구 연습 · 확대경";
+            so.FindProperty("_body").stringValue = "물체를 살펴보면 이렇게 정보가 뜬다.\n사건에 들어가면, 이렇게 찾은 단서가 수첩에 쌓인다.";
+            so.FindProperty("_recordClue").boolValue = false; // 조사청에선 단서 기록 안 함
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // ─────────────────────────────────────────────
         //  세계 상태: 세 사건 완료 시 어둠→밝음 전환 + 봉서함 활성화.
         // ─────────────────────────────────────────────
         private static void BuildWorldState()
@@ -250,6 +275,15 @@ namespace IMUNROK.Common.Editor
             var go = new GameObject("_WorldState");
             var controller = go.AddComponent<WorldStateController>();
             controller.Initialize(_builtSun, _builtWindowRenderer, _builtWindowLight, _builtBongseo);
+        }
+
+        // ─────────────────────────────────────────────
+        //  수첩 뷰어: J키로 펼쳐 사건별 단서를 본다.
+        // ─────────────────────────────────────────────
+        private static void BuildJournalView()
+        {
+            var go = new GameObject("_JournalView");
+            go.AddComponent<JournalView>();
         }
 
         // ─────────────────────────────────────────────
@@ -275,12 +309,12 @@ namespace IMUNROK.Common.Editor
             AssetDatabase.CreateFolder(parent, leaf);
         }
 
-        /// <summary>Build Settings에 씬이 없으면 추가(맨 앞에).</summary>
+        /// <summary>Build Settings에 씬이 없으면 목록 끝에 추가(첫 씬은 어전이 되도록 앞에 끼우지 않음).</summary>
         private static void AddSceneToBuildSettings(string path)
         {
             var scenes = new System.Collections.Generic.List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
             if (scenes.Exists(s => s.path == path)) return;
-            scenes.Insert(0, new EditorBuildSettingsScene(path, true));
+            scenes.Add(new EditorBuildSettingsScene(path, true));
             EditorBuildSettings.scenes = scenes.ToArray();
         }
     }

@@ -129,6 +129,8 @@ namespace IMUNROK.Common
 
             if (canLoad)
             {
+                // 실제로 사건 씬에 들어갈 때만 "진입"으로 기록(수첩이 이 사건 단서를 보여줌).
+                _state.EnterCase(_caseId);
                 Debug.Log($"[CaseCube] {_caseId} 사건 씬 로드 → '{_caseSceneName}'");
                 SceneManager.LoadScene(_caseSceneName);
             }

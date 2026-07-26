@@ -86,6 +86,9 @@ namespace IMUNROK.Common
 
         private void Start()
         {
+            // 조사청은 "사건 밖" — 수첩에 사건 단서가 보이지 않도록 현재 사건을 비운다.
+            _state.ExitToHub();
+
             // 씬 시작 시점의 상태에 맞춰 즉시 세팅(재진입 대비).
             if (_state.AllCasesCompleted)
             {
