@@ -79,22 +79,36 @@ namespace IMUNROK.Common
             if (!_showOverlay || !Enabled) return;
 
             var gs = GameState.Instance;
-            var style = new GUIStyle(GUI.skin.label) { fontSize = 16, richText = true };
 
-            GUILayout.BeginArea(new Rect(12, 12, 460, 320), GUI.skin.box);
-            GUILayout.Label("<b>[GameState 디버그]</b>", style);
-            GUILayout.Label($"대상 사건(1/2/3): <b>{_target}</b>", style);
-            GUILayout.Space(6);
+            // 스타일은 최초 1회만 생성(매 프레임 new 하면 낭비 + GUI 이벤트에 취약).
+            if (_overlayStyle == null)
+                _overlayStyle = new GUIStyle(GUI.skin.label) { fontSize = 16, richText = true };
 
-            GUILayout.Label($"Case1 : {gs.GetStatus(CaseId.Case1_Onggojip),-11} / {gs.GetVerdict(CaseId.Case1_Onggojip)}", style);
-            GUILayout.Label($"Case2 : {gs.GetStatus(CaseId.Case2_Gyeonu),-11} / {gs.GetVerdict(CaseId.Case2_Gyeonu)}", style);
-            GUILayout.Label($"Case3 : {gs.GetStatus(CaseId.Case3_Seocheon),-11} / {gs.GetVerdict(CaseId.Case3_Seocheon)}", style);
-            GUILayout.Space(6);
-            GUILayout.Label($"완료 수 : {gs.CompletedCount} / {gs.CaseCount}   갑리처리:{gs.GapriHandled}", style);
-            GUILayout.Label($"전부완료 : {gs.AllCasesCompleted}", style);
-            GUILayout.Space(6);
-            GUILayout.Label("<size=12>S:시작  T:Truth  M:Mercy  F:AcceptFake  G:갑리  R:리셋</size>", style);
-            GUILayout.EndArea();
+            // 배경 박스 + 위치 지정 방식(GUILayout 대신 GUI.Label)으로 그린다.
+            // GUILayout은 Layout/Repaint 이벤트가 어긋나면 "Mismatched LayoutGroup" 에러를
+            // 뿜기 쉬워서, 좌표를 직접 주는 GUI.Label로 안전하게 그린다.
+            GUI.Box(new Rect(12, 12, 460, 300), GUIContent.none);
+
+            float x = 24f;
+            float y = 22f;
+            const float lh = 24f; // line height
+
+            void Line(string text) { GUI.Label(new Rect(x, y, 440, lh), text, _overlayStyle); y += lh; }
+
+            Line("<b>[GameState 디버그]</b>");
+            Line($"대상 사건(1/2/3): <b>{_target}</b>");
+            y += 6f;
+            Line($"Case1 : {gs.GetStatus(CaseId.Case1_Onggojip),-11} / {gs.GetVerdict(CaseId.Case1_Onggojip)}");
+            Line($"Case2 : {gs.GetStatus(CaseId.Case2_Gyeonu),-11} / {gs.GetVerdict(CaseId.Case2_Gyeonu)}");
+            Line($"Case3 : {gs.GetStatus(CaseId.Case3_Seocheon),-11} / {gs.GetVerdict(CaseId.Case3_Seocheon)}");
+            y += 6f;
+            Line($"완료 수 : {gs.CompletedCount} / {gs.CaseCount}   갑리처리:{gs.GapriHandled}");
+            Line($"전부완료 : {gs.AllCasesCompleted}");
+            y += 6f;
+            Line("<size=12>S:시작  T:Truth  M:Mercy  F:AcceptFake  G:갑리  R:리셋</size>");
         }
+
+        // OnGUI에서 재사용하는 스타일 캐시
+        private GUIStyle _overlayStyle;
     }
 }
