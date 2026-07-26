@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace IMUNROK.Common
 {
@@ -22,6 +23,9 @@ namespace IMUNROK.Common
         [Tooltip("가리켰을 때 흰색 쪽으로 섞는 정도(활성 상태에서만)")]
         [Range(0f, 1f)]
         [SerializeField] private float _hoverBrighten = 0.35f;
+
+        [Tooltip("선택 시 이동할 복명(엔딩) 씬 이름")]
+        [SerializeField] private string _endingSceneName = "EndingScene";
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -89,8 +93,17 @@ namespace IMUNROK.Common
                 return;
             }
 
-            // 6단계에서 여기에 복명(EndingScene) 로드를 연결한다.
-            Debug.Log("[BongseoBox] 봉서함 선택 — 복명으로 이어집니다. (6단계에서 씬 로드 연결 예정)");
+            // 복명(EndingScene)으로 이동
+            if (!string.IsNullOrEmpty(_endingSceneName) && Application.CanStreamedLevelBeLoaded(_endingSceneName))
+            {
+                Debug.Log($"[BongseoBox] 봉서함 선택 — 복명으로 이어집니다: '{_endingSceneName}'");
+                SceneManager.LoadScene(_endingSceneName);
+            }
+            else
+            {
+                Debug.LogWarning($"[BongseoBox] 복명 씬('{_endingSceneName}')을 찾을 수 없습니다. " +
+                                 $"[이문록 ▸ 복명 씬 생성] 을 먼저 실행했는지 확인하세요.");
+            }
         }
     }
 }
