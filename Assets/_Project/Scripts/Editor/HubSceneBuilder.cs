@@ -25,6 +25,12 @@ namespace IMUNROK.Common.Editor
         private const float Half = 3.5f;
         private const float WallHeight = 3f;
 
+        // 빌드 중 다른 메서드에서 참조하기 위한 임시 저장(세계 상태 컨트롤러 연결용).
+        private static Light _builtSun;
+        private static Renderer _builtWindowRenderer;
+        private static Light _builtWindowLight;
+        private static BongseoBox _builtBongseo;
+
         [MenuItem("이문록/조사청 씬 생성 (HubScene)")]
         public static void BuildHubScene()
         {
@@ -35,11 +41,14 @@ namespace IMUNROK.Common.Editor
             // 빈 씬에서 시작
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
+            _builtSun = null; _builtWindowRenderer = null; _builtWindowLight = null; _builtBongseo = null;
+
             BuildEnvironment();   // 바닥·벽·창호·조명·카메라
             BuildBongseoBox();    // 봉서함
             BuildCaseBoard();     // 사건판 + 사건 큐브 3개
             BuildRecordStand();   // 기록대
             BuildToolShelf();     // 도구선반 + 도구 5개
+            BuildWorldState();    // 세계 상태(어둠→밝음 전환) 컨트롤러
             BuildDebugHelper();   // 키보드 디버그 도구
 
             // 저장
@@ -77,6 +86,20 @@ namespace IMUNROK.Common.Editor
             window.transform.position = new Vector3(0, 1.6f, Half - 0.11f); // 북벽 살짝 안쪽
             window.transform.rotation = Quaternion.Euler(0, 180, 0);        // 방 안쪽을 향하게
             window.transform.localScale = new Vector3(2.4f, 1.6f, 1f);
+            // 창은 표시 전용 — 콜라이더 제거(선택 레이 방해 방지)
+            var winCol = window.GetComponent<Collider>();
+            if (winCol != null) Object.DestroyImmediate(winCol);
+            _builtWindowRenderer = window.GetComponent<Renderer>();
+
+            // 창으로 들어오는 빛(Point). 처음엔 꺼져 있고, 세계가 열릴 때 켜진다.
+            var winLightGO = new GameObject("WindowLight");
+            winLightGO.transform.SetParent(root.transform);
+            winLightGO.transform.position = new Vector3(0, 1.7f, Half - 0.5f);
+            _builtWindowLight = winLightGO.AddComponent<Light>();
+            _builtWindowLight.type = LightType.Point;
+            _builtWindowLight.range = 10f;
+            _builtWindowLight.intensity = 0f;
+            _builtWindowLight.color = new Color(1f, 0.96f, 0.85f);
 
             // 조명: 도입부의 "바깥이 없는" 어두운 분위기. 낮은 강도로 시작(5단계에서 밝힘).
             var lightGO = new GameObject("Sun");
@@ -84,9 +107,10 @@ namespace IMUNROK.Common.Editor
             lightGO.transform.rotation = Quaternion.Euler(50, -30, 0);
             var light = lightGO.AddComponent<Light>();
             light.type = LightType.Directional;
-            light.intensity = 0.7f;               // 다소 어둑하지만 색은 보이게(5단계에서 더 밝힘)
+            light.intensity = 0.7f;               // 닫힘(어둠) 상태 기본값 — 세계가 열리면 밝아짐
             light.color = new Color(0.7f, 0.74f, 0.85f); // 차갑고 창백한 빛
             RenderSettings.ambientLight = new Color(0.18f, 0.18f, 0.22f); // 전역 앰비언트
+            _builtSun = light;
 
             // 카메라: VR 전이라 비-VR로도 방을 볼 수 있게 배치(플레이어 눈높이).
             var camGO = new GameObject("Main Camera");
@@ -128,6 +152,9 @@ namespace IMUNROK.Common.Editor
             pedestal.transform.SetParent(zone.transform);
             pedestal.transform.localPosition = new Vector3(0, 0.5f, 0);
             pedestal.transform.localScale = new Vector3(0.6f, 1f, 0.4f);
+
+            // 봉서함 상호작용: 평소 비활성, 세계가 열리면 활성화되어 선택 가능.
+            _builtBongseo = pedestal.AddComponent<BongseoBox>();
         }
 
         // ─────────────────────────────────────────────
@@ -213,6 +240,16 @@ namespace IMUNROK.Common.Editor
                 tool.transform.localPosition = new Vector3(0.3f, 0.5f + i * 0.35f, -0.8f + i * 0.4f);
                 tool.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
             }
+        }
+
+        // ─────────────────────────────────────────────
+        //  세계 상태: 세 사건 완료 시 어둠→밝음 전환 + 봉서함 활성화.
+        // ─────────────────────────────────────────────
+        private static void BuildWorldState()
+        {
+            var go = new GameObject("_WorldState");
+            var controller = go.AddComponent<WorldStateController>();
+            controller.Initialize(_builtSun, _builtWindowRenderer, _builtWindowLight, _builtBongseo);
         }
 
         // ─────────────────────────────────────────────
