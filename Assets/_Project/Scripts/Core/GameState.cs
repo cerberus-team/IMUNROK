@@ -99,7 +99,11 @@ namespace IMUNROK.Common
         /// <summary>세 사건 레코드를 보장. 최초 접근/Awake 시 1회 세팅.</summary>
         private void EnsureInitialized()
         {
-            if (_initialized) return;
+            // _initialized가 true라도 런타임 캐시(_lookup)가 비어 있으면 다시 구성한다.
+            // (에디터에서 Play 중 스크립트가 핫 리로드되면 직렬화되지 않는 _lookup이
+            //  비워지는데, 이때 재구성하지 않으면 키 조회에서 KeyNotFoundException이 난다.)
+            if (_initialized && _lookup.Count == Enum.GetValues(typeof(CaseId)).Length)
+                return;
 
             _lookup.Clear();
 
@@ -116,6 +120,28 @@ namespace IMUNROK.Common
             }
 
             _initialized = true;
+        }
+
+        /// <summary>
+        /// 사건 레코드를 안전하게 얻는다. 캐시에 없으면(핫 리로드 등) 예외를 던지지 않고
+        /// 즉석에서 만들어 등록한 뒤 반환한다. 모든 읽기/쓰기 API는 이걸 거친다.
+        /// </summary>
+        private CaseRecord GetRecord(CaseId id)
+        {
+            EnsureInitialized();
+
+            if (_lookup.TryGetValue(id, out var rec) && rec != null)
+                return rec;
+
+            // 방어적 복구: 목록에서 찾고, 없으면 새로 만든다.
+            rec = _cases.Find(c => c.id == id);
+            if (rec == null)
+            {
+                rec = new CaseRecord { id = id };
+                _cases.Add(rec);
+            }
+            _lookup[id] = rec;
+            return rec;
         }
 
         // ─────────────────────────────────────────────
@@ -135,8 +161,7 @@ namespace IMUNROK.Common
         /// <summary>사건을 InProgress로. 이미 Completed면 되돌리지 않음.</summary>
         public void StartCase(CaseId id)
         {
-            EnsureInitialized();
-            var rec = _lookup[id];
+            var rec = GetRecord(id);
             if (rec.status == CaseStatus.Completed) return;
 
             if (rec.status != CaseStatus.InProgress)
@@ -152,17 +177,16 @@ namespace IMUNROK.Common
         /// </summary>
         public void SetVerdict(CaseId id, Verdict verdict)
         {
-            EnsureInitialized();
             if (verdict == Verdict.None)
             {
                 Debug.LogWarning($"[GameState] {id} 판결을 None으로 설정했습니다. 완료 처리하지 않습니다.");
-                var r = _lookup[id];
+                var r = GetRecord(id);
                 r.verdict = Verdict.None;
                 RaiseChanged(id);
                 return;
             }
 
-            var rec = _lookup[id];
+            var rec = GetRecord(id);
             rec.verdict = verdict;
             rec.status = CaseStatus.Completed;
             Debug.Log($"[GameState] {id} 판결 기록: {verdict} → Completed");
@@ -202,14 +226,12 @@ namespace IMUNROK.Common
 
         public CaseStatus GetStatus(CaseId id)
         {
-            EnsureInitialized();
-            return _lookup[id].status;
+            return GetRecord(id).status;
         }
 
         public Verdict GetVerdict(CaseId id)
         {
-            EnsureInitialized();
-            return _lookup[id].verdict;
+            return GetRecord(id).verdict;
         }
 
         public bool GapriHandled
@@ -248,7 +270,7 @@ namespace IMUNROK.Common
             EnsureInitialized();
             var list = new List<Verdict>(CaseCount);
             foreach (CaseId id in Enum.GetValues(typeof(CaseId)))
-                list.Add(_lookup[id].verdict);
+                list.Add(GetRecord(id).verdict);
             return list;
         }
 

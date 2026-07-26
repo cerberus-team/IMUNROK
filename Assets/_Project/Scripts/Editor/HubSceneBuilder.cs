@@ -84,9 +84,9 @@ namespace IMUNROK.Common.Editor
             lightGO.transform.rotation = Quaternion.Euler(50, -30, 0);
             var light = lightGO.AddComponent<Light>();
             light.type = LightType.Directional;
-            light.intensity = 0.25f;              // 어둡게
-            light.color = new Color(0.6f, 0.65f, 0.8f); // 차갑고 창백한 빛
-            RenderSettings.ambientLight = new Color(0.08f, 0.08f, 0.12f); // 전역 앰비언트도 어둡게
+            light.intensity = 0.7f;               // 다소 어둑하지만 색은 보이게(5단계에서 더 밝힘)
+            light.color = new Color(0.7f, 0.74f, 0.85f); // 차갑고 창백한 빛
+            RenderSettings.ambientLight = new Color(0.18f, 0.18f, 0.22f); // 전역 앰비언트
 
             // 카메라: VR 전이라 비-VR로도 방을 볼 수 있게 배치(플레이어 눈높이).
             var camGO = new GameObject("Main Camera");
@@ -98,6 +98,9 @@ namespace IMUNROK.Common.Editor
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.02f, 0.02f, 0.04f); // 창밖의 어둠/안개
             camGO.AddComponent<AudioListener>();
+
+            // 비-VR 테스트용 마우스 레이 선택기(사건 큐브 클릭 검증). VR 단계에서 컨트롤러 레이로 대체.
+            camGO.AddComponent<MouseRaySelector>();
         }
 
         private static void CreateWall(Transform parent, string name, Vector3 pos, Vector3 scale)
@@ -139,8 +142,12 @@ namespace IMUNROK.Common.Editor
             board.transform.localPosition = new Vector3(0, 1.5f, 0);
             board.transform.localScale = new Vector3(3.2f, 1.6f, 0.1f);
 
-            // 사건 큐브 3개. 이름 끝의 인덱스로 3단계에서 CaseId와 매핑.
+            // 사건 큐브 3개. CaseCube 컴포넌트를 붙여 CaseId·사건 씬 이름을 세팅.
+            // 사건 씬 이름은 팀원 폴더명 기준 추정값(아직 씬이 없으면 선택 시 로그만 남음).
             float[] xs = { -1f, 0f, 1f };
+            CaseId[] ids = { CaseId.Case1_Onggojip, CaseId.Case2_Seocheon, CaseId.Case3_Gyeonu };
+            string[] sceneNames = { "Onggojip", "Seocheon", "Gyeonu" };
+
             for (int i = 0; i < 3; i++)
             {
                 var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -148,6 +155,9 @@ namespace IMUNROK.Common.Editor
                 cube.transform.SetParent(zone.transform);
                 cube.transform.localPosition = new Vector3(xs[i], 1.5f, -0.25f); // 판 앞으로 살짝
                 cube.transform.localScale = new Vector3(0.5f, 0.7f, 0.15f);
+
+                var caseCube = cube.AddComponent<CaseCube>();
+                caseCube.Initialize(ids[i], sceneNames[i]);
             }
         }
 

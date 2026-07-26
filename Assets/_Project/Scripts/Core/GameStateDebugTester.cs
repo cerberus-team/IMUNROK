@@ -55,8 +55,8 @@ namespace IMUNROK.Common
 
             // 대상 사건 선택
             if (kb.digit1Key.wasPressedThisFrame) { _target = CaseId.Case1_Onggojip; Log("대상 → Case1"); }
-            if (kb.digit2Key.wasPressedThisFrame) { _target = CaseId.Case2_Gyeonu;   Log("대상 → Case2"); }
-            if (kb.digit3Key.wasPressedThisFrame) { _target = CaseId.Case3_Seocheon; Log("대상 → Case3"); }
+            if (kb.digit2Key.wasPressedThisFrame) { _target = CaseId.Case2_Seocheon; Log("대상 → Case2"); }
+            if (kb.digit3Key.wasPressedThisFrame) { _target = CaseId.Case3_Gyeonu;   Log("대상 → Case3"); }
 
             // 상태/판결 조작
             if (kb.sKey.wasPressedThisFrame) GameState.Instance.StartCase(_target);
@@ -99,8 +99,8 @@ namespace IMUNROK.Common
             Line($"대상 사건(1/2/3): <b>{_target}</b>");
             y += 6f;
             Line($"Case1 : {gs.GetStatus(CaseId.Case1_Onggojip),-11} / {gs.GetVerdict(CaseId.Case1_Onggojip)}");
-            Line($"Case2 : {gs.GetStatus(CaseId.Case2_Gyeonu),-11} / {gs.GetVerdict(CaseId.Case2_Gyeonu)}");
-            Line($"Case3 : {gs.GetStatus(CaseId.Case3_Seocheon),-11} / {gs.GetVerdict(CaseId.Case3_Seocheon)}");
+            Line($"Case2 : {gs.GetStatus(CaseId.Case2_Seocheon),-11} / {gs.GetVerdict(CaseId.Case2_Seocheon)}");
+            Line($"Case3 : {gs.GetStatus(CaseId.Case3_Gyeonu),-11} / {gs.GetVerdict(CaseId.Case3_Gyeonu)}");
             y += 6f;
             Line($"완료 수 : {gs.CompletedCount} / {gs.CaseCount}   갑리처리:{gs.GapriHandled}");
             Line($"전부완료 : {gs.AllCasesCompleted}");

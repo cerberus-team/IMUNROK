@@ -9,11 +9,11 @@ namespace IMUNROK.Common
         /// <summary>제1사건: 누가 진짜인가 (옹고집전 모티브)</summary>
         Case1_Onggojip = 0,
 
-        /// <summary>제2사건: 칠석 실종 사건 (견우직녀)</summary>
-        Case2_Gyeonu = 1,
+        /// <summary>제2사건: 네 번째 환생자 (서천꽃밭)</summary>
+        Case2_Seocheon = 1,
 
-        /// <summary>제3사건: 네 번째 환생자 (서천꽃밭)</summary>
-        Case3_Seocheon = 2,
+        /// <summary>제3사건: 칠석 실종 사건 (견우직녀)</summary>
+        Case3_Gyeonu = 2,
     }
 
     /// <summary>
