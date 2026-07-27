@@ -15,11 +15,12 @@ namespace IMUNROK.Common
     /// </summary>
     public class InterrogationController : MonoBehaviour
     {
-        public enum Backend { Mock, Claude }
+        public enum Backend { Mock, Gemini }
 
         [Header("설정")]
         [SerializeField] private InterrogationCharacter _character;
-        [SerializeField] private Backend _backend = Backend.Mock;
+        [Tooltip("Mock=미리 정한 대사, Gemini=실제 AI. Gemini는 키 없으면 자동으로 Mock으로 대체됨")]
+        [SerializeField] private Backend _backend = Backend.Gemini;
         [SerializeField] private string _hubSceneName = "HubScene";
 
         [Tooltip("테스트용: 인물의 증거 게이트 단서를 수첩에 미리 채워 제시할 수 있게 함")]
@@ -63,11 +64,8 @@ namespace IMUNROK.Common
 
         private INpcResponder MakeResponder()
         {
-            if (_backend == Backend.Claude)
-            {
-                // 내일 여기에 return new ClaudeNpcResponder(...); 를 연결한다.
-                Debug.LogWarning("[InterrogationController] 실제 AI(Claude)는 아직 연결 전 — 목업으로 대체합니다.");
-            }
+            if (_backend == Backend.Gemini)
+                return new GeminiNpcResponder(); // 키 없으면 내부에서 자동으로 Mock으로 대체됨
             return new MockNpcResponder();
         }
 

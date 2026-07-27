@@ -68,6 +68,11 @@ namespace IMUNROK.Common
             // F1 = 이 디버그 오버레이 표시/숨김(수첩 등과 겹칠 때)
             if (kb.f1Key.wasPressedThisFrame) _showOverlay = !_showOverlay;
 
+            // 저장 / 불러오기 / 삭제
+            if (kb.f5Key.wasPressedThisFrame) SaveSystem.Save();
+            if (kb.f9Key.wasPressedThisFrame) SaveSystem.Load();
+            if (kb.f8Key.wasPressedThisFrame) SaveSystem.Delete();
+
             // 상태/판결 조작
             if (kb.sKey.wasPressedThisFrame) GameState.Instance.StartCase(_target);
             if (kb.tKey.wasPressedThisFrame) GameState.Instance.SetVerdict(_target, Verdict.Truth);
@@ -113,7 +118,7 @@ namespace IMUNROK.Common
             // 배경 박스 + 위치 지정 방식(GUILayout 대신 GUI.Label)으로 그린다.
             // GUILayout은 Layout/Repaint 이벤트가 어긋나면 "Mismatched LayoutGroup" 에러를
             // 뿜기 쉬워서, 좌표를 직접 주는 GUI.Label로 안전하게 그린다.
-            GUI.Box(new Rect(12, 12, 500, 384), GUIContent.none);
+            GUI.Box(new Rect(12, 12, 500, 410), GUIContent.none);
 
             float x = 24f;
             float y = 22f;
@@ -134,7 +139,8 @@ namespace IMUNROK.Common
             var jn = Journal.Instance;
             Line($"수첩 단서 : C1={jn.ClueCount(CaseId.Case1_Onggojip)}  C2={jn.ClueCount(CaseId.Case2_Seocheon)}  C3={jn.ClueCount(CaseId.Case3_Gyeonu)}  (합 {jn.TotalClueCount})");
             y += 6f;
-            Line("<size=12>1/2/3:사건진입  B:조사청  S:시작  T/M/F:판결  G:갑리  C:단서  R:리셋  F1:숨김</size>");
+            Line("<size=12>1/2/3:사건진입  B:조사청  S:시작  T/M/F:판결  G:갑리  C:단서  R:리셋</size>");
+            Line("<size=12>F1:숨김  F5:저장  F9:불러오기  F8:저장삭제</size>");
         }
 
         // OnGUI에서 재사용하는 스타일 캐시

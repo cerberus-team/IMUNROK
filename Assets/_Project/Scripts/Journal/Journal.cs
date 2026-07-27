@@ -124,5 +124,21 @@ namespace IMUNROK.Common
         }
 
         public int TotalClueCount => _clues.Count;
+
+        // ── 저장 / 불러오기 (SaveSystem이 호출) ──
+
+        [Serializable]
+        private class SaveDTO { public List<ClueEntry> clues; }
+
+        public string ToJson() => JsonUtility.ToJson(new SaveDTO { clues = _clues });
+
+        public void FromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return;
+            var d = JsonUtility.FromJson<SaveDTO>(json);
+            if (d == null || d.clues == null) return;
+            _clues.Clear();
+            _clues.AddRange(d.clues);
+        }
     }
 }

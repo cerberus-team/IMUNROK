@@ -34,6 +34,7 @@ namespace IMUNROK.Common.Editor
             var cam = camGO.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.05f, 0.05f, 0.06f);
+            AtmosphereSetup.ApplyDarkSkybox(cam); // 360 배경(VR 규칙)
             camGO.AddComponent<AudioListener>();
 
             // 심문 컨트롤러 + 캐릭터 연결
