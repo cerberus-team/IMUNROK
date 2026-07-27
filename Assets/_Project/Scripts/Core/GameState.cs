@@ -303,6 +303,38 @@ namespace IMUNROK.Common
         }
 
         // ─────────────────────────────────────────────
+        //  저장 / 불러오기 (SaveSystem이 호출)
+        // ─────────────────────────────────────────────
+
+        [Serializable]
+        private class SaveDTO { public List<CaseRecord> cases; public bool gapri; }
+
+        /// <summary>현재 상태를 JSON 문자열로 반환.</summary>
+        public string ToJson()
+        {
+            EnsureInitialized();
+            return JsonUtility.ToJson(new SaveDTO { cases = _cases, gapri = _gapriHandled });
+        }
+
+        /// <summary>JSON 문자열에서 상태를 복원.</summary>
+        public void FromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return;
+            var d = JsonUtility.FromJson<SaveDTO>(json);
+            if (d == null || d.cases == null) return;
+
+            _cases = d.cases;
+            _gapriHandled = d.gapri;
+            _initialized = false;      // _lookup 재구성 강제
+            _allCompletedFired = false;
+            EnsureInitialized();
+
+            foreach (CaseId id in Enum.GetValues(typeof(CaseId)))
+                RaiseChanged(id);
+            CheckAllCompleted();
+        }
+
+        // ─────────────────────────────────────────────
         //  내부 헬퍼
         // ─────────────────────────────────────────────
 

@@ -123,6 +123,7 @@ namespace IMUNROK.Common.Editor
             var cam = camGO.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.02f, 0.02f, 0.04f); // 창밖의 어둠/안개
+            AtmosphereSetup.ApplyDarkSkybox(cam); // 360 배경(VR 규칙)
             camGO.AddComponent<AudioListener>();
 
             // 비-VR 테스트용 마우스 레이 선택기(사건 큐브 클릭 검증). VR 단계에서 컨트롤러 레이로 대체.
