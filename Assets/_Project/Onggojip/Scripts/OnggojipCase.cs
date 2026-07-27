@@ -20,6 +20,12 @@ namespace IMUNROK.Onggojip
         [SerializeField] private bool _showDebugPanel = true;
         [SerializeField] private string _hubSceneName = "HubScene";
 
+        [Tooltip("이 씬의 시작 단계. 1부(옹씨댁 밤)=Stealth, 2부(관아 아침)=Revealed")]
+        [SerializeField] private Phase _startPhase = Phase.Stealth;
+
+        [Tooltip("출도 시 로드할 2부(관아) 씬 이름")]
+        [SerializeField] private string _act2SceneName = "Onggojip_Gwana";
+
         private const CaseId ThisCase = CaseId.Case1_Onggojip;
 
         private Phase _phase = Phase.Stealth;
@@ -36,6 +42,7 @@ namespace IMUNROK.Onggojip
             _gs = GameState.Instance;
             _journal = Journal.Instance;
             _gs.EnterCase(ThisCase);   // 수첩이 이 사건 단서만 보이도록
+            _phase = _startPhase;      // 씬이 곧 단계(1부=Stealth, 2부=Revealed)
         }
 
         private void Update()
@@ -92,8 +99,19 @@ namespace IMUNROK.Onggojip
         private void Reveal()
         {
             if (!CanReveal()) return;
-            _phase = Phase.Revealed;
-            Debug.Log("[옹고집] 출도(出道) — 이제 공개 조사.");
+            Debug.Log("[옹고집] 출도(出道) — 관아(2부)로 이동. 되돌릴 수 없음.");
+
+            // 되돌릴 수 없음: 2부 씬 로드(단서는 수첩에 그대로 유지됨).
+            if (!string.IsNullOrEmpty(_act2SceneName) && Application.CanStreamedLevelBeLoaded(_act2SceneName))
+            {
+                SceneManager.LoadScene(_act2SceneName);
+            }
+            else
+            {
+                // 2부 씬이 아직 없으면 같은 씬에서 단계만 전환(안전 대체)
+                _phase = Phase.Revealed;
+                Debug.LogWarning($"[옹고집] 2부 씬('{_act2SceneName}')이 없어 같은 씬에서 Revealed로 대체.");
+            }
         }
 
         /// <summary>진실 규명의 결정타(대면 심문 '복동아')가 가능한가.</summary>
@@ -137,30 +155,38 @@ namespace IMUNROK.Onggojip
             foreach (var c in OnggojipClues.All)
                 if (c.stealth) DrawClueRow(c);
 
-            GUILayout.Space(8);
-            bool canReveal = CanReveal();
-            GUI.enabled = canReveal;
-            if (GUILayout.Button("▶ 출도(마패) — 되돌릴 수 없음")) _pending = Reveal;
-            GUI.enabled = true;
-            if (_phase == Phase.Stealth && !canReveal)
-                GUILayout.Label($"<size=11>필수 단서 부족: {MissingRequired()}</size>", _rich);
+            // 1부(잠행)에서만: 출도
+            if (_phase == Phase.Stealth)
+            {
+                GUILayout.Space(8);
+                bool canReveal = CanReveal();
+                GUI.enabled = canReveal;
+                if (GUILayout.Button("▶ 출도(마패) — 관아로, 되돌릴 수 없음")) _pending = Reveal;
+                GUI.enabled = true;
+                if (!canReveal)
+                    GUILayout.Label($"<size=11>필수 단서 부족: {MissingRequired()}</size>", _rich);
+            }
 
-            GUILayout.Space(8);
-            GUILayout.Label("── 2부 공개 단서 (G) ──", _rich);
-            foreach (var c in OnggojipClues.All)
-                if (!c.stealth) DrawClueRow(c);
+            // 2부(공개조사)에서만: 공개 단서 + 판결
+            if (_phase == Phase.Revealed)
+            {
+                GUILayout.Space(8);
+                GUILayout.Label("── 2부 공개 단서 (G) ──", _rich);
+                foreach (var c in OnggojipClues.All)
+                    if (!c.stealth) DrawClueRow(c);
 
-            GUILayout.Space(8);
-            GUILayout.Label($"최종 추궁 '복동아' 가능(J13+G03): <b>{CanFinalPress}</b>", _rich);
+                GUILayout.Space(8);
+                GUILayout.Label($"최종 추궁 '복동아' 가능(J13+G03): <b>{CanFinalPress}</b>", _rich);
 
-            GUILayout.Space(8);
-            GUILayout.Label("── 판결 ──", _rich);
-            _gapri = GUILayout.Toggle(_gapri, " 갑리(고리대) 처결");
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("진실대로")) _pending = () => Judge(Verdict.Truth);
-            if (GUILayout.Button("정상참작")) _pending = () => Judge(Verdict.Mercy);
-            if (GUILayout.Button("甲 인정")) _pending = () => Judge(Verdict.AcceptFake);
-            GUILayout.EndHorizontal();
+                GUILayout.Space(8);
+                GUILayout.Label("── 판결 ──", _rich);
+                _gapri = GUILayout.Toggle(_gapri, " 갑리(고리대) 처결");
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("진실대로")) _pending = () => Judge(Verdict.Truth);
+                if (GUILayout.Button("정상참작")) _pending = () => Judge(Verdict.Mercy);
+                if (GUILayout.Button("甲 인정")) _pending = () => Judge(Verdict.AcceptFake);
+                GUILayout.EndHorizontal();
+            }
 
             GUILayout.EndScrollView();
             GUILayout.EndArea();
