@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem;
 using IMUNROK.Common;
 
 namespace IMUNROK.Onggojip
@@ -47,6 +48,10 @@ namespace IMUNROK.Onggojip
 
         private void Update()
         {
+            // F2: 흐름 디버그 패널 껐다 켜기(나중에 통째로 지워도 됨)
+            if (Keyboard.current != null && Keyboard.current.f2Key.wasPressedThisFrame)
+                _showDebugPanel = !_showDebugPanel;
+
             if (_pending != null)
             {
                 var a = _pending;
@@ -146,7 +151,7 @@ namespace IMUNROK.Onggojip
                 _rich = new GUIStyle(GUI.skin.label) { richText = true, wordWrap = true, fontSize = 13 };
 
             GUILayout.BeginArea(new Rect(12, 12, 560, Screen.height - 24), GUI.skin.box);
-            GUILayout.Label("<b>[옹고집 사건 — 흐름 디버그]</b>", _rich);
+            GUILayout.Label("<b>[옹고집 사건 — 흐름 디버그]</b>  <size=11>(F2: 끄기/켜기)</size>", _rich);
             GUILayout.Label($"단계: <b>{_phase}</b>    잠행단서 {CountDiscovered(true)}/15   공개단서 {CountDiscovered(false)}/6", _rich);
 
             _scroll = GUILayout.BeginScrollView(_scroll);

@@ -6,18 +6,21 @@ using UnityEngine.InputSystem;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 에디터/비-VR 테스트용 자유 비행 카메라.
-    /// VR 이동(텔레포트)을 붙이기 전에, Play 화면에서 방 안을 둘러보며
-    /// 네 구역(사건판·기록대·도구선반·봉서함)을 확인할 수 있게 해준다.
+    /// 에디터/비-VR 테스트용 카메라. 두 모드(비행/걷기)를 Tab으로 전환.
     ///
-    /// [조작] — 마우스 오른쪽 버튼(RMB)을 "누르고 있는 동안"만 작동
-    ///   RMB 누른 채 마우스 이동 : 시점 회전(둘러보기)
-    ///   RMB + W/A/S/D          : 앞/왼/뒤/오른 이동
-    ///   RMB + E / Q            : 위 / 아래 이동
-    ///   RMB + Shift            : 빠르게 이동
+    ///  ● 비행(Fly) — 자유롭게 날며 둘러보기(배치 확인용)
+    ///  ● 걷기(Walk) — 사람처럼 눈높이 고정, 수평으로만 이동(잠행 동선 테스트용)
     ///
-    /// RMB를 떼면 카메라는 멈추고, 평소처럼 좌클릭으로 사건 큐브를 선택하거나
-    /// 디버그 키(1/2/3, T/M/F 등)를 쓸 수 있다. (그래서 이동키와 디버그키가 안 겹침)
+    /// [조작] — 마우스 오른쪽 버튼(RMB)을 "누르고 있는 동안"만 이동/회전
+    ///   Tab            : 비행 ↔ 걷기 전환
+    ///   G              : "바로 아래 바닥으로 내려서기" → 그 바닥을 걷는 높이로 잡음(걷기모드 자동 전환)
+    ///   RMB + 마우스   : 시점 회전
+    ///   RMB + W/A/S/D  : 이동
+    ///   RMB + E / Q    : (비행 모드만) 위 / 아래
+    ///   RMB + Shift    : 빠르게
+    ///
+    /// 화면 좌하단에 현재 모드/높이가 표시된다. RMB를 떼면 멈춘다(좌클릭 선택과 안 겹침).
+    /// ※ G(바닥 내려서기)는 바닥에 Collider가 있어야 작동. 집 부품엔 대부분 Mesh Collider가 있음.
     /// </summary>
     public class DebugFlyCamera : MonoBehaviour
     {
@@ -26,15 +29,22 @@ namespace IMUNROK.Common
         [SerializeField] private float _lookSpeed = 0.12f;
         [Tooltip("Shift로 빨라지는 배수")]
         [SerializeField] private float _sprintMultiplier = 3f;
+        [Tooltip("걷기 모드로 시작할지")]
+        [SerializeField] private bool _walkMode = false;
+        [Tooltip("걷기/바닥내려서기 시 눈높이(바닥으로부터)")]
+        [SerializeField] private float _eyeHeight = 1.6f;
 
         private float _yaw;
         private float _pitch;
+        private float _walkY;
+        private GUIStyle _hud;
 
         private void Start()
         {
             Vector3 e = transform.eulerAngles;
             _yaw = e.y;
             _pitch = e.x;
+            _walkY = transform.position.y;
         }
 
         private void Update()
@@ -44,7 +54,24 @@ namespace IMUNROK.Common
             var mouse = Mouse.current;
             if (kb == null || mouse == null) return;
 
-            // 오른쪽 버튼을 누르고 있을 때만 카메라 조작(디버그 키와 충돌 방지)
+            // Tab: 비행 ↔ 걷기 (현재 높이를 눈높이로 고정)
+            if (kb.tabKey.wasPressedThisFrame)
+            {
+                _walkMode = !_walkMode;
+                _walkY = transform.position.y;
+            }
+
+            // G: 바로 아래 바닥으로 내려서서 그 높이를 걷는 눈높이로
+            if (kb.gKey.wasPressedThisFrame)
+            {
+                if (Physics.Raycast(transform.position + Vector3.up * 0.2f, Vector3.down, out var hit, 200f))
+                {
+                    _walkMode = true;
+                    _walkY = hit.point.y + _eyeHeight;
+                    Vector3 p0 = transform.position; p0.y = _walkY; transform.position = p0;
+                }
+            }
+
             if (!mouse.rightButton.isPressed) return;
 
             // 시점 회전
@@ -54,18 +81,51 @@ namespace IMUNROK.Common
             _pitch = Mathf.Clamp(_pitch, -89f, 89f);
             transform.rotation = Quaternion.Euler(_pitch, _yaw, 0f);
 
-            // 이동
-            Vector3 dir = Vector3.zero;
-            if (kb.wKey.isPressed) dir += Vector3.forward;
-            if (kb.sKey.isPressed) dir += Vector3.back;
-            if (kb.aKey.isPressed) dir += Vector3.left;
-            if (kb.dKey.isPressed) dir += Vector3.right;
-            if (kb.eKey.isPressed) dir += Vector3.up;
-            if (kb.qKey.isPressed) dir += Vector3.down;
-
             float speed = _moveSpeed * (kb.leftShiftKey.isPressed ? _sprintMultiplier : 1f);
-            transform.Translate(dir.normalized * speed * Time.deltaTime, Space.Self);
+
+            if (_walkMode)
+            {
+                // 수평(yaw 기준)으로만 이동, 높이 고정
+                Vector3 fwd = Quaternion.Euler(0f, _yaw, 0f) * Vector3.forward;
+                Vector3 right = Quaternion.Euler(0f, _yaw, 0f) * Vector3.right;
+                Vector3 move = Vector3.zero;
+                if (kb.wKey.isPressed) move += fwd;
+                if (kb.sKey.isPressed) move -= fwd;
+                if (kb.dKey.isPressed) move += right;
+                if (kb.aKey.isPressed) move -= right;
+
+                transform.position += move.normalized * speed * Time.deltaTime;
+
+                // 발밑 바닥(Collider)을 따라 눈높이 유지 → 지정한 바닥 위를 걸음
+                if (Physics.Raycast(transform.position + Vector3.up * 3f, Vector3.down,
+                        out var gh, 60f, ~0, QueryTriggerInteraction.Ignore))
+                    _walkY = gh.point.y + _eyeHeight;
+
+                Vector3 p = transform.position;
+                p.y = _walkY;                 // 눈높이 고정(위로 안 뜸)
+                transform.position = p;
+            }
+            else
+            {
+                Vector3 dir = Vector3.zero;
+                if (kb.wKey.isPressed) dir += Vector3.forward;
+                if (kb.sKey.isPressed) dir += Vector3.back;
+                if (kb.aKey.isPressed) dir += Vector3.left;
+                if (kb.dKey.isPressed) dir += Vector3.right;
+                if (kb.eKey.isPressed) dir += Vector3.up;
+                if (kb.qKey.isPressed) dir += Vector3.down;
+                transform.Translate(dir.normalized * speed * Time.deltaTime, Space.Self);
+            }
 #endif
+        }
+
+        private void OnGUI()
+        {
+            if (_hud == null)
+                _hud = new GUIStyle(GUI.skin.label) { fontSize = 13, richText = true };
+            string mode = _walkMode ? "<color=#8f8>걷기</color>" : "<color=#8cf>비행</color>";
+            GUI.Label(new Rect(12, Screen.height - 46, 520, 22),
+                $"카메라: {mode}  (Tab 전환 · G 바닥내려서기)  y={transform.position.y:0.0}", _hud);
         }
     }
 }
