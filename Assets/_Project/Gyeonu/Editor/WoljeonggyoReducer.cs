@@ -154,16 +154,47 @@ namespace IMUNROK.Gyeonu.Editor
             // 나머지(보·창방·벽·천장류)는 DefaultRate 40%
         };
 
-        [MenuItem("Tools/이문록/월정교 감축 1 - 누각")]
+        // ── 심층 세대 (2026-08-04 승인): 창호·문·벽·누각 서까래 2종은 미실행(원본 유지),
+        //    나머지 전 부위는 바닥 프로파일로 알고리즘 한계까지 감축 ──
+        static bool _deep;
+        static readonly HashSet<string> DeepSkip = new HashSet<string>
+        {
+            // 누각: 처마 실루엣 서까래 2종 원본 유지
+            "SM_CWEB_002_NUGAG_SEOGARAE",
+            "SM_CWEB_002_GYOGAG_SEOGARAE",
+            // 문루: 창호·문·벽 계열 전체 원본 유지 (근접 부위, 합 71,400)
+            "SM_CWEA_003_2F_CHANGMUN_M001", "SM_CWEA_003_2F_CHANGMUN_M002", "SM_CWEA_003_2F_CHANGMUN_M003",
+            "SM_CWEA_003_2F_CHANGTEUL", "SM_CWEA_003_2F_MUN", "SM_CWEA_003_HYUNPAN",
+            "SM_CWEA_003_1F_WALL_M001", "SM_CWEA_003_1F_WALL_M002", "SM_CWEA_003_2F_WALL",
+            "SM_CWEA_003_DORIWALL", "SM_CWEA_003_HAPJANGWALL",
+        };
+
+        [MenuItem("Tools/이문록/월정교 감축 1 - 누각 (A안)")]
         public static void RunNugag()
         {
             Reduce(NugagFbx, NugagRates, "Nugag", "SM_CWEB_002_");
         }
 
-        [MenuItem("Tools/이문록/월정교 감축 2 - 문루")]
+        [MenuItem("Tools/이문록/월정교 감축 2 - 문루 (A안)")]
         public static void RunGate()
         {
             Reduce(GateFbx, GateRates, "Munru", "SM_CWEA_003_");
+        }
+
+        [MenuItem("Tools/이문록/월정교 감축 3 - 누각 (심층)")]
+        public static void RunNugagDeep()
+        {
+            _deep = true;
+            try { Reduce(NugagFbx, NugagRates, "Nugag", "SM_CWEB_002_"); }
+            finally { _deep = false; }
+        }
+
+        [MenuItem("Tools/이문록/월정교 감축 4 - 문루 (심층)")]
+        public static void RunGateDeep()
+        {
+            _deep = true;
+            try { Reduce(GateFbx, GateRates, "Munru", "SM_CWEA_003_"); }
+            finally { _deep = false; }
         }
 
         static void Reduce(string fbxPath, Dictionary<string, float> rates, string outName, string prefix)
@@ -204,15 +235,16 @@ namespace IMUNROK.Gyeonu.Editor
                     EditorUtility.DisplayProgressBar("월정교 감축 — " + outName,
                         mf.name + " (" + tris.ToString("N0") + " tris)", (float)i / filters.Length);
 
-                    if (tris < MinTris)
+                    if (tris < MinTris || (_deep && DeepSkip.Contains(mf.name)))
                     {
                         totalAfter += tris;
-                        report.AppendLine("| " + Short(mf.name, prefix) + " | " + tris.ToString("N0") + " | (원본 유지) | 0% |");
+                        string why = (_deep && DeepSkip.Contains(mf.name)) ? "(미실행-보호)" : "(원본 유지)";
+                        report.AppendLine("| " + Short(mf.name, prefix) + " | " + tris.ToString("N0") + " | " + why + " | 0% |");
                         continue;
                     }
 
-                    bool strict = StrictParts.Contains(mf.name);
-                    bool floor = FloorParts.Contains(mf.name);
+                    bool strict = !_deep && StrictParts.Contains(mf.name);
+                    bool floor = _deep || FloorParts.Contains(mf.name);
                     var simplifier = new MeshSimplifier();
                     var opts = SimplificationOptions.Default;
                     opts.EnableSmartLink = true;
@@ -253,11 +285,24 @@ namespace IMUNROK.Gyeonu.Editor
                     long after = CountTris(reduced);
                     totalAfter += after;
 
+                    // GUID 보존: 기존 에셋이 있으면 삭제하지 않고 내용만 덮어쓴다
+                    // (Delete+Create는 GUID가 바뀌어 씬·프리팹 참조가 끊긴다 — 2026-08-04 사고 원인)
                     string assetPath = ModelDir + "/" + outName + "/" + reduced.name + ".asset";
-                    if (AssetDatabase.LoadAssetAtPath<Mesh>(assetPath) != null)
-                        AssetDatabase.DeleteAsset(assetPath);
-                    AssetDatabase.CreateAsset(reduced, assetPath);
-                    mf.sharedMesh = reduced;
+                    var existing = AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
+                    if (existing != null)
+                    {
+                        string keepName = existing.name;
+                        EditorUtility.CopySerialized(reduced, existing);
+                        existing.name = keepName;
+                        Object.DestroyImmediate(reduced);
+                        EditorUtility.SetDirty(existing);
+                        mf.sharedMesh = existing;
+                    }
+                    else
+                    {
+                        AssetDatabase.CreateAsset(reduced, assetPath);
+                        mf.sharedMesh = reduced;
+                    }
 
                     report.AppendLine("| " + Short(mf.name, prefix) + " | " + tris.ToString("N0") + " | " + after.ToString("N0") + " | " +
                         Mathf.RoundToInt((1f - (float)after / tris) * 100) + "%" + (listed ? "" : " (기본40)") + (strict ? " (엄격)" : "") + (floor ? " (바닥)" : "") + " |");
