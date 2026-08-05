@@ -96,13 +96,17 @@ namespace IMUNROK.Common
 
                 transform.position += move.normalized * speed * Time.deltaTime;
 
-                // 발밑 바닥(Collider)을 따라 눈높이 유지 → 지정한 바닥 위를 걸음
-                if (Physics.Raycast(transform.position + Vector3.up * 3f, Vector3.down,
-                        out var gh, 60f, ~0, QueryTriggerInteraction.Ignore))
-                    _walkY = gh.point.y + _eyeHeight;
+                // 발밑에서 "짧게" 아래로 쏴서 바닥을 따라감(지붕·처마로 튀지 않게)
+                float feetY = transform.position.y - _eyeHeight;
+                Vector3 origin = new Vector3(transform.position.x, feetY + 0.5f, transform.position.z);
+                if (Physics.Raycast(origin, Vector3.down, out var gh, 2.5f, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    float targetY = gh.point.y + _eyeHeight;
+                    _walkY = Mathf.MoveTowards(_walkY, targetY, 4f * Time.deltaTime); // 계단·문턱만 천천히 오르내림
+                }
 
                 Vector3 p = transform.position;
-                p.y = _walkY;                 // 눈높이 고정(위로 안 뜸)
+                p.y = _walkY;
                 transform.position = p;
             }
             else

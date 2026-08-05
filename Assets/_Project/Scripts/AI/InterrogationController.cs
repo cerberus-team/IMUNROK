@@ -32,6 +32,11 @@ namespace IMUNROK.Common
         [SerializeField] private bool _beginOnStart = true;
 
         private bool _active;
+
+        // 지금 심문창이 하나라도 열려 있나(다른 UI가 참고: 목표 HUD 숨김 등)
+        private static int s_openCount;
+        public static bool AnyOpen => s_openCount > 0;
+
         private INpcResponder _responder;
         private readonly List<string> _transcript = new List<string>();
         private readonly List<string> _unlockedFacts = new List<string>();
@@ -81,12 +86,24 @@ namespace IMUNROK.Common
             _npcLine = _character.openingLine;
             _transcript.Add($"{_character.characterName}: {_npcLine}");
             _active = true;
+            s_openCount++;
+        }
+
+        private void OnDisable()
+        {
+            if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); }
         }
 
         // ── 클릭/VR 레이로 인물을 선택하면 심문 시작 ──
         public void OnHoverEnter() { }
         public void OnHoverExit() { }
         public void OnSelect() { if (!_active) Begin(); }
+
+        private void ClosePanel()
+        {
+            if (_beginOnStart) { _exitRequested = true; return; }      // 단독 무대 → 조사청 복귀
+            if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); } // 큐브 → 패널만 닫기
+        }
 
         private INpcResponder MakeResponder()
         {
@@ -198,6 +215,13 @@ namespace IMUNROK.Common
 
         private void Update()
         {
+#if ENABLE_INPUT_SYSTEM
+            // ESC로 심문창 닫기(인물 큐브 방식일 때)
+            if (_active && !_beginOnStart && UnityEngine.InputSystem.Keyboard.current != null
+                && UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
+                ClosePanel();
+#endif
+
             // 씬 전환은 OnGUI 밖(안전)에서 처리
             if (_exitRequested)
             {
@@ -222,7 +246,9 @@ namespace IMUNROK.Common
 
             // 인물 + 현재 대사
             GUI.Box(new Rect(x, y, w, 150f), GUIContent.none);
-            GUI.Label(new Rect(x + 16, y + 10, w - 32, 26), _character.characterName, _nameStyle);
+            GUI.Label(new Rect(x + 16, y + 10, w - 120, 26), _character.characterName, _nameStyle);
+            if (GUI.Button(new Rect(x + w - 96, y + 8, 88, 26), "✕ 닫기 (ESC)"))
+                ClosePanel();
             GUI.Label(new Rect(x + 16, y + 40, w - 32, 100f), _busy ? "…" : _npcLine, _lineStyle);
             y += 162f;
 
@@ -285,10 +311,7 @@ namespace IMUNROK.Common
             // 나가기
             y += 8f;
             if (GUI.Button(new Rect(x, y, 160, 28), "심문 끝내기 →"))
-            {
-                if (_beginOnStart) _exitRequested = true; // 단독 무대 → 조사청 복귀
-                else _active = false;                     // 인물 큐브 → 패널만 닫기
-            }
+                ClosePanel();
         }
 
         private void EnsureStyles()
