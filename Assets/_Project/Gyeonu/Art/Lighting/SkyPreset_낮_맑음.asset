@@ -12,15 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4214600bc9d54fe4bb5bdf013ef62ded, type: 3}
   m_Name: "SkyPreset_\uB0AE_\uB9D1\uC74C"
   m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.SkyPreset
-  skyboxMaterial: {fileID: 2100000, guid: 67950864b84c5db4f9eee7ca51c85571, type: 2}
-  sunEulerAngles: {x: 35, y: 60, z: 0}
-  sunColor: {r: 1, g: 0.94, b: 0.82, a: 1}
-  sunIntensity: 1.2
+  skyboxMaterial: {fileID: 2100000, guid: c051fe5a20f72814f9643eb10ebbd2fc, type: 2}
+  reflectionCubemap: {fileID: 8900000, guid: 84e9977d5a44500448831e9e6c71b62d, type: 2}
+  waterPreset: {fileID: 11400000, guid: 4af749d646823e6489853b379f153f30, type: 2}
+  waterColorMultiplier: {r: 1, g: 1, b: 1, a: 1}
+  waterReflectionStrength: -1
+  waterReflectionFresnel: -1
+  waterReflectionDistortion: -1
+  sunEulerAngles: {x: 50, y: 60, z: 0}
+  sunColor: {r: 1, g: 0.97, b: 0.9, a: 1}
+  sunIntensity: 1.1
   sunShadowStrength: 0.85
   ambientSky: {r: 0.55, g: 0.62, b: 0.72, a: 1}
-  ambientEquator: {r: 0.46, g: 0.45, b: 0.41, a: 1}
+  ambientEquator: {r: 0.45, g: 0.45, b: 0.42, a: 1}
   ambientGround: {r: 0.25, g: 0.23, b: 0.2, a: 1}
   fogEnabled: 1
-  fogColor: {r: 0.76, g: 0.79, b: 0.81, a: 1}
-  fogStart: 40
-  fogEnd: 160
+  fogColor: {r: 0.75, g: 0.8, b: 0.84, a: 1}
+  fogStart: 60
+  fogEnd: 220

@@ -12,7 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a1bd0b65ed376943970f7cc857ee58c, type: 3}
   m_Name: "\uBB3C_\uB9D1\uC74C"
   m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.WaterPreset
-  waterColor: {r: 0.13, g: 0.24, b: 0.26, a: 0.35}
-  smoothness: 0.95
-  waveStrength: 0.6
-  flowSpeed: {x: 0, y: 0.025}
+  shallowColor: {r: 0.18, g: 0.55, b: 0.5, a: 0.05}
+  deepColor: {r: 0.02, g: 0.2, b: 0.28, a: 0.6}
+  waterDepth: 1.2
+  reflectionStrength: 0.5
+  reflectionFresnel: 2.5
+  reflectionDistortion: 0.04
+  normalStrength: 0.12
+  normalPan: 0.06
+  causticsStrength: 1.2
+  refractionStrength: 0.5
