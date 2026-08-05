@@ -15,6 +15,7 @@ namespace IMUNROK.Common
         public string playerInput;                 // 방금 플레이어가 한 말(또는 제시한 증거 설명)
         public bool isEvidence;                    // 이번이 증거 제시인가
         public string justRevealedInfo;            // 이번 증거로 방금 열린 사실(있으면). 없으면 null
+        public string scriptedAnswer;              // 추천 질문의 정해진 답(목업/폴백에서 사용). 없으면 null
     }
 
     /// <summary>

@@ -18,6 +18,30 @@ namespace IMUNROK.Common
         [Tooltip("이 증거를 제시하면 인물이 털어놓는 사실")]
         [TextArea(2, 4)]
         public string revealsInfo = "";
+
+        [Tooltip("체크하면: 위 대사는 '발뺌'일 뿐 — 단서로 기록되지 않고 여러 번 반복 가능(1막 甲처럼 안 무너짐)")]
+        public bool deflectionOnly = false;
+    }
+
+    /// <summary>
+    /// 추천 질문 하나(=대화 버튼). 플레이어가 고르면 어사가 이 질문을 하고, 인물이 답한다.
+    /// grantsClueKey가 있으면 이 대화로 단서가 수첩에 기록된다(예: 甲의 자랑 → J04).
+    /// </summary>
+    [System.Serializable]
+    public class TopicQuestion
+    {
+        [Tooltip("버튼에 뜨는 질문(어사의 대사)")]
+        public string question = "";
+
+        [Tooltip("목업(키 없을 때)에서 인물이 하는 대답. Gemini면 AI가 생성")]
+        [TextArea(2, 4)]
+        public string mockAnswer = "";
+
+        [Tooltip("이 대화로 얻는 단서 key(선택). 비우면 단서 없음(분위기용)")]
+        public string grantsClueKey = "";
+
+        [Tooltip("그 단서의 수첩 문구")]
+        public string grantsClueText = "";
     }
 
     /// <summary>
@@ -44,6 +68,9 @@ namespace IMUNROK.Common
         [Tooltip("심문 시작 시 인물의 첫 대사")]
         [TextArea(2, 4)]
         public string openingLine = "무슨 일로 오셨소?";
+
+        [Tooltip("추천 질문(대화 버튼). 플레이어가 고를 수 있는 질문들")]
+        public List<TopicQuestion> topics = new List<TopicQuestion>();
 
         [Tooltip("증거를 제시하면 열리는 사실들")]
         public List<EvidenceGate> evidenceGates = new List<EvidenceGate>();

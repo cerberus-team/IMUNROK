@@ -20,16 +20,17 @@ namespace IMUNROK.Common
     /// </summary>
     public class GeminiNpcResponder : INpcResponder
     {
-        // 모델 이름 — 저렴하고 빠른 Flash 계열. 404가 나면 "gemini-1.5-flash"로 바꿔보세요.
-        private const string Model = "gemini-2.0-flash";
-        private const int MaxOutputTokens = 300;
+        // 모델 이름 — 404가 나면 [이문록 ▸ Gemini: 사용 가능 모델 목록 확인]으로 유효한 이름을 찾아 넣으세요.
+        private const int MaxOutputTokens = 120;
 
+        private readonly string _model = "gemini-flash-latest";
         private readonly MockNpcResponder _fallback = new MockNpcResponder();
         private readonly string _apiKey;
 
-        public GeminiNpcResponder()
+        public GeminiNpcResponder(string model = null)
         {
             _apiKey = LoadApiKey();
+            if (!string.IsNullOrEmpty(model)) _model = model;
         }
 
         private static string LoadApiKey()
@@ -58,7 +59,7 @@ namespace IMUNROK.Common
 
         private IEnumerator Send(NpcRequest req, Action<string> onReply, Action<string> onError)
         {
-            string url = $"https://generativelanguage.googleapis.com/v1beta/models/{Model}:generateContent?key={_apiKey}";
+            string url = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent?key={_apiKey}";
             string body = BuildRequestJson(req);
 
             using (var www = new UnityWebRequest(url, "POST"))
@@ -99,7 +100,7 @@ namespace IMUNROK.Common
             var sb = new StringBuilder();
             sb.AppendLine(req.character != null ? req.character.persona : "너는 심문받는 인물이다.");
             sb.AppendLine();
-            sb.AppendLine("[규칙] 위 인물로서 어사의 심문에 답하라. 2~3문장으로 짧게, 조선시대 말투로.");
+            sb.AppendLine("[규칙] 위 인물로서 어사의 심문에 답하라. 반드시 1~2문장, 아주 짧게(한두 줄), 조선시대 말투로. 장황하게 늘어놓지 마라.");
             sb.AppendLine("아래 '밝혀진 사실'에 없는 핵심 비밀은 절대 먼저 말하지 마라. 시치미를 떼라.");
             sb.AppendLine();
             sb.AppendLine("[밝혀진 사실]");

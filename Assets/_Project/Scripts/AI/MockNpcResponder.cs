@@ -28,8 +28,13 @@ namespace IMUNROK.Common
 
             if (!string.IsNullOrEmpty(req.justRevealedInfo))
             {
-                // 결정적 증거를 제시받음 → 마지못해 실토
+                // 결정적 증거를 제시받음 → 마지못해 실토(또는 발뺌 대사)
                 reply = req.justRevealedInfo;
+            }
+            else if (!string.IsNullOrEmpty(req.scriptedAnswer))
+            {
+                // 추천 질문의 정해진 답
+                reply = req.scriptedAnswer;
             }
             else if (req.isEvidence)
             {
