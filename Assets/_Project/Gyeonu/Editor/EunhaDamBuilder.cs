@@ -14,10 +14,13 @@ namespace IMUNROK.Gyeonu.Editor
     /// 다리 구성은 BridgeCheck 씬의 ReducedBridge_Compare(감축본, 손으로 맞춘 배치)를
     /// z-45 오프셋으로 복사해 온다. BridgeCheck는 읽기만 하고 저장하지 않는다.
     ///
-    /// 강 단면 (|x| 기준):
-    ///   0~26 강바닥(-1.2) → 26~30 사면 → 30~45 교대 선반(+0.55, 교대 밑단 0.56)
-    ///   → 45~70 완만한 언덕(+1.5). 수면은 y=0.5 — 교각 바닥(0.02)이 약 0.5m 잠긴다.
-    ///   교각 3기 발밑에는 수중 기초 둔덕(-0.1)을 올려 바닥과 이어 붙인다.
+    /// 강 단면 v2 (|x| 기준, 폭은 z에 따라 가변):
+    ///   못(|z|&lt;30) 반폭 27m → 상·하류(|z|&gt;75) 15m로 좁아진다.
+    ///   바닥(-1.2) → 물가 완사면 → 선반(0.55) → 둑(다리 근처 2.0, 먼 곳 1.2) → 초지(1.0).
+    ///   수면 y=0.5 — 물가 완사면 위 h 0.5 지점이 물가선. 교각 발밑 기초 둔덕(-0.1) 유지.
+    ///   +X 입구 통로(z±8)는 둑을 가르고 0.62→1.35로 완만히 오른다 (마커 y 0.7/0.9와 정합).
+    ///   외곽은 r 70~100 언덕(최대 12m)으로 지평선을 가리되 강줄기·마을 골목은 노치로 뚫는다.
+    ///   서안에 정자 마당 2곳(초정 -44,30 / 풍영정 -50,-38)과 돌다리용 개울(z≈20)을 판다.
     /// </summary>
     public static class EunhaDamBuilder
     {
@@ -68,6 +71,7 @@ namespace IMUNROK.Gyeonu.Editor
             EnsureWaterAssets();
             BuildLighting(scene);
             BuildTerrain();
+            BuildFarMountains();
             BuildBridge(scene);
             BuildWater();
             BuildMarkers();
@@ -126,22 +130,182 @@ namespace IMUNROK.Gyeonu.Editor
             else Debug.LogWarning("[은하담] SkyPreset_낮_맑음을 찾지 못해 조명 프리셋을 건너뜀");
         }
 
-        // ── 지형 ────────────────────────────────────────────
-        static float GroundHeight(float wx, float wz)
+        // ── 지형 v5 (2026-08-07 3차: 교대는 "옆을 채우되 덮지 않는다") ────────────
+        // 실측: 교대 상단 9.03/8.79 (|x| 28.9~44.4, z -33.5~15.1),
+        //       문루 기단·월대(계단) 밑면 6.94 (|x| 42.1~57.7, |z|<13.6).
+        // 둑 상단 8.3 — 교대 상단(9.03)보다 낮아 석축 머리가 풀 위로 보인다.
+        // 사면 13m(약 32도)로 둑이 교대 뒤(44.4)에서 8.1까지 자연히 닿고, 석축은
+        // 사면에서 반쯤 튀어나온다. (v4의 9.15 강제 스탬프는 교대를 통째로 묻어 폐기,
+        // 어깨 둔덕 방식도 물가에 수직 절벽을 만들어 폐기 — 순수 단면 프로파일만 사용)
+        const float BankTopNearY = 8.3f;   // 다리 인접 둑 상단 (교대 상단 9.03 - 0.7)
+        const float BankTopFarY = 1.2f;    // 다리에서 먼 둑
+        const float EdgeY = 2.0f;          // 지도 가장자리 기준 높이 (스커트 1.3보다 위)
+        const float ForecourtY = 7.02f;    // 문루 앞마당 — 월대·기단 밑면(6.94)을 8cm 묻는다
+
+        // 풍영정 호수 대(臺): 수면(0.5) 아래 0.15로 평탄화 — 정자가 물 위에 뜬다
+        public const float PondPadX = -13f, PondPadZ = 40f;
+        const float PondPadR = 8f, PondPadFall = 5f, PondPadY = 0.15f;
+
+        /// <summary>
+        /// GLSL식 smoothstep(edge0, edge1, x) — 0~1 반환.
+        /// ⚠️ Mathf.SmoothStep(a,b,t)는 a→b "값 보간"이라 edge 용도로 쓰면 안 된다
+        /// (t가 0~1로 클램프되어 x>1이면 항상 b를 반환 — 2026-08-07 지형 폭주 버그의 원인).
+        /// </summary>
+        static float SStep(float edge0, float edge1, float x) =>
+            Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(edge0, edge1, x));
+
+        /// <summary>
+        /// 사각 채움 마스크: 변별 페이드 폭 + 정규화 유클리드 거리로 모서리가 둥글게
+        /// 빠진다. 안쪽 1, 각 변에서 해당 페이드 폭에 걸쳐 0으로.
+        /// </summary>
+        static float FillMask(float x, float z, float xMin, float xMax, float zMin, float zMax,
+                              float fadeXMin, float fadeXMax, float fadeZ)
+        {
+            float ox = Mathf.Max(Mathf.Max((xMin - x) / fadeXMin, (x - xMax) / fadeXMax), 0f);
+            float oz = Mathf.Max(Mathf.Max((zMin - z) / fadeZ, (z - zMax) / fadeZ), 0f);
+            float d = Mathf.Sqrt(ox * ox + oz * oz);
+            return 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(d));
+        }
+
+        // 북 전면벽 crest(y=7.1) 안쪽면 폴리라인 — z 0.5m 간격 절단 실측 (2026-08-07).
+        // z -28~-6은 완만한 사선(-34.01→-33.06), 중앙블록(z -5.5~7.6)은 -34.14,
+        // 북단(z 8.6~)은 -33.2. 직각 구간 근사는 사선을 못 따라가 뜨는 지점을 만든다.
+        static readonly float[][] NorthCrestFace =
+        {
+            new[] { -28.5f, -34.05f }, new[] { -28.0f, -34.01f }, new[] { -26.0f, -33.89f },
+            new[] { -24.0f, -33.77f }, new[] { -22.0f, -33.65f }, new[] { -20.0f, -33.51f },
+            new[] { -18.0f, -33.37f }, new[] { -16.0f, -33.26f }, new[] { -14.0f, -33.14f },
+            new[] { -12.0f, -33.01f }, new[] { -10.0f, -33.03f }, new[] { -8.0f, -33.04f },
+            // 중앙블록 모서리 전환은 실측 모서리 위치(z≈-5.75, 8.7)에 맞춘 급경사 —
+            // 완만히 보간하면 모서리 구석이 덜 차거나(z -6) 면을 넘는다(z 8.5)
+            new[] { -6.0f, -33.06f }, new[] { -5.85f, -33.06f }, new[] { -5.65f, -34.14f },
+            new[] { 7.6f, -34.14f }, new[] { 8.0f, -34.00f }, new[] { 8.55f, -34.00f },
+            new[] { 8.75f, -33.17f }, new[] { 13.9f, -33.21f },
+        };
+
+        /// <summary>북 전면벽 채움 경계: 폴리라인 선형 보간 + 갓돌 안쪽으로 0.15m 관입
+        /// (갓돌 폭 ~0.5m 안 — 접촉 보장, 유출 없음).</summary>
+        static float NorthCrestXMax(float wz)
+        {
+            var t = NorthCrestFace;
+            if (wz <= t[0][0]) return t[0][1] + 0.15f;
+            for (int i = 1; i < t.Length; i++)
+                if (wz <= t[i][0])
+                    return Mathf.Lerp(t[i - 1][1], t[i][1],
+                        Mathf.InverseLerp(t[i - 1][0], t[i][0], wz)) + 0.15f;
+            return t[t.Length - 1][1] + 0.15f;
+        }
+
+        /// <summary>강 반폭: 못(|z|&lt;30) 27m → 상·하류(|z|&gt;75) 15m.</summary>
+        public static float ChannelHalfWidth(float wz)
+        {
+            float az = Mathf.Abs(wz);
+            return Mathf.Lerp(27f, 15f, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(30f, 75f, az)));
+        }
+
+        public static float GroundHeight(float wx, float wz)
         {
             float ax = Mathf.Abs(wx);
+            float az = Mathf.Abs(wz);
+            float w = ChannelHalfWidth(wz);
+
+            // 1) 강 단면: 바닥 → 물가 완사면 (h 0.5 부근이 물가선 — 갈대 밭) → 선반
             float h;
-            if (ax <= 26f) h = BedY;
-            else if (ax <= 30f) h = Mathf.SmoothStep(BedY, BankShelfY, (ax - 26f) / 4f);
-            else if (ax <= 45f) h = BankShelfY;
-            else if (ax <= 70f) h = Mathf.SmoothStep(BankShelfY, BankHighY, (ax - 45f) / 25f);
-            else h = BankHighY;
+            if (ax <= w - 4f) h = BedY;
+            else if (ax <= w + 5f) h = Mathf.SmoothStep(BedY, BankShelfY, (ax - (w - 4f)) / 9f);
+            else h = BankShelfY;
 
-            // 먼 언덕 살짝 울퉁불퉁하게
-            if (ax > 46f)
-                h += (Mathf.PerlinNoise(wx * 0.045f + 7.31f, wz * 0.045f + 2.17f) - 0.5f) * 0.5f;
+            // 2) 둑: 다리 구간(|z|<30)은 상단 9.2 — 교대 뒤·옆이 완전히 묻혀 앞면(석축)만
+            //    보인다. 중간 단을 두어 계단식 잔디 둑. 둑이 높을수록 사면을 넓게 잡아
+            //    경사를 20~25도로 유지. 둑 너머 배후지는 지도 끝 2.0으로 완만히
+            float bankTop = Mathf.Lerp(BankTopNearY, BankTopFarY,
+                Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(30f, 65f, az)));
+            // 사면 폭 13m 고정 — 다리 근처 경사 약 32도. 이 기울기로 둑이 교대 뒤(44.4)에서
+            // 8.1까지 올라 붙고, 석축은 사면에서 반쯤 튀어나온다 (둔덕·스탬프 불필요)
+            const float rampW = 13f;
+            if (ax > w + 5f)
+            {
+                if (ax <= w + 5f + rampW)
+                {
+                    float u = (ax - (w + 5f)) / rampW;
+                    float t = 0.5f * (SStep(0f, 0.55f, u) + SStep(0.45f, 1f, u));
+                    h = Mathf.Lerp(BankShelfY, bankTop, t);
+                }
+                else
+                    h = Mathf.Lerp(bankTop, EdgeY,
+                        Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(w + 9f + rampW, 95f, ax)));
+            }
 
-            // 교각 기초 둔덕 (2m 마진 스무스 폴오프)
+            // 3) 배후지 노이즈 (둑 사면·물가는 매끈하게 유지)
+            float noiseMask = SStep(w + 16f, w + 26f, ax);
+            h += (Mathf.PerlinNoise(wx * 0.045f + 7.31f, wz * 0.045f + 2.17f) - 0.5f) * 0.6f * noiseMask;
+
+            // 3.7) 교대 안쪽 채움: ㄷ자 옹벽이 감싸는 빈 공간을 7.12로 — 날개벽 마루
+            //      (남 7.23/북 7.28)가 흙 위로 살짝 드러나고 전면벽 상단(7.5~9.0)은 그대로.
+            //      페이드: 강측 2.5m(전면벽 두께 5m 안에 흡수) / 측면 5m(날개 끝을 어깨처럼
+            //      감쌈) / 열린 후방 8m(둑·앞마당과 완만히 합류). 모서리는 마스크가 라운드.
+            //      2층 마스크: ① 하드(7.12) — 경계는 갓돌 안쪽면 y=7.1 절단 실측치에서
+            //      0.1~0.2m 안쪽, 페이드 0.35m. ⚠️ 석축은 속 빈 셸이라 "벽 두께 관입"이
+            //      불가능하다: 채움 높이대 벽은 두께 0~0.6m 갓돌/수직면뿐 — 더 밀면 강 쪽으로
+            //      뚫린다(2026-08-07 메시 넘침의 원인). 이 경계면 낙차 구간이 갓돌 돌출부
+            //      아래(남 전면 수직면 x≈32.45 안쪽)에 숨어 틈도 유출도 없다.
+            //      ② 소프트 — 날개 끝 어깨 감쌈·후방 합류용 (5/8m 페이드).
+            //      crest 실측: 남 전면 32.92(중앙블록 33.99)/날개 11.83~12.03, -31.02~-31.27
+            //              북 전면 z구간별 -33.84/-33.24/-34.14(평면상도 계단식)/날개 13.91, -28.35
+            {
+                float fill;
+                if (wx > 0f)
+                    fill = Mathf.Max(
+                        FillMask(wx, wz, 32.80f, 46f, -31.15f, 11.80f, 0.35f, 8f, 0.35f),
+                        FillMask(wx, wz, 35.5f, 46f, -31.2f, 9.8f, 2.5f, 8f, 5f));
+                else
+                {
+                    // 전면 경계는 crest 폴리라인(사선·중앙블록 계단을 그대로 추종)
+                    float hardN = FillMask(wx, wz, -46f, NorthCrestXMax(wz),
+                        -28.45f, 13.85f, 8f, 0.35f, 0.35f);
+                    fill = Mathf.Max(hardN, FillMask(wx, wz, -46f, -35.1f, -27.1f, 13.0f, 8f, 2.5f, 5f));
+                }
+                if (fill > 0f) h = Mathf.Max(h, Mathf.Lerp(h, 7.12f, fill));
+            }
+
+            // 3.8) 남 전면 물가 앞치마: 석축 앞 자갈 물가 — 물가선·양끝을 펄린 노이즈로
+            //      흩뜨려 붓으로 그린 듯 불규칙하게. 폭 2~4.5m 가변, 높이 0.56~0.66.
+            //      양끝은 기존 물가 사면(자갈 스플랫 h<0.7)으로 소멸해 북측 물가와 이어진다
+            {
+                float n1 = Mathf.PerlinNoise(wz * 0.14f + 3.3f, 7.7f);
+                float n2 = Mathf.PerlinNoise(wz * 0.33f + 9.1f, 2.6f);
+                float xFront = 27.1f - 2.2f * n1 - 0.9f * n2;              // 물쪽 경계 24.0~27.1
+                float m = SStep(xFront, xFront + 1.7f, wx)
+                        * (1f - SStep(29.9f, 30.6f, wx))                    // 벽 밑까지 (석축이 가림)
+                        * SStep(-33f + 4f * n1, -27f + 2f * n2, wz)         // 남쪽 끝 소멸
+                        * (1f - SStep(8f + 3f * n1, 14f + 2f * n2, wz));    // 북쪽 끝 소멸
+                float apronY = 0.56f + 0.10f * Mathf.PerlinNoise(wx * 0.4f + 1.9f, wz * 0.22f + 5.5f);
+                if (m > 0f) h = Mathf.Max(h, Mathf.Lerp(h, apronY, m));
+            }
+
+            // 4) 문루 앞마당 절개: 기단·월대 밑면(6.94)에 밀착하되 절개 벽은 완만한 경사로
+            //    (동·서 대칭). 둑 8.3 → 마당 7.0이라 절개 깊이도 1.3m로 얕다
+            {
+                float m = SStep(38.5f, 44f, ax) * (1f - SStep(58.5f, 63f, ax))
+                        * (1f - SStep(9f, 18f, az));
+                if (m > 0f) h = Mathf.Lerp(h, ForecourtY, m);
+            }
+
+            // 4.5) 입구 통로 (+X 마을 방향): 앞마당 7.0에서 마을 쪽 2.2로 넓게 내려간다
+            if (wx > 56f)
+            {
+                float corridorH = Mathf.Lerp(ForecourtY, 2.2f, Mathf.InverseLerp(58f, 100f, wx));
+                float mask = (1f - SStep(12f, 20f, az)) * SStep(56f, 60f, wx);
+                h = Mathf.Lerp(h, corridorH, mask);
+            }
+
+            // 5) 풍영정 못가 대(臺) 평탄화 (수면 아래 0.15)
+            {
+                float d = Vector2.Distance(new Vector2(wx, wz), new Vector2(PondPadX, PondPadZ));
+                h = Mathf.Lerp(h, PondPadY, 1f - SStep(PondPadR, PondPadR + PondPadFall, d));
+            }
+
+            // 6) 교각 기초 둔덕 (2m 마진 스무스 폴오프)
             foreach (var r in PierFootprints)
             {
                 float dx = Mathf.Max(r.xMin - wx, 0f, wx - r.xMax);
@@ -187,9 +351,10 @@ namespace IMUNROK.Gyeonu.Editor
             }
             td.SetHeights(0, 0, heights);
 
-            // 스플랫: 강바닥 자갈 → 물가 흙 → 언덕 풀
+            // 스플랫 v2: 강바닥 자갈 → 물가 흙 → 초지 풀, 급경사 암반, 통로·마당은 흙길
             int layerCount = td.terrainLayers != null ? td.terrainLayers.Length : 0;
-            int gravel = 16, dirt = 0, grass = 2;   // 자갈2_JG / 흙_낙안 / 풀_낙안
+            int gravel = 16, dirt = 0, grass = 2, path = 7, cliff = 10;
+            // 자갈2_JG / 흙_낙안 / 풀_낙안 / 흙길_세연정 / 암반_세연정 (레이어 순서 바꾸면 깨짐)
             if (layerCount > gravel)
             {
                 const int ar = 512;
@@ -201,12 +366,38 @@ namespace IMUNROK.Gyeonu.Editor
                     {
                         float wx = x / (float)(ar - 1) * 200f - 100f;
                         float h = GroundHeight(wx, wz);
-                        float wGravel = 1f - Mathf.SmoothStep(0.2f, 0.7f, h);
-                        float wGrass = Mathf.SmoothStep(0.7f, 1.1f, h);
+
+                        // 경사 (중앙차분, 1m 간격)
+                        float sx = GroundHeight(wx + 1f, wz) - GroundHeight(wx - 1f, wz);
+                        float sz = GroundHeight(wx, wz + 1f) - GroundHeight(wx, wz - 1f);
+                        float slopeDeg = Mathf.Atan(0.5f * Mathf.Sqrt(sx * sx + sz * sz)) * Mathf.Rad2Deg;
+
+                        float wGravel = 1f - SStep(0.2f, 0.7f, h);
+                        float wGrass = SStep(0.7f, 1.1f, h);
                         float wDirt = Mathf.Clamp01(1f - wGravel - wGrass);
-                        alpha[z, x, gravel] = wGravel;
-                        alpha[z, x, dirt] = wDirt;
-                        alpha[z, x, grass] = wGrass;
+
+                        // 문루 앞마당(동·서) 흙 광장 + 마을 방향 3m 폭 흙길
+                        float wPath = SStep(41f, 44f, Mathf.Abs(wx)) * (1f - SStep(56f, 59f, Mathf.Abs(wx)))
+                                    * (1f - SStep(8f, 11f, Mathf.Abs(wz)));
+                        if (wx > 54f)
+                            wPath = Mathf.Max(wPath, (1f - SStep(1.5f, 3.5f, Mathf.Abs(wz)))
+                                  * SStep(54f, 58f, wx));
+
+                        // 급경사 암반 (언덕 사면) — 노이즈로 끊어 띠처럼 발리지 않게
+                        float cliffNoise = Mathf.PerlinNoise(wx * 0.09f + 2.2f, wz * 0.09f + 6.6f);
+                        float wCliff = SStep(32f, 44f, slopeDeg)
+                                     * SStep(0.35f, 0.65f, cliffNoise);
+
+                        float sum = 0f;
+                        wGravel *= 1f - wPath; wDirt *= 1f - wPath; wGrass *= 1f - wPath;
+                        wGravel *= 1f - wCliff; wDirt *= 1f - wCliff; wGrass *= 1f - wCliff; wPath *= 1f - wCliff;
+                        sum = wGravel + wDirt + wGrass + wPath + wCliff;
+                        if (sum < 1e-4f) { wGrass = 1f; sum = 1f; }
+                        alpha[z, x, gravel] = wGravel / sum;
+                        alpha[z, x, dirt] = wDirt / sum;
+                        alpha[z, x, grass] = wGrass / sum;
+                        alpha[z, x, path] = wPath / sum;
+                        alpha[z, x, cliff] = wCliff / sum;
                     }
                 }
                 td.SetAlphamaps(0, 0, alpha);
@@ -408,6 +599,250 @@ namespace IMUNROK.Gyeonu.Editor
             }
             fill(p);
             EditorUtility.SetDirty(p);
+        }
+
+        /// <summary>지형만 다시 생성 (다리·물·마커는 건드리지 않음).</summary>
+        [MenuItem("Tools/이문록/은하담 지형만 재생성")]
+        public static void RebuildTerrainOnly()
+        {
+            var scene = EnsureScene();
+            BuildTerrain();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log("[은하담] 지형 재생성 완료");
+        }
+
+        // ── 원경 산 (지평선 가림용 배경 메시 — 외곽 언덕 대체) ──
+        const string ModelFolder = "Assets/_Project/Gyeonu/Art/Models";
+        const string SkirtMeshPath = ModelFolder + "/산_원경_Skirt.asset";
+        const string PathMeshPath = ModelFolder + "/산_원경_길.asset";
+        const string GradientTexPath = "Assets/_Project/Gyeonu/Art/Textures/산_원경_Gradient.png";
+        const string MountainShaderPath = "Assets/_Project/Gyeonu/Art/Shaders/FarMountain.shader";
+        const int MountainSeed = 20260807;
+
+        /// <summary>
+        /// Terrain 밖에 저폴리 능선 메시를 2겹으로 세워 지평선을 가린다.
+        /// 낮 안개(60→220)가 220m 밖을 지우므로 전용 무안개 셰이더(FarMountain, _FogResist)로
+        /// 산 색을 유지한다 — 덕분에 호수 주변에 NPC용 개활지를 두고 산을 멀리(230~430m) 민다.
+        /// 명암은 능선 높이 그라데이션 텍스처, 실루엣은 노이즈 변형 3종으로 흩는다.
+        /// 강 축(±Z)과 마을 골목(+X)은 비워 강줄기·마을 길이 이어져 보이게 한다.
+        /// 지형 밖 바닥은 비운다(스커트 폐기) — 산 실루엣과 하늘 안개만 남는다.
+        /// 배경 전용(콜라이더·그림자 없음). 멱등.
+        /// </summary>
+        [MenuItem("Tools/이문록/은하담 원경 산 생성")]
+        public static void BuildFarMountains()
+        {
+            EnsureFolder(ModelFolder);
+            EnsureFolder("Assets/_Project/Gyeonu/Art/Textures");
+            var variants = new Mesh[3];
+            for (int i = 0; i < 3; i++)
+                variants[i] = WriteMeshAsset(ModelFolder + "/산_원경_Ridge_" + (char)('A' + i) + ".asset",
+                    BuildRidgeMesh(i * 37 + 11));
+            // 구 자산 정리: 단일 능선 + 스커트·원경 길(2026-08-07 폐기 — 색·질감이 지형과
+            // 안 맞고 강 출구 수면을 덮었다. 지형 밖은 산 실루엣과 하늘 안개만 남긴다)
+            AssetDatabase.DeleteAsset(ModelFolder + "/산_원경_Ridge.asset");
+            AssetDatabase.DeleteAsset(SkirtMeshPath);
+            AssetDatabase.DeleteAsset(PathMeshPath);
+            AssetDatabase.DeleteAsset("Assets/_Project/Gyeonu/Art/Materials/들판_스커트.mat");
+            AssetDatabase.DeleteAsset("Assets/_Project/Gyeonu/Art/Materials/길_원경.mat");
+
+            var gradient = BakeMountainGradient();
+            // 지형 풀숲과 어울리는 녹갈색은 텍스처에 굽고, 틴트로 거리감만 준다.
+            // 저항값이 낮으면 밝은 낮 안개색에 씻겨 회색이 되므로 근경은 0.8까지 올린다
+            var matNear = EnsureMountainMat("산_근경", Color.white, 0.8f, gradient);
+            var matFar = EnsureMountainMat("산_원경", new Color(0.75f, 0.85f, 1f), 0.52f, gradient);
+
+            var group = RecreateGroup("은하담_원경산");
+            var rnd = new System.Random(MountainSeed);
+            float R(System.Random r, float a, float b) => Mathf.Lerp(a, b, (float)r.NextDouble());
+
+            // 근경 링 230~290m(진한 올리브), 원경 링 340~430m(옅은 청회 — 셰이더가 안개 저항).
+            // 비움: 강 축(0°/180°) ±15°(근경만), 마을 골목(+X=90°) 근경 ±25°/원경 ±12°
+            int placed = 0;
+            for (int ring = 0; ring < 2; ring++)
+            {
+                int count = ring == 0 ? 13 : 10;
+                for (int i = 0; i < count; i++)
+                {
+                    float ang = (360f / count) * i + (ring == 0 ? 0f : 17f) + R(rnd, -11f, 11f);
+                    float rad = ring == 0 ? R(rnd, 230f, 290f) : R(rnd, 340f, 430f);
+                    var scale = ring == 0
+                        ? new Vector3(R(rnd, 190f, 290f), R(rnd, 34f, 52f), R(rnd, 80f, 130f))
+                        : new Vector3(R(rnd, 320f, 470f), R(rnd, 60f, 95f), R(rnd, 140f, 200f));
+
+                    float riverAxis = Mathf.Min(Mathf.Abs(Mathf.DeltaAngle(ang, 0f)),
+                                                Mathf.Abs(Mathf.DeltaAngle(ang, 180f)));
+                    float villageAxis = Mathf.Abs(Mathf.DeltaAngle(ang, 90f));
+                    if (ring == 0 && riverAxis < 15f) continue;
+                    if (villageAxis < (ring == 0 ? 25f : 12f)) continue;
+
+                    var pos = Quaternion.Euler(0f, ang, 0f) * Vector3.forward * rad;
+                    AddBackdrop(group, (ring == 0 ? "산_근경_" : "산_원경_") + i,
+                        variants[rnd.Next(3)], ring == 0 ? matNear : matFar,
+                        new Vector3(pos.x, -1f, pos.z),
+                        Quaternion.Euler(0f, ang + 90f + R(rnd, -20f, 20f), 0f), scale);
+                    placed++;
+                }
+            }
+
+            ApplyStaticFlags(group);
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+            Debug.Log("[은하담] 원경 산 생성 완료: 산 " + placed + "개 (변형 3종, 스커트·원경 길 제거됨)");
+        }
+
+        static void AddBackdrop(GameObject group, string name, Mesh mesh, Material mat,
+            Vector3 pos, Quaternion rot, Vector3 scale)
+        {
+            var go = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
+            go.transform.SetParent(group.transform, false);
+            go.transform.SetPositionAndRotation(pos, rot);
+            go.transform.localScale = scale;
+            go.GetComponent<MeshFilter>().sharedMesh = mesh;
+            var mr = go.GetComponent<MeshRenderer>();
+            mr.sharedMaterial = mat;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        /// <summary>
+        /// 단위 능선 메시: XZ [-0.5,0.5]² 격자, 길이축 X, uv.y = 높이(명암 그라데이션용).
+        /// 노이즈 2옥타브로 실루엣을 흩는다. 시드별 변형. 약 230 삼각형.
+        /// </summary>
+        static Mesh BuildRidgeMesh(int seed)
+        {
+            const int nx = 20, nz = 7;
+            float o1 = seed * 0.731f, o2 = seed * 0.389f;
+            var verts = new List<Vector3>();
+            var uvs = new List<Vector2>();
+            var tris = new List<int>();
+            for (int z = 0; z <= nz; z++)
+                for (int x = 0; x <= nx; x++)
+                {
+                    float u = x / (float)nx, v = z / (float)nz;
+                    // sin(π)이 float에서 음수 엡실론이라 Pow가 NaN — Max(0,·)로 방어
+                    float envL = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(u * Mathf.PI)), 0.75f);
+                    float envW = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(v * Mathf.PI)), 1.1f);
+                    float n = 0.45f + 0.62f * Mathf.PerlinNoise(u * 4.3f + o1, v * 2.9f + o2)
+                            + 0.28f * Mathf.PerlinNoise(u * 9.7f + o2, v * 6.1f + o1);
+                    float y = envL * envW * n;
+                    verts.Add(new Vector3(u - 0.5f, y, v - 0.5f));
+                    uvs.Add(new Vector2(u, Mathf.Clamp01(y / 1.1f)));
+                }
+            for (int z = 0; z < nz; z++)
+                for (int x = 0; x < nx; x++)
+                {
+                    int i = z * (nx + 1) + x;
+                    tris.AddRange(new[] { i, i + nx + 1, i + 1, i + 1, i + nx + 1, i + nx + 2 });
+                }
+            var m = new Mesh { name = "산_원경_Ridge" };
+            m.SetVertices(verts);
+            m.SetUVs(0, uvs);
+            m.SetTriangles(tris, 0);
+            m.RecalculateNormals();
+            m.RecalculateBounds();
+            return m;
+        }
+
+        /// <summary>
+        /// 능선 명암 텍스처: 지형 풀숲과 어울리는 녹갈색 — 아래 짙은 숲색, 위로 갈수록
+        /// 밝은 풀색. 가로 줄노이즈로 숲 질감. (회색 단색으로 보이던 문제의 교정:
+        /// 색을 틴트가 아니라 텍스처에 직접 굽는다 — 밉맵 평균도 녹갈색을 유지)
+        /// </summary>
+        static Texture2D BakeMountainGradient()
+        {
+            const int size = 256;
+            var colLow = new Color(0.09f, 0.13f, 0.055f);   // 골짜기 짙은 숲
+            var colMid = new Color(0.19f, 0.26f, 0.115f);   // 중턱 숲
+            var colHigh = new Color(0.38f, 0.42f, 0.22f);   // 능선 마른 풀
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, true);
+            var px = new Color[size * size];
+            for (int y = 0; y < size; y++)
+            {
+                float v = y / (float)(size - 1);
+                var baseC = v < 0.55f
+                    ? Color.Lerp(colLow, colMid, v / 0.55f)
+                    : Color.Lerp(colMid, colHigh, (v - 0.55f) / 0.45f);
+                for (int x = 0; x < size; x++)
+                {
+                    float u = x / (float)(size - 1);
+                    float streak = Mathf.PerlinNoise(u * 9f, v * 26f) - 0.5f;   // 숲 능선 줄무늬
+                    float grain = Mathf.PerlinNoise(u * 40f + 9f, v * 40f + 3f) - 0.5f;
+                    float l = 1f + streak * 0.30f + grain * 0.14f;
+                    px[y * size + x] = new Color(
+                        Mathf.Clamp01(baseC.r * l), Mathf.Clamp01(baseC.g * l),
+                        Mathf.Clamp01(baseC.b * l), 1f);
+                }
+            }
+            tex.SetPixels(px);
+            System.IO.File.WriteAllBytes(GradientTexPath, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(GradientTexPath);
+            var imp = (TextureImporter)AssetImporter.GetAtPath(GradientTexPath);
+            imp.wrapMode = TextureWrapMode.Clamp;
+            imp.maxTextureSize = 256;
+            imp.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(GradientTexPath);
+        }
+
+        static Material EnsureMountainMat(string name, Color color, float fogResist, Texture2D gradient)
+        {
+            var shader = AssetDatabase.LoadAssetAtPath<Shader>(MountainShaderPath);
+            if (shader == null)
+            {
+                Debug.LogError("[은하담] FarMountain.shader 없음 — URP Lit로 대체");
+                return EnsureFlatMat(name, color);
+            }
+            string path = "Assets/_Project/Gyeonu/Art/Materials/" + name + ".mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(shader);
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            mat.shader = shader;
+            mat.SetTexture("_BaseMap", gradient);
+            mat.SetColor("_BaseColor", color);
+            mat.SetFloat("_FogResist", fogResist);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        /// <summary>메시 에셋을 GUID 유지한 채 갱신 저장.</summary>
+        static Mesh WriteMeshAsset(string path, Mesh built)
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing == null)
+            {
+                AssetDatabase.CreateAsset(built, path);
+                return built;
+            }
+            existing.Clear();
+            existing.SetVertices(new List<Vector3>(built.vertices));
+            existing.SetUVs(0, new List<Vector2>(built.uv));
+            existing.subMeshCount = built.subMeshCount;
+            for (int i = 0; i < built.subMeshCount; i++)
+                existing.SetTriangles(built.GetTriangles(i), i);
+            existing.RecalculateNormals();
+            existing.RecalculateBounds();
+            EditorUtility.SetDirty(existing);
+            Object.DestroyImmediate(built);
+            return existing;
+        }
+
+        static Material EnsureFlatMat(string name, Color color)
+        {
+            string path = "Assets/_Project/Gyeonu/Art/Materials/" + name + ".mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            mat.SetColor("_BaseColor", color);
+            mat.SetFloat("_Smoothness", 0f);
+            mat.SetFloat("_EnvironmentReflections", 0f);
+            mat.SetFloat("_SpecularHighlights", 0f);
+            EditorUtility.SetDirty(mat);
+            return mat;
         }
 
         /// <summary>물 관련만 다시 조립 (다리·지형은 건드리지 않음).</summary>
@@ -789,12 +1224,12 @@ namespace IMUNROK.Gyeonu.Editor
 
             var spawn = new GameObject("SpawnPoint_PlayerStart");
             spawn.transform.SetParent(group.transform, false);
-            spawn.transform.position = new Vector3(48f, 0.7f, 0f);      // 남안(마을 방향), 문루 앞
-            spawn.transform.rotation = Quaternion.Euler(0f, 270f, 0f);  // 다리를 바라봄 (-X)
+            spawn.transform.position = new Vector3(48f, GroundHeight(48f, 0f), 0f);   // 둑 위 진입로, 문루 앞
+            spawn.transform.rotation = Quaternion.Euler(0f, 270f, 0f);                // 다리를 바라봄 (-X)
 
             var exit = new GameObject("Exit_ToVillage");
             exit.transform.SetParent(group.transform, false);
-            exit.transform.position = new Vector3(60f, 0.9f, 0f);
+            exit.transform.position = new Vector3(60f, GroundHeight(60f, 0f), 0f);
         }
 
         static void EnsureCamera()
