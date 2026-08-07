@@ -15,10 +15,12 @@ namespace IMUNROK.Gyeonu.Editor
     ///         정자에서 남쪽으로 오작교가 보인다. 풍영정 FBX는 텍스처 미연결이라
     ///         URP Lit 머티리얼(Art/Materials/풍영정_*)을 씬 인스턴스에만 입힌다 (원본 무수정).
     ///
-    /// 식생(2026-08-01 확정 방침): 버드나무 Salix_VR(물가), 갈대 Phragmites_VR,
-    ///         수련 Nymphaea(수면 0.5 부유), 흑송JG 중경 + 소나무VR 근경.
-    ///         원경은 산 메시(은하담_원경산)가 담당하므로 사시나무는 못가 배경 소량만.
-    ///         높이는 EunhaDamBuilder.GroundHeight(해석 함수)에서 직접 샘플.
+    /// 식생(2026-08-07 재구성): 버드나무 Salix_VR(물가), 갈대 Phragmites_VR,
+    ///         수련 Nymphaea(수면 0.5 부유), 벚나무JG 여름잎 중경 주력 + 소나무VR 근경 소수,
+    ///         사시나무 원경(확장 지형 포함), 대나무 경계·틈새.
+    ///         흑송JG는 전정된 일본 정원수 형태라 전량 제거 (2026-08-07).
+    ///         +X 마을 길목~확장 지형에 숲 연출 — 길(|z|&lt;11)은 항상 트여 있다.
+    ///         기존 블록은 GroundHeight(해석 함수), 새 블록은 SampleH(실제 Terrain, 스커트 포함).
     /// </summary>
     public static class EunhaDamDecorPlanter
     {
@@ -28,6 +30,13 @@ namespace IMUNROK.Gyeonu.Editor
         const string MatFolder = "Assets/_Project/Gyeonu/Art/Materials";
 
         const float WaterLevel = 0.5f;
+
+        // 랜드마크 버드나무 — 씬 진입 지점(구 지형 +X 끝, x≈100)에서 서쪽 문루를 볼 때
+        // 가지가 프레임이 되는 위치. 2026-08-07 후보 C 임시 적용 (A 96,6 / B 95,-6.5 / D 89,-10·rot320).
+        // 사용자 확정 시 이 세 값만 갱신하고 재배치.
+        const float LandmarkX = 91f;
+        const float LandmarkZ = 9f;
+        const float LandmarkRotY = 200f;
 
         // 회피 구역 (xMin, xMax, zMin, zMax)
         static readonly float[][] AvoidRects =
@@ -45,22 +54,54 @@ namespace IMUNROK.Gyeonu.Editor
             // ── 풍영정 (확정): 호수 안쪽 대(臺) 위 — 사방이 물, 계단(정면 local +Z)은
             //    서쪽 물가(bearing 260)를 향하고 남동 개방면으로 오작교가 보인다 ──
             float px = EunhaDamBuilder.PondPadX, pz = EunhaDamBuilder.PondPadZ;
+            // rotY 90 (2026-08-07 재배치): 계단(local +Z)이 동쪽 — 마을 방향 돌다리로 진입.
+            // 피벗이 평면 중심이라 회전해도 발자국은 그대로.
             var pyj = PlacePrefab(group,
                 "Assets/woljeonggyo/pungyeongjeong-pavilion/source/01_PoongYoungJung.fbx",
-                "정자_풍영정", new Vector3(px, 0.15f, pz), 260f, 1f, snapBaseY: true);
+                "정자_풍영정", new Vector3(px, 0.15f, pz), 90f, 1f, snapBaseY: true);
             if (pyj != null) ApplyPungyeongMaterials(pyj);
 
-            // ── 돌다리 사슬: 서안 물가(-29.6, 39.8) → 정자 계단(-18.5, 39.0) 3연결 + 받침 바위 ──
-            PlacePrefab(group, SeyeonPath + "SM_StoneBridge_1.prefab",
-                "돌다리_정자연결_1", new Vector3(-27.8f, 0.42f, 39.66f), 2f, 1.3f);
-            PlacePrefab(group, SeyeonPath + "SM_StoneBridge_1.prefab",
-                "돌다리_정자연결_2", new Vector3(-24.05f, 0.42f, 39.4f), 6f, 1.3f);
-            PlacePrefab(group, SeyeonPath + "SM_StoneBridge_1.prefab",
-                "돌다리_정자연결_3", new Vector3(-20.3f, 0.42f, 39.13f), 3f, 1.3f);
-            PlacePrefab(group, SeyeonPath + "SM_Rock_K_VR.prefab",
-                "돌다리_받침_1", new Vector3(-25.9f, -0.15f, 39.55f), 40f, 0.7f);
-            PlacePrefab(group, SeyeonPath + "SM_Rock_K_VR.prefab",
-                "돌다리_받침_2", new Vector3(-22.2f, -0.15f, 39.25f), 200f, 0.65f);
+            // ── 돌다리 (2026-08-07 재배치): 동안(마을 길목 쪽) 물가 x≈29 → 정자 계단부 x≈-5.4,
+            //    z 39.6 일직선 9연결. 피벗 y=0 → 보행면 1.10 (수면 +0.6, 정자 마루 1.15와 5cm 단차).
+            //    길이 3.95(스케일 1.3) / 간격 3.80 → 15cm 겹침, 틈 없음. MeshCollider 내장 확인됨.
+            float[] bridgeJitter = { 2f, -3f, 4f, -2f, 3f, -4f, 2f, -3f, 3f, -2f };
+            const float BridgeZ = 39.6f, BridgeSpacing = 3.8025f, BridgeX0 = 27.0f;
+            for (int i = 0; i < 10; i++)   // 10연결 — 서단이 정자 동면(-9.05)까지 닿는다
+                PlacePrefab(group, SeyeonPath + "SM_StoneBridge_1.prefab",
+                    "돌다리_정자연결_" + (i + 1),
+                    new Vector3(BridgeX0 - i * BridgeSpacing, 0f, BridgeZ), bridgeJitter[i], 1.3f);
+            // 이음매 아래 받침 바위 (수면 근처까지 — 물속 부유감 방지)
+            for (int i = 0; i < 9; i++)
+                PlacePrefab(group, SeyeonPath + (i % 2 == 0 ? "SM_Rock_K_VR.prefab" : "SM_Rock_G_VR.prefab"),
+                    "돌다리_받침_" + (i + 1),
+                    new Vector3(BridgeX0 - (i + 0.5f) * BridgeSpacing, -0.55f, BridgeZ + (i % 2 == 0 ? 0.3f : -0.3f)),
+                    i * 47f, 0.8f);
+            // 물가 진입 디딤돌 (둑 0.5~0.6 → 상판 1.10 중간 단)
+            var entry = PlacePrefab(group, SeyeonPath + "SM_Rock_K_VR.prefab",
+                "돌다리_진입석", new Vector3(29.9f, 0.45f, BridgeZ), 25f, 1f);
+            if (entry != null) entry.transform.localScale = new Vector3(1.0f, 0.35f, 1.0f);
+
+            // ── 풍영정 보행 콜라이더 (FBX에 콜라이더 없음 — 마루 + 다리 이음) ──
+            var walk = new GameObject("풍영정_보행콜라이더");
+            walk.transform.SetParent(group.transform, false);
+            var deckCol = walk.AddComponent<BoxCollider>();
+            deckCol.center = new Vector3(px, 1.095f, pz);          // 마루 상면 1.15
+            deckCol.size = new Vector3(7.3f, 0.12f, 12.3f);
+            var seamCol = walk.AddComponent<BoxCollider>();
+            seamCol.center = new Vector3(-9.0f, 1.1f, BridgeZ);    // 다리 서단(-9.2)~마루 동단(-9.35) 이음
+            seamCol.size = new Vector3(0.9f, 0.08f, 2.0f);
+            // 다리 전장 보행판 — 판석(1.03~1.07) 사이 저단 구간(0.5m 꺼짐)을 덮는 평평한 투명 콜라이더.
+            // 판석 콜라이더(컨벡스 헐)가 끝단에서 꺼져 걸음이 튀는 것도 함께 해결.
+            var walkwayCol = walk.AddComponent<BoxCollider>();
+            walkwayCol.center = new Vector3(9.9f, 1.02f, BridgeZ);    // 상면 1.08, x -9.0~28.8
+            walkwayCol.size = new Vector3(37.8f, 0.12f, 1.7f);
+            // 물가 진입 램프 (둑 0.54 → 보행판 1.08)
+            var ramp = new GameObject("풍영정_진입램프");
+            ramp.transform.SetParent(group.transform, false);
+            ramp.transform.position = new Vector3(29.7f, 0.8f, BridgeZ);
+            ramp.transform.rotation = Quaternion.Euler(0f, 0f, -17f);   // +X로 갈수록 내려감
+            var rampCol = ramp.AddComponent<BoxCollider>();
+            rampCol.size = new Vector3(2.1f, 0.08f, 1.7f);
             // 동안 물가 징검다리
             PlacePrefab(group, SeyeonPath + "SM_StoneBridge_2.prefab",
                 "돌다리_물가", new Vector3(31.8f, 0.18f, -24f), 75f, 1f);
@@ -231,12 +272,15 @@ namespace IMUNROK.Gyeonu.Editor
             LilyCluster(-20.1f, 48.4f, 5);
             LilyCluster(-2.2f, 41.9f, 4);
 
-            // ── 중경 숲 (원경은 산 메시 담당 — 사시나무는 배경 소량만) ──
+            // ── 나무 (2026-08-07 재구성: 흑송 전량 제거 — 전정된 일본 정원수 형태라 조선 배경 부적합.
+            //    벚나무JG(01·05 모두 여름잎 머티리얼) 중경 주력, +X 마을 길목~확장 지형(스커트)에 숲.
+            //    새 배치는 실제 Terrain 높이 샘플(SampleH — 스커트 타일 포함) 사용) ──
             var aspen = LoadVeg("Aspen_사시나무_원경");
-            var blackPines = new[] { "Pine_흑송JG_대_01", "Pine_흑송JG_대_02", "Pine_흑송JG_중_01",
-                                     "Pine_흑송JG_중_02", "Pine_흑송JG_소_01", "Pine_흑송JG_소_02" }
-                             .Select(LoadVeg).ToArray();
-            var pinesVR = new[] { LoadVeg("Pine_소나무_PinusDensiflora_1_VR"), LoadVeg("Pine_소나무_PinusDensiflora_2_VR") };
+            var cherries = new[] { "Cherry_벚나무JG_대_01", "Cherry_벚나무JG_대_05", "Cherry_벚나무JG_중_01",
+                                   "Cherry_벚나무JG_중_05", "Cherry_벚나무JG_소_01", "Cherry_벚나무JG_소_05" }
+                           .Select(LoadVeg).ToArray();
+            var bamboos = new[] { LoadVeg("Bamboo_대나무_Henonis_1_VR"), LoadVeg("Bamboo_대나무_Henonis_2_VR"),
+                                  LoadVeg("Bamboo_왕대JG_중_01"), LoadVeg("Bamboo_왕대JG_중_02") };
 
             int aspenCount = 0; attempts = 0;
             while (aspenCount < 24 && attempts++ < 3000)
@@ -254,67 +298,119 @@ namespace IMUNROK.Gyeonu.Editor
                 aspenCount++;
             }
 
-            int bpCount = 0; attempts = 0;
-            while (bpCount < 30 && attempts++ < 4000)
+            // ── 사시나무 확장 지형(스커트) 원경 링 — 안개 소실(220m) 직전까지 ──
+            int aspenFar = 0; attempts = 0;
+            while (aspenFar < 30 && attempts++ < 4000)
             {
                 float ang = (float)rnd.NextDouble() * Mathf.PI * 2f;
-                float r = Mathf.Lerp(50f, 90f, (float)rnd.NextDouble());
+                float r = Mathf.Lerp(100f, 185f, (float)rnd.NextDouble());
                 float x = Mathf.Cos(ang) * r, z = Mathf.Sin(ang) * r;
-                float h = EunhaDamBuilder.GroundHeight(x, z);
-                if (h < 1.5f || h > 6.5f) continue;
-                if (SlopeDeg(x, z) > 28f) continue;
-                if (InAvoid(x, z) || NearPavilion(x, z, 10f)) continue;
-                if (Blocked(x, z, planted, 3f)) continue;
-                Plant(forestG, blackPines[rnd.Next(blackPines.Length)], "흑송_" + bpCount, x, h, z, rnd, 0.85f, 1.25f);
-                planted.Add(new Vector2(x, z));
-                bpCount++;
-            }
-
-            int pvCount = 0; attempts = 0;
-            while (pvCount < 8 && attempts++ < 2000)
-            {
-                float side = rnd.NextDouble() < 0.5 ? -1f : 1f;
-                float x = side * Mathf.Lerp(34f, 74f, (float)rnd.NextDouble());
-                float z = Mathf.Lerp(-70f, 70f, (float)rnd.NextDouble());
-                float h = EunhaDamBuilder.GroundHeight(x, z);
-                if (h < 1.2f || h > 7.2f) continue;
-                if (SlopeDeg(x, z) > 28f) continue;
-                if (InAvoid(x, z) || NearPavilion(x, z, 8f)) continue;
+                if (x > 36f && Mathf.Abs(z) < 11f) continue;   // 마을 길 통행로
+                float h = SampleH(x, z);
+                if (h < 0.9f || h > 6.5f) continue;            // 강 골·자갈 물가 제외
+                if (SlopeDegT(x, z) > 30f) continue;
                 if (Blocked(x, z, planted, 5f)) continue;
-                Plant(forestG, pinesVR[pvCount % 2], "소나무_" + pvCount, x, h, z, rnd, 0.9f, 1.15f);
+                Plant(forestG, aspen, "사시원경_" + aspenFar, x, h, z, rnd, 0.7f, 1.3f);
                 planted.Add(new Vector2(x, z));
-                pvCount++;
+                aspenFar++;
             }
 
-            // 풍영정 맞은편 서안 둑 대나무 (배경 가림) + 남서안 균형
-            var henonis = new[] { LoadVeg("Bamboo_대나무_Henonis_1_VR"), LoadVeg("Bamboo_대나무_Henonis_2_VR") };
+            // ── 벚나무 중경 링 (흑송 대체 주력) — 군집 단위, 줄 서기 방지 ──
+            int cherryCount = 0, cherryClusters = 0; attempts = 0;
+            while (cherryClusters < 12 && attempts++ < 1500)
+            {
+                float ang = (float)rnd.NextDouble() * Mathf.PI * 2f;
+                float r = Mathf.Lerp(48f, 92f, (float)rnd.NextDouble());
+                float cx = Mathf.Cos(ang) * r, cz = Mathf.Sin(ang) * r;
+                float ch = SampleH(cx, cz);
+                if (ch < 1.2f || ch > 6.5f) continue;
+                if (InAvoid(cx, cz) || NearPavilion(cx, cz, 12f)) continue;
+                if (PlantCluster(forestG, rnd, planted, "벚", ref cherryCount, cherries, null,
+                        cx, cz, 3 + rnd.Next(2), 6.5f, 1.2f, 6.5f, 2.8f) > 0)
+                    cherryClusters++;
+            }
+
+            // ── 입구 랜드마크 버드나무 — 극적 연출 (2026-08-07 3차 정정):
+            //    스폰(48, y7, 0)에서 다리(-X)를 바라볼 때 가지가 화면 한쪽을 걸치고
+            //    그 너머로 월정교가 드러나는 프레임 위치. 상수 좌표 — 후보 확정 시 여기만 수정.
+            float lmX = LandmarkX, lmZ = LandmarkZ;
+            {
+                var lm = (GameObject)PrefabUtility.InstantiatePrefab(willows[0], forestG);
+                lm.name = "랜드마크_버드나무";
+                lm.transform.position = new Vector3(lmX, SampleH(lmX, lmZ) - 0.1f, lmZ);
+                lm.transform.rotation = Quaternion.Euler(0f, LandmarkRotY, 0f);
+                lm.transform.localScale = Vector3.one * 1.75f;   // 랜드마크 — 일반 버드나무의 약 1.7배
+                planted.Add(new Vector2(lmX, lmZ));
+
+                // 그늘 아래 걸터앉을 낮은 바위 2개 (길 반대편이 아니라 항상 길 쪽으로)
+                var seatRock = AssetDatabase.LoadAssetAtPath<GameObject>(SeyeonPath + "SM_Rock_K_VR.prefab");
+                if (seatRock != null)
+                {
+                    float zs = Mathf.Sign(lmZ);   // 나무가 남측이면 바위 오프셋도 뒤집는다
+                    var r1 = (GameObject)PrefabUtility.InstantiatePrefab(seatRock, forestG);
+                    r1.name = "랜드마크_앉음바위_1";
+                    float rx = lmX - 2.2f, rz = lmZ - 2.6f * zs;
+                    r1.transform.position = new Vector3(rx, SampleH(rx, rz) - 0.45f, rz);
+                    r1.transform.rotation = Quaternion.Euler(0f, 35f, 0f);
+                    r1.transform.localScale = new Vector3(1.1f, 0.55f, 1.1f);   // 낮고 넓게
+                    var r2 = (GameObject)PrefabUtility.InstantiatePrefab(seatRock, forestG);
+                    r2.name = "랜드마크_앉음바위_2";
+                    rx = lmX + 1.9f; rz = lmZ - 1.8f * zs;
+                    r2.transform.position = new Vector3(rx, SampleH(rx, rz) - 0.55f, rz);
+                    r2.transform.rotation = Quaternion.Euler(0f, 210f, 0f);
+                    r2.transform.localScale = new Vector3(0.8f, 0.45f, 0.8f);
+                }
+            }
+
+            // ── +X 마을 길목 양옆 — 듬성듬성 (시야 트임, 꽃밭이 주인공) ──
+            var gatePool = new[] { cherries[2], cherries[3], cherries[4], cherries[5],
+                                   bamboos[0], bamboos[1], aspen };
+            int gateCount = 0, gateClusters = 0; attempts = 0;
+            while (gateClusters < 3 && attempts++ < 600)
+            {
+                float cx = Mathf.Lerp(58f, 108f, (float)rnd.NextDouble());
+                float side = rnd.NextDouble() < 0.5 ? -1f : 1f;
+                float cz = side * Mathf.Lerp(14f, 28f, (float)rnd.NextDouble());
+                if (PlantCluster(forestG, rnd, planted, "길목", ref gateCount, gatePool, null,
+                        cx, cz, 2 + rnd.Next(2), 7f, 1.0f, 7.2f, 5f) > 0)
+                    gateClusters++;
+            }
+
+            // ── +X 확장 지형 숲 — 멀리 보이는 정도, 넓은 간격 ──
+            var farPool = new[] { aspen, cherries[0], cherries[1], cherries[2], cherries[3],
+                                  bamboos[2], bamboos[3] };
+            var farW = new[] { 0.50f, 0.08f, 0.08f, 0.12f, 0.12f, 0.05f, 0.05f };
+            int farCount = 0, farClusters = 0; attempts = 0;
+            while (farClusters < 9 && attempts++ < 1800)
+            {
+                float cx = Mathf.Lerp(110f, 190f, (float)rnd.NextDouble());
+                float side = rnd.NextDouble() < 0.5 ? -1f : 1f;
+                float cz = side * Mathf.Lerp(18f, 62f, (float)rnd.NextDouble());
+                if (PlantCluster(forestG, rnd, planted, "동숲", ref farCount, farPool, farW,
+                        cx, cz, 4 + rnd.Next(2), 12f, 0.9f, 7f, 6f) > 0)
+                    farClusters++;
+            }
+
+            // ── 대나무 — 경계·틈새 (풍영정 맞은편 기존 6 + 외곽 경계 4) ──
             int hCount = 0;
             foreach (var c in new[] { new Vector2(-38f, 44f), new Vector2(-41f, 39f), new Vector2(-35f, 49f),
-                                      new Vector2(-37f, -42f), new Vector2(-40f, -37f), new Vector2(-34f, -47f) })
+                                      new Vector2(-37f, -42f), new Vector2(-40f, -37f), new Vector2(-34f, -47f),
+                                      new Vector2(93f, 42f), new Vector2(95f, -47f),
+                                      new Vector2(-88f, 57f), new Vector2(-86f, -62f) })
             {
-                float x = c.x + Jitter(rnd, 1f), z = c.y + Jitter(rnd, 1f);
-                float h = EunhaDamBuilder.GroundHeight(x, z);
-                Plant(forestG, henonis[hCount % 2], "대나무_" + hCount, x, h, z, rnd, 0.9f, 1.2f);
+                float x = c.x + Jitter(rnd, 1.5f), z = c.y + Jitter(rnd, 1.5f);
+                float h = SampleH(x, z);
+                if (h < 0.9f || h > 7.2f) continue;
+                Plant(forestG, bamboos[hCount % bamboos.Length], "대나무_" + hCount, x, h, z, rnd, 0.8f, 1.25f);
                 hCount++;
             }
 
-            // 마을 방향 길목 양옆 프레이밍 (정면은 트고 좌우만 나무·대숲으로 막는다)
-            int fCount = 0;
-            var flankPool = new[] { henonis[0], blackPines[2], aspen, henonis[1],
-                                    blackPines[4], aspen, blackPines[0], henonis[0] };
-            foreach (var c in new[] { new Vector2(70f, 15f), new Vector2(78f, -14.5f), new Vector2(84f, 16f),
-                                      new Vector2(92f, -15f), new Vector2(97f, 14f), new Vector2(75f, -17f),
-                                      new Vector2(88f, 13.5f), new Vector2(96f, -13.5f) })
-            {
-                float x = c.x + Jitter(rnd, 1.2f), z = c.y + Jitter(rnd, 1.2f);
-                float h = EunhaDamBuilder.GroundHeight(x, z);
-                Plant(forestG, flankPool[fCount % flankPool.Length], "길목_" + fCount, x, h, z, rnd, 0.9f, 1.2f);
-                fCount++;
-            }
-
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-            Debug.Log($"[은하담] 식생 배치 완료: 버드나무 {w}, 갈대 {reedCount}, 수련 {lilyCount}, " +
-                      $"사시 {aspenCount}, 흑송 {bpCount}, 소나무VR {pvCount}, 대나무 {hCount}");
+            Debug.Log($"[은하담] 식생 배치 완료: 버드나무 {w}+랜드마크 1(x{lmX:F1}, z{lmZ:F1}), " +
+                      $"갈대 {reedCount}, 수련 {lilyCount}, " +
+                      $"사시 근경 {aspenCount} + 원경 {aspenFar}, 벚나무 {cherryCount}(군집 {cherryClusters}), " +
+                      $"길목 {gateCount}(군집 {gateClusters}), 동쪽숲 {farCount}(군집 {farClusters}), " +
+                      $"대나무 {hCount} — 흑송·소나무VR 0 (전량 제거)");
         }
 
         // ── 풍영정 URP 머티리얼 (원본 FBX·폴더 무수정 — 씬 인스턴스에만 적용) ──
@@ -399,6 +495,65 @@ namespace IMUNROK.Gyeonu.Editor
             var p = AssetDatabase.LoadAssetAtPath<GameObject>(VegPath + name + ".prefab");
             if (p == null) Debug.LogError("[은하담] 식생 프리팹 없음: " + name);
             return p;
+        }
+
+        /// <summary>실제 Terrain 높이 (스커트 타일 포함 — 어느 타일 위든 동작).
+        /// 지형 밖이면 해석 함수로 폴백.</summary>
+        static float SampleH(float x, float z)
+        {
+            foreach (var t in Terrain.activeTerrains)
+            {
+                var p = t.transform.position; var s = t.terrainData.size;
+                if (x >= p.x && x <= p.x + s.x && z >= p.z && z <= p.z + s.z)
+                    return t.SampleHeight(new Vector3(x, 0f, z)) + p.y;
+            }
+            return EunhaDamBuilder.GroundHeight(x, z);
+        }
+
+        static float SlopeDegT(float x, float z)
+        {
+            float sx = SampleH(x + 1f, z) - SampleH(x - 1f, z);
+            float sz = SampleH(x, z + 1f) - SampleH(x, z - 1f);
+            return Mathf.Atan(0.5f * Mathf.Sqrt(sx * sx + sz * sz)) * Mathf.Rad2Deg;
+        }
+
+        static GameObject WeightedPick(System.Random rnd, GameObject[] pool, float[] weights)
+        {
+            if (weights == null) return pool[rnd.Next(pool.Length)];
+            float sum = 0f;
+            foreach (var wgt in weights) sum += wgt;
+            float pick = (float)rnd.NextDouble() * sum;
+            for (int i = 0; i < pool.Length; i++)
+            {
+                pick -= weights[i];
+                if (pick <= 0f) return pool[i];
+            }
+            return pool[pool.Length - 1];
+        }
+
+        /// <summary>군집 식재 — 중심 주변 원판에 랜덤 산포(√r 분포로 중심 밀집).
+        /// 통행로(x&gt;36, |z|&lt;11)·회피 구역·풍영정 근처는 건너뛴다. 스케일 0.7~1.3.</summary>
+        static int PlantCluster(Transform parent, System.Random rnd, List<Vector2> planted,
+            string prefix, ref int counter, GameObject[] pool, float[] weights,
+            float cx, float cz, int count, float radius, float minH, float maxH, float spacing)
+        {
+            int placed = 0, tries = 0;
+            while (placed < count && tries++ < count * 12)
+            {
+                float ang = (float)rnd.NextDouble() * Mathf.PI * 2f;
+                float r = Mathf.Sqrt((float)rnd.NextDouble()) * radius;
+                float x = cx + Mathf.Cos(ang) * r, z = cz + Mathf.Sin(ang) * r;
+                if (x > 36f && Mathf.Abs(z) < 11f) continue;   // 마을 길 통행로는 항상 트인다
+                if (InAvoid(x, z) || NearPavilion(x, z, 8f)) continue;
+                float h = SampleH(x, z);
+                if (h < minH || h > maxH) continue;
+                if (SlopeDegT(x, z) > 30f) continue;
+                if (Blocked(x, z, planted, spacing)) continue;
+                Plant(parent, WeightedPick(rnd, pool, weights), prefix + "_" + counter, x, h, z, rnd, 0.7f, 1.3f);
+                planted.Add(new Vector2(x, z));
+                counter++; placed++;
+            }
+            return placed;
         }
 
         static float SlopeDeg(float x, float z)
