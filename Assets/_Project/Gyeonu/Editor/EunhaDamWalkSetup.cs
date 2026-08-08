@@ -96,17 +96,19 @@ namespace IMUNROK.Gyeonu.Editor
             if (oldWalker != null) Object.DestroyImmediate(oldWalker);
 
             Vector3 spawn = Vector3.zero;
+            float spawnYaw = 0f;
             var marker = GameObject.Find("SpawnPoint_PlayerStart");
-            if (marker != null) spawn = marker.transform.position;
+            if (marker != null) { spawn = marker.transform.position; spawnYaw = marker.transform.eulerAngles.y; }
             else Debug.LogWarning("[보행] SpawnPoint_PlayerStart 없음 — 원점에 설치");
 
             var go = new GameObject("디버그_워커");
             go.transform.position = spawn + Vector3.up * 0.1f;
+            go.transform.rotation = Quaternion.Euler(0f, spawnYaw, 0f);   // 마커 방향으로 시작
             var cc = go.AddComponent<CharacterController>();
             cc.height = 1.8f;
             cc.radius = 0.3f;
             cc.center = new Vector3(0f, 0.9f, 0f);
-            cc.stepOffset = 0.5f;
+            cc.stepOffset = 0.6f;   // 관아 언덕 박스 계단 최대 단차 0.52 대응
             cc.slopeLimit = 50f;
 
             var eyeGo = new GameObject("워커_카메라");
@@ -115,10 +117,13 @@ namespace IMUNROK.Gyeonu.Editor
             eyeGo.tag = "MainCamera";
             var cam = eyeGo.AddComponent<Camera>();
             cam.nearClipPlane = 0.08f;
+            var urpCam = eyeGo.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            urpCam.renderPostProcessing = true;   // URP 신규 카메라는 기본 OFF — 켜야 색이 정상
             eyeGo.AddComponent<AudioListener>();
 
             var walker = go.AddComponent<DebugWalkController>();
             walker.eye = eyeGo.transform;
+            eyeGo.AddComponent<DebugInteractor>();   // 임시 상호작용 입력 (화면 중앙 레이 + 좌클릭)
 
             // 기존 카메라 비활성 (VR 리그 교체 시 되살릴 것)
             var mainCam = GameObject.Find("Main Camera");

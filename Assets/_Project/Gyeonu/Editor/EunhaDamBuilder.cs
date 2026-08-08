@@ -1218,18 +1218,46 @@ namespace IMUNROK.Gyeonu.Editor
         }
 
         // ── 마커·카메라 ─────────────────────────────────────
-        static void BuildMarkers()
+        // 2026-08-07 정리: 스폰 = 씬 진입 지점(구 지형 +X 끝, x 102) — 랜드마크 버드나무(91,9)
+        // 가지가 프레임이 되는 시점. 높이는 실제 Terrain 샘플(스커트 포함 — GroundHeight는 ±100 밖 무효).
+        [MenuItem("Tools/이문록/은하담 마커 배치")]
+        public static void BuildMarkers()
         {
             var group = RecreateGroup("은하담_마커");
 
-            var spawn = new GameObject("SpawnPoint_PlayerStart");
-            spawn.transform.SetParent(group.transform, false);
-            spawn.transform.position = new Vector3(48f, GroundHeight(48f, 0f), 0f);   // 둑 위 진입로, 문루 앞
-            spawn.transform.rotation = Quaternion.Euler(0f, 270f, 0f);                // 다리를 바라봄 (-X)
+            var spawn = Marker(group, "SpawnPoint_PlayerStart", 102f, 0f);
+            spawn.transform.rotation = Quaternion.Euler(0f, 270f, 0f);   // 다리(-X)를 바라봄 — 버드나무 프레임
 
-            var exit = new GameObject("Exit_ToVillage");
-            exit.transform.SetParent(group.transform, false);
-            exit.transform.position = new Vector3(60f, GroundHeight(60f, 0f), 0f);
+            Marker(group, "Exit_ToVillage", 136f, 0f);                   // 마을 방향 +X 끝 (씬 경계 ±140 직전)
+            Marker(group, "Exit_ToHub", 102f, -7f);                      // 조사청 복귀 (진입 지점 옆)
+
+            // 관측실 입구(오작교 암문 예정지) — 다리 마루 북측 난간 앞. 암문 구조물은 추후.
+            var obs = new GameObject("Exit_ToObservatory");
+            obs.transform.SetParent(group.transform, false);
+            obs.transform.position = new Vector3(0f, 8.8f, 4.2f);        // 마루 실측 8.8
+            obs.transform.rotation = Quaternion.Euler(0f, 0f, 0f);       // 난간(+Z) 방향
+
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+            Debug.Log("[은하담] 마커 4종 배치 완료 (스폰 x102·출구 x136·허브·관측실)");
+        }
+
+        static GameObject Marker(GameObject group, string name, float x, float z)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(group.transform, false);
+            go.transform.position = new Vector3(x, SampleTerrainH(x, z), z);
+            return go;
+        }
+
+        static float SampleTerrainH(float x, float z)
+        {
+            foreach (var t in Terrain.activeTerrains)
+            {
+                var p = t.transform.position; var s = t.terrainData.size;
+                if (x >= p.x && x <= p.x + s.x && z >= p.z && z <= p.z + s.z)
+                    return t.SampleHeight(new Vector3(x, 0f, z)) + p.y;
+            }
+            return GroundHeight(Mathf.Clamp(x, -99f, 99f), Mathf.Clamp(z, -99f, 99f));
         }
 
         static void EnsureCamera()

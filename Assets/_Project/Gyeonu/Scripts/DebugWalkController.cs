@@ -20,11 +20,15 @@ namespace IMUNROK.Gyeonu
         CharacterController cc;
         float pitch;
         float fallSpeed;
+        Vector3 spawnPos;
+        Quaternion spawnRot;
 
         void Awake()
         {
             cc = GetComponent<CharacterController>();
             Application.runInBackground = true;   // 에디터 포커스 없어도 게임 루프 유지 (원격 검증용이기도)
+            spawnPos = transform.position;         // R키 탈출용 (끼임 대비)
+            spawnRot = transform.rotation;
         }
 
         void OnEnable() => SetCursorLock(true);
@@ -37,6 +41,13 @@ namespace IMUNROK.Gyeonu
             if (kb == null || mouse == null) return;
 
             if (kb.escapeKey.wasPressedThisFrame) SetCursorLock(false);
+            if (kb.rKey.wasPressedThisFrame)      // 끼임 탈출: 스폰으로 복귀
+            {
+                cc.enabled = false;
+                transform.SetPositionAndRotation(spawnPos, spawnRot);
+                fallSpeed = 0f;
+                cc.enabled = true;
+            }
             if (mouse.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
                 SetCursorLock(true);
 
