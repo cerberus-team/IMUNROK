@@ -48,9 +48,9 @@ namespace IMUNROK.Onggojip.Editor
             while (t != null)
             {
                 string n = t.name;
-                if (n.Contains("대문") || n.Contains("게임요소") ||
-                    n.Contains("Camera") || n.Contains("카메라") ||
-                    n.StartsWith("임시_") || n.Contains("Light"))
+                if (n.Contains("대문") || n.Contains("중문") || n.Contains("협문") ||
+                    n.Contains("게임요소") || n.Contains("Camera") || n.Contains("카메라") ||
+                    n.StartsWith("임시_") || n.Contains("Light") || n.Contains("Door") || n.Contains("문짝"))
                     return true;
                 t = t.parent;
             }

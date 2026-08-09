@@ -16,6 +16,7 @@ namespace IMUNROK.Onggojip
     public class ObjectiveHud : MonoBehaviour
     {
         [SerializeField] private bool _show = true;
+        [TextArea] [SerializeField] private string _introLine = "마을 어귀에 닿았다. 수첩(J)을 살피거나, 지나는 이에게 말을 걸어보자";
         [TextArea] [SerializeField] private string _investigateLine = "밤이다. 몰래 집 안을 조사하라";
         [TextArea] [SerializeField] private string _readyLine = "증거를 충분히 모았다 — 출도하라!  (F2 ▸ 출도)";
 
@@ -54,10 +55,13 @@ namespace IMUNROK.Onggojip
             }
 
             bool ready = have >= req;
-            string main = ready ? _readyLine : _investigateLine;
+            bool intro = found == 0;   // 아직 아무 단서도 못 얻음 = 도입(마을 어귀)
+            string main = ready ? _readyLine : (intro ? _introLine : _investigateLine);
             string sub = ready
                 ? "필수 단서 완료"
-                : $"필수 단서 {have}/{req}  ·  발견 {found}/{total}   (H: 목표 숨기기)";
+                : (intro
+                    ? "(H: 안내 숨기기)"
+                    : $"필수 단서 {have}/{req}  ·  발견 {found}/{total}   (H: 목표 숨기기)");
 
             EnsureStyles();
             float w = 620f, h = 62f;
