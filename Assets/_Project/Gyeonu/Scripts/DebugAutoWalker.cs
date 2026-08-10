@@ -15,6 +15,9 @@ namespace IMUNROK.Gyeonu
         public float speed = 3f;
         public int wpIndex;
         public bool done;
+        /// <summary>이 높이 아래로 내려가면 낙수·추락으로 기록. 실내 씬은 바닥이 음수라 씬마다 지정한다
+        /// (관측실 바닥 -3.06, 수직갱 바닥 -11.3).</summary>
+        public float fallY = 0.25f;
         public List<string> issues = new List<string>();
 
         CharacterController _cc;
@@ -62,7 +65,7 @@ namespace IMUNROK.Gyeonu
                 _stuckTimer = 0f;
             }
 
-            if (!_wetLogged && transform.position.y < 0.25f)
+            if (!_wetLogged && transform.position.y < fallY)
             {
                 issues.Add($"WATER/FALL wp{wpIndex} @({transform.position.x:F1},{transform.position.y:F1},{transform.position.z:F1})");
                 _wetLogged = true;

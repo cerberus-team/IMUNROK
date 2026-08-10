@@ -23,6 +23,9 @@ namespace IMUNROK.Gyeonu
         public string lightGroupName = "조명";
         public string starGroupName = "혼상별_별빛";
         public string keepLitName = "아래층_등불";              // 소등 제외 (선아의 등불)
+        /// <summary>소품 등잔이 있는 루트 (관측실 재생성에 지워지지 않게 방 루트 밖에 있다).
+        /// 별밤에 방 등잔과 함께 꺼진다. 비워두면 무시.</summary>
+        public string propLightRootName = "관측실_소품";
 
         public bool IsLit { get; private set; }
 
@@ -59,6 +62,17 @@ namespace IMUNROK.Gyeonu
                         if (t.name == keepLitName) { keep = true; break; }
                     if (!keep) l.enabled = !on;
                 }
+            if (!string.IsNullOrEmpty(propLightRootName))
+            {
+                var propRoot = GameObject.Find(propLightRootName);
+                if (propRoot != null)
+                    foreach (var l in propRoot.GetComponentsInChildren<Light>(true))
+                    {
+                        // 켜 둘 때는 원래 꺼져 있던 등잔(아버지 것)까지 살리지 않는다
+                        if (on) { if (l.enabled) { l.enabled = false; l.gameObject.name = "불빛_소등됨"; } }
+                        else if (l.gameObject.name == "불빛_소등됨") { l.enabled = true; l.gameObject.name = "불빛"; }
+                    }
+            }
             var stars = root.transform.Find(starGroupName);
             if (stars != null) stars.gameObject.SetActive(on);
         }
