@@ -63,6 +63,26 @@ sysinfo.txt
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
-# API 키 (절대 커밋 금지)
+# ─────────────────────────────────────────────
+# 팀 정리 추가 규칙 (2026-08-11)
+# ─────────────────────────────────────────────
+# Visual Studio
+.vsconfig
+
+# 대용량 기성 에셋 — 낙안읍성 팩은 git에서 제외 (로컬/외부 배포본으로 관리)
+#   팩은 Assets/Naganeupseong/ 으로 이동 완료됨
+/[Aa]ssets/Naganeupseong/
+/[Aa]ssets/Naganeupseong.meta
+
+# 비밀정보 / 자격증명 (팀원의 API 키 규칙 포함·통합)
 gemini_api_key.txt
 *_api_key.txt
+*api_key*.txt
+*apikey*.txt
+*.env
+.env.*
+secrets/
+*.secret
+
+# 작업 백업 폴더
+_AssetBackup/
