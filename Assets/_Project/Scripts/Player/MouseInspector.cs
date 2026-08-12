@@ -19,8 +19,11 @@ namespace IMUNROK.Common
         [SerializeField] private Camera _camera;
         [SerializeField] private float _maxDistance = 20f;
         [SerializeField] private LayerMask _mask = ~0;
+        [Tooltip("돋보기로 취급할 도구 id")]
+        [SerializeField] private string _magnifierToolId = "magnify";
 
         private IInspectable _current;
+        private bool _needMagHint;   // 돋보기 필요한데 안 든 물건을 가리키는 중
         private GUIStyle _titleStyle;
         private GUIStyle _bodyStyle;
 
@@ -41,6 +44,17 @@ namespace IMUNROK.Common
             if (Physics.Raycast(ray, out RaycastHit info, _maxDistance, _mask))
                 hit = info.collider.GetComponentInParent<IInspectable>();
 
+            // 이 물건이 '돋보기 필요' 표시인데 지금 돋보기를 안 들었으면 → 힌트만, 단서 기록 X
+            bool hasMag = ToolbeltHud.SelectedToolId == _magnifierToolId;
+            bool needsMag = (hit as InspectableNote)?.RequiresMagnifier ?? false;
+            if (hit != null && needsMag && !hasMag)
+            {
+                _current = null;
+                _needMagHint = true;
+                return;
+            }
+            _needMagHint = false;
+
             if (!ReferenceEquals(hit, _current))
             {
                 _current = hit;
@@ -51,15 +65,23 @@ namespace IMUNROK.Common
 
         private void OnGUI()
         {
-            if (_current == null) return;
+            if (JournalView.AnyOpen) return;   // 수첩 펼치면 살펴보기 UI 숨김
             EnsureStyles();
 
             float w = 380f, h = 120f;
             float x = Screen.width - w - 20f;
-            float y = 20f;
+            float y = 58f;   // 우상단 지도 버튼과 안 겹치게 살짝 내림
+
+            // 돋보기 필요한 물건인데 안 든 상태 → 안내 힌트만
+            if (_current == null)
+            {
+                if (_needMagHint)
+                    GUI.Label(new Rect(x, y, w, 24), "돋보기로 자세히 봐야 할 것 같다…", _titleStyle);
+                return;
+            }
 
             GUI.Box(new Rect(x, y, w, h), GUIContent.none);
-            GUI.Label(new Rect(x + 14, y + 10, w - 28, 26), "🔍 " + _current.GetInspectTitle(), _titleStyle);
+            GUI.Label(new Rect(x + 14, y + 10, w - 28, 26), _current.GetInspectTitle(), _titleStyle);
             GUI.Label(new Rect(x + 14, y + 42, w - 28, h - 52), _current.GetInspectBody(), _bodyStyle);
         }
 

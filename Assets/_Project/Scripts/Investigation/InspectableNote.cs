@@ -17,6 +17,10 @@ namespace IMUNROK.Common
         [TextArea]
         [SerializeField] private string _body = "";
 
+        [Tooltip("켜면 '돋보기'를 손에 들었을 때만 보인다(손목 흉터·필적 등 세밀한 단서). 끄면 맨눈으로도 보임")]
+        [SerializeField] private bool _requiresMagnifier = false;
+        public bool RequiresMagnifier => _requiresMagnifier;
+
         [Header("살펴보면 수첩에 자동 기록(선택)")]
         [SerializeField] private bool _recordClue = false;
         [SerializeField] private CaseId _clueCase = CaseId.Case1_Onggojip;
@@ -25,6 +29,8 @@ namespace IMUNROK.Common
         [Tooltip("기록할 단서 문구(비우면 본문 사용)")]
         [TextArea]
         [SerializeField] private string _clueText = "";
+        [Tooltip("이 단서의 상황 그림(선택). 수첩 카드·증거 제시 때 뜸")]
+        [SerializeField] private Texture2D _clueImage;
 
         private bool _recorded;
 
@@ -37,7 +43,7 @@ namespace IMUNROK.Common
 
             string key = string.IsNullOrEmpty(_clueKey) ? _title : _clueKey;
             string text = string.IsNullOrEmpty(_clueText) ? _body : _clueText;
-            Journal.Instance.AddClue(_clueCase, key, text);
+            Journal.Instance.AddClue(_clueCase, key, text, _clueImage);
             _recorded = true;
         }
     }

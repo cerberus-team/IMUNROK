@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace IMUNROK.Common
 {
+    /// <summary>단서 종류 — 수첩 탭 분류. 물증(찾은 물건) / 정황(증언·목격·상황 그림).</summary>
+    public enum ClueKind { 물증, 정황 }
+
     /// <summary>수첩에 기록되는 단서 한 줄.</summary>
     [Serializable]
     public class ClueEntry
@@ -11,6 +14,7 @@ namespace IMUNROK.Common
         public CaseId caseId;
         public string key;   // 중복 기록 방지용 식별자(같은 key는 한 번만)
         public string text;  // 표시 문구
+        public ClueKind kind; // 물증/정황
     }
 
     /// <summary>
@@ -71,13 +75,19 @@ namespace IMUNROK.Common
 
         // ── 쓰기 API ──
 
-        /// <summary>단서를 기록. 같은 (사건,key)는 한 번만. 새로 기록되면 true.</summary>
-        public bool AddClue(CaseId caseId, string key, string text)
+        // ── 증거 그림(런타임 전용: 에셋 참조라 저장 안 하고, 다시 얻을 때 재설정) ──
+        private readonly Dictionary<string, Texture2D> _clueImages = new Dictionary<string, Texture2D>();
+        private static string ImgKey(CaseId c, string key) => ((int)c) + ":" + key;
+
+        /// <summary>단서를 기록. 같은 (사건,key)는 한 번만. 새로 기록되면 true.
+        /// image: 상황 그림(선택), kind: 물증/정황(수첩 탭 분류).</summary>
+        public bool AddClue(CaseId caseId, string key, string text, Texture2D image = null, ClueKind kind = ClueKind.물증)
         {
             if (string.IsNullOrEmpty(key)) key = text;
+            if (image != null) _clueImages[ImgKey(caseId, key)] = image;
             if (HasClue(caseId, key)) return false;
 
-            var entry = new ClueEntry { caseId = caseId, key = key, text = text };
+            var entry = new ClueEntry { caseId = caseId, key = key, text = text, kind = kind };
             _clues.Add(entry);
             Debug.Log($"[Journal] 단서 기록: [{caseId}] {text}");
             OnClueAdded?.Invoke(entry);
@@ -86,6 +96,10 @@ namespace IMUNROK.Common
 
         /// <summary>key 없이 기록(문구 자체를 key로).</summary>
         public bool AddClue(CaseId caseId, string text) => AddClue(caseId, text, text);
+
+        /// <summary>단서에 딸린 증거 그림(없으면 null).</summary>
+        public Texture2D GetClueImage(CaseId caseId, string key)
+            => _clueImages.TryGetValue(ImgKey(caseId, key), out var t) ? t : null;
 
         /// <summary>모두 지움(디버그/재시작용).</summary>
         public void ClearAll()

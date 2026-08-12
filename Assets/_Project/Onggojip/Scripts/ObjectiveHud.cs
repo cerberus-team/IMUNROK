@@ -34,7 +34,7 @@ namespace IMUNROK.Onggojip
         private void OnGUI()
         {
             if (!_show) return;
-            if (InterrogationController.AnyOpen) return;   // 심문 중엔 목표 숨김
+            if (InterrogationController.AnyOpen || JournalView.AnyOpen) return;   // 심문·수첩 중엔 목표 숨김
             var journal = Journal.Instance;
             if (journal == null) return;
 

@@ -21,6 +21,9 @@ namespace IMUNROK.Common
 
         [Tooltip("체크하면: 위 대사는 '발뺌'일 뿐 — 단서로 기록되지 않고 여러 번 반복 가능(1막 甲처럼 안 무너짐)")]
         public bool deflectionOnly = false;
+
+        [Tooltip("이 증거를 제시할 때 뜨는 상황 그림(선택)")]
+        public Texture2D clueImage;
     }
 
     /// <summary>
@@ -42,6 +45,9 @@ namespace IMUNROK.Common
 
         [Tooltip("그 단서의 수첩 문구")]
         public string grantsClueText = "";
+
+        [Tooltip("이 단서의 상황 그림(선택). 수첩 카드·증거 제시 때 뜸")]
+        public Texture2D grantsClueImage;
     }
 
     /// <summary>
