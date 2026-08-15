@@ -141,7 +141,7 @@ namespace IMUNROK.Gyeonu.Editor
                 foreach (Transform ch in oldMarkers.transform) prevMarkers[ch.name] = (ch.position, ch.rotation);
                 Object.DestroyImmediate(oldMarkers);
             }
-            prevMarkers.Remove("Exit_ToArchive"); // 계단 방향 반전(2026-08-10)으로 위치가 바뀌므로 보존하지 않는다
+            prevMarkers.Remove("Exit_ToArchive"); // 폐기된 마커 (2026-08-15 비밀문 개편) — 되살리지 않는다
 
             // 손으로 옮긴 혼천의 위치는 보존한다 (재생성 때마다 되돌아가 사용자 배치가 날아갔음)
             bool hasHonPose = false;
@@ -325,22 +325,23 @@ namespace IMUNROK.Gyeonu.Editor
             float drumTop = platY + DrumH;             // 드럼 꼭대기 = 돔 스프링라인 (작업실 천장보다 낮다)
             float throatZ1 = C.z - archChordZ;         // 아치 통로 북끝 = 드럼 개구부
 
-            // 붕괴 서고 계단 — 서벽에 붙은 바닥 개구부 3.0×3.0.
-            // 방이 7m 깊이로 줄면서 남쪽 통로 2.4 / 북쪽 통로 1.6이 남는 자리로 당겼다
-            float ox0 = sx0, ox1 = sx0 + 3.0f;
-            float oz0 = sz0 + 2.4f, oz1 = oz0 + 3.0f;
-            float stubX1 = ox0 + 1.4f;                 // 남은 계단 폭 (서벽에 붙임)
-            float shaftBottom = roomY - 8.2f;
+            // 바닥 비밀문 구멍 (2026-08-15 설정 변경) — 무너진 계단·수직갱·개구부는 전부 폐기.
+            // 작업실 서편 바닥의 작은 문(0.9×0.9). 평소 닫혀 있어 마루와 구분되지 않고,
+            // 문짝·문틀·줄사다리·아래층 서고는 같은 씬의 ArchiveBuilder(서고 생성)가 짓는다 —
+            // 여기서는 마루에 구멍만 남긴다. 좌표를 바꾸면 서고 빌더의 DoorX/DoorZ도 같이 바꿀 것.
+            float ox0 = 15.1f, ox1 = 16.0f;            // 비밀문 구멍 x
+            float oz0 = 32.5f, oz1 = 33.4f;            // 비밀문 구멍 z
 
             // 혼천의 자리. y=0 기준 — C와 같은 규약.
             // ⚠️ 방이 줄면서 아치(x=archX)가 문간(x=posEnd.x) 바로 맞은편으로 왔다 —
             //    가운데 두면 문→아치 동선을 정면으로 막는다. 동편으로 비켜 세운다
             var honSpot = new Vector3(sx0 + 8.0f, 0f, sz0 + 2.2f);
 
-            // ── 작업실 바닥: 마루널. 붕괴 개구부만 뚫는다 ──
+            // ── 작업실 바닥: 마루널. 비밀문 구멍만 뚫는다 ──
             float fy0 = roomY - 0.30f;
             Slab(maru, sx0 - WT, sx1 + WT, fy0, roomY, sz0 - WT, oz0, UvFloor);
             Slab(maru, sx0 - WT, sx1 + WT, fy0, roomY, oz1, sz1 + WT, UvFloor);
+            Slab(maru, sx0 - WT, ox0, fy0, roomY, oz0, oz1, UvFloor);
             Slab(maru, ox1, sx1 + WT, fy0, roomY, oz0, oz1, UvFloor);
 
             // ── 작업실 벽 4면 = 심벽 ──────────────────────────────
@@ -395,10 +396,7 @@ namespace IMUNROK.Gyeonu.Editor
                 Band(roomTrim, a0, a1, yRailT, shopTop, UvWood);        // 상방
             }
 
-            Simbyeok(false, sx0 - WT, sx0, sz0 - WT, oz0, fy0);                 // 서벽 (남)
-            Simbyeok(false, sx0 - WT, sx0, oz0, oz1, roomY);                    // 서벽 (개구부 구간)
-            Slab(roomStone, sx0 - WT, sx0, shaftBottom - 0.3f, roomY, oz0, oz1, UvStone);  //   └ 그 아래 수직갱 벽은 막돌 그대로
-            Simbyeok(false, sx0 - WT, sx0, oz1, sz1 + WT, fy0);                 // 서벽 (북)
+            Simbyeok(false, sx0 - WT, sx0, sz0 - WT, sz1 + WT, fy0);            // 서벽 (개구부 폐기 — 통짜 복원)
             Simbyeok(false, sx1, sx1 + WT, sz0 - WT, sz1 + WT, fy0);            // 동벽
             Simbyeok(true, sz0 - WT, sz0, sx0 - WT, doorX0, fy0);               // 남벽 (서)
             Simbyeok(true, sz0 - WT, sz0, doorX1, sx1 + WT, fy0);               // 남벽 (동)
@@ -526,101 +524,10 @@ namespace IMUNROK.Gyeonu.Editor
                 }
             }
 
-            // ── 무너진 서고 계단 (2026-08-11 개편) — 관측실이 위층, 서고가 아래층.
-            //    ALP Room01 방식: 위층에는 **개구부와 난간만** 있고 계단 구조물은 그 아래에 붙어 있다.
-            //    몇 단 내려가다 무너져 끊겼고, 그 아래 깊은 곳에서 선아가 들고 간 등불 빛만 새어 올라온다.
-            //    광원 자체는 중턱에 박힌 낙석 판에 가려 형체가 보이지 않고, 차단벽 때문에 내려갈 수 없다.
-            var rnd = new System.Random(20260811);
-            {
-                // 수직갱 (서벽은 위에서 이미 갱바닥까지 내렸다)
-                Slab(roomStone, ox1, ox1 + WT, shaftBottom - 0.3f, fy0, oz0 - WT, oz1 + WT, UvStone);        // 동
-                Slab(roomStone, ox0 - WT, ox1 + WT, shaftBottom - 0.3f, fy0, oz0 - WT, oz0, UvStone);        // 남
-                Slab(roomStone, ox0 - WT, ox1 + WT, shaftBottom - 0.3f, fy0, oz1, oz1 + WT, UvStone);        // 북
-                Slab(roomStone, ox0 - WT, ox1 + WT, shaftBottom - 0.3f, shaftBottom, oz0 - WT, oz1 + WT, UvStone); // 갱바닥
-
-                // 남은 계단 5단 — 서벽에 붙어 북(개구부 어귀)에서 남으로 내려가다 끊긴다
-                for (int i = 0; i < 5; i++)
-                {
-                    float topY = roomY - 0.18f * (i + 1);
-                    Slab(roomStone, ox0, stubX1, topY - 0.50f, topY, oz1 - 0.42f * (i + 1), oz1 - 0.42f * i, UvStone);
-                }
-                float breakZ = oz1 - 0.42f * 5;   // 끊긴 자리
-                // 끊긴 자리의 기운 판석 조각
-                AddBox(roomStone, new Vector3(ox0 + 0.55f, roomY - 1.12f, breakZ - 0.30f), new Vector3(0.9f, 0.32f, 0.5f), Quaternion.Euler(14f, 6f, -9f), UvStone);
-                AddBox(roomStone, new Vector3(ox0 + 1.05f, roomY - 1.48f, breakZ - 0.62f), new Vector3(0.7f, 0.26f, 0.45f), Quaternion.Euler(-10f, 18f, 12f), UvStone);
-                // 수직갱 중턱에 박힌 낙석 판 — 아래 등불의 광원을 직접 보이지 않게 가리되,
-                // 가장자리로 빛이 새어 나올 틈은 남긴다. 계단 옆 빈 슬롯(x 15.9~17.5)이
-                // 위에서 내려다보는 유일한 시선이라, 판은 **그 슬롯 바로 위**에 걸쳐야 광원이 가려진다
-                // 갱 단면(3.0×3.0)을 다 덮으면 아래 빛이 통째로 막힌다 — 광원만 가리는 크기로
-                AddBox(roomStone, new Vector3(ox0 + 1.8f, roomY - 5.3f, oz0 + 1.5f), new Vector3(1.7f, 0.3f, 1.2f), Quaternion.Euler(16f, 0, 9f), UvStone);
-                // 갱바닥 잔해
-                for (int i = 0; i < 8; i++)
-                {
-                    float u = (float)rnd.NextDouble(), v = (float)rnd.NextDouble(), w2 = (float)rnd.NextDouble();
-                    var p = new Vector3(ox0 + 0.5f + u * 2.0f, shaftBottom + 0.25f + w2 * 0.5f, oz0 + 0.5f + v * 2.0f);
-                    AddBox(roomStone, p, new Vector3(0.3f + u * 0.5f, 0.25f + v * 0.35f, 0.3f + w2 * 0.45f),
-                        Quaternion.Euler((float)rnd.NextDouble() * 30f - 15f, (float)rnd.NextDouble() * 180f, (float)rnd.NextDouble() * 30f - 15f), UvStone);
-                }
-
-                // 개구부 난간 (Room01 방식) — 동·남은 통으로, 북은 계단 입구 1.4m만 비운다
-                const float RailH = 0.95f;
-                void Rail(Vector3 a, Vector3 b)
-                {
-                    var ab = b - a; float len = ab.magnitude;
-                    var rt = Quaternion.LookRotation(ab.normalized);
-                    AddBox(domeFrame, (a + b) / 2 + Vector3.up * RailH, new Vector3(0.09f, 0.09f, len), rt, UvWood);
-                    AddBox(domeFrame, (a + b) / 2 + Vector3.up * (RailH * 0.52f), new Vector3(0.07f, 0.07f, len), rt, UvWood);
-                    int n = Mathf.Max(2, Mathf.RoundToInt(len / 0.95f) + 1);
-                    for (int i = 0; i < n; i++)
-                        AddBox(domeFrame, Vector3.Lerp(a, b, (float)i / (n - 1)) + Vector3.up * (RailH / 2), new Vector3(0.10f, RailH, 0.10f), rt, UvWood);
-                }
-                Rail(new Vector3(ox1 - 0.06f, roomY, oz0 + 0.06f), new Vector3(ox1 - 0.06f, roomY, oz1 - 0.06f));
-                Rail(new Vector3(ox0, roomY, oz0 + 0.06f), new Vector3(ox1 - 0.06f, roomY, oz0 + 0.06f));
-                Rail(new Vector3(stubX1, roomY, oz1 - 0.06f), new Vector3(ox1 - 0.06f, roomY, oz1 - 0.06f));
-                // 끊긴 단 앞의 기운 난간 — 이 너머로 아래를 내려다본다.
-                // 위층 바닥면(roomY)과 겹치면 구멍을 가로지르는 막대로 읽히므로 확실히 아래로 내린다
-                AddBox(domeFrame, new Vector3(ox0 + 0.7f, roomY - 0.90f + 0.78f, breakZ + 0.10f), new Vector3(1.4f, 0.09f, 0.09f), Quaternion.Euler(0, 0, -11f), UvWood);
-                AddBox(domeFrame, new Vector3(ox0 + 0.06f, roomY - 0.90f + 0.42f, breakZ + 0.10f), new Vector3(0.08f, 0.86f, 0.08f), Quaternion.Euler(0, 0, -12f), UvWood);
-                AddBox(domeFrame, new Vector3(stubX1 - 0.06f, roomY - 0.90f + 0.38f, breakZ + 0.12f), new Vector3(0.08f, 0.80f, 0.08f), Quaternion.Euler(6f, 0, 0), UvWood);
-
-                // 진입·추락 차단 (보이지 않는 벽). 난간은 살 사이가 벌어져 캡슐이 빠져나간다 —
-                // 난간 뒤에 판을 세워 개구부 세 변을 막고, 무너진 구간에서 더 내려가지 못하게 한다
-                var block = NewChild(root, "계단_차단");
-                void Blk(string nm, Vector3 c, Vector3 s)
-                {
-                    var g2 = new GameObject(nm);
-                    g2.transform.SetParent(block.transform, false);
-                    g2.transform.position = c;
-                    g2.AddComponent<BoxCollider>().size = s;
-                    g2.isStatic = true;
-                }
-                Blk("무너진구간", new Vector3((ox0 + stubX1) / 2, roomY - 0.90f + 1.30f, breakZ - 0.02f), new Vector3(1.6f, 2.6f, 0.2f));
-                Blk("계단_동측", new Vector3(stubX1, roomY - 0.45f, (breakZ + oz1) / 2), new Vector3(0.15f, 2.4f, oz1 - breakZ));
-                Blk("개구부_동", new Vector3(ox1, roomY + 0.60f, (oz0 + oz1) / 2), new Vector3(0.15f, 1.2f, oz1 - oz0));
-                Blk("개구부_남", new Vector3((ox0 + ox1) / 2, roomY + 0.60f, oz0), new Vector3(ox1 - ox0, 1.2f, 0.15f));
-                Blk("개구부_북", new Vector3((stubX1 + ox1) / 2, roomY + 0.60f, oz1), new Vector3(ox1 - stubX1, 1.2f, 0.15f));
-
-                // 아래층 등불 (선아) — 아주 약한 웜 라이트 + 낙석 판 뒤에 숨긴 불씨
-                var glowGo = new GameObject("아래층_등불");
-                glowGo.transform.SetParent(grpLight.transform, false);
-                glowGo.transform.position = new Vector3(ox0 + 1.7f, roomY - 6.5f, oz0 + 1.5f);
-                var gl = glowGo.AddComponent<Light>();
-                gl.type = LightType.Point;
-                gl.color = new Color(1f, 0.62f, 0.30f);
-                gl.intensity = 4.4f; // 쿨 강 앰비언트에 묻히지 않게 — 낙석 판 가장자리로 새어 나오는 정도
-                gl.range = 8.5f;
-                Prim(glowGo.transform, "불씨", PrimitiveType.Sphere, Vector3.zero, Vector3.one * 0.05f, matFlame);
-                // 산란광 보조 — 낙석 판 **위쪽** 갱 벽면을 은은하게 데워
-                // '깊은 아래에서 빛이 올라온다'는 인상을 만든다 (광원 자체는 판에 가려 안 보인다)
-                var scatterGo = new GameObject("아래층_등불_산란");
-                scatterGo.transform.SetParent(glowGo.transform, false);
-                scatterGo.transform.position = new Vector3(ox0 + 2.0f, roomY - 4.0f, oz0 + 1.8f);
-                var sc = scatterGo.AddComponent<Light>();
-                sc.type = LightType.Point;
-                sc.color = new Color(1f, 0.60f, 0.28f);
-                sc.intensity = 1.7f;
-                sc.range = 5.0f;
-            }
+            // ── 층간 연결 (2026-08-15 설정 변경) — 무너진 계단·수직갱·개구부 난간·차단벽·아래층 등불은
+            //    전부 폐기했다. 층간 연결은 **바닥 비밀문 + 삭은 줄사다리**이고, 문짝·문틀·줄사다리·
+            //    아래층 서고 전체는 같은 씬의 ArchiveBuilder(Tools ▸ 이문록 ▸ 서고 생성)가 짓는다.
+            //    비밀문 구멍(ox·oz)만 위의 바닥 슬래브가 남긴다. 추락 방지 투명판도 서고 빌더 소관.
 
             // ── 돔 단 바닥: 화강암 원반 + 좌대(혼상 자리) ──
             AddRing(floorMain, C, R + 0.25f, 0.001f, platY - 0.003f, platY - 0.003f, 64, UvFloor, true);   // 단 바닥판
@@ -815,8 +722,7 @@ namespace IMUNROK.Gyeonu.Editor
             }
             Marker("SpawnPoint_FromEunhaDam", new Vector3(0, 0, 0.8f), Quaternion.identity);
             Marker("Exit_ToEunhaDam", new Vector3(0, 1.0f, -0.02f), Quaternion.LookRotation(Vector3.back));
-            // 끊긴 계단 끝 (수직갱을 내려다보는 자리)
-            Marker("Exit_ToArchive", new Vector3(ox0 + 0.7f, roomY - 0.90f + 1.0f, oz1 - 0.42f * 4.5f), Quaternion.LookRotation(Vector3.back));
+            // (Exit_ToArchive 폐기 — 아래층은 내려갈 수 없다. 층간 연결은 바닥 비밀문 + 끊어진 줄사다리)
             Marker("Spawn_DomeCenter", C + Vector3.up * platY, Quaternion.LookRotation(Vector3.back));
 
             AssetDatabase.SaveAssets();

@@ -24,7 +24,7 @@ namespace IMUNROK.Gyeonu.Editor
         // 좌표는 ObservatoryBuilder의 2026-08-11 개편안과 일치해야 한다 (생성 로그가 실측치를 찍어준다)
         const float RoomY = -3.06f;                              // 작업실 바닥
         const float PlatY = -2.34f;                              // 돔 단 바닥
-        static readonly Vector3 ShaftC = new Vector3(16.0f, RoomY, 33.1f);   // 붕괴 개구부 중심 (3.0×3.0)
+        // (붕괴 개구부 좌표 폐기 — 2026-08-15 비밀문 개편)
 
         [MenuItem("Tools/이문록/관측실 보행 콜라이더 구축")]
         public static void Build()
@@ -57,10 +57,10 @@ namespace IMUNROK.Gyeonu.Editor
             }
 
             int props = BlockProps(root);
-            BuildShaftGuard(root);
+            // (수직갱 안전판 폐기 — 2026-08-15 비밀문 개편으로 갱이 사라졌다. 비밀문 추락 방지는 서고 빌더 소관)
 
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-            Debug.Log($"[관측실 보행] 구축 완료 — 구조 박스 {structCount}, 소품 차단 {props}, 수직갱 안전판 1" +
+            Debug.Log($"[관측실 보행] 구축 완료 — 구조 박스 {structCount}, 소품 차단 {props}" +
                       (stale > 0 ? $", 잔존 MeshCollider 제거 {stale}" : ""));
         }
 
@@ -97,17 +97,6 @@ namespace IMUNROK.Gyeonu.Editor
             }
             else Debug.LogWarning("[관측실 보행] 혼천의 없음 — 차단 생략");
             return n;
-        }
-
-        /// <summary>수직갱 안전판 — 끊긴 최하단(y≈-3.96) 바로 아래에 보이지 않는 바닥을 깔아
-        /// 만에 하나 난간·차단판을 빠져나가도 8m 아래 갱바닥(-11.3)으로 떨어지지 않게 받는다.
-        /// 렌더러가 없으므로 아래를 내려다보는 연출(등불 빛)은 가리지 않는다.</summary>
-        static void BuildShaftGuard(GameObject root)
-        {
-            var g = new GameObject("수직갱안전판").transform;
-            g.SetParent(root.transform, false);
-            Box(g, "안전판", new Vector3(ShaftC.x, RoomY - 1.30f, ShaftC.z),
-                new Vector3(3.2f, 0.2f, 3.2f), Quaternion.identity);
         }
 
         // ── 디버그 워커 ──────────────────────────────────────
@@ -177,18 +166,16 @@ namespace IMUNROK.Gyeonu.Editor
             new Vector3(15.3f, -3.06f, 20.7f), new Vector3(17.3f, -3.06f, 20.7f),
             new Vector3(18.2f, -3.06f, 21.6f), new Vector3(18.2f, -3.06f, 28.0f),
             new Vector3(18.2f, -3.06f, 30.3f),                       // 작업실 진입 (10.0×7.0×3.60)
-            new Vector3(18.6f, -3.06f, 30.6f), new Vector3(18.6f, -3.06f, 33.6f),  // 개구부 동쪽 통로
-            new Vector3(16.9f, -3.06f, 35.4f),                       // 개구부 북쪽 통로
-            new Vector3(15.2f, -3.06f, 35.5f),                       // 계단 어귀 (난간 트인 곳)
-            new Vector3(15.2f, -3.24f, 34.4f), new Vector3(15.2f, -3.96f, 32.8f),  // 끊긴 데까지 내려가기
-            new Vector3(15.2f, -3.06f, 35.5f),                       // 되올라오기
+            // ⚠️ 2026-08-15 경로 개정 — 옛 서편 순회·혼천의 한 바퀴는 그 뒤 배치된 가구·간의·작업 섬을
+            //    직선으로 가로질러 STUCK이 났다 (차단 콜라이더가 일하는 증거). 빈 차선만 다닌다
+            new Vector3(16.6f, -3.06f, 30.6f),                       // 남서 차선
+            new Vector3(15.55f, -3.06f, 32.95f),                     // 바닥 비밀문 위를 밟고 지나간다 (닫힌 문짝 = 보행면)
+            new Vector3(16.9f, -3.06f, 35.4f),                       // 북서 구석
             new Vector3(18.9f, -3.06f, 35.2f),
-            new Vector3(22.5f, -3.06f, 33.0f), new Vector3(23.6f, -3.06f, 31.4f),  // 혼천의 한 바퀴
-            new Vector3(22.5f, -3.06f, 30.2f), new Vector3(21.3f, -3.06f, 31.4f),
-            new Vector3(20.5f, -3.06f, 33.8f),                       // 계단 앞
+            new Vector3(20.5f, -3.06f, 33.8f),                       // 계단 앞 (북측 차선)
             new Vector3(20.5f, -2.34f, 37.2f), new Vector3(20.5f, -2.34f, 39.0f),  // 아치 지나 돔 진입
-            new Vector3(23.2f, -2.34f, 41.2f), new Vector3(20.5f, -2.34f, 44.0f),  // 돔 한 바퀴
-            new Vector3(17.8f, -2.34f, 41.2f), new Vector3(20.5f, -2.34f, 38.0f),
+            new Vector3(22.8f, -2.34f, 41.3f), new Vector3(20.5f, -2.34f, 43.0f),  // 돔 순회 (혼상 좌대 차단 밖)
+            new Vector3(18.2f, -2.34f, 41.3f), new Vector3(20.5f, -2.34f, 38.5f),
             new Vector3(20.5f, -3.06f, 33.6f), new Vector3(18.2f, -3.06f, 30.2f),  // 복귀
         };
 
