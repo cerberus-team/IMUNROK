@@ -19,10 +19,16 @@ namespace IMUNROK.Gyeonu
         {
             target = null;
             var ray = new Ray(transform.position, transform.forward);
-            if (Physics.Raycast(ray, out var hit, maxDistance))
+            // ⚠️ 급하게 내려보면 레이가 워커 자신의 캡슐에 먼저 맞는다 (낮은 기물 조준 시 실측, 2026-08-14).
+            //    자기 몸통은 건너뛰고, 그 다음 가장 가까운 표면에서만 판정한다 (벽 뒤 투시 방지)
+            var hits = Physics.RaycastAll(ray, maxDistance);
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            foreach (var hit in hits)
             {
+                if (hit.collider.transform.root == transform.root) continue;
                 var it = hit.collider.GetComponentInParent<Interactable>();
                 if (it != null && it.CanInteract(gameObject)) target = it;
+                break;
             }
 
             if (target != null && Cursor.lockState == CursorLockMode.Locked

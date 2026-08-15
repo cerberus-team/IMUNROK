@@ -24,7 +24,7 @@ namespace IMUNROK.Gyeonu.Editor
         // 좌표는 ObservatoryBuilder의 2026-08-11 개편안과 일치해야 한다 (생성 로그가 실측치를 찍어준다)
         const float RoomY = -3.06f;                              // 작업실 바닥
         const float PlatY = -2.34f;                              // 돔 단 바닥
-        static readonly Vector3 ShaftC = new Vector3(16.0f, RoomY, 35.7f);   // 붕괴 개구부 중심 (3.0×3.0)
+        static readonly Vector3 ShaftC = new Vector3(16.0f, RoomY, 33.1f);   // 붕괴 개구부 중심 (3.0×3.0)
 
         [MenuItem("Tools/이문록/관측실 보행 콜라이더 구축")]
         public static void Build()
@@ -72,12 +72,17 @@ namespace IMUNROK.Gyeonu.Editor
             g.SetParent(root.transform, false);
             int n = 0;
 
+            // ⚠️ 차단 박스는 기물을 통째로 감싸므로 조작 레이캐스트가 항상 여기 먼저 맞는다 —
+            //    혼상 클릭이 안 먹히던 원인 (2026-08-14 실측). 빌트인 Ignore Raycast 레이어(2)로
+            //    옮겨 레이는 통과시키고 보행 충돌만 남긴다 (ProjectSettings 무수정)
+            const int IgnoreRaycast = 2;
+
             var honsang = GameObject.Find("혼상");
             if (honsang != null)
             {
                 // 구 반지름 0.60 → 반폭 0.675면 구 표면에서 0.075m 앞까지 다가선다
                 Box(g, "혼상_차단", honsang.transform.position + Vector3.up * 0.95f,
-                    new Vector3(1.35f, 1.90f, 1.35f), honsang.transform.rotation);
+                    new Vector3(1.35f, 1.90f, 1.35f), honsang.transform.rotation, IgnoreRaycast);
                 n++;
             }
             else Debug.LogWarning("[관측실 보행] 혼상 없음 — 차단 생략");
@@ -87,7 +92,7 @@ namespace IMUNROK.Gyeonu.Editor
             {
                 // 지평환 반지름 0.55 → 반폭 0.59면 고리 바로 앞에 서서 돌릴 수 있다
                 Box(g, "혼천의_차단", hon.transform.position + Vector3.up * 0.95f,
-                    new Vector3(1.18f, 1.90f, 1.18f), hon.transform.rotation);
+                    new Vector3(1.18f, 1.90f, 1.18f), hon.transform.rotation, IgnoreRaycast);
                 n++;
             }
             else Debug.LogWarning("[관측실 보행] 혼천의 없음 — 차단 생략");
@@ -171,20 +176,20 @@ namespace IMUNROK.Gyeonu.Editor
             new Vector3(9.8f, -1.7f, 19.8f), new Vector3(10.7f, -1.7f, 20.7f),
             new Vector3(15.3f, -3.06f, 20.7f), new Vector3(17.3f, -3.06f, 20.7f),
             new Vector3(18.2f, -3.06f, 21.6f), new Vector3(18.2f, -3.06f, 28.0f),
-            new Vector3(18.2f, -3.06f, 30.4f),                       // 작업실 진입
-            new Vector3(15.7f, -3.06f, 31.0f), new Vector3(15.7f, -3.06f, 33.2f),  // 서벽 따라 (개구부 남쪽)
-            new Vector3(18.8f, -3.06f, 33.4f), new Vector3(18.8f, -3.06f, 37.9f),  // 개구부 동쪽으로 돌아 북쪽 통로
-            new Vector3(15.2f, -3.06f, 38.1f),                       // 계단 어귀 (난간 트인 곳)
-            new Vector3(15.2f, -3.24f, 37.0f), new Vector3(15.2f, -3.96f, 35.4f),  // 끊긴 데까지 내려가기
-            new Vector3(15.2f, -3.06f, 38.1f),                       // 되올라오기
-            new Vector3(19.6f, -3.06f, 37.4f),
-            new Vector3(20.8f, -3.06f, 35.9f), new Vector3(22.9f, -3.06f, 33.4f),  // 혼천의 한 바퀴
-            new Vector3(20.8f, -3.06f, 31.2f), new Vector3(18.9f, -3.06f, 33.4f),
-            new Vector3(23.5f, -3.06f, 36.6f),                       // 계단 앞
-            new Vector3(23.5f, -2.34f, 40.2f), new Vector3(23.5f, -2.34f, 42.0f),  // 아치 지나 돔 진입
-            new Vector3(26.2f, -2.34f, 44.2f), new Vector3(23.5f, -2.34f, 47.0f),  // 돔 한 바퀴
-            new Vector3(20.8f, -2.34f, 44.2f), new Vector3(23.5f, -2.34f, 41.0f),
-            new Vector3(23.5f, -3.06f, 36.4f), new Vector3(18.2f, -3.06f, 30.2f),  // 복귀
+            new Vector3(18.2f, -3.06f, 30.3f),                       // 작업실 진입 (10.0×7.0×3.60)
+            new Vector3(18.6f, -3.06f, 30.6f), new Vector3(18.6f, -3.06f, 33.6f),  // 개구부 동쪽 통로
+            new Vector3(16.9f, -3.06f, 35.4f),                       // 개구부 북쪽 통로
+            new Vector3(15.2f, -3.06f, 35.5f),                       // 계단 어귀 (난간 트인 곳)
+            new Vector3(15.2f, -3.24f, 34.4f), new Vector3(15.2f, -3.96f, 32.8f),  // 끊긴 데까지 내려가기
+            new Vector3(15.2f, -3.06f, 35.5f),                       // 되올라오기
+            new Vector3(18.9f, -3.06f, 35.2f),
+            new Vector3(22.5f, -3.06f, 33.0f), new Vector3(23.6f, -3.06f, 31.4f),  // 혼천의 한 바퀴
+            new Vector3(22.5f, -3.06f, 30.2f), new Vector3(21.3f, -3.06f, 31.4f),
+            new Vector3(20.5f, -3.06f, 33.8f),                       // 계단 앞
+            new Vector3(20.5f, -2.34f, 37.2f), new Vector3(20.5f, -2.34f, 39.0f),  // 아치 지나 돔 진입
+            new Vector3(23.2f, -2.34f, 41.2f), new Vector3(20.5f, -2.34f, 44.0f),  // 돔 한 바퀴
+            new Vector3(17.8f, -2.34f, 41.2f), new Vector3(20.5f, -2.34f, 38.0f),
+            new Vector3(20.5f, -3.06f, 33.6f), new Vector3(18.2f, -3.06f, 30.2f),  // 복귀
         };
 
         [MenuItem("Tools/이문록/관측실 자동 보행 검증 준비")]
@@ -223,6 +228,16 @@ namespace IMUNROK.Gyeonu.Editor
             go.transform.SetParent(parent, false);
             go.transform.SetPositionAndRotation(center, rot);
             go.AddComponent<BoxCollider>().size = size;
+            go.isStatic = true;
+        }
+
+        static void Box(Transform parent, string name, Vector3 center, Vector3 size, Quaternion rot, int layer)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.SetPositionAndRotation(center, rot);
+            go.AddComponent<BoxCollider>().size = size;
+            go.layer = layer;
             go.isStatic = true;
         }
     }

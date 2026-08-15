@@ -19,6 +19,18 @@ namespace IMUNROK.Gyeonu
 
         CharacterController cc;
         float pitch;
+
+        /// <summary>시선 핏치 (도, +아래/−위). 연출이 시선을 부드럽게 유도할 때 쓴다 —
+        /// 여기로 세팅해 두면 조작 복귀 때 시선이 튀지 않는다.</summary>
+        public float Pitch
+        {
+            get => pitch;
+            set
+            {
+                pitch = Mathf.Clamp(value, -85f, 85f);
+                if (eye != null) eye.localEulerAngles = new Vector3(pitch, 0f, 0f);
+            }
+        }
         float fallSpeed;
         Vector3 spawnPos;
         Quaternion spawnRot;

@@ -73,14 +73,25 @@ namespace IMUNROK.Gyeonu.Editor
 
             var root = new GameObject(RootName);
 
-            // ── 구 (회전 연출 대비 피벗 분리) ──
+            // ── 구 (2026-08-14: 극축 회전 구조 확정) ──
+            // 계층: 구(극축 기울기만) → 구_회전(로컬 Y 회전만 — 퍼즐이 돌리는 대상) → 외피·내피·광원.
+            // 극축은 북쪽(+Z, 돔 안쪽) 앙각 37.5°(조선 위도) — 천구가 도는 축이 실제 하늘과 같다.
+            // 회전을 별도 자식으로 분리한 이유: 기울기 피벗의 localEulerAngles를 직접 만지면
+            // 기울기가 깨진다. 구_회전은 순수 Y 회전이라 OrbAngle 읽고 쓰기가 깔끔하다
+            var axisDir = new Vector3(0f, Mathf.Sin(37.5f * Mathf.Deg2Rad), Mathf.Cos(37.5f * Mathf.Deg2Rad));
             var orb = new GameObject("구");
             orb.transform.SetParent(root.transform, false);
             orb.transform.localPosition = new Vector3(0, CenterY, 0);
-            var outer = MeshGO("구_외피", SaveMesh(SphereShell(SphereR, 64, 32, false), "혼상_외피"), matShell, orb.transform);
+            orb.transform.localRotation = Quaternion.FromToRotation(Vector3.up, axisDir);
+            var spin = new GameObject("구_회전");
+            spin.transform.SetParent(orb.transform, false);
+            var outer = MeshGO("구_외피", SaveMesh(SphereShell(SphereR, 64, 32, false), "혼상_외피"), matShell, spin.transform);
             outer.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
-            var inner = MeshGO("구_내피", SaveMesh(SphereShell(SphereR - ShellGap, 64, 32, true), "혼상_내피"), matInterior, orb.transform);
+            var inner = MeshGO("구_내피", SaveMesh(SphereShell(SphereR - ShellGap, 64, 32, true), "혼상_내피"), matInterior, spin.transform);
             inner.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+            // 조작용 콜라이더 — 정적 아님 (구가 돈다). 보행 차단은 ObservatoryWalkSetup이 따로 만든다
+            var grab = spin.AddComponent<SphereCollider>();
+            grab.radius = SphereR + 0.01f;
 
             // ── 틀: 자오환·지평환·축·다리·십자 받침 ──
             var c = new List<CombineInstance>();
@@ -90,12 +101,15 @@ namespace IMUNROK.Gyeonu.Editor
 
             var jipyeong = BuildBand(0.715f, 0.11f, 0.17f, 96);   // 지평환 — 넓은 수평 띠 (사진의 장식 띠)
             Add(c, jipyeong, new Vector3(0, CenterY, 0), Quaternion.identity, Vector3.one);
-            var jao = BuildBand(0.655f, 0.075f, 0.045f, 96);      // 자오환 — 세로 고리
-            Add(c, jao, new Vector3(0, CenterY, 0), Quaternion.Euler(90, 0, 0), Vector3.one);
-            // 극축 핀 + 꼭지
-            Add(c, cyl, new Vector3(0, CenterY + SphereR + 0.032f, 0), Quaternion.identity, new Vector3(0.05f, 0.035f, 0.05f));
-            Add(c, cyl, new Vector3(0, CenterY - SphereR - 0.032f, 0), Quaternion.identity, new Vector3(0.05f, 0.035f, 0.05f));
-            Add(c, sph, new Vector3(0, CenterY + SphereR + 0.085f, 0), Quaternion.identity, Vector3.one * 0.085f);
+            // 자오환 — 남북 세로 고리(면 = Y-Z, 법선 X). 2026-08-14: 극축이 기울면서
+            // 축이 자오환 면 안에 놓이고 핀이 고리에 얹힌다 (실제 혼상의 거치 방식)
+            var jao = BuildBand(0.655f, 0.075f, 0.045f, 96);
+            Add(c, jao, new Vector3(0, CenterY, 0), Quaternion.Euler(0, 0, 90), Vector3.one);
+            // 극축 핀 + 북극 꼭지 — 앙각 37.5° 축 방향 (구 피벗과 동일)
+            var pinRot = Quaternion.FromToRotation(Vector3.up, axisDir);
+            Add(c, cyl, new Vector3(0, CenterY, 0) + axisDir * (SphereR + 0.032f), pinRot, new Vector3(0.05f, 0.035f, 0.05f));
+            Add(c, cyl, new Vector3(0, CenterY, 0) - axisDir * (SphereR + 0.032f), pinRot, new Vector3(0.05f, 0.035f, 0.05f));
+            Add(c, sph, new Vector3(0, CenterY, 0) + axisDir * (SphereR + 0.085f), Quaternion.identity, Vector3.one * 0.085f);
 
             // 다리 4개 — S자 곡선 (베지어 로프트), 무릎 장식·발판 포함
             for (int k = 0; k < 4; k++)
@@ -127,9 +141,9 @@ namespace IMUNROK.Gyeonu.Editor
             Add(c, cyl, new Vector3(0, 0.505f, 0), Quaternion.identity, new Vector3(0.10f, 0.015f, 0.10f)); // 구 받침 접시
             MeshGO("틀", SaveMesh(Combine(c), "혼상_틀"), matFrame, root.transform);
 
-            // ── 내부 광원 (평소 꺼짐) ──
+            // ── 내부 광원 (평소 꺼짐) — 구_회전 자식이라 구가 돌아도 중심에 남는다 ──
             var lightGo = new GameObject("내부광원");
-            lightGo.transform.SetParent(orb.transform, false);
+            lightGo.transform.SetParent(spin.transform, false);
             var l = lightGo.AddComponent<Light>();
             l.type = LightType.Point;
             l.color = new Color(1f, 0.66f, 0.34f);
@@ -143,6 +157,19 @@ namespace IMUNROK.Gyeonu.Editor
             var ctrl = root.AddComponent<IMUNROK.Gyeonu.HonsangController>();
             ctrl.innerLight = l;
             ctrl.interiorRenderer = inner.GetComponent<MeshRenderer>();
+            ctrl.orb = spin.transform;   // 퍼즐은 RotateOrb/OrbAngle로 극축 회전만 시키면 된다
+
+            // 포커스 조작 (2026-08-14) — 클릭하면 카메라가 정면(±X)으로 미끄러져 고정되고
+            // 드래그로 구를 돌린다. 입력은 DebugFocusRig(마우스 임시)/추후 VR 리그가 담당
+            var focus = root.AddComponent<IMUNROK.Gyeonu.HonsangFocusOrb>();
+            focus.honsang = ctrl;
+            focus.displayName = "혼상";
+            focus.focusDistance = 1.7f;
+
+            // 불씨 등잔은 2026-08-15 제거 — "여기 쓰세요" 하고 놔둔 것처럼 어색했다.
+            // 점등 흐름: 혼상 회전 → "빛이 필요하다" 안내(하단 고정, 포커스 자동 해제) →
+            // 작업실 큰 탁자의 촛대(LanternPickup — 안내 전에는 집기 게이트 잠김)를 들고 와서
+            // 혼상 사용 → HonsangFocusOrb가 촛대를 소모하며 PlayIgnite 시퀀스 시작.
 
             foreach (var m in tempMeshes) Object.DestroyImmediate(m);
             tempMeshes.Clear();

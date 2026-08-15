@@ -83,6 +83,16 @@ namespace IMUNROK.Gyeonu.Editor
             if (prevActive.TryGetValue(a.name, out var aa)) a.SetActive(aa);
             if (prevActive.TryGetValue(b.name, out var ab)) b.SetActive(ab);
 
+            // 관측실처럼 프리팹 인스턴스가 다른 루트(관측실) 아래에 있는 씬에서는
+            // 위 루트 인스턴스가 잔여물이 된다 (2026-08-14 실측 — 암문 앞에 혼천의 유령 2기).
+            // 프리팹 저장만으로 기존 자식 인스턴스에 전파되므로 루트 사본은 지운다
+            if (GameObject.Find("관측실/혼천의_B_장식받침") != null)
+            {
+                Object.DestroyImmediate(a);
+                Object.DestroyImmediate(b);
+                Debug.Log("[혼천의] 관측실 자식 인스턴스 감지 — 루트 사본은 만들지 않고 프리팹 전파로 갱신");
+            }
+
             AssetDatabase.SaveAssets();
             EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
             Debug.Log($"[혼천의] 생성 완료 — A(십자받침) {CountTris(a):n0}tri / B(장식받침) {CountTris(b):n0}tri, 프리팹 2종 저장");
@@ -274,27 +284,51 @@ namespace IMUNROK.Gyeonu.Editor
             var root = new GameObject(name);
             MeshGO("받침", baseMesh, baseMat, root.transform, Vector3.zero, Quaternion.identity);
 
+            // 축 규약 (2026-08-14 사용자 확정): 지평환 고정 / 자오환 수직축 / 적도환 극축 / 황도환 황도축.
+            // 적도환(52.5°)·황도환(76°)은 GO 로컬 Y가 이미 그 축이라 그대로 두고,
+            // 자오환만 로컬 Y가 수평(+Z)이라 **수직축 피벗(자오환_축)**을 사이에 세운다 —
+            // 조작은 피벗을 돌리고, 적도환 이하가 그 자식이라 실물처럼 함께 딸려 돈다
             var jip = MeshGO("지평환", p.jip, p.brass, root.transform, new Vector3(0, CenterY, 0), Quaternion.identity);
-            var jao = MeshGO("자오환", p.jao, p.brass, jip.transform, Vector3.zero, Quaternion.Euler(90, 0, 0));
-            var jeok = MeshGO("적도환", p.jeokdo, p.brass, jao.transform, Vector3.zero, Quaternion.Euler(PolarTilt, 0, 0));
+            var jaoAxis = new GameObject("자오환_축");
+            jaoAxis.transform.SetParent(jip.transform, false);
+            var jao = MeshGO("자오환", p.jao, p.brass, jaoAxis.transform, Vector3.zero, Quaternion.Euler(90, 0, 0));
+            var jeok = MeshGO("적도환", p.jeokdo, p.brass, jaoAxis.transform, Vector3.zero, Quaternion.Euler(PolarTilt, 0, 0));
             var hwang = MeshGO("황도환", p.hwangdo, p.bronze, jeok.transform, Vector3.zero, Quaternion.Euler(PolarTilt + 23.5f, 0, 0));
 
             var inner = new GameObject("내환부");
             inner.transform.SetParent(hwang.transform, false);
             inner.transform.rotation = Quaternion.Euler(PolarTilt, 0, 0);
 
-            MeshGO("소형환_1", p.so1, p.bronze, inner.transform, Vector3.zero, inner.transform.rotation);
-            MeshGO("소형환_2", p.so2, p.bronze, inner.transform, Vector3.zero, inner.transform.rotation * Quaternion.Euler(90, 0, 0));
-            MeshGO("소형환_3", p.so3, p.bronze, inner.transform, Vector3.zero, inner.transform.rotation * Quaternion.Euler(90, 0, 90));
+            var so1 = MeshGO("소형환_1", p.so1, p.bronze, inner.transform, Vector3.zero, inner.transform.rotation);
+            var so2 = MeshGO("소형환_2", p.so2, p.bronze, inner.transform, Vector3.zero, inner.transform.rotation * Quaternion.Euler(90, 0, 0));
+            var so3 = MeshGO("소형환_3", p.so3, p.bronze, inner.transform, Vector3.zero, inner.transform.rotation * Quaternion.Euler(90, 0, 90));
 
             Prim("중심축", PrimitiveType.Cylinder, inner.transform, Vector3.zero, new Vector3(0.024f, 0.60f, 0.024f), p.bronze);
             Prim("축단추_상", PrimitiveType.Sphere, inner.transform, new Vector3(0, 0.60f, 0), Vector3.one * 0.05f, p.brass);
             Prim("축단추_하", PrimitiveType.Sphere, inner.transform, new Vector3(0, -0.60f, 0), Vector3.one * 0.05f, p.brass);
             Prim("중심구", PrimitiveType.Sphere, inner.transform, Vector3.zero, Vector3.one * 0.15f, p.globe);
+
+            // 포커스 조작 (2026-08-14) — 고리 7개 휠 선택 + 드래그 회전. 퍼즐 판정은 별도.
+            // 조작용 콜라이더가 있어야 레이캐스트가 잡는다 (보행 차단 박스는 Ignore Raycast 레이어)
+            var grab = root.AddComponent<SphereCollider>();
+            grab.center = new Vector3(0, CenterY, 0);
+            grab.radius = 0.72f;
+            var focus = root.AddComponent<IMUNROK.Gyeonu.HoncheonuiFocusRings>();
+            focus.displayName = "혼천의";
+            // 2.05면 관측실 배치(동벽 선반 1.66m·섬 탁자 1.58m)에서 카메라가 가구 속에 파묻힌다 (실측)
+            focus.focusDistance = 1.5f;
+            focus.highlight = new Color(0.45f, 0.28f, 0.12f);   // 1.7이면 블룸 과노출 (실측)
+            focus.focusAnchor = jip.transform;   // 고리 중심 높이 (위치만 쓰므로 회전과 무관)
+            // 지평환은 고정 부재라 조작 대상에서 제외. 자오환은 수직축 피벗을 돌린다
+            focus.rings = new Transform[] { jaoAxis.transform, jeok.transform, hwang.transform,
+                                            so1.transform, so2.transform, so3.transform };
+            focus.ringRenderers = new Renderer[] { jao.GetComponent<Renderer>(), jeok.GetComponent<Renderer>(),
+                                                   hwang.GetComponent<Renderer>(), so1.GetComponent<Renderer>(),
+                                                   so2.GetComponent<Renderer>(), so3.GetComponent<Renderer>() };
             return root;
         }
 
-        static GameObject MeshGO(string name, Mesh mesh, Material mat, Transform parent, Vector3 localPos, Quaternion worldRot)
+        internal static GameObject MeshGO(string name, Mesh mesh, Material mat, Transform parent, Vector3 localPos, Quaternion worldRot)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
@@ -319,7 +353,7 @@ namespace IMUNROK.Gyeonu.Editor
 
         // ── 고리 메시: 띠 + 눈금 + 장식 합성 ────────────────
 
-        static Mesh BuildRing(float R, float w, float t, int seg, int minor, int major, int bosses, bool finial)
+        internal static Mesh BuildRing(float R, float w, float t, int seg, int minor, int major, int bosses, bool finial)
         {
             var c = new List<CombineInstance>();
             var band = BuildBand(R, w, t, seg);
@@ -358,7 +392,7 @@ namespace IMUNROK.Gyeonu.Editor
         }
 
         /// <summary>납작한 띠 단면 고리 (Y축 중심, 겉·안·위·아래 4면 하드엣지).</summary>
-        static Mesh BuildBand(float radius, float width, float thick, int seg)
+        internal static Mesh BuildBand(float radius, float width, float thick, int seg)
         {
             var v = new List<Vector3>(); var n = new List<Vector3>();
             var uv = new List<Vector2>(); var tr = new List<int>();
@@ -393,7 +427,7 @@ namespace IMUNROK.Gyeonu.Editor
         }
 
         /// <summary>원형 단면 토러스 (Y축 중심). arcDeg &lt; 360이면 부분 호 — 받침 다리용.</summary>
-        static Mesh BuildTorus(float R, float r, int segMajor, int segTube, float arcDeg = 360f)
+        internal static Mesh BuildTorus(float R, float r, int segMajor, int segTube, float arcDeg = 360f)
         {
             var v = new List<Vector3>(); var n = new List<Vector3>();
             var uv = new List<Vector2>(); var tr = new List<int>();
@@ -468,32 +502,36 @@ namespace IMUNROK.Gyeonu.Editor
 
         // ── 공용 헬퍼 ────────────────────────────────────────
 
-        static Vector3 DirDeg(float deg)
+        internal static Vector3 DirDeg(float deg)
         {
             float a = deg * Mathf.Deg2Rad;
             return new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a));
         }
 
-        static void Add(List<CombineInstance> list, Mesh m, Vector3 pos, Quaternion rot, Vector3 scale)
+        internal static void Add(List<CombineInstance> list, Mesh m, Vector3 pos, Quaternion rot, Vector3 scale)
             => list.Add(new CombineInstance { mesh = m, transform = Matrix4x4.TRS(pos, rot, scale) });
 
-        static void AddDiag(List<CombineInstance> list, Mesh cube, Vector3 from, Vector3 to, float thick)
+        internal static void AddDiag(List<CombineInstance> list, Mesh cube, Vector3 from, Vector3 to, float thick)
         {
             var dir = to - from;
             Add(list, cube, (from + to) * 0.5f, Quaternion.FromToRotation(Vector3.up, dir.normalized),
                 new Vector3(thick, dir.magnitude, thick));
         }
 
-        static Mesh Combine(List<CombineInstance> list)
+        internal static Mesh Combine(List<CombineInstance> list)
         {
             var m = new Mesh();
             m.CombineMeshes(list.ToArray(), true, true);
             m.RecalculateNormals();
+            // ⚠️ 필수 (2026-08-14 실측): BuildBand는 탄젠트가 없어 CombineMeshes가 0으로 채운다.
+            //    제로 탄젠트 + 노멀맵(황동 브러시드) = 플레이 모드에서 스펙큘러가 NaN으로 터져
+            //    혼천의가 화면을 덮는 흰 발광구가 된다 (작업실 '번쩍임'의 정체)
+            m.RecalculateTangents();
             m.RecalculateBounds();
             return m;
         }
 
-        static Mesh PrimitiveMesh(PrimitiveType t)
+        internal static Mesh PrimitiveMesh(PrimitiveType t)
         {
             var go = GameObject.CreatePrimitive(t);
             var m = go.GetComponent<MeshFilter>().sharedMesh; // 빌트인 메시 — 파괴 금지
@@ -501,7 +539,7 @@ namespace IMUNROK.Gyeonu.Editor
             return m;
         }
 
-        static Mesh SaveMesh(Mesh built, string name)
+        internal static Mesh SaveMesh(Mesh built, string name)
         {
             string path = $"{ModelDir}/{name}.asset";
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
@@ -515,6 +553,7 @@ namespace IMUNROK.Gyeonu.Editor
             existing.indexFormat = built.indexFormat;
             existing.vertices = built.vertices;
             existing.normals = built.normals;
+            existing.tangents = built.tangents;   // 노멀맵 필수 — 빠뜨리면 탄젠트 0으로 저장된다 (혼상에서 실측한 함정)
             existing.uv = built.uv;
             existing.triangles = built.triangles;
             existing.RecalculateBounds();
@@ -523,7 +562,7 @@ namespace IMUNROK.Gyeonu.Editor
             return existing;
         }
 
-        static Material Mat(string name, Color c, float metallic, float smooth,
+        internal static Material Mat(string name, Color c, float metallic, float smooth,
             Texture2D normal = null, float bumpScale = 1f)
         {
             string path = $"{MatDir}/{name}.mat";
@@ -544,7 +583,7 @@ namespace IMUNROK.Gyeonu.Editor
             return m;
         }
 
-        static GameObject FindRootIncludingInactive(string name)
+        internal static GameObject FindRootIncludingInactive(string name)
         {
             foreach (var g in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
                 if (g.name == name) return g;
@@ -590,7 +629,7 @@ namespace IMUNROK.Gyeonu.Editor
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
-        static void EnsureFolder(string path)
+        internal static void EnsureFolder(string path)
         {
             if (AssetDatabase.IsValidFolder(path)) return;
             var parent = System.IO.Path.GetDirectoryName(path).Replace('\\', '/');
@@ -598,7 +637,7 @@ namespace IMUNROK.Gyeonu.Editor
             AssetDatabase.CreateFolder(parent, System.IO.Path.GetFileName(path));
         }
 
-        static int CountTris(GameObject root)
+        internal static int CountTris(GameObject root)
         {
             int n = 0;
             foreach (var mf in root.GetComponentsInChildren<MeshFilter>(true))

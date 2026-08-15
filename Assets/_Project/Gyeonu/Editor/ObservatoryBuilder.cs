@@ -50,11 +50,12 @@ namespace IMUNROK.Gyeonu.Editor
 
         // 사각 작업실 (주 공간, 낮은 바닥) — 벽 4면이 평평해야 서가·책상을 뒷판째 붙일 수 있다.
         // 이게 개편의 핵심이라 어떤 장식도 벽면 밖으로 튀어나오게 두지 않는다 (걸레받이·부벽 없음).
-        const float ShopW = 13.0f;   // 폭 (X)
-        const float ShopD = 10.0f;   // 깊이 (Z)
-        // 2026-08-11: 3.60에서는 눈높이 1.7로 서면 3.3m 앞부터 천장이 시야에 들어와 답답했다.
-        // 5.30이면 6.2m 밖에서야 걸리기 시작한다 (수직 화각 60° 기준)
-        const float ShopH = 5.30f;   // 바닥 → 천장 밑면
+        // 2026-08-11 최종: ALP Room00(10×5×2.5)에 맞춰 축소. 13×10×5.3은 부피가 Room00의 5.5배라
+        // Room00 가구를 통째로 옮겨도 허전했다. 우리에만 있는 개구부 셋(암문 문간·붕괴 계단·돔 아치)
+        // 몫으로 Room00보다 세로만 2m 더 준다. 층고는 5.30으로 올리기 **전 값(3.60)으로 환원**.
+        const float ShopW = 10.0f;   // 폭 (X)
+        const float ShopD = 7.0f;    // 깊이 (Z)
+        const float ShopH = 3.60f;   // 바닥 → 천장 밑면
         const float WT = 0.35f;      // 방 벽 두께
 
         // 작업실 → 돔 단 (계단 4단, 총 0.72m)
@@ -62,15 +63,35 @@ namespace IMUNROK.Gyeonu.Editor
         const float StepRise = 0.18f;
         const float StepRun = 0.40f;
 
-        // 돔 관측실 (부속, 높은 단)
-        const float R = 4.0f;         // 드럼 반지름 = 지름 8m
-        const int Sides = 16;         // 드럼 변 수. 아치 개구부가 2면(±22.5°)을 차지한다
-        // ⚠️ 드럼 높이를 작업실 층고에 묶으면 안 된다 (2026-08-11 실측):
-        //    층고를 5.30으로 올리자 드럼도 같이 올라가 **하늘이 시작되는 높이**가 눈높이 위 2.8m까지
-        //    밀려났고, 정점은 높아졌는데 오히려 덜 감싸는 하늘이 됐다 (수평 기준 15.5° → 35.8°).
-        //    드럼은 단 바닥 기준으로 따로 잡고, 높이는 돔 곡면 쪽에 몰아준다
-        const float DrumH = 3.43f;    // 단 바닥 → 드럼 꼭대기 (스프링라인). 눈높이 위 1.6m
-        const float DomeRise = 4.90f; // 스프링라인 → 정점. 단 바닥에서 8.2m
+        // 돔 관측실 (부속, 높은 단) — 2026-08-14 "넓고 낮은 돔" 개편.
+        // 하늘이 내려앉은 느낌 = 지름은 키우고 정점은 낮춘다. 프리셋 메뉴(돔 크기 A/B/C)로 갈아끼운다.
+        // ⚠️ 아치 개구부 폭은 드럼 크기와 분리해 **고정**(ArchHalf) — 돔이 넓어져도 작업실 북벽
+        //    구멍이 커지면 안 된다. 드럼은 다각형 '면'이 아니라 개구부 각도를 뺀 호를 분할해 두른다.
+        // ⚠️ 드럼 높이를 작업실 층고에 묶으면 안 된다 (2026-08-11 실측 함정 — 하늘 시작 높이가 밀린다).
+        //    단 DrumH 최소 ≈3.0 — 홍예 정점(roomY+3.50 = 단 위 2.78)보다 낮으면 아치가 잘린다
+        // ⚠️ 프리셋 값은 EditorPrefs로 영속화 (2026-08-15). static 초기값만 믿으면 도메인 리로드 후
+        //    RebuildStars가 씬의 돔과 다른 프로필로 별을 깔아, 별이 셸 밖에 박혀 안 보인다
+        //    (실사고: 돔은 B(7·2.0)인데 별은 A(6·2.4)로 재생성 → 천정부 별이 셸 뒤로 사라짐).
+        //    기본값 = B (2026-08-15 현재 씬 상태) — 팀원 첫 실행도 씬과 일치한다.
+        static float R = EditorPrefs.GetFloat("IMUNROK.관측실.돔R", 7f);          // 드럼 반지름
+        static float DrumH = EditorPrefs.GetFloat("IMUNROK.관측실.돔DrumH", 3.0f); // 단 바닥 → 드럼 꼭대기 (스프링라인)
+        static float DomeRise = EditorPrefs.GetFloat("IMUNROK.관측실.돔Rise", 2.0f); // 스프링라인 → 정점
+        const int Sides = 16;          // 돔 코브·서까래 분할 수 (드럼 벽은 호 분할로 별도)
+        const float ArchHalf = 1.531f; // 아치 개구부 반폭 — 옛 R4 드럼 2면 값을 고정
+
+        [MenuItem("Tools/이문록/돔 크기 A (지름 12·정점 5.3)")] static void DomeA() => ApplyDome(6f, 3.0f, 2.4f, "A");
+        [MenuItem("Tools/이문록/돔 크기 B (지름 14·정점 4.9)")] static void DomeB() => ApplyDome(7f, 3.0f, 2.0f, "B");
+        [MenuItem("Tools/이문록/돔 크기 C (지름 16·정점 4.7)")] static void DomeC() => ApplyDome(8f, 3.0f, 1.8f, "C");
+        static void ApplyDome(float r, float drumH, float rise, string label)
+        {
+            R = r; DrumH = drumH; DomeRise = rise;
+            EditorPrefs.SetFloat("IMUNROK.관측실.돔R", r);
+            EditorPrefs.SetFloat("IMUNROK.관측실.돔DrumH", drumH);
+            EditorPrefs.SetFloat("IMUNROK.관측실.돔Rise", rise);
+            Build();
+            Debug.Log($"[관측실] 돔 프리셋 {label} 적용 — 지름 {2 * r:F0}m, 정점 단 위 {drumH - 0.12f + rise:F2}m. " +
+                      "다음: [관측실 보행 콜라이더 구축] → [관측실 프로브 굽기]");
+        }
 
         // 심벽(心壁) 벽면 구성 — 하단 석축 / 하방 / 회벽 밭 + 기둥 / 상방.
         // 2026-08-11: 벽 전체가 막돌(기단석 텍스처)이라 자연 동굴로 읽혔다. Room00·Room01처럼
@@ -294,24 +315,27 @@ namespace IMUNROK.Gyeonu.Editor
             float platY = roomY + StepRise * StepN;    // 돔 단 바닥 (작업실보다 0.72 높다)
             float doorX0 = posEnd.x - W / 2, doorX1 = posEnd.x + W / 2;
 
-            // 돔 — 북벽 아치 통로 너머. 개구부 폭은 드럼 2면(±360/Sides°)을 그대로 뜯어낸 값이라
-            // 통로 옆벽과 드럼 개구부 모서리가 저절로 맞물린다.
+            // 돔 — 북벽 아치 통로 너머. 개구부 폭은 ArchHalf로 **고정** — 돔 크기와 무관하게
+            // 작업실 북벽 구멍이 유지되고, 드럼 벽은 개구부 각도만큼 호를 비워 두른다.
             float archX = sx1 - 4.0f;                                  // 아치 중심 (동편으로 치우침)
-            float archHalf = R * Mathf.Sin(Mathf.PI * 2f / Sides);     // 개구부 반폭 1.531
-            float archChordZ = R * Mathf.Cos(Mathf.PI * 2f / Sides);   // 돔 중심 → 개구부 현 3.696
+            float archHalf = ArchHalf;                                 // 개구부 반폭 (고정)
+            float archChordZ = Mathf.Sqrt(R * R - archHalf * archHalf); // 돔 중심 → 개구부 현
             const float Throat = 1.35f;                                // 아치 통로 깊이
             Vector3 C = new Vector3(archX, 0f, sz1 + Throat + archChordZ);  // 돔 중심 (y는 0 기준)
             float drumTop = platY + DrumH;             // 드럼 꼭대기 = 돔 스프링라인 (작업실 천장보다 낮다)
             float throatZ1 = C.z - archChordZ;         // 아치 통로 북끝 = 드럼 개구부
 
-            // 붕괴 서고 계단 — 서벽에 붙은 바닥 개구부 3.0×3.0
+            // 붕괴 서고 계단 — 서벽에 붙은 바닥 개구부 3.0×3.0.
+            // 방이 7m 깊이로 줄면서 남쪽 통로 2.4 / 북쪽 통로 1.6이 남는 자리로 당겼다
             float ox0 = sx0, ox1 = sx0 + 3.0f;
-            float oz0 = sz0 + 5.0f, oz1 = oz0 + 3.0f;
+            float oz0 = sz0 + 2.4f, oz1 = oz0 + 3.0f;
             float stubX1 = ox0 + 1.4f;                 // 남은 계단 폭 (서벽에 붙임)
             float shaftBottom = roomY - 8.2f;
 
-            // 혼천의 자리 (작업실 한복판, 바닥 메달리온 위). y=0 기준 — C와 같은 규약
-            var honSpot = new Vector3(sx0 + 6.3f, 0f, sz0 + 4.2f);
+            // 혼천의 자리. y=0 기준 — C와 같은 규약.
+            // ⚠️ 방이 줄면서 아치(x=archX)가 문간(x=posEnd.x) 바로 맞은편으로 왔다 —
+            //    가운데 두면 문→아치 동선을 정면으로 막는다. 동편으로 비켜 세운다
+            var honSpot = new Vector3(sx0 + 8.0f, 0f, sz0 + 2.2f);
 
             // ── 작업실 바닥: 마루널. 붕괴 개구부만 뚫는다 ──
             float fy0 = roomY - 0.30f;
@@ -327,6 +351,7 @@ namespace IMUNROK.Gyeonu.Editor
             float yRailB = yStone + TrimH;         // 하방 상단 = 회벽 밑단
             float yMid = roomY + MidRailY;         // 중방 밑단
             float yRailT = shopTop - TrimH;        // 상방 하단 = 회벽 윗단
+            bool useMidRail = (yRailT - yRailB) > 3.0f;
             var baseUv = new Vector2(0f, 0f);      // 석축은 고정 오프셋 — 이음매에서 켜가 어긋나지 않게
 
             // 벽 한 장. alongX면 a축이 X(두께가 Z), 아니면 a축이 Z(두께가 X).
@@ -359,9 +384,14 @@ namespace IMUNROK.Gyeonu.Editor
                 }
                 Band(roomBase, a0, a1, yBot, yStone, UvBase, baseUv);   // 하단 석축
                 Band(roomTrim, a0, a1, yStone, yRailB, UvWood);         // 하방
-                Field(yRailB, yMid);                                    // 아래 켜
-                Band(roomTrim, a0, a1, yMid, yMid + TrimH, UvWood);     // 중방
-                Field(yMid + TrimH, yRailT);                            // 위 켜
+                // 중방은 회벽 밭이 3m 넘게 길어질 때만 넣는다 — 짧은 벽에 넣으면 켜가 잘게 잘려 창살처럼 읽힌다
+                if (useMidRail)
+                {
+                    Field(yRailB, yMid);
+                    Band(roomTrim, a0, a1, yMid, yMid + TrimH, UvWood); // 중방
+                    Field(yMid + TrimH, yRailT);
+                }
+                else Field(yRailB, yRailT);
                 Band(roomTrim, a0, a1, yRailT, shopTop, UvWood);        // 상방
             }
 
@@ -381,14 +411,18 @@ namespace IMUNROK.Gyeonu.Editor
 
             // ── 천장: 널 + 보(Z방향 4) + 장선(X방향 9). Room00의 노출 목조 천장 참고 ──
             Slab(maru, sx0 - WT, sx1 + WT, shopTop, shopTop + 0.18f, sz0 - WT, sz1 + WT, UvFloor);
-            for (int i = 0; i < 4; i++)
+            // ⚠️ 보·장선 간격은 **방 크기에서 뽑는다** — 고정 간격으로 두면 방을 줄였을 때
+            //    마지막 보가 벽 밖으로 삐져나간다 (13→10m 축소에서 실제로 발생)
+            int nBeam = Mathf.Max(2, Mathf.RoundToInt(ShopW / 3.2f));
+            for (int i = 0; i < nBeam; i++)
             {
-                float bx = sx0 + 1.7f + i * 3.2f;
+                float bx = sx0 + (i + 0.5f) * (ShopW / nBeam);
                 Slab(domeFrame, bx - 0.16f, bx + 0.16f, shopTop - 0.36f, shopTop, sz0, sz1, UvWood);
             }
-            for (int i = 0; i < 9; i++)
+            int nJoist = Mathf.Max(3, Mathf.RoundToInt(ShopD / 1.1f));
+            for (int i = 0; i < nJoist; i++)
             {
-                float bz = sz0 + 0.6f + i * 1.1f;
+                float bz = sz0 + (i + 0.5f) * (ShopD / nJoist);
                 Slab(domeFrame, sx0, sx1, shopTop - 0.20f, shopTop, bz - 0.07f, bz + 0.07f, UvWood);
             }
             // 귀퉁이 기둥은 두지 않는다 — 심벽 기둥이 벽면 안에서 모서리를 잡아주므로
@@ -417,7 +451,8 @@ namespace IMUNROK.Gyeonu.Editor
             {
                 const int cols = 44;
                 const float ArchRing = 0.26f;   // 홍예 목재 테두리 (소피트 + 작업실 쪽 면)
-                float springY = roomY + 2.75f, apexY = roomY + 3.70f;
+                // 층고 3.60 환원에 맞춰 되돌린 값 — 정점이 천장(3.60)을 넘으면 홍예가 잘린다
+                float springY = roomY + 2.60f, apexY = roomY + 3.50f;
                 float rise = apexY - springY;
                 float rad = (archHalf * archHalf + rise * rise) / (2f * rise);
                 float cy = apexY - rad;
@@ -458,32 +493,37 @@ namespace IMUNROK.Gyeonu.Editor
                 Slab(roomBase, archX - archHalf, archX + archHalf, platY - 0.30f, platY, sz1, zEnd, UvBase, baseUv); // 통로 바닥 = 단 높이
             }
 
-            // ── 돔 드럼: 16각. 아치 개구부가 2면(i=0, Sides-1)을 차지한다.
-            //    작업실과 같은 심벽 구성(석축/하방/회벽/상방)으로 쌓아 두 공간이 한 건물로 읽히게 한다.
-            //    단 바닥이 0.72 높으므로 석축 상단도 그만큼 올라간다 ──
-            float chord = 2f * R * Mathf.Tan(Mathf.PI / Sides) + 0.06f;
+            // ── 돔 드럼: 개구부 각도(±asin(ArchHalf/R))를 뺀 호를 분할해 두른다 (2026-08-14).
+            //    다각형 '면 수'에 개구부를 묶으면 돔을 키울 때 구멍도 커지므로 호 분할로 분리했다.
+            //    작업실과 같은 심벽 구성(석축/하방/회벽/상방)으로 쌓아 두 공간이 한 건물로 읽히게 한다 ──
             const float domeEntry = 180f;   // 돔 중심 → 작업실 방향(-Z)
-            float dStone = platY + BaseH, dRailB = dStone + TrimH, dRailT = drumTop - TrimH;
-            for (int i = 0; i < Sides; i++)
             {
-                if (i == 0 || i == Sides - 1) continue;
-                float ang = domeEntry + (i + 0.5f) * (360f / Sides);
-                var d = new Vector3(Mathf.Sin(ang * Mathf.Deg2Rad), 0, Mathf.Cos(ang * Mathf.Deg2Rad));
-                var rot = Quaternion.LookRotation(-d);
-                void Ring(List<CombineInstance> L, float y0, float y1, float uv, Vector2? off)
+                float openHalfDeg = Mathf.Asin(archHalf / R) * Mathf.Rad2Deg;
+                float arcDeg = 360f - 2f * openHalfDeg;
+                int nSeg = Mathf.Max(12, Mathf.CeilToInt(arcDeg / 20f));
+                float segDeg = arcDeg / nSeg;
+                float chord = 2f * R * Mathf.Sin(segDeg * 0.5f * Mathf.Deg2Rad) + 0.06f;
+                float dStone = platY + BaseH, dRailB = dStone + TrimH, dRailT = drumTop - TrimH;
+                for (int i = 0; i < nSeg; i++)
                 {
-                    AddBox(L, C + d * R + Vector3.up * ((y0 + y1) / 2), new Vector3(chord, y1 - y0, WT), rot, uv, off);
+                    float ang = domeEntry + openHalfDeg + (i + 0.5f) * segDeg;
+                    var d = new Vector3(Mathf.Sin(ang * Mathf.Deg2Rad), 0, Mathf.Cos(ang * Mathf.Deg2Rad));
+                    var rot = Quaternion.LookRotation(-d);
+                    void Ring(List<CombineInstance> L, float y0, float y1, float uv, Vector2? off)
+                    {
+                        AddBox(L, C + d * R + Vector3.up * ((y0 + y1) / 2), new Vector3(chord, y1 - y0, WT), rot, uv, off);
+                    }
+                    float dMid = platY + MidRailY;                            // 드럼 중방 (단 바닥 기준)
+                    Ring(roomBase, platY - 0.25f, dStone, UvBase, baseUv);   // 석축
+                    Ring(roomTrim, dStone, dRailB, UvWood, null);            // 하방
+                    Ring(roomPlaster, dRailB, dMid, UvPlaster, null);        // 회벽 아래 켜
+                    Ring(roomTrim, dMid, dMid + TrimH, UvWood, null);        // 중방
+                    Ring(roomPlaster, dMid + TrimH, dRailT, UvPlaster, null);// 회벽 위 켜
+                    Ring(roomTrim, dRailT, drumTop, UvWood, null);           // 상방
+                    // 돌림띠 — 돔 밑단을 받는 도리. 여기만 벽면에서 안으로 나오지만 눈높이 위라 가구와 무관하다
+                    AddBox(roomTrim, C + d * (R - 0.18f) + Vector3.up * (drumTop + 0.10f),
+                        new Vector3(chord, 0.22f, 0.5f), rot, UvWood);
                 }
-                float dMid = platY + MidRailY;                            // 드럼 중방 (단 바닥 기준)
-                Ring(roomBase, platY - 0.25f, dStone, UvBase, baseUv);   // 석축
-                Ring(roomTrim, dStone, dRailB, UvWood, null);            // 하방
-                Ring(roomPlaster, dRailB, dMid, UvPlaster, null);        // 회벽 아래 켜
-                Ring(roomTrim, dMid, dMid + TrimH, UvWood, null);        // 중방
-                Ring(roomPlaster, dMid + TrimH, dRailT, UvPlaster, null);// 회벽 위 켜
-                Ring(roomTrim, dRailT, drumTop, UvWood, null);           // 상방
-                // 돌림띠 — 돔 밑단을 받는 도리. 여기만 벽면에서 안으로 나오지만 눈높이 위라 가구와 무관하다
-                AddBox(roomTrim, C + d * (R - 0.18f) + Vector3.up * (drumTop + 0.10f),
-                    new Vector3(chord, 0.22f, 0.5f), rot, UvWood);
             }
 
             // ── 무너진 서고 계단 (2026-08-11 개편) — 관측실이 위층, 서고가 아래층.
@@ -649,12 +689,12 @@ namespace IMUNROK.Gyeonu.Editor
                 vNight += seg;
             }
 
-            // ── 혼상 별 (칠석 은하수) — B(흰빛~푸른빛 + 따뜻한 별 소수) 확정 (2026-08-10).
-            //    돔이 작아졌으므로 개수는 줄이고 크기도 줄인다 — 그래도 면적당 밀도는 이전보다 높다.
-            //    나중에 혼상 조작으로 켜고 끌 수 있게 그룹 하나로 묶는다
-            var starDot = BuildStarDot();
-            BuildStars(root, C, roomY, nightProfile, rnd, "혼상별_별빛", starDot,
-                nightProfile[0].x - 0.10f, (platY - roomY) + 1.7f);
+            // ── 혼상 별 (칠석 은하수) — 2026-08-14 몽환 연출 개편 (후광·색 혼합·성운 띠·반짝임).
+            //    ⚠️ 기본 상태 = 꺼짐. HonsangController.StarNight()로만 켠다 —
+            //    재생성해도 켜진 채로 리셋되던 문제를 여기서 막는다
+            var starsGrp = BuildDreamStars(root, C, roomY, nightProfile, "혼상별_별빛",
+                nightProfile[0].x - 0.10f, (platY - roomY) + 1.7f, DefaultStarPreset);
+            starsGrp.SetActive(false);
 
             // ── 합성 메시 저장·배치 ──
             // 콜라이더는 아래에서 박스로 따로 낸다 — 합성 메시 MeshCollider는 끼임을 만든다
@@ -698,27 +738,21 @@ namespace IMUNROK.Gyeonu.Editor
             foreach (var (p, f) in sconces) Sconce(grpLight.transform, p, f, matIron, matFlame);
             Sconce(grpLight.transform, new Vector3(0.78f, 1.62f, 0.6f), Vector3.left, matIron, matFlame); // 암문 앞
 
-            // 작업실 벽 광원 6 — 옛 사방등 자리에서 1.62 → 2.85로 올렸다.
-            // 나중에 놓일 서가(2m 남짓)에 파묻히지 않는 높이이고, 벽면만 데우는 성격은 그대로다
-            float sy = roomY + 2.85f;
+            // ── 작업실 조명 = Room00 방식 (2026-08-13 개편, 사용자 확정) ──
+            // Room00의 명암 대비가 분위기의 큰 부분이다: 작업면 위 밝은 웅덩이 하나 +
+            // 군집마다 촛불(소품 배치가 얹음) + 아주 약한 중앙 채움. 나머지는 어둠에 잠긴다.
+            // 옛 벽 광원 6·천장 광원 3·채움 2는 방 전체를 고르게 발라 대비를 죽였으므로 걷어냈다.
             var warm = new Color(1f, 0.68f, 0.38f);
-            foreach (var p in new[] {
-                new Vector3(sx0 + 1.7f, sy, sz0 + 0.25f), new Vector3(sx1 - 2.2f, sy, sz0 + 0.25f),
-                new Vector3(sx1 - 0.25f, sy, sz0 + 2.7f), new Vector3(sx1 - 0.25f, sy, sz1 - 2.6f),
-                new Vector3(sx0 + 0.25f, sy, sz0 + 1.9f), new Vector3(archX - archHalf - 1.1f, sy, sz1 - 0.25f) })
-                BareLight(grpLight.transform, "벽_광원", p, warm, 1.75f, 6.0f, false);
-
-            // 방 가운데(혼천의·개구부)는 천장 쪽 광원이 맡는다. 옛 등롱 불씨 높이(roomY+3.36)에서
-            // roomY+4.05로 올리고 거리 제곱만큼 세기를 키웠다 — 천장 밑 1.25m라 어떤 가구와도 안 겹친다
-            float hangY = roomY + 4.05f;
-            BareLight(grpLight.transform, "천장_광원", new Vector3(honSpot.x, hangY, honSpot.z), new Color(1f, 0.74f, 0.46f), 4.5f, 13f, true);
-            BareLight(grpLight.transform, "천장_광원", new Vector3(sx1 - 2.9f, hangY, sz1 - 2.9f), new Color(1f, 0.74f, 0.46f), 3.8f, 12f, true);
-            BareLight(grpLight.transform, "천장_광원", new Vector3(ox1 + 1.2f, hangY, oz1 - 0.9f), new Color(1f, 0.74f, 0.46f), 3.2f, 11f, false);
-            // 아주 약한 전역 채움 2 — 벽 사이 어둠이 통째로 검게 죽지 않을 정도만.
-            // 회벽에서는 이 둘이 벽 전체를 고르게 발라 쿨톤을 지워버린 주범이었다 (0.85 → 0.4).
-            // 색도 웜에서 중성 쪽으로 당겨 쿨 앰비언트를 덮지 않게 한다
-            foreach (var fp in new[] { new Vector3(sx0 + 3.6f, roomY + 3.6f, sz0 + 3.0f), new Vector3(sx1 - 3.4f, roomY + 3.6f, sz1 - 3.0f) })
-                BareLight(grpLight.transform, "작업실_채움", fp, new Color(0.92f, 0.86f, 0.78f), 0.4f, 6.5f, false);
+            float hangY = roomY + ShopH - 0.55f;   // 천장 밑 0.55 — 층고가 바뀌면 같이 따라온다
+            // 밝은 웅덩이 — 중앙 작업 섬과 혼천의 사이 위. 혼천의는 자체 광원이 없어
+            // 반드시 이 광원의 사거리 안에 있어야 한다 (섬 33.4 / 혼천의 31.4 → 32.3이 중간)
+            BareLight(grpLight.transform, "천장_광원", new Vector3(honSpot.x - 0.2f, hangY, honSpot.z + 0.9f),
+                new Color(1f, 0.74f, 0.46f), 5.0f, 7.5f, true);
+            // 중앙 채움 하나 — Room00의 방 중심 포인트(세기 1/사거리 4)에 해당. 어둠이 순흑으로
+            // 죽지 않을 만큼만, 중성색으로 (웜 채움은 회벽을 크림색으로 띄워 쿨톤을 지운다)
+            float fillY = roomY + ShopH - 1.70f;
+            BareLight(grpLight.transform, "작업실_채움", new Vector3((sx0 + sx1) / 2, fillY, (sz0 + sz1) / 2),
+                new Color(0.92f, 0.86f, 0.78f), 0.35f, 8.0f, false);
             // 돔: 별이 압도해야 하므로 드럼 벽 광원 셋만. 혼상은 자체 내부광원(2.4/사거리 7)이 있어
             // 기구를 걷어내도 형태가 살아난다. 광원은 드럼 벽에 바짝 붙여 단 바닥을 완전히 비운다
             for (int i = 0; i < 3; i++)
@@ -1043,64 +1077,184 @@ namespace IMUNROK.Gyeonu.Editor
             else AddLoftStrip(list, center, rA, yA, rB, yB, seg, uvScale, yA, yB, planarUV); // 옆면: 아래→위 = 바깥
         }
 
-        // ── 혼상 별 (시험 배치) ───────────────────────────────
-        // 실내라 스카이박스 합성을 못 쓴다 — 암흑 돔 셸 안쪽 0.14m 아래에 이미시브 쿼드를
-        // 뿌린다. 티어별(대·중·소)로 메시·머티리얼을 나눠 밝기 편차를 주고, 55%는
-        // 기각 샘플링으로 은하수 띠 평면 근처에 몰아 배치한다. 그룹 루트를 끄면 통째로 꺼진다.
-        static GameObject BuildStars(GameObject root, Vector3 C, float roomY, Vector2[] profile, System.Random rnd, string name, Texture2D dot,
-            float maxR, float eyeLocalY)
+        // ── 혼상 별 (몽환 연출, 2026-08-14 개편) ───────────────
+        // 실내라 스카이박스 합성을 못 쓴다 — 암흑 돔 셸 안쪽 0.14m 아래에 가산 쿼드를 뿌리는
+        // 기본 틀은 유지하되, 전용 셰이더(IMUNROK/별_가산)로 갈아탔다:
+        //   · 별마다 후광 — 코어+넓은 꼬리 텍스처. 점이 아니라 번지는 빛, 겹치면 가산으로 뭉쳐 밝아진다
+        //   · 색 혼합 — 정점색(흰빛·푸른빛·연보랏빛 + 따뜻한 별 소수), HDR 세기는 uv1.z에 분리
+        //     (CombineMeshes가 정점색을 LDR로 눌러도 밝기가 안 죽게)
+        //   · 크기 편차 — 십자 광채 대성 소수 / 중·소성 / 아주 흐린 먼지 별 다수 (깊이감)
+        //   · 은하수 — 개별 별이 아니라 퍼린 성운 뭉게 텍스처를 띠 평면에 겹겹이 깔아 안개처럼
+        //   · 반짝임 — 셰이더가 uv1의 위상·속도로 별마다 제각각 미세하게 숨쉰다 (파티클 아님 —
+        //     정적 메시라 에디터 포커스·Play 여부와 무관하게 항상 보인다)
+        // 강도 3종 프리셋 — Tools ▸ 이문록 ▸ 관측실 별 연출 A/B/C 로 별만 갈아끼울 수 있다.
+        const int DefaultStarPreset = 1; // B(중간) — 2026-08-14 사용자 확정
+        static readonly (string label, float halo, int nebula, float nebInt, float starMul, int dust)[] StarPresets =
         {
-            var grp = NewChild(root, name);
-            const string key = "B"; // B안 확정 — 에셋 이름은 비교 당시 그대로 유지 (GUID 보존)
-            // 돔 지름 12→8 축소(2026-08-11)에 맞춰 개수·크기를 줄였다가,
-            // 같은 날 정점을 6.4→8.2m로 올리면서 셸이 1.3배 멀어져 크기를 다시 1.25배 되돌렸다
-            // (각크기 유지). 개수는 1.2배 — 멀어질수록 촘촘해야 하늘로 읽힌다
-            var tiers = new (string tier, int count, float sMin, float sMax, Color emis)[] {
-                    ("대", 66, 0.126f, 0.198f, new Color(1.9f, 2.2f, 2.9f)),
-                    ("중", 414, 0.063f, 0.108f, new Color(1.15f, 1.35f, 1.85f)),
-                    ("소", 834, 0.031f, 0.063f, new Color(0.60f, 0.72f, 1.00f)),
-                    ("온", 55, 0.073f, 0.135f, new Color(2.2f, 1.6f, 0.85f)) };
-            var bandN = Vector3.Normalize(new Vector3(0.80f, 0.38f, -0.44f)); // 은하수 띠 평면 법선
-            var gaze = C + Vector3.up * (roomY + eyeLocalY - 0.3f); // 쿼드가 바라보는 지점 (돔 안 눈높이 언저리)
-            foreach (var t in tiers)
+            ("A_은은", 0.85f, 60, 0.09f, 0.85f, 400),
+            ("B_중간", 1.00f, 95, 0.14f, 1.00f, 620),
+            ("C_짙음", 1.28f, 140, 0.20f, 1.15f, 850),
+        };
+
+        [MenuItem("Tools/이문록/관측실 별 연출 A (은은)")] static void StarsPresetA() => RebuildStars(0);
+        [MenuItem("Tools/이문록/관측실 별 연출 B (중간)")] static void StarsPresetB() => RebuildStars(1);
+        [MenuItem("Tools/이문록/관측실 별 연출 C (짙음)")] static void StarsPresetC() => RebuildStars(2);
+
+        /// <summary>천장 별만 재생성 (방 구조는 그대로). 돔 프로필은 상수에서 재구성한다.</summary>
+        static void RebuildStars(int preset)
+        {
+            var root = FindRootIncludingInactive(RootName);
+            if (root == null) { Debug.LogError("[관측실] 루트가 없습니다 — 먼저 '관측실 생성' 실행"); return; }
+            bool wasActive = false;
+            var old = root.transform.Find("혼상별_별빛");
+            if (old != null) { wasActive = old.gameObject.activeSelf; Object.DestroyImmediate(old.gameObject); }
+            tempMeshes.Clear();
+
+            const float roomY = -3.06f;                    // 통로 하강량 (10단+8단 × 0.17)
+            float platY = roomY + StepRise * StepN;
+            float drumTop = platY + DrumH;
+            var honsang = FindRootIncludingInactive("혼상"); // 돔 중심 = 혼상 자리 (빌더가 스냅)
+            Vector3 C = honsang != null
+                ? new Vector3(honsang.transform.position.x, 0f, honsang.transform.position.z)
+                : new Vector3(20.5f, 0f, 41.25f);
+            var dProf = new Vector2[13];
+            for (int i = 0; i < dProf.Length; i++)
             {
-                var list = new List<CombineInstance>();
-                for (int i = 0; i < t.count; i++)
-                {
-                    bool inBand = rnd.NextDouble() < 0.55;
-                    Vector3 p = Vector3.zero;
-                    for (int guard = 0; guard < 60; guard++)
-                    {
-                        float rr = maxR * Mathf.Sqrt((float)rnd.NextDouble());
-                        float aa = (float)rnd.NextDouble() * Mathf.PI * 2f;
-                        p = new Vector3(Mathf.Sin(aa), 0, Mathf.Cos(aa)) * rr + Vector3.up * (ProfileY(profile, rr) - 0.14f);
-                        bool isIn = Mathf.Abs(Vector3.Dot((p - Vector3.up * eyeLocalY).normalized, bandN)) < 0.20f;
-                        if (isIn == inBand) break;
-                    }
-                    float size = Mathf.Lerp(t.sMin, t.sMax, (float)rnd.NextDouble());
-                    AddStarQuad(list, C + new Vector3(p.x, roomY + p.y, p.z), size, gaze);
-                }
-                var mat = MatStar($"M_관측실_별{key}_{t.tier}", t.emis, dot);
-                MeshGO(NewChild(grp, $"별_{t.tier}"), Save(Combine(list), $"관측실_별{key}_{t.tier}"), mat, false);
+                float t = (float)i / (dProf.Length - 1) * Mathf.PI * 0.5f;
+                dProf[i] = new Vector2((R - 0.18f) * Mathf.Cos(t), (drumTop - roomY - 0.12f) + DomeRise * Mathf.Sin(t));
             }
+            dProf[dProf.Length - 1].x = 0.001f;
+            var nightProfile = new Vector2[dProf.Length - 2];
+            System.Array.Copy(dProf, 2, nightProfile, 0, nightProfile.Length);
+
+            var grp = BuildDreamStars(root, C, roomY, nightProfile, "혼상별_별빛",
+                nightProfile[0].x - 0.10f, (platY - roomY) + 1.7f, preset);
+            grp.SetActive(wasActive);
+            foreach (var m in tempMeshes) Object.DestroyImmediate(m);
+            tempMeshes.Clear();
+            AssetDatabase.SaveAssets();
+            EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+            Debug.Log($"[관측실] 별 연출 {StarPresets[preset].label} 적용 (켜짐 상태 {wasActive} 유지)");
+        }
+
+        static GameObject BuildDreamStars(GameObject root, Vector3 C, float roomY, Vector2[] profile,
+            string name, float maxR, float eyeLocalY, int preset)
+        {
+            var P = StarPresets[preset];
+            var grp = NewChild(root, name);
+            var rnd = new System.Random(20260814);   // 프리셋이 달라도 별자리는 같게 — 비교가 쉬워진다
+            // "별이 쏟아진다" (2026-08-15): 돔 면적에 비례해 개수를 키우고(R4 기준 ×1.5 추가 증량),
+            // 은하수 띠는 더 넓고 짙게. 돔 프리셋을 바꿔도 밀도가 유지된다
+            float areaK = (R * R) / 16f * 1.5f;
+            var texGlow = BuildStarTex(false);
+            var texCross = BuildStarTex(true);
+            var texNebula = BuildNebulaTex();
+            var bandN = Vector3.Normalize(new Vector3(0.80f, 0.38f, -0.44f)); // 은하수 띠 평면 법선
+            var gaze = C + Vector3.up * (roomY + eyeLocalY - 0.3f);
+
+            // 옛 도트 별 에셋 정리 (2026-08-10~13 방식 잔재)
+            foreach (var tier in new[] { "대", "중", "소", "온" })
+            {
+                AssetDatabase.DeleteAsset($"{ModelDir}/관측실_별B_{tier}.asset");
+                AssetDatabase.DeleteAsset($"{MatDir}/M_관측실_별B_{tier}.mat");
+            }
+            AssetDatabase.DeleteAsset(TexDir + "/T_관측실_별.png");
+
+            Vector3 Sample(bool wantBand, float tol)
+            {
+                Vector3 p = Vector3.zero;
+                for (int guard = 0; guard < 60; guard++)
+                {
+                    float rr = maxR * Mathf.Sqrt((float)rnd.NextDouble());
+                    float aa = (float)rnd.NextDouble() * Mathf.PI * 2f;
+                    p = new Vector3(Mathf.Sin(aa), 0, Mathf.Cos(aa)) * rr + Vector3.up * (ProfileY(profile, rr) - 0.14f);
+                    bool isIn = Mathf.Abs(Vector3.Dot((p - Vector3.up * eyeLocalY).normalized, bandN)) < tol;
+                    if (isIn == wantBand) break;
+                }
+                return C + new Vector3(p.x, roomY + p.y, p.z);
+            }
+            // 흰빛 34% / 푸른빛 34% / 연보랏빛 20% / 짙푸른빛 7% / 따뜻한 별 5%
+            Color Hue()
+            {
+                double roll = rnd.NextDouble();
+                return roll < 0.34 ? new Color(1f, 1f, 1f)
+                     : roll < 0.68 ? new Color(0.72f, 0.82f, 1f)
+                     : roll < 0.88 ? new Color(0.84f, 0.76f, 1f)
+                     : roll < 0.95 ? new Color(0.60f, 0.72f, 1f)
+                     : new Color(1f, 0.80f, 0.55f);
+            }
+            float Rnd(float a, float b) => Mathf.Lerp(a, b, (float)rnd.NextDouble());
+
+            void Tier(List<CombineInstance> list, int count, float sMin, float sMax, float iMin, float iMax, float bandChance, float tol)
+            {
+                int n = Mathf.RoundToInt(count * areaK);
+                for (int i = 0; i < n; i++)
+                {
+                    var pos = Sample(rnd.NextDouble() < bandChance, tol);
+                    AddGlowQuad(list, pos, Rnd(sMin, sMax) * P.halo, gaze, Hue(),
+                        Rnd(iMin, iMax) * P.starMul, (float)rnd.NextDouble(), Rnd(0f, 0.8f));
+                }
+            }
+
+            // 2026-08-15 개편: "별에 코를 박은" 인상 → "하늘을 넓게 올려다보는" 인상.
+            // 개별 별을 절반 이하로 줄이고 개수를 3~4배로 — 천장 전체가 빼곡한 별밭으로 읽힌다.
+            // (옛 소성 0.08~0.16m는 5m 거리에서 달 3개 폭 — 별이 아니라 전구로 보였다)
+
+            // 대성 — 십자 광채, 소수. 흰빛·푸른빛 위주 (팔레트의 따뜻한 별이 간간이 섞인다)
+            var big = new List<CombineInstance>();
+            Tier(big, 22, 0.26f, 0.40f, 1.8f, 2.8f, 0.45f, 0.26f);
+            MeshGO(NewChild(grp, "별_대성"), Save(Combine(big), "관측실_별대"),
+                MatStarShader("M_관측실_별대", texCross, 0.12f, 0.9f), false);
+
+            // 중·소·먼지 — 후광 도트 한 메시. 먼지 별은 은하수 띠에 짙게 몰린다
+            var mid = new List<CombineInstance>();
+            Tier(mid, 300, 0.10f, 0.16f, 1.0f, 1.7f, 0.50f, 0.26f);
+            Tier(mid, 2000, 0.045f, 0.085f, 0.60f, 1.10f, 0.60f, 0.24f);
+            Tier(mid, P.dust * 3, 0.024f, 0.048f, 0.20f, 0.42f, 0.80f, 0.20f);
+            MeshGO(NewChild(grp, "별_뭇별"), Save(Combine(mid), "관측실_별휘광"),
+                MatStarShader("M_관측실_별휘광", texGlow, 0.16f, 1.3f), false);
+
+            // 은하수 성운 — 뭉게 텍스처를 띠에 겹겹이. 색은 연보라·푸른빛, 아주 약한 가산이
+            // 겹치며 안개처럼 깔린다. 반짝임은 거의 없이 느리게 숨만 쉰다.
+            // 2026-08-15 재개편: 띠 허용각 0.17→0.15·뭉게를 작게·개수 증량 —
+            // 넓게 퍼진 안개가 아니라 천장을 가로지르는 "큰 흐름"으로 응집시킨다
+            var neb = new List<CombineInstance>();
+            int nNeb = Mathf.RoundToInt(P.nebula * areaK * 1.8f);
+            for (int i = 0; i < nNeb; i++)
+            {
+                var pos = Sample(true, 0.15f);
+                var hue = rnd.NextDouble() < 0.45 ? new Color(0.80f, 0.70f, 1f)
+                        : rnd.NextDouble() < 0.5 ? new Color(0.62f, 0.74f, 1f) : new Color(0.88f, 0.90f, 1f);
+                AddGlowQuad(neb, pos, Rnd(0.7f, 1.8f), gaze, hue,
+                    P.nebInt * 1.15f * Rnd(0.6f, 1.4f), (float)rnd.NextDouble(), Rnd(0f, 0.3f));
+            }
+            MeshGO(NewChild(grp, "별_은하수"), Save(Combine(neb), "관측실_별성운"),
+                MatStarShader("M_관측실_별성운", texNebula, 0.06f, 0.45f), false);
             return grp;
         }
 
-        /// <summary>방사형 소프트 도트 텍스처 — 별이 사각 쿼드로 안 읽히게 하는 빛망울. 64², PNG.</summary>
-        static Texture2D BuildStarDot()
+        /// <summary>별 텍스처 — 코어 + 넓은 후광 꼬리 (cross=true면 4방 광채 십자 추가). 128², R 채널.</summary>
+        static Texture2D BuildStarTex(bool cross)
         {
-            const int res = 64;
-            string path = TexDir + "/T_관측실_별.png";
-            var existing = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-            if (existing != null) return existing;
+            const int res = 128;
+            string path = TexDir + (cross ? "/T_관측실_별십자.png" : "/T_관측실_별글로우.png");
             var tex = new Texture2D(res, res, TextureFormat.RGBA32, false);
             float c = (res - 1) * 0.5f;
             for (int y = 0; y < res; y++)
                 for (int x = 0; x < res; x++)
                 {
-                    float d = Mathf.Sqrt((x - c) * (x - c) + (y - c) * (y - c)) / c;
-                    float v = Mathf.Pow(Mathf.Clamp01(1f - d), 2.2f);
-                    v = Mathf.Clamp01(v + Mathf.Pow(Mathf.Clamp01(1f - d * 2.6f), 2f) * 0.8f); // 중심 코어 강조
+                    float dx = (x - c) / c, dy = (y - c) / c;
+                    float d = Mathf.Sqrt(dx * dx + dy * dy);
+                    float core = Mathf.Pow(Mathf.Clamp01(1f - d * 7f), 1.5f);                 // 또렷한 심
+                    float halo = Mathf.Pow(Mathf.Clamp01(1f - d), 2.8f) * 0.42f;              // 넓게 번지는 후광
+                    float v = core + halo;
+                    if (cross)
+                    {
+                        float sx = Mathf.Pow(Mathf.Clamp01(1f - Mathf.Abs(dy) * 22f), 2f) * Mathf.Pow(Mathf.Clamp01(1f - d * 1.15f), 1.6f);
+                        float sy = Mathf.Pow(Mathf.Clamp01(1f - Mathf.Abs(dx) * 22f), 2f) * Mathf.Pow(Mathf.Clamp01(1f - d * 1.15f), 1.6f);
+                        v += (sx + sy) * 0.85f;
+                    }
+                    v = Mathf.Clamp01(v);
                     tex.SetPixel(x, y, new Color(v, v, v, v));
                 }
             System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
@@ -1113,32 +1267,52 @@ namespace IMUNROK.Gyeonu.Editor
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
-        /// <summary>별 머티리얼 — URP Unlit, 가산 블렌딩(One/One), HDR 색으로 세기 표현.</summary>
-        static Material MatStar(string name, Color hdrColor, Texture2D dot)
+        /// <summary>은하수 뭉게 텍스처 — 방사 감쇠 × 퍼린 난류. 부드러운 가장자리의 빛 무리. 256².</summary>
+        static Texture2D BuildNebulaTex()
+        {
+            const int res = 256;
+            string path = TexDir + "/T_관측실_별성운.png";
+            var tex = new Texture2D(res, res, TextureFormat.RGBA32, false);
+            float c = (res - 1) * 0.5f;
+            for (int y = 0; y < res; y++)
+                for (int x = 0; x < res; x++)
+                {
+                    float dx = (x - c) / c, dy = (y - c) / c;
+                    float d = Mathf.Sqrt(dx * dx + dy * dy);
+                    float radial = Mathf.Pow(Mathf.Clamp01(1f - d), 1.7f);
+                    float turb = Mathf.PerlinNoise(x * 0.018f + 3.1f, y * 0.018f + 8.7f) * 0.55f
+                               + Mathf.PerlinNoise(x * 0.045f + 17.3f, y * 0.045f + 5.9f) * 0.30f
+                               + Mathf.PerlinNoise(x * 0.11f + 31.7f, y * 0.11f + 23.1f) * 0.15f;
+                    float v = radial * (0.30f + 0.70f * Mathf.Pow(turb, 1.4f));
+                    tex.SetPixel(x, y, new Color(v, v, v, v));
+                }
+            System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(path);
+            var imp = (TextureImporter)AssetImporter.GetAtPath(path);
+            imp.wrapMode = TextureWrapMode.Clamp;
+            imp.mipmapEnabled = true;
+            imp.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        /// <summary>별 셰이더(IMUNROK/별_가산) 머티리얼 — 색·세기·반짝임은 정점 데이터가 든다.</summary>
+        static Material MatStarShader(string name, Texture2D tex, float twinkleAmp, float twinkleSpeed)
         {
             string path = $"{MatDir}/{name}.mat";
-            var unlit = Shader.Find("Universal Render Pipeline/Unlit");
+            var shader = Shader.Find("IMUNROK/별_가산");
+            if (shader == null) { Debug.LogError("[관측실] IMUNROK/별_가산 셰이더가 없습니다"); shader = Shader.Find("Universal Render Pipeline/Unlit"); }
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (m == null)
             {
-                m = new Material(unlit) { name = name };
+                m = new Material(shader) { name = name };
                 AssetDatabase.CreateAsset(m, path);
             }
-            else if (m.shader != unlit)
-            {
-                m.shader = unlit; // 이전 빌드가 Lit로 만든 경우 강제 교체 (키워드 초기화)
-            }
-            m.DisableKeyword("_EMISSION");
-            m.SetTexture("_BaseMap", dot);
-            m.SetColor("_BaseColor", hdrColor);
-            m.SetFloat("_Surface", 1f);   // Transparent
-            m.SetFloat("_Blend", 2f);     // Additive
-            m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
-            m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
-            m.SetFloat("_ZWrite", 0f);
-            m.SetFloat("_AlphaClip", 0f);
-            m.SetOverrideTag("RenderType", "Transparent");
-            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            else if (m.shader != shader) m.shader = shader;
+            m.SetTexture("_BaseMap", tex);
+            m.SetFloat("_Intensity", 1f);
+            m.SetFloat("_TwinkleAmp", twinkleAmp);
+            m.SetFloat("_TwinkleSpeed", twinkleSpeed);
             m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
             EditorUtility.SetDirty(m);
             return m;
@@ -1154,8 +1328,10 @@ namespace IMUNROK.Gyeonu.Editor
             return prof[prof.Length - 1].y;
         }
 
-        /// <summary>target을 바라보는 정사각 쿼드(별 하나)를 합성 목록에 추가.</summary>
-        static void AddStarQuad(List<CombineInstance> list, Vector3 pos, float size, Vector3 target)
+        /// <summary>target을 바라보는 정사각 쿼드(별 하나) — 색조(정점색)와 (위상, 속도, HDR 세기)(uv1)를 싣는다.
+        /// HDR 세기를 정점색에 넣지 않는 이유: CombineMeshes가 정점색을 LDR로 누른다.</summary>
+        static void AddGlowQuad(List<CombineInstance> list, Vector3 pos, float size, Vector3 target,
+            Color hue, float intensity, float phase, float speedJitter)
         {
             var n = (target - pos).normalized;
             var right = Vector3.Cross(Vector3.up, n);
@@ -1165,6 +1341,9 @@ namespace IMUNROK.Gyeonu.Editor
             var m = new Mesh();
             m.SetVertices(new List<Vector3> { -right * h - up2 * h, right * h - up2 * h, right * h + up2 * h, -right * h + up2 * h });
             m.SetUVs(0, new List<Vector2> { Vector2.zero, Vector2.right, Vector2.one, Vector2.up });
+            var tw = new Vector4(phase, speedJitter, intensity, 0f);
+            m.SetUVs(1, new List<Vector4> { tw, tw, tw, tw });
+            m.SetColors(new List<Color> { hue, hue, hue, hue });
             m.SetTriangles(new[] { 0, 1, 2, 0, 2, 3 }, 0);
             tempMeshes.Add(m);
             list.Add(new CombineInstance { mesh = m, transform = Matrix4x4.TRS(pos, Quaternion.identity, Vector3.one) });
@@ -1220,6 +1399,11 @@ namespace IMUNROK.Gyeonu.Editor
             existing.normals = built.normals;
             existing.tangents = built.tangents;
             existing.uv = built.uv;
+            // 별 메시가 쓰는 정점색·uv1(위상/속도/세기)도 함께 — 안 옮기면 별이 전부 검게 죽는다
+            existing.colors = built.colors;
+            var uv1 = new List<Vector4>();
+            built.GetUVs(1, uv1);
+            if (uv1.Count > 0) existing.SetUVs(1, uv1);
             existing.triangles = built.triangles;
             existing.RecalculateBounds();
             EditorUtility.SetDirty(existing);
