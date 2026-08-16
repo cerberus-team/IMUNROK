@@ -21,7 +21,6 @@ namespace IMUNROK.Common
         public void Open() => _open = true;
         public void Close() => _open = false;
 
-        private GUIStyle _titleStyle, _hintStyle;
 
         private void Update()
         {
@@ -31,51 +30,16 @@ namespace IMUNROK.Common
 #endif
         }
 
-        private void OnGUI()
+        // 지도는 월드 공간 알림판으로 띄운다(OnGUI는 헤드셋에 안 보인다).
+        private bool _shown;
+
+        private void LateUpdate()
         {
-            if (JournalView.AnyOpen) return;   // 수첩 펼치면 지도 UI 숨김
-            EnsureStyles();
-
-            // 닫힘 상태: 우상단(왼손잡이면 좌상단) 코너 버튼
-            if (!_open)
-            {
-                const float bw = 130f, bh = 32f, m = 16f;
-                float bx = HudSide.LeftHanded ? m : (Screen.width - m - bw);
-                if (GUI.Button(new Rect(bx, m, bw, bh), "지도 (M)"))
-                    _open = true;
-                return;
-            }
-
-            float w = Mathf.Min(760f, Screen.width - 80f);
-            float h = Mathf.Min(560f, Screen.height - 80f);
-            float x = (Screen.width - w) * 0.5f;
-            float y = (Screen.height - h) * 0.5f;
-
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
-            GUI.Label(new Rect(x + 20, y + 14, w - 120, 26), _title, _titleStyle);
-            if (GUI.Button(new Rect(x + w - 96, y + 12, 82, 28), "✕ 닫기")) _open = false;
-            GUI.Label(new Rect(x + 20, y + h - 28, w - 40, 22), "(M 으로도 닫힘)", _hintStyle);
-
-            Rect img = new Rect(x + 20, y + 48, w - 40, h - 84);
-            if (_mapImage != null)
-                GUI.DrawTexture(img, _mapImage, ScaleMode.ScaleToFit);
-            else
-                GUI.Label(img, "(이 사건의 지도 이미지를 MapView ▸ Map Image 에 넣으세요)", _hintStyle);
-        }
-
-        private void EnsureStyles()
-        {
-            if (_titleStyle != null) return;
-            _titleStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 18, fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(1f, 0.85f, 0.4f) }
-            };
-            _hintStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 13, wordWrap = true,
-                normal = { textColor = new Color(1f, 1f, 1f, 0.6f) }
-            };
+            bool want = _open && !JournalView.AnyOpen;   // 수첩을 펼치면 지도는 접는다
+            if (want == _shown) return;
+            _shown = want;
+            if (want) WorldNotice.ShowImage("지도", _mapImage, -0.05f);
+            else WorldNotice.Hide("지도");
         }
     }
 }

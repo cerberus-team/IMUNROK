@@ -12,6 +12,7 @@ namespace IMUNROK.Onggojip
     ///   · 필수 단서(J04·J09·J13·J15) 부족 → "집 안을 조사하라 (필수 N/4)"
     ///   · 필수 단서 다 모음         → "출도하라! (F2 ▸ 출도)"
     /// H 키로 켜고 끌 수 있다. 아무 오브젝트(예: _OnggojipCase)에 붙이면 됨.
+    /// 표시는 월드 공간 알림판(WorldNotice)이 맡는다.
     /// </summary>
     public class ObjectiveHud : MonoBehaviour
     {
@@ -21,7 +22,6 @@ namespace IMUNROK.Onggojip
         [TextArea] [SerializeField] private string _readyLine = "증거를 충분히 모았다 — 출도하라!  (F2 ▸ 출도)";
 
         private const CaseId ThisCase = CaseId.Case1_Onggojip;
-        private GUIStyle _main, _sub;
 
         private void Update()
         {
@@ -31,12 +31,19 @@ namespace IMUNROK.Onggojip
 #endif
         }
 
-        private void OnGUI()
+        // 목표 안내는 월드 공간 알림판으로 띄운다(OnGUI는 헤드셋에 안 보인다).
+        // 매 프레임 문자열을 새로 만들 필요가 없어 값이 바뀔 때만 갱신한다.
+        private string _lastMain, _lastSub;
+
+        private void LateUpdate()
         {
-            if (!_show) return;
-            if (InterrogationController.AnyOpen || JournalView.AnyOpen) return;   // 심문·수첩 중엔 목표 숨김
+            bool hide = !_show || InterrogationController.AnyOpen || JournalView.AnyOpen;
             var journal = Journal.Instance;
-            if (journal == null) return;
+            if (hide || journal == null)
+            {
+                if (_lastMain != null) { WorldNotice.Hide("목표"); _lastMain = null; _lastSub = null; }
+                return;
+            }
 
             // 필수 단서 진행도
             int req = 0, have = 0;
@@ -63,28 +70,10 @@ namespace IMUNROK.Onggojip
                     ? "(H: 안내 숨기기)"
                     : $"필수 단서 {have}/{req}  ·  발견 {found}/{total}   (H: 목표 숨기기)");
 
-            EnsureStyles();
-            float w = 620f, h = 62f;
-            float x = (Screen.width - w) * 0.5f;
-            float y = 12f;
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
-            GUI.Label(new Rect(x, y + 8, w, 26), main, _main);
-            GUI.Label(new Rect(x, y + 34, w, 22), sub, _sub);
-        }
-
-        private void EnsureStyles()
-        {
-            if (_main != null) return;
-            _main = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 17, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = new Color(1f, 0.9f, 0.5f) }
-            };
-            _sub = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 13, alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = new Color(1f, 1f, 1f, 0.75f) }
-            };
+            if (main == _lastMain && sub == _lastSub) return;
+            _lastMain = main; _lastSub = sub;
+            WorldNotice.Show("목표", main + "
+" + sub, 0.42f);   // 시선보다 위 — 앞을 가리지 않게
         }
     }
 }
