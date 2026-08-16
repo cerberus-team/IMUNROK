@@ -13,8 +13,8 @@ namespace IMUNROK.Common
     /// NPC 대답은 INpcResponder가 만든다(Mock=미리 정한 대사 / Gemini=실제 AI).
     /// 마이크는 씬에 MicInput이 있을 때만 붙는다 — 없으면 ②③으로만 진행된다.
     ///
-    /// ※ UI가 OnGUI(IMGUI)라 VR 헤드셋에는 렌더링되지 않는다 — World Space Canvas 이관 필요.
-    ///   (자막은 SubtitleView로 옮겨가는 중)
+    /// UI는 전부 월드 공간이다 — 대사는 SubtitleView, 조작은 InterrogationPanel.
+    /// 둘 다 씬에 미리 둘 필요 없이 심문이 시작될 때 스스로 만들어진다.
     /// </summary>
     public class InterrogationController : MonoBehaviour, ISelectable
     {
@@ -68,11 +68,7 @@ namespace IMUNROK.Common
         private bool _busy;
         private bool _exitRequested;
 
-        private GUIStyle _nameStyle, _lineStyle, _playerStyle, _hintStyle, _btnStyle, _micStyle;
-        private Texture2D _texDim, _texPanel, _texName, _texBtn, _texBtnOn;
         private string _lastPlayerLine = "";
-        private Texture2D _evidenceImg;   // 방금 제시한 증거 그림(잠깐 표시)
-        private float _evidenceImgTimer;
 
         private void Awake()
         {
@@ -125,6 +121,7 @@ namespace IMUNROK.Common
             }
 
             RefreshSubtitle();
+            InterrogationPanel.Open(this);
         }
 
         private void OnDisable()
@@ -133,6 +130,7 @@ namespace IMUNROK.Common
             if (Active == this) Active = null;
             UnsubscribeMic();
             SubtitleView.Hide();
+            InterrogationPanel.Close();
         }
 
         private void UnsubscribeMic()
@@ -161,6 +159,7 @@ namespace IMUNROK.Common
             if (Active == this) Active = null;
             UnsubscribeMic();
             SubtitleView.Hide();
+            InterrogationPanel.Close();
         }
 
         /// <summary>수첩에서 단서를 골라 "들이밀기" 눌렀을 때 호출(외부에서 증거 제시).</summary>
@@ -242,8 +241,7 @@ namespace IMUNROK.Common
             _transcript.Add($"어사(증거): {clue.text}");
 
             // 제시한 증거의 상황 그림을 잠깐 "탁" 띄운다
-            _evidenceImg = Journal.Instance.GetClueImage(_character.caseId, clue.key);
-            _evidenceImgTimer = _evidenceImg != null ? 4.5f : 0f;
+            InterrogationPanel.ShowEvidence(Journal.Instance.GetClueImage(_character.caseId, clue.key), 4.5f);
 
             // 이 증거가 여는 사실이 있으면 잠금 해제(발뺌 전용이면 말만 하고 기록 안 함)
             string revealed = null;
@@ -298,8 +296,7 @@ namespace IMUNROK.Common
 
         /// <summary>
         /// 지금 대사를 월드 공간 자막(SubtitleView)에 내보낸다.
-        /// 아래 OnGUI는 헤드셋에 렌더링되지 않으므로, VR에서 대사가 보이는 통로는 이쪽뿐이다.
-        /// (추천 질문 칩·닫기 버튼은 아직 OnGUI에 있어 VR에선 안 보인다 — 다음 차례)
+        /// 마이크로 말하는 동안에는 중간 전사가 아랫줄에 실시간으로 찍힌다.
         /// </summary>
         private void RefreshSubtitle()
         {
@@ -313,7 +310,6 @@ namespace IMUNROK.Common
 
         private void Update()
         {
-            if (_evidenceImgTimer > 0f) _evidenceImgTimer -= Time.deltaTime;
 #if ENABLE_INPUT_SYSTEM
             var kb = UnityEngine.InputSystem.Keyboard.current;
             // ESC로 심문창 닫기(인물 큐브 방식일 때). J는 수첩(JournalView)이 처리
@@ -321,7 +317,7 @@ namespace IMUNROK.Common
                 ClosePanel();
 #endif
 
-            // 씬 전환은 OnGUI 밖(안전)에서 처리
+            // 씬 전환은 UI 콜백 밖(안전)에서 처리
             if (_exitRequested)
             {
                 _exitRequested = false;
@@ -332,180 +328,20 @@ namespace IMUNROK.Common
         }
 
         // ─────────────────────────────────────────────
-        //  UI (OnGUI — 좌표 지정 방식으로 안전하게)
+        //  UI — 전부 월드 공간으로 옮겼다.
+        //  대사는 SubtitleView, 조작(마이크·추천질문·닫기·증거그림)은 InterrogationPanel.
+        //  OnGUI는 헤드셋에 렌더링되지 않아 VR에서 아무것도 보이지 않았고,
+        //  데스크탑에선 월드 UI와 겹쳐 보여 오히려 가렸다.
         // ─────────────────────────────────────────────
-        private void OnGUI()
-        {
-            if (_character == null || !_active) return;
-            if (JournalView.AnyOpen) return;   // 수첩 펼치면 심문 UI 숨김(수첩만 보이게)
-            EnsureStyles();
 
-            // 화면 전체를 살짝 어둡게 → 대사에 집중(연출)
-            GUI.color = Color.white;
-            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), _texDim);
+        /// <summary>월드 패널이 읽는 추천 질문 목록.</summary>
+        public IReadOnlyList<TopicQuestion> Topics => _character != null ? _character.topics : null;
 
-            // 방금 제시한 증거 그림을 상단 중앙에 잠깐 (마지막 1초 페이드)
-            if (_evidenceImgTimer > 0f && _evidenceImg != null)
-            {
-                float iwd = 300f, ihd = 220f;
-                float ex = (Screen.width - iwd) * 0.5f, ey = 40f;
-                float a = Mathf.Clamp01(_evidenceImgTimer);
-                var prev = GUI.color;
-                GUI.color = new Color(0f, 0f, 0f, 0.55f * a);
-                GUI.DrawTexture(new Rect(ex - 8, ey - 8, iwd + 16, ihd + 16), _texPanel);
-                GUI.color = new Color(1f, 1f, 1f, a);
-                GUI.DrawTexture(new Rect(ex, ey, iwd, ihd), _evidenceImg, ScaleMode.ScaleToFit);
-                GUI.color = prev;
-            }
+        /// <summary>월드 패널의 추천 질문 버튼이 호출.</summary>
+        public void AskTopicFromUi(TopicQuestion t) => AskTopic(t);
 
-            float margin = 24f;
+        /// <summary>월드 패널의 닫기 버튼이 호출.</summary>
+        public void CloseFromUi() => ClosePanel();
 
-            // 하단부터 위로: [마이크] → [추천 질문] → [대사 박스]
-            float micSize = 60f;
-            float micX = (Screen.width - micSize) * 0.5f;
-            float micY = Screen.height - margin - micSize;
-
-            bool hasTopics = _showTopics && _character.topics != null && _character.topics.Count > 0;
-            const float chipH = 30f;
-            float chipY = micY - 14f - chipH;
-
-            float dlgW = Mathf.Min(760f, Screen.width - margin * 2f);
-            float dlgH = 150f;
-            float dlgX = (Screen.width - dlgW) * 0.5f;
-            float dlgBottom = hasTopics ? (chipY - 14f) : (micY - 14f);
-            float dlgY = dlgBottom - dlgH;
-
-            // ── 대사 박스 ──
-            PanelBg(new Rect(dlgX, dlgY, dlgW, dlgH));
-
-            string nm = _character.characterName;
-            float nameW = Mathf.Max(120f, _nameStyle.CalcSize(new GUIContent(nm)).x + 30f);
-            GUI.DrawTexture(new Rect(dlgX + 18f, dlgY - 16f, nameW, 32f), _texName);
-            GUI.Label(new Rect(dlgX + 18f, dlgY - 16f, nameW, 32f), nm, _nameStyle);
-
-            if (GUI.Button(new Rect(dlgX + dlgW - 92f, dlgY - 14f, 84f, 28f), "✕ 닫기", _btnStyle))
-                ClosePanel();
-
-            float sy = dlgY + 16f;
-            if (!string.IsNullOrEmpty(_lastPlayerLine))
-            {
-                GUI.Label(new Rect(dlgX + 22f, sy, dlgW - 44f, 22f), "어사 —  " + _lastPlayerLine, _playerStyle);
-                sy += 26f;
-            }
-            GUI.Label(new Rect(dlgX + 22f, sy, dlgW - 44f, dlgY + dlgH - sy - 30f), _busy ? "…" : _npcLine, _lineStyle);
-            GUI.Label(new Rect(dlgX + 22f, dlgY + dlgH - 24f, dlgW - 44f, 20f), "증거는 수첩(J)에서 제시", _hintStyle);
-
-            // ── 추천 질문(가로 한 줄, 가운데) ──
-            if (hasTopics)
-            {
-                int nT = _character.topics.Count;
-                const float gap = 14f;
-                var ws = new float[nT];
-                float total = 0f;
-                for (int i = 0; i < nT; i++)
-                {
-                    ws[i] = _btnStyle.CalcSize(new GUIContent(_character.topics[i].question)).x + 28f;
-                    total += ws[i];
-                }
-                total += gap * (nT - 1);
-                float sx = (Screen.width - total) * 0.5f;
-                for (int i = 0; i < nT; i++)
-                {
-                    if (GUI.Button(new Rect(sx, chipY, ws[i], chipH), _character.topics[i].question, _btnStyle) && !_busy)
-                        AskTopic(_character.topics[i]);
-                    sx += ws[i] + gap;
-                }
-            }
-
-            // ── 마이크 버튼(하단 중앙) — 눌러서 듣기 시작, 다시 눌러 종료 ──
-            // (데스크탑에선 T키를 누르고 있는 방식도 됨 — MicInput 참고)
-            var mic = MicInput.Instance;
-            bool listening = mic != null && mic.IsListening;
-            if (GUI.Button(new Rect(micX, micY, micSize, micSize), listening ? "●" : "🎤", _micStyle))
-                mic?.Toggle();
-            if (listening)
-                GUI.Label(new Rect(micX - 100f, micY - 26f, micSize + 200f, 22f), "듣는 중…", _hintStyle);
-        }
-
-        // 패널 배경: 한지 텍스처(있으면 반투명)로, 없으면 어두운 기본
-        private void PanelBg(Rect r)
-        {
-            if (_paperTex != null)
-            {
-                var prev = GUI.color;
-                GUI.color = new Color(1f, 1f, 1f, _paperAlpha);
-                GUI.DrawTexture(r, _paperTex, ScaleMode.ScaleAndCrop);
-                GUI.color = prev;
-            }
-            else GUI.DrawTexture(r, _texPanel);
-        }
-
-        private void EnsureStyles()
-        {
-            if (_lineStyle != null) return;
-
-            bool paper = _paperTex != null;
-            Color ink = new Color(0.16f, 0.11f, 0.07f);           // 먹색
-            Color inkSoft = new Color(0.16f, 0.11f, 0.07f, 0.7f);
-
-            _texDim   = Solid(new Color(0f, 0f, 0f, 0.16f));
-            _texPanel = Solid(new Color(0.03f, 0.035f, 0.05f, 0.86f));
-            _texName  = Solid(new Color(0.62f, 0.14f, 0.11f, 0.95f));   // 낙관(붉은 인장) 느낌
-            _texBtn   = Solid(paper ? new Color(0f, 0f, 0f, 0.06f) : new Color(1f, 1f, 1f, 0.07f));
-            _texBtnOn = Solid(paper ? new Color(0.62f, 0.14f, 0.11f, 0.18f) : new Color(1f, 0.85f, 0.4f, 0.22f));
-
-            _nameStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 16, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = new Color(0.98f, 0.94f, 0.86f) }   // 인장 위 밝은 글씨
-            };
-            _lineStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 21, wordWrap = true, richText = true,
-                normal = { textColor = paper ? ink : Color.white }
-            };
-            _playerStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 13, fontStyle = FontStyle.Italic,
-                normal = { textColor = paper ? inkSoft : new Color(1f, 1f, 1f, 0.55f) }
-            };
-            _hintStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 13, fontStyle = FontStyle.Bold,
-                normal = { textColor = paper ? new Color(0.5f, 0.2f, 0.12f) : new Color(1f, 0.85f, 0.5f, 0.95f) }
-            };
-            _btnStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = 14, alignment = TextAnchor.MiddleCenter,
-                normal = { background = _texBtn, textColor = paper ? ink : new Color(1f, 1f, 1f, 0.92f) },
-                hover  = { background = _texBtnOn, textColor = paper ? new Color(0.5f, 0.15f, 0.1f) : Color.white },
-                active = { background = _texBtnOn, textColor = paper ? new Color(0.5f, 0.15f, 0.1f) : Color.white }
-            };
-            _micStyle = new GUIStyle(GUI.skin.button) { fontSize = 30, alignment = TextAnchor.MiddleCenter };
-
-            // 폰트 적용(조선궁서체 등) — 마이크(이모지)는 기본 폰트 유지
-            if (_font != null)
-            {
-                _nameStyle.font = _font; _lineStyle.font = _font; _playerStyle.font = _font;
-                _hintStyle.font = _font; _btnStyle.font = _font;
-            }
-        }
-
-        private static Texture2D Solid(Color c)
-        {
-            var t = new Texture2D(1, 1);
-            t.SetPixel(0, 0, c);
-            t.Apply();
-            t.hideFlags = HideFlags.HideAndDontSave;
-            return t;
-        }
-
-        // HideAndDontSave 텍스처는 씬이 바뀌어도 자동 정리되지 않는다.
-        // 인물마다 5장씩 만들므로 직접 파괴해 준다.
-        private void OnDestroy()
-        {
-            foreach (var t in new[] { _texDim, _texPanel, _texName, _texBtn, _texBtnOn })
-                if (t != null) Destroy(t);
-        }
     }
 }
