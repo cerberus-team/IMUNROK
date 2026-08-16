@@ -20,7 +20,8 @@ namespace IMUNROK.Common
     /// </summary>
     public class GeminiNpcResponder : INpcResponder
     {
-        // 모델 이름 — 404가 나면 [이문록 ▸ Gemini: 사용 가능 모델 목록 확인]으로 유효한 이름을 찾아 넣으세요.
+        // 모델 이름이 틀리면 404가 난다. 쓸 수 있는 목록은 아래로 확인:
+        //   https://generativelanguage.googleapis.com/v1beta/models  (헤더 x-goog-api-key 에 키)
         private const int MaxOutputTokens = 120;
 
         private readonly string _model = "gemini-flash-latest";
@@ -59,7 +60,9 @@ namespace IMUNROK.Common
 
         private IEnumerator Send(NpcRequest req, Action<string> onReply, Action<string> onError)
         {
-            string url = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent?key={_apiKey}";
+            // 키는 쿼리스트링이 아니라 헤더로 보낸다.
+            // URL에 붙이면 프록시·서버 로그·유니티 네트워크 프로파일러에 키가 그대로 남는다.
+            string url = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent";
             string body = BuildRequestJson(req);
 
             using (var www = new UnityWebRequest(url, "POST"))
@@ -67,6 +70,7 @@ namespace IMUNROK.Common
                 www.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body));
                 www.downloadHandler = new DownloadHandlerBuffer();
                 www.SetRequestHeader("Content-Type", "application/json");
+                www.SetRequestHeader("x-goog-api-key", _apiKey);
 
                 yield return www.SendWebRequest();
 

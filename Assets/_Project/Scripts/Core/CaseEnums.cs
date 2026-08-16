@@ -2,7 +2,8 @@ namespace IMUNROK.Common
 {
     /// <summary>
     /// 세 개의 사건을 식별하는 값.
-    /// 폴더/어셈블리 매핑: Case1=Onggojip, Case2=Gyeonu, Case3=Seocheon
+    /// 폴더/어셈블리 매핑: Case1=Onggojip, Case2=Seocheon, Case3=Gyeonu
+    /// (아래 enum 값과 반드시 일치시킬 것 — 어긋나면 씬·단서가 다른 사건에 붙는다)
     /// </summary>
     public enum CaseId
     {

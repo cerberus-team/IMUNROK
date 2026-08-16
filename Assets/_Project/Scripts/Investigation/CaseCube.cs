@@ -120,26 +120,25 @@ namespace IMUNROK.Common
                 return;
             }
 
-            // 선택하는 순간 진행중으로 표시(색이 주황으로 바뀜 → 자유 선택의 시각 피드백)
-            _state.StartCase(_caseId);
-
             // 사건 씬 로드 시도
             bool canLoad = !string.IsNullOrEmpty(_caseSceneName)
                            && Application.CanStreamedLevelBeLoaded(_caseSceneName);
 
-            if (canLoad)
+            if (!canLoad)
             {
-                // 실제로 사건 씬에 들어갈 때만 "진입"으로 기록(수첩이 이 사건 단서를 보여줌).
-                _state.EnterCase(_caseId);
-                Debug.Log($"[CaseCube] {_caseId} 사건 씬 로드 → '{_caseSceneName}'");
-                SceneManager.LoadScene(_caseSceneName);
+                // 아직 팀원 사건 씬이 없을 때: 상태를 건드리지 않고 로그만 남긴다.
+                // (여기서 StartCase를 부르면 들어가지도 못한 사건이 영구히 InProgress(주황)로 남아,
+                //  ResetAll 말고는 되돌릴 방법이 없어진다.)
+                Debug.Log($"[CaseCube] {_caseId} 선택됨. 사건 씬('{_caseSceneName}')이 아직 없어 건너뜀. " +
+                          $"(팀원 씬이 준비되면 자동 로드됨)");
+                return;
             }
-            else
-            {
-                // 아직 팀원 사건 씬이 없을 때: 로그만 남기고 넘어간다(뼈대 검증용).
-                Debug.Log($"[CaseCube] {_caseId} 선택됨. 사건 씬('{_caseSceneName}')이 아직 없어 로드는 건너뜀. " +
-                          $"상태만 InProgress로 표시. (팀원 씬이 준비되면 자동 로드됨)");
-            }
+
+            // 실제로 들어갈 수 있을 때만 상태를 바꾼다.
+            _state.StartCase(_caseId);   // 색이 주황으로 → 진행중 시각 피드백
+            _state.EnterCase(_caseId);   // 수첩이 이 사건 단서를 보여줌
+            Debug.Log($"[CaseCube] {_caseId} 사건 씬 로드 → '{_caseSceneName}'");
+            SceneManager.LoadScene(_caseSceneName);
         }
     }
 }
