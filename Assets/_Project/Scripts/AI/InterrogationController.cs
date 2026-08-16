@@ -24,7 +24,7 @@ namespace IMUNROK.Common
         [Tooltip("Mock=미리 정한 대사, Gemini=실제 AI. Gemini는 키 없으면 자동으로 Mock으로 대체됨")]
         [SerializeField] private Backend _backend = Backend.Gemini;
         [Tooltip("Gemini 모델 이름. 404 나면 모델명이 틀린 것")]
-        [SerializeField] private string _geminiModel = "gemini-flash-latest";
+        [SerializeField] private string _geminiModel = "gemini-3.5-flash-lite";
         [SerializeField] private string _hubSceneName = "HubScene";
 
         [Tooltip("테스트용: 인물의 증거 게이트 단서를 수첩에 미리 채워 제시할 수 있게 함. " +
