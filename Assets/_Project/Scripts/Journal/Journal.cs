@@ -91,6 +91,7 @@ namespace IMUNROK.Common
             _clues.Add(entry);
             Debug.Log($"[Journal] 단서 기록: [{caseId}] {text}");
             OnClueAdded?.Invoke(entry);
+            JournalPanel.Refresh();   // 수첩을 펼쳐둔 채 단서를 얻어도 바로 반영되게
             return true;
         }
 
