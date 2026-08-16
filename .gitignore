@@ -74,6 +74,7 @@ gemini_api_key.txt
 
 # 소품 모델(fbx/glb 등)도 LFS/git에 안 올림 — 공유폴더로 배포
 /Assets/_Project/Onggojip/Art/Models/
+/Assets/_Project/Onggojip/Art/Props/
 # 캐릭터 모델도 마찬가지 — git 제외, 공유폴더로 배포
 /Assets/_Project/Onggojip/Art/Characters/
 # 공통 도구 아이콘(돋보기·지도 등 아트) — git 제외, 공유폴더로 배포
@@ -83,3 +84,44 @@ gemini_api_key.txt
 /Assets/_Project/Art/Fonts/
 # 공통 아트(한지 텍스처·폰트 등) — git 제외, 공유폴더로 배포
 /Assets/_Project/_Common/Art/
+
+# ─────────────────────────────────────────────
+# 대용량 에셋 팩 — git 제외, 팀 공유폴더로 "폴더째" 배포
+# .meta까지 같이 주고받아야 GUID가 유지돼 씬 참조가 안 깨진다.
+#   Coastal_Dune_Pack ≈ 3.6GB / Soswaewon ≈ 1.4GB
+# ─────────────────────────────────────────────
+/Assets/Coastal_Dune_Pack/
+/Assets/Coastal_Dune_Pack.meta
+/Assets/Soswaewon/
+/Assets/Soswaewon.meta
+
+# 공통 소품 모델 — 아트는 공유폴더.
+# 단 .meta와 .mat은 일부러 커밋한다 → 모델을 다시 받아도 GUID·재질 연결이 유지됨
+/Assets/_Project/Art/Props/*.glb
+/Assets/_Project/Art/Props/*.fbx
+/Assets/_Project/Art/Props/*.obj
+
+# 안전망: 어디에 두든 모델·대용량 텍스처 원본은 git에 못 올라가게
+# (아트는 공유폴더 원칙. UI용 png/jpg는 필요해서 제외하지 않음)
+*.blend
+*.blend1
+*.psd
+*.psb
+*.tga
+*.exr
+*.hdr
+
+# 디버그용 스크린샷
+/Assets/Screenshots/
+/Assets/Screenshots.meta
+
+# TextMesh Pro 기본 리소스(순정 LiberationSans만) — GUID가 고정이라 재임포트하면 동일하게 복구됨
+# 없으면: 유니티 메뉴 [Window ▸ TextMeshPro ▸ Import TMP Essential Resources]
+# ※ 한글 폰트는 /Assets/_Project/Art/Fonts/ 에 있고 그쪽도 공유폴더 배포다
+/Assets/TextMesh Pro/
+/Assets/TextMesh Pro.meta
+
+# 사건 문서 텍스처 — 생성물이라 커밋 안 함.
+# 재생성: 유니티 메뉴 [이문록 ▸ 에셋: 사건 문서 텍스처 굽기] (생성기는 Tools/DocBaker/)
+# .meta는 일부러 커밋한다 → 팀원이 다시 구워도 GUID가 유지돼 재질 연결이 안 끊김
+/Assets/_Project/Art/Props/Textures/T_Doc_*.png
