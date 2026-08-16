@@ -9,6 +9,7 @@ namespace IMUNROK.Common
     /// 잠긴 문(DoorController)을 두드렸을 때 재생되는 대화 시퀀스.
     ///  두드림 → 대사 자동 진행(Space로 즉시 넘김) → 정해진 대사에서 문 열림.
     ///
+    /// 대사는 SubtitleView(월드 공간 Canvas)로 띄운다 — OnGUI는 헤드셋에 렌더링되지 않는다.
     /// 카메라를 뺏지 않는다(플레이어는 계속 1인칭 조종 = VR 안전). 대사만 화면에 흐르고
     /// 정해진 순번에서 문이 스르륵 열린다. 甲이 나온 뒤부터는 플레이어가 직접 걸어 들어가면 됨.
     ///
@@ -28,16 +29,21 @@ namespace IMUNROK.Common
         }
 
         [SerializeField] private DoorController _door;
+        [Tooltip("문을 열어주는 마름(비우면 캐릭터 연출 없이 대사·문만 진행)")]
+        [SerializeField] private MareumController _mareum;
+        [Tooltip("맞이하고 사랑방으로 앞장서는 복동(甲). 비우면 복동 연출 없음")]
+        [SerializeField] private BokdongController _bokdong;
         [SerializeField] private Line[] _lines;
         [Tooltip("이 순번 대사에서 문이 열림(0부터)")]
         [SerializeField] private int _openAtLine = 3;
+        [Tooltip("이 순번 대사에서 복동이 앞장서 걷기 시작(기본=마지막 줄)")]
+        [SerializeField] private int _bokdongLeadAtLine = 4;
         [Tooltip("각 대사 자동 넘김 시간(초). Space로 즉시 넘김")]
         [SerializeField] private float _lineDuration = 3.5f;
 
         private bool _started, _done;
         private int _index;
         private float _timer;
-        private GUIStyle _nameStyle, _textStyle, _hintStyle;
 
         private void Awake()
         {
@@ -57,7 +63,9 @@ namespace IMUNROK.Common
             _started = true;
             _index = 0;
             _timer = 0f;
+            if (_mareum != null) _mareum.BeginGreet();   // 마름: 졸다 일어남
             TryOpenAt(0);
+            ShowCurrentLine();
         }
 
         private void Update()
@@ -77,61 +85,36 @@ namespace IMUNROK.Common
         {
             _index++;
             _timer = 0f;
-            if (_index >= _lines.Length) { _done = true; return; }
+            if (_index >= _lines.Length) { _done = true; SubtitleView.Hide(); return; }
             TryOpenAt(_index);
+            ShowCurrentLine();
         }
 
         private void TryOpenAt(int i)
         {
             if (i == _openAtLine && _door != null)
             {
+                if (_mareum != null) _mareum.OpenDoorThenStepAside();   // 마름: 문 여는 동작 + 물러나 서기
                 _door.Unlock();
                 _door.Open();
             }
+            if (i == _bokdongLeadAtLine && _bokdong != null)
+                _bokdong.LeadInside();                                  // 복동: 사랑방으로 앞장서 걷기
         }
 
-        private void OnGUI()
+        /// <summary>지금 줄을 월드 자막으로 띄운다. 끝났으면 자막을 내린다.</summary>
+        private void ShowCurrentLine()
         {
-            if (!_started || _done || _index >= _lines.Length) return;
-            EnsureStyles();
+            if (!_started || _done || _index >= _lines.Length) { SubtitleView.Hide(); return; }
             var line = _lines[_index];
-
-            const float w = 720f, h = 132f;
-            float x = (Screen.width - w) * 0.5f;
-            float y = Screen.height - h - 40f;
-
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
-            if (!string.IsNullOrEmpty(line.speaker))
-                GUI.Label(new Rect(x + 24, y + 14, w - 48, 28), line.speaker, _nameStyle);
-            GUI.Label(new Rect(x + 24, y + 46, w - 48, 60), line.text, _textStyle);
-            GUI.Label(new Rect(x + 24, y + h - 26, w - 48, 22), "(Space : 계속)", _hintStyle);
-        }
-
-        private void EnsureStyles()
-        {
-            if (_textStyle != null) return;
-            _nameStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 17, fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(1f, 0.85f, 0.4f) }
-            };
-            _textStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 18, wordWrap = true,
-                normal = { textColor = Color.white }
-            };
-            _hintStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 13,
-                normal = { textColor = new Color(1f, 1f, 1f, 0.55f) }
-            };
+            SubtitleView.Show(line.speaker, line.text, "(계속)");
         }
 
         private static Line[] DefaultLines() => new[]
         {
-            new Line { speaker = "늙은 하인", text = "이 야심한 밤에… 뉘시오?" },
+            new Line { speaker = "마름", text = "이 야심한 밤에… 뉘시오?" },
             new Line { speaker = "과객(나)",  text = "지나던 과객이오. 하룻밤 신세 좀 집시다." },
-            new Line { speaker = "늙은 하인", text = "…잠시 기다리시오. 주인께 여쭙고 오리다." },
+            new Line { speaker = "마름", text = "…잠시 기다리시오. 주인께 여쭙고 오리다." },
             new Line { speaker = "옹덕구(甲)", text = "허허, 누추하나 드시오. 사랑에 자리를 봐드리리다." },
             new Line { speaker = "",          text = "대문이 열렸다. 甲을 따라 안으로 들어가자." },
         };
