@@ -13,6 +13,22 @@ namespace IMUNROK.Common
     /// </summary>
     public static class ModelBounds
     {
+        /// <summary>미리 모아둔 렌더러들로 경계를 구한다(매 프레임 쓸 때 탐색 비용을 없애려고).</summary>
+        public static bool TryGet(Renderer[] renderers, out Bounds bounds)
+        {
+            bounds = default;
+            if (renderers == null || renderers.Length == 0) return false;
+
+            bool started = false;
+            foreach (var r in renderers)
+            {
+                if (r == null) continue;
+                if (!started) { bounds = r.bounds; started = true; }
+                else bounds.Encapsulate(r.bounds);
+            }
+            return started;
+        }
+
         /// <summary>자식까지 포함한 렌더러 경계(월드). 렌더러가 없으면 false.</summary>
         public static bool TryGet(Transform root, out Bounds bounds)
         {

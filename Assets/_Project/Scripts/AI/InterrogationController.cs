@@ -112,8 +112,9 @@ namespace IMUNROK.Common
             sb.AppendLine($"[진단] {name}");
             sb.AppendLine($"  이 오브젝트 pos = {transform.position}");
             bool has = ModelBounds.TryGet(transform, out Bounds b);
-            sb.AppendLine(has ? $"  몸(렌더러 경계) center={b.center} min.y={b.min.y:F3} size={b.size}"
+            sb.AppendLine(has ? $"  키(높이) = {b.size.y:F3} m   ← 인물끼리 비교할 값"
                               : "  렌더러를 못 찾음 — 자식에 모델이 없다");
+            if (has) sb.AppendLine($"  몸 center={b.center} min.y={b.min.y:F3} size={b.size}");
             foreach (var r in GetComponentsInChildren<Renderer>())
                 sb.AppendLine($"    렌더러: {r.name}  ({r.GetType().Name})  pos={r.transform.position}");
             var cols = GetComponentsInChildren<Collider>();

@@ -39,6 +39,9 @@ namespace IMUNROK.Common
         [Tooltip("모델의 실제 밑면(렌더러 경계)을 재서 바닥에 올린다. " +
                  "피벗이 발밑이 아니어도(허리·머리에 있어도) 맞는다 — 위치를 추측하지 않고 재기 때문.")]
         [SerializeField] private bool _alignFeetToGround = true;
+        [Tooltip("매 프레임 다시 맞춘다. 클립마다 시작 자세가 달라 높이가 어긋나는 것을 없앤다. " +
+                 "끄면 동작이 바뀔 때 한 번만 맞춘다(그 순간 자세가 기준이 되어 어긋날 수 있음)")]
+        [SerializeField] private bool _alignEveryFrame = true;
         [Tooltip("레이를 쏘기 시작할 머리 위 높이(m)")]
         [SerializeField] private float _groundProbeUp = 2f;
         [Tooltip("발밑으로 이만큼까지 바닥을 찾는다(m)")]
@@ -57,6 +60,7 @@ namespace IMUNROK.Common
         // 애니메이션이 실제로 움직이는 대상은 Animator가 달린 트랜스폼이다.
         // 이 컴포넌트가 붙은 오브젝트와 다를 수 있어(마커 → 모델 구조), 그쪽도 같이 붙잡아야
         // 좌우로 밀려나는 것이 멈춘다.
+        private Renderer[] _renderers;   // 매 프레임 경계를 재므로 한 번만 모아둔다
         private Transform _animT;
         private Vector3 _animHomeLocalPos;
         private Quaternion _animHomeLocalRot;
@@ -67,6 +71,7 @@ namespace IMUNROK.Common
         private void Start()
         {
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
+            _renderers = GetComponentsInChildren<Renderer>();
 
             // 제자리 NPC가 걸어 나가는 원인 대부분이 이것. 동작 클립(발 구르기 등)에 남아 있는
             // 루트 모션이 매번 조금씩 몸을 밀어내고, 그게 쌓이면 집 밖까지 나간다.
@@ -93,7 +98,7 @@ namespace IMUNROK.Common
         /// </summary>
         private void AlignFeetToGround()
         {
-            if (!ModelBounds.TryGet(transform, out Bounds b)) return;
+            if (!ModelBounds.TryGet(_renderers, out Bounds b)) return;
 
             // 바닥 높이는 처음 한 번만 찾아 기억한다. 동작마다 다시 찾으면 그때그때 다른 면에 맞아 튄다.
             if (!_floorFound)
@@ -191,11 +196,20 @@ namespace IMUNROK.Common
 
             if (_lockRotation && transform.rotation != _homeRot) transform.rotation = _homeRot;
 
-            // 동작을 바꾼 직후 한 프레임 뒤에 다시 잰다 — 그때라야 새 클립의 포즈가 반영돼 있다.
-            if (_realignFrames > 0)
+            if (!_alignFeetToGround) return;
+
+            if (_alignEveryFrame)
             {
+                // 클립마다 시작 자세가 달라 생기는 높이 차이는 설정으로는 못 잡는다(클립 안의 문제라서).
+                // 매 프레임 밑면을 바닥에 맞추면 어떤 클립이든 발이 붙는다.
+                // 한 발을 드는 동작(발 구르기)도 디딘 발이 밑면이 되므로 그대로 맞다.
+                AlignFeetToGround();
+            }
+            else if (_realignFrames > 0)
+            {
+                // 동작을 바꾼 직후 한 프레임 뒤에 다시 잰다 — 그때라야 새 클립의 포즈가 반영돼 있다.
                 _realignFrames--;
-                if (_realignFrames == 0 && _alignFeetToGround) AlignFeetToGround();
+                if (_realignFrames == 0) AlignFeetToGround();
             }
         }
 
@@ -218,6 +232,7 @@ namespace IMUNROK.Common
             sb.AppendLine($"  피벗 pos = {transform.position}");
             if (ModelBounds.TryGet(transform, out Bounds b))
             {
+                sb.AppendLine($"  키(높이) = {b.size.y:F3} m");
                 sb.AppendLine($"  몸 min.y = {b.min.y:F3}  center = {b.center}  size = {b.size}");
                 sb.AppendLine($"  피벗과 발의 차이 = {(transform.position.y - b.min.y):F3} m");
                 if (TryFindGroundUnder(b.center, out float fy))
