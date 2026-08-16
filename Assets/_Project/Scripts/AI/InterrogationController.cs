@@ -5,15 +5,16 @@ using UnityEngine.SceneManagement;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 심문 무대 진행. 두 가지 행동:
-    ///  ① 추천 질문 — 인물마다 정해둔 질문 칩을 눌러 묻는다(대화로 단서를 얻기도 함)
-    ///  ② 증거 제시 — 수첩에서 단서를 골라 들이밀기(맞는 증거면 인물이 사실을 실토)
+    /// 심문 무대 진행. 세 가지 행동:
+    ///  ① 말하기 — 마이크로 직접 묻는다(<see cref="MicInput"/>의 전사가 <see cref="Say"/>로 들어옴)
+    ///  ② 추천 질문 — 인물마다 정해둔 질문 칩을 눌러 묻는다(대화로 단서를 얻기도 함)
+    ///  ③ 증거 제시 — 수첩에서 단서를 골라 들이밀기(맞는 증거면 인물이 사실을 실토)
     ///
     /// NPC 대답은 INpcResponder가 만든다(Mock=미리 정한 대사 / Gemini=실제 AI).
+    /// 마이크는 씬에 MicInput이 있을 때만 붙는다 — 없으면 ②③으로만 진행된다.
     ///
-    /// ※ 자유 텍스트 입력은 아직 없다. 화면의 마이크 버튼은 VR 음성 입력(STT)을
-    ///   붙일 자리표시이며 지금은 동작하지 않는다.
     /// ※ UI가 OnGUI(IMGUI)라 VR 헤드셋에는 렌더링되지 않는다 — World Space Canvas 이관 필요.
+    ///   (자막은 SubtitleView로 옮겨가는 중)
     /// </summary>
     public class InterrogationController : MonoBehaviour, ISelectable
     {
@@ -116,12 +117,26 @@ namespace IMUNROK.Common
             _active = true;
             s_openCount++;
             Active = this;
+
+            if (MicInput.Instance != null)
+            {
+                MicInput.Instance.OnPartial += OnMicPartial;
+                MicInput.Instance.OnFinal += OnMicFinal;
+            }
         }
 
         private void OnDisable()
         {
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); }
             if (Active == this) Active = null;
+            UnsubscribeMic();
+        }
+
+        private void UnsubscribeMic()
+        {
+            if (MicInput.Instance == null) return;
+            MicInput.Instance.OnPartial -= OnMicPartial;
+            MicInput.Instance.OnFinal -= OnMicFinal;
         }
 
         // ── 클릭/VR 레이로 인물을 선택하면 심문 시작 ──
@@ -141,6 +156,7 @@ namespace IMUNROK.Common
             if (_beginOnStart) { _exitRequested = true; return; }      // 단독 무대 → 조사청 복귀
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); } // 큐브 → 패널만 닫기
             if (Active == this) Active = null;
+            UnsubscribeMic();
         }
 
         /// <summary>수첩에서 단서를 골라 "들이밀기" 눌렀을 때 호출(외부에서 증거 제시).</summary>
@@ -156,7 +172,35 @@ namespace IMUNROK.Common
             return new MockNpcResponder();
         }
 
-        // ── 행동 ①: 추천 질문 고르기 ──
+        // ── 행동 ①: 말하기(마이크) ──
+
+        /// <summary>플레이어가 말한 문장을 인물에게 던진다. MicInput의 최종 전사가 여기로 들어온다.</summary>
+        public void Say(string text)
+        {
+            if (!_active || _busy || string.IsNullOrWhiteSpace(text)) return;
+            string say = text.Trim();
+            _lastPlayerLine = say;
+            _transcript.Add($"어사: {say}");
+
+            var req = new NpcRequest
+            {
+                character = _character,
+                transcript = _transcript,
+                unlockedFacts = _unlockedFacts,
+                playerInput = say,
+                isEvidence = false,
+                justRevealedInfo = null,
+            };
+            _busy = true;
+            _responder.GetResponse(this, req, OnReply, OnError);
+        }
+
+        // 말하는 도중의 중간 전사 — 확정 전이라 대화 기록엔 넣지 않고 화면에만 보여준다.
+        private void OnMicPartial(string text) { if (_active) _lastPlayerLine = text; }
+
+        private void OnMicFinal(string text) { if (_active) Say(text); }
+
+        // ── 행동 ②: 추천 질문 고르기 ──
         private void AskTopic(TopicQuestion t)
         {
             if (_busy || t == null) return;
@@ -349,11 +393,14 @@ namespace IMUNROK.Common
                 }
             }
 
-            // ── 마이크 버튼(하단 중앙) — VR에서 눌러 말하기(음성) 자리 ──
-            if (GUI.Button(new Rect(micX, micY, micSize, micSize), "🎤", _micStyle))
-            {
-                // 지금은 자리표시. VR에서 음성 입력(STT)과 연결 예정.
-            }
+            // ── 마이크 버튼(하단 중앙) — 눌러서 듣기 시작, 다시 눌러 종료 ──
+            // (데스크탑에선 T키를 누르고 있는 방식도 됨 — MicInput 참고)
+            var mic = MicInput.Instance;
+            bool listening = mic != null && mic.IsListening;
+            if (GUI.Button(new Rect(micX, micY, micSize, micSize), listening ? "●" : "🎤", _micStyle))
+                mic?.Toggle();
+            if (listening)
+                GUI.Label(new Rect(micX - 100f, micY - 26f, micSize + 200f, 22f), "듣는 중…", _hintStyle);
         }
 
         // 패널 배경: 한지 텍스처(있으면 반투명)로, 없으면 어두운 기본
