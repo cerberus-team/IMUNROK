@@ -72,8 +72,7 @@ namespace IMUNROK.Onggojip
 
             if (main == _lastMain && sub == _lastSub) return;
             _lastMain = main; _lastSub = sub;
-            WorldNotice.Show("목표", main + "
-" + sub, 0.42f);   // 시선보다 위 — 앞을 가리지 않게
+            WorldNotice.Show("목표", $"{main}\n{sub}", 0.42f);   // 시선보다 위 — 앞을 가리지 않게
         }
     }
 }
