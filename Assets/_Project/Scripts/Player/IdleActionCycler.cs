@@ -36,10 +36,9 @@ namespace IMUNROK.Common
         [SerializeField] private bool _disableRootMotion = true;
 
         [Header("바닥 맞추기")]
-        [Tooltip("시작할 때 발밑으로 레이를 쏴 바닥 높이를 찾는다. " +
-                 "모델 피벗이 발밑에 있을 때만 켤 것 — 피벗이 허리쯤인 모델(예: 옹덕구)은 " +
-                 "씬에서 높이를 손으로 보정해 두는데, 이걸 켜면 그 보정을 지워 땅에 파묻힌다.")]
-        [SerializeField] private bool _snapToGround = false;
+        [Tooltip("모델의 실제 밑면(렌더러 경계)을 재서 바닥에 올린다. " +
+                 "피벗이 발밑이 아니어도(허리·머리에 있어도) 맞는다 — 위치를 추측하지 않고 재기 때문.")]
+        [SerializeField] private bool _alignFeetToGround = true;
         [Tooltip("레이를 쏘기 시작할 머리 위 높이(m)")]
         [SerializeField] private float _groundProbeUp = 2f;
         [Tooltip("발밑으로 이만큼까지 바닥을 찾는다(m)")]
@@ -65,26 +64,46 @@ namespace IMUNROK.Common
 
             _homePos = transform.position;
             _homeRot = transform.rotation;
-
-            if (_snapToGround && TryFindGround(out float y)) _homePos.y = y;
             _groundY = _homePos.y;
-            transform.position = _homePos;
 
             EnterStill();
         }
 
-        /// <summary>머리 위에서 발밑으로 레이를 쏴 바닥 높이를 찾는다(자기 몸에 맞은 건 무시).</summary>
-        private bool TryFindGround(out float groundY)
+        /// <summary>
+        /// 모델을 바닥에 올린다. 피벗이 어디에 있든 상관없이 맞는 이유:
+        /// 피벗 위치를 추측하지 않고 렌더러 경계(실제로 그려지는 범위)의 밑면을 재서 그만큼 옮긴다.
+        /// 애니메이터가 첫 포즈를 적용한 뒤에 재야 하므로 Start가 아니라 첫 LateUpdate에서 한다.
+        /// </summary>
+        private void AlignFeetToGround()
         {
-            groundY = transform.position.y;
-            Vector3 origin = transform.position + Vector3.up * _groundProbeUp;
+            var renderers = GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return;
+
+            Bounds b = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) b.Encapsulate(renderers[i].bounds);
+
+            if (!TryFindGroundUnder(b.center, out float floorY)) return;
+
+            float lift = floorY - b.min.y;                 // 밑면을 바닥까지 끌어올릴(내릴) 양
+            if (Mathf.Abs(lift) < 0.001f) return;
+
+            _homePos.y += lift;
+            _groundY = _homePos.y;
+            transform.position = new Vector3(transform.position.x, _homePos.y, transform.position.z);
+        }
+
+        /// <summary>주어진 지점 아래의 바닥 높이(자기 몸에 맞은 건 무시).</summary>
+        private bool TryFindGroundUnder(Vector3 from, out float groundY)
+        {
+            groundY = from.y;
+            Vector3 origin = new Vector3(from.x, from.y + _groundProbeUp, from.z);
             var hits = Physics.RaycastAll(origin, Vector3.down, _groundProbeUp + _groundProbeDown,
                                           ~0, QueryTriggerInteraction.Ignore);
             // '가장 높은 면'을 고르면 머리 위를 지나는 서까래·툇마루에 올라타 버린다.
             // 지금 서 있는 높이에 가장 가까운 면을 바닥으로 본다 — 살짝 뜬 경우와 살짝 묻힌 경우 모두 맞는다.
             bool found = false;
             float best = 0f, bestGap = float.PositiveInfinity;
-            float myY = transform.position.y;
+            float myY = from.y;
             foreach (var h in hits)
             {
                 if (h.collider != null && h.collider.transform.IsChildOf(transform)) continue;  // 자기 몸통
@@ -126,8 +145,17 @@ namespace IMUNROK.Common
         // 애니메이션이 루트를 움직여도 제자리·바닥에 붙여 둔다.
         // Update가 아니라 LateUpdate인 이유: Animator가 이 프레임의 포즈를 적용한 "뒤"에 되돌려야
         // 한 프레임 튀는 것 없이 고정된다.
+        private bool _aligned;
+
         private void LateUpdate()
         {
+            // 첫 프레임: 애니메이터가 포즈를 적용한 뒤라야 렌더러 경계가 실제 몸 크기로 나온다.
+            if (!_aligned)
+            {
+                _aligned = true;
+                if (_alignFeetToGround) AlignFeetToGround();
+            }
+
             var p = transform.position;
             if (_lockGroundY) p.y = _groundY;
             if (_lockHorizontal) { p.x = _homePos.x; p.z = _homePos.z; }
@@ -141,10 +169,20 @@ namespace IMUNROK.Common
         {
             _homePos = transform.position;
             _homeRot = transform.rotation;
-            if (_snapToGround && TryFindGround(out float y)) _homePos.y = y;
             _groundY = _homePos.y;
-            transform.position = _homePos;
+            if (_alignFeetToGround) AlignFeetToGround();
         }
+
+#if UNITY_EDITOR
+        /// <summary>에디터에서 지금 바로 바닥에 맞춰본다(Play 없이 확인용).</summary>
+        [ContextMenu("바닥에 맞추기")]
+        private void AlignNow()
+        {
+            _homePos = transform.position;
+            AlignFeetToGround();
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+#endif
 
         private void EnterStill()
         {
