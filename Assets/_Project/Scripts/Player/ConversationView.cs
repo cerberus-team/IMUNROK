@@ -10,7 +10,6 @@ namespace IMUNROK.Common
     ///  · 대화가 끝나면 둘 다 부드럽게 원래대로 복귀.
     ///
     /// 붙이는 곳: 아무 상시 오브젝트(예: _연출_Volume). 볼륨을 _volume에 연결하면 됨.
-    /// 설치는 [이문록 ▸ 연출: 대화 카메라·밤 분위기 설치]가 자동으로 해준다.
     /// ※ VR 빌드에서는 FOV를 바꾸면 멀미가 나므로 _zoomCamera를 꺼두기.
     /// </summary>
     [DisallowMultipleComponent]

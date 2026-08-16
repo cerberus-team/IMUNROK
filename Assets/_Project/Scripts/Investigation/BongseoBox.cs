@@ -102,7 +102,7 @@ namespace IMUNROK.Common
             else
             {
                 Debug.LogWarning($"[BongseoBox] 복명 씬('{_endingSceneName}')을 찾을 수 없습니다. " +
-                                 $"[이문록 ▸ 복명 씬 생성] 을 먼저 실행했는지 확인하세요.");
+                                 $"File ▸ Build Profiles 의 씬 목록에 추가했는지, 이름이 맞는지 확인하세요.");
             }
         }
     }

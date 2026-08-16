@@ -105,12 +105,15 @@ namespace IMUNROK.Common
         public void ClearAll()
         {
             _clues.Clear();
+            _clueImages.Clear();   // 그림 참조도 같이 버린다(안 지우면 텍스처를 계속 붙들고 있음)
             Debug.Log("[Journal] 수첩 초기화");
         }
 
         /// <summary>한 사건의 단서만 지움.</summary>
         public void ClearCase(CaseId caseId)
         {
+            foreach (var c in _clues)
+                if (c.caseId == caseId) _clueImages.Remove(ImgKey(caseId, c.key));
             _clues.RemoveAll(c => c.caseId == caseId);
         }
 

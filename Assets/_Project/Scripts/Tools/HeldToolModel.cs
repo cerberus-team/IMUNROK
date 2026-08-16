@@ -5,7 +5,7 @@ namespace IMUNROK.Common
     /// <summary>
     /// 손에 든 도구 모델 — 도구벨트에서 해당 id를 들었을 때만 모델이 보인다(빛 없음).
     ///  · 등불처럼 빛이 필요하면 LanternController를 쓰고, 돋보기처럼 모델만이면 이걸 쓴다.
-    /// 설치는 [이문록 ▸ 연출: 돋보기 설치] 등이 자동으로 붙여준다.
+    /// 붙이는 곳: 카메라(또는 손) 자식으로 둔 도구 모델 오브젝트.
     /// </summary>
     public class HeldToolModel : MonoBehaviour
     {

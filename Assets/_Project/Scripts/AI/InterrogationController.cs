@@ -6,12 +6,14 @@ namespace IMUNROK.Common
 {
     /// <summary>
     /// 심문 무대 진행. 두 가지 행동:
-    ///  ① 말하기 — 텍스트로 질문(나중에 음성으로 교체)
+    ///  ① 추천 질문 — 인물마다 정해둔 질문 칩을 눌러 묻는다(대화로 단서를 얻기도 함)
     ///  ② 증거 제시 — 수첩에서 단서를 골라 들이밀기(맞는 증거면 인물이 사실을 실토)
     ///
-    /// NPC 대답은 INpcResponder가 만든다. 지금은 Mock(녹음테이프),
-    /// 내일 Backend를 Claude로 바꾸면 실제 AI가 같은 자리에 들어온다.
-    /// 자막은 OnGUI(한글 확실히 표시).
+    /// NPC 대답은 INpcResponder가 만든다(Mock=미리 정한 대사 / Gemini=실제 AI).
+    ///
+    /// ※ 자유 텍스트 입력은 아직 없다. 화면의 마이크 버튼은 VR 음성 입력(STT)을
+    ///   붙일 자리표시이며 지금은 동작하지 않는다.
+    /// ※ UI가 OnGUI(IMGUI)라 VR 헤드셋에는 렌더링되지 않는다 — World Space Canvas 이관 필요.
     /// </summary>
     public class InterrogationController : MonoBehaviour, ISelectable
     {
@@ -21,12 +23,13 @@ namespace IMUNROK.Common
         [SerializeField] private InterrogationCharacter _character;
         [Tooltip("Mock=미리 정한 대사, Gemini=실제 AI. Gemini는 키 없으면 자동으로 Mock으로 대체됨")]
         [SerializeField] private Backend _backend = Backend.Gemini;
-        [Tooltip("Gemini 모델 이름. 404 나면 [이문록 ▸ Gemini: 사용 가능 모델 목록 확인]으로 유효한 이름 찾아 넣기")]
+        [Tooltip("Gemini 모델 이름. 404 나면 모델명이 틀린 것")]
         [SerializeField] private string _geminiModel = "gemini-flash-latest";
         [SerializeField] private string _hubSceneName = "HubScene";
 
-        [Tooltip("테스트용: 인물의 증거 게이트 단서를 수첩에 미리 채워 제시할 수 있게 함")]
-        [SerializeField] private bool _seedGateCluesForTest = true;
+        [Tooltip("테스트용: 인물의 증거 게이트 단서를 수첩에 미리 채워 제시할 수 있게 함. " +
+                 "켜면 조사를 안 해도 결정적 증거를 전부 들이밀 수 있으니 평소엔 꺼둘 것")]
+        [SerializeField] private bool _seedGateCluesForTest = false;
 
         [Tooltip("켜짐=씬 시작 시 자동 심문(단독 무대). 꺼짐=인물 큐브 클릭 시 시작(큐브에 붙일 때 이걸로)")]
         [SerializeField] private bool _beginOnStart = true;
@@ -147,28 +150,7 @@ namespace IMUNROK.Common
             return new MockNpcResponder();
         }
 
-        // ── 행동 ①: 말하기 ──
-        private void Say(string text)
-        {
-            if (_busy || string.IsNullOrWhiteSpace(text)) return;
-            string say = text.Trim();
-            _lastPlayerLine = say;
-            _transcript.Add($"어사: {say}");
-
-            var req = new NpcRequest
-            {
-                character = _character,
-                transcript = _transcript,
-                unlockedFacts = _unlockedFacts,
-                playerInput = say,
-                isEvidence = false,
-                justRevealedInfo = null,
-            };
-            _busy = true;
-            _responder.GetResponse(this, req, OnReply, OnError);
-        }
-
-        // ── 추천 질문 고르기 ──
+        // ── 행동 ①: 추천 질문 고르기 ──
         private void AskTopic(TopicQuestion t)
         {
             if (_busy || t == null) return;
@@ -439,6 +421,14 @@ namespace IMUNROK.Common
             t.Apply();
             t.hideFlags = HideFlags.HideAndDontSave;
             return t;
+        }
+
+        // HideAndDontSave 텍스처는 씬이 바뀌어도 자동 정리되지 않는다.
+        // 인물마다 5장씩 만들므로 직접 파괴해 준다.
+        private void OnDestroy()
+        {
+            foreach (var t in new[] { _texDim, _texPanel, _texName, _texBtn, _texBtnOn })
+                if (t != null) Destroy(t);
         }
     }
 }

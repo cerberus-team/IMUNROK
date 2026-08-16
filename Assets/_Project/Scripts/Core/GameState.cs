@@ -242,6 +242,7 @@ namespace IMUNROK.Common
             }
             _gapriHandled = false;
             _allCompletedFired = false;
+            _currentCase = null;   // 초기화 후에도 이전 사건에 들어가 있는 것으로 남으면 수첩 필터가 어긋난다
             Debug.Log("[GameState] 전체 상태 초기화");
 
             foreach (CaseId id in Enum.GetValues(typeof(CaseId)))
