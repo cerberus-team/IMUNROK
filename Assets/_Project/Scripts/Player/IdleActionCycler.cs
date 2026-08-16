@@ -54,6 +54,16 @@ namespace IMUNROK.Common
         private Vector3 _homePos;
         private Quaternion _homeRot;
 
+        // 애니메이션이 실제로 움직이는 대상은 Animator가 달린 트랜스폼이다.
+        // 이 컴포넌트가 붙은 오브젝트와 다를 수 있어(마커 → 모델 구조), 그쪽도 같이 붙잡아야
+        // 좌우로 밀려나는 것이 멈춘다.
+        private Transform _animT;
+        private Vector3 _animHomeLocalPos;
+        private Quaternion _animHomeLocalRot;
+
+        // 동작이 바뀔 때마다 발 높이를 다시 맞춘다(클립마다 몸 높이가 달라서 생기는 문제).
+        private int _realignFrames;
+
         private void Start()
         {
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
@@ -66,6 +76,13 @@ namespace IMUNROK.Common
             _homeRot = transform.rotation;
             _groundY = _homePos.y;
 
+            if (_animator != null && _animator.transform != transform)
+            {
+                _animT = _animator.transform;
+                _animHomeLocalPos = _animT.localPosition;
+                _animHomeLocalRot = _animT.localRotation;
+            }
+
             EnterStill();
         }
 
@@ -77,9 +94,16 @@ namespace IMUNROK.Common
         private void AlignFeetToGround()
         {
             if (!ModelBounds.TryGet(transform, out Bounds b)) return;
-            if (!TryFindGroundUnder(b.center, out float floorY)) return;
 
-            float lift = floorY - b.min.y;                 // 밑면을 바닥까지 끌어올릴(내릴) 양
+            // 바닥 높이는 처음 한 번만 찾아 기억한다. 동작마다 다시 찾으면 그때그때 다른 면에 맞아 튄다.
+            if (!_floorFound)
+            {
+                if (!TryFindGroundUnder(b.center, out float found)) return;
+                _floorY = found;
+                _floorFound = true;
+            }
+
+            float lift = _floorY - b.min.y;                // 밑면을 바닥까지 끌어올릴(내릴) 양
             if (Mathf.Abs(lift) < 0.001f) return;
 
             _homePos.y += lift;
@@ -141,6 +165,8 @@ namespace IMUNROK.Common
         // Update가 아니라 LateUpdate인 이유: Animator가 이 프레임의 포즈를 적용한 "뒤"에 되돌려야
         // 한 프레임 튀는 것 없이 고정된다.
         private bool _aligned;
+        private bool _floorFound;
+        private float _floorY;
 
         private void LateUpdate()
         {
@@ -151,12 +177,26 @@ namespace IMUNROK.Common
                 if (_alignFeetToGround) AlignFeetToGround();
             }
 
+            // 애니메이터가 달린 자식이 밀려나면 이 오브젝트를 아무리 잡아도 몸은 흘러간다.
+            if (_animT != null)
+            {
+                if (_lockHorizontal || _lockGroundY) _animT.localPosition = _animHomeLocalPos;
+                if (_lockRotation) _animT.localRotation = _animHomeLocalRot;
+            }
+
             var p = transform.position;
             if (_lockGroundY) p.y = _groundY;
             if (_lockHorizontal) { p.x = _homePos.x; p.z = _homePos.z; }
             if (p != transform.position) transform.position = p;
 
             if (_lockRotation && transform.rotation != _homeRot) transform.rotation = _homeRot;
+
+            // 동작을 바꾼 직후 한 프레임 뒤에 다시 잰다 — 그때라야 새 클립의 포즈가 반영돼 있다.
+            if (_realignFrames > 0)
+            {
+                _realignFrames--;
+                if (_realignFrames == 0 && _alignFeetToGround) AlignFeetToGround();
+            }
         }
 
         /// <summary>지금 자리를 새 제자리로 삼는다(연출로 옮긴 뒤 호출).</summary>
@@ -169,6 +209,29 @@ namespace IMUNROK.Common
         }
 
 #if UNITY_EDITOR
+        /// <summary>지금 상태를 그대로 찍는다 — 높이가 왜 어긋나는지 눈으로 보려고.</summary>
+        [ContextMenu("진단: 몸·바닥 재보기")]
+        private void DiagnoseBody()
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"[진단] {name}");
+            sb.AppendLine($"  피벗 pos = {transform.position}");
+            if (ModelBounds.TryGet(transform, out Bounds b))
+            {
+                sb.AppendLine($"  몸 min.y = {b.min.y:F3}  center = {b.center}  size = {b.size}");
+                sb.AppendLine($"  피벗과 발의 차이 = {(transform.position.y - b.min.y):F3} m");
+                if (TryFindGroundUnder(b.center, out float fy))
+                    sb.AppendLine($"  찾은 바닥 y = {fy:F3}  → 발과의 차이 = {(fy - b.min.y):F3} m");
+                else
+                    sb.AppendLine("  바닥을 못 찾음 — 발밑에 Collider가 있는 바닥이 없다");
+            }
+            else sb.AppendLine("  렌더러 없음");
+            var an = GetComponentInChildren<Animator>();
+            if (an != null)
+                sb.AppendLine($"  Animator '{an.name}' (이 오브젝트와 {(an.transform == transform ? "같음" : "다름 — 자식")}) rootMotion={an.applyRootMotion}");
+            Debug.Log(sb.ToString(), this);
+        }
+
         /// <summary>에디터에서 지금 바로 바닥에 맞춰본다(Play 없이 확인용).</summary>
         [ContextMenu("바닥에 맞추기")]
         private void AlignNow()
@@ -181,6 +244,7 @@ namespace IMUNROK.Common
 
         private void EnterStill()
         {
+            _realignFrames = 2;   // 새 클립 포즈가 적용된 뒤 발 높이 다시 맞추기
             _phase = Phase.Still;
             _timer = _stillTime;
             if (_animator != null)
@@ -193,6 +257,7 @@ namespace IMUNROK.Common
 
         private void EnterIdle()
         {
+            _realignFrames = 2;   // 새 클립 포즈가 적용된 뒤 발 높이 다시 맞추기
             _phase = Phase.Idle;
             _timer = _idleTime;
             if (_animator != null)
@@ -204,6 +269,7 @@ namespace IMUNROK.Common
 
         private void EnterAction()
         {
+            _realignFrames = 2;   // 새 클립 포즈가 적용된 뒤 발 높이 다시 맞추기
             if (_actions == null || _actions.Length == 0) { EnterStill(); return; }
             _phase = Phase.Action;
             _timer = _actionMaxTime;

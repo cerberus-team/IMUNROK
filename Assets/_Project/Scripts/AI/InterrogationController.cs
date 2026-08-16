@@ -74,23 +74,69 @@ namespace IMUNROK.Common
             UiFont.Publish(_font);
         }
 
-        private void Start_EnsureClickable()
+        /// <summary>
+        /// 눈에 보이는 몸을 클릭할 수 있게 만든다.
+        ///
+        /// 인물은 보통 [마커] → [캐릭터 FBX] 구조인데, 콜라이더가 마커에만 있으면
+        /// 화면의 캐릭터를 눌러도 레이가 그냥 통과한다(마커 큐브는 눈에 안 보이니 원인 찾기가 어렵다).
+        /// 그래서 "콜라이더가 있는가"가 아니라 "몸이 있는 자리를 덮는 콜라이더가 있는가"를 본다.
+        /// </summary>
+        private void EnsureClickable()
         {
             if (!_autoFitCollider) return;
-            if (GetComponentInChildren<Collider>() != null) return;
-            if (!ModelBounds.TryGet(transform, out Bounds b)) return;
+            if (!ModelBounds.TryGet(transform, out Bounds body)) return;
 
-            // 몸 크기에 맞춘 캡슐. 콜라이더가 없으면 레이가 맞지 않아 클릭 자체가 안 된다.
-            var col = gameObject.AddComponent<CapsuleCollider>();
-            col.center = transform.InverseTransformPoint(b.center);
-            col.height = b.size.y / Mathf.Max(0.0001f, transform.lossyScale.y);
-            col.radius = Mathf.Max(b.size.x, b.size.z) * 0.5f / Mathf.Max(0.0001f, transform.lossyScale.x);
-            Debug.Log($"[InterrogationController] '{name}' 에 클릭용 콜라이더를 자동으로 붙였습니다.");
+            foreach (var c in GetComponentsInChildren<Collider>())
+                if (c.bounds.Contains(body.center)) return;   // 몸 자리를 덮는 콜라이더가 이미 있다
+
+            // 렌더러가 달린 오브젝트(=실제 몸)에 붙여야 클릭 위치가 몸과 일치한다.
+            var rend = GetComponentInChildren<Renderer>();
+            var host = rend != null ? rend.transform : transform;
+            // SkinnedMeshRenderer는 본 아래에 있을 수 있으니, 모델 루트 쪽으로 한 단계 올린다.
+            if (host != transform && host.parent != null && host.parent != transform) host = host.parent;
+
+            var col = host.gameObject.AddComponent<CapsuleCollider>();
+            Vector3 ls = host.lossyScale;
+            col.center = host.InverseTransformPoint(body.center);
+            col.height = body.size.y / Mathf.Max(0.0001f, Mathf.Abs(ls.y));
+            col.radius = Mathf.Max(body.size.x, body.size.z) * 0.5f / Mathf.Max(0.0001f, Mathf.Abs(ls.x));
+            Debug.Log($"[InterrogationController] '{name}' — 몸을 덮는 콜라이더가 없어 '{host.name}' 에 자동으로 붙였습니다.");
         }
+
+#if UNITY_EDITOR
+        /// <summary>왜 클릭이 안 되는지 알아볼 수 있게 지금 상태를 그대로 찍는다.</summary>
+        [ContextMenu("진단: 이 인물 상태 찍기")]
+        private void Diagnose()
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"[진단] {name}");
+            sb.AppendLine($"  이 오브젝트 pos = {transform.position}");
+            bool has = ModelBounds.TryGet(transform, out Bounds b);
+            sb.AppendLine(has ? $"  몸(렌더러 경계) center={b.center} min.y={b.min.y:F3} size={b.size}"
+                              : "  렌더러를 못 찾음 — 자식에 모델이 없다");
+            foreach (var r in GetComponentsInChildren<Renderer>())
+                sb.AppendLine($"    렌더러: {r.name}  ({r.GetType().Name})  pos={r.transform.position}");
+            var cols = GetComponentsInChildren<Collider>();
+            sb.AppendLine($"  콜라이더 {cols.Length}개");
+            foreach (var c in cols)
+                sb.AppendLine($"    {c.name} ({c.GetType().Name}) bounds.center={c.bounds.center} size={c.bounds.size}" +
+                              (has && c.bounds.Contains(b.center) ? "  <- 몸 자리를 덮음" : "  <- 몸과 어긋남"));
+            var anim = GetComponentInChildren<Animator>();
+            sb.AppendLine(anim != null ? $"  Animator: '{anim.name}' pos={anim.transform.position} rootMotion={anim.applyRootMotion}"
+                                       : "  Animator 없음");
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                sb.AppendLine($"  카메라~피벗 = {Vector3.Distance(cam.transform.position, transform.position):F2} m");
+                sb.AppendLine($"  카메라~몸   = {ModelBounds.DistanceTo(transform, cam.transform.position):F2} m   (허용 {_maxTalkDistance} m)");
+            }
+            Debug.Log(sb.ToString(), this);
+        }
+#endif
 
         private void Start()
         {
-            Start_EnsureClickable();
+            EnsureClickable();
             if (_beginOnStart) Begin();
         }
 
