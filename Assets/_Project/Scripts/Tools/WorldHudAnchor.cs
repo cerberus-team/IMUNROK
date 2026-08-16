@@ -66,6 +66,32 @@ namespace IMUNROK.Common
 
         private void OnEnable() => _placed = false;   // 다시 켜질 땐 눈앞에 바로 오도록
 
+        /// <summary>
+        /// 코드로 만들 때 배치를 한 번에 잡는다. 배치마다 적당한 거리·높이가 다르다:
+        /// Waist는 허리춤이라 가깝고 아래(0.6m / -0.5m), Front는 읽는 거리(2m / 눈높이 살짝 아래).
+        /// </summary>
+        public void Configure(Placement placement)
+        {
+            _placement = placement;
+            if (placement == Placement.Waist)
+            {
+                _distance = 0.6f;
+                _verticalOffset = -0.5f;
+                _recenterAngle = 35f;      // 허리춤은 더 둔감하게 — 자주 따라오면 거슬린다
+                _canvasSize = new Vector2(900f, 320f);
+            }
+            else
+            {
+                _distance = 2f;
+                _verticalOffset = -0.15f;
+                _recenterAngle = 25f;
+                _canvasSize = new Vector2(1400f, 500f);
+            }
+
+            if (_canvas != null) ConfigureCanvas();   // Awake가 이미 지났으면 새 값으로 다시 잡는다
+            _placed = false;
+        }
+
         /// <summary>월드 Canvas로 만들고 카메라를 물린다(레이 인터랙터 클릭이 먹으려면 필수).</summary>
         private void ConfigureCanvas()
         {

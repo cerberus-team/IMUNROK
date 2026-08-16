@@ -38,6 +38,9 @@ namespace IMUNROK.Common
         private Text _caption;
         private CanvasGroup _group;
 
+        /// <summary>코드로 만들 때 폰트를 넘겨준다(Start 전에 호출되어야 반영된다).</summary>
+        public void Configure(Font font) => _font = font;
+
         private void Start()
         {
             _belt = ToolbeltHud.Instance;
@@ -49,12 +52,11 @@ namespace IMUNROK.Common
                 return;
             }
 
-            if (_font == null)
-            {
-                _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                Debug.LogWarning("[ToolbeltPanel] _font가 비어 있어 기본 폰트를 씁니다. " +
-                                 "한글이 네모로 깨지니 한글 .ttf를 연결하세요.");
-            }
+            // 내 폰트 → 공용 폰트(UiFont) → 유니티 기본 순으로 찾는다.
+            _font = UiFont.Resolve(_font);
+            if (UiFont.Korean == null)
+                Debug.LogWarning("[ToolbeltPanel] 한글 폰트를 못 찾아 기본 폰트를 씁니다(한글이 네모로 깨짐). " +
+                                 "ToolbeltHud의 VR 폰트 칸에 한글 .ttf를 연결하세요.");
 
             _group = gameObject.GetComponent<CanvasGroup>();
             if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();

@@ -73,6 +73,12 @@ namespace IMUNROK.Common
         private Texture2D _evidenceImg;   // 방금 제시한 증거 그림(잠깐 표시)
         private float _evidenceImgTimer;
 
+        private void Awake()
+        {
+            // 이 컴포넌트에 이미 한글 폰트가 연결돼 있으면 월드 Canvas 쪽 UI도 같이 쓰게 공유한다.
+            UiFont.Publish(_font);
+        }
+
         private void Start()
         {
             if (_beginOnStart) Begin();

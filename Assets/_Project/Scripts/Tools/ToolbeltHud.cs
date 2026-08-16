@@ -30,6 +30,12 @@ namespace IMUNROK.Common
         [Tooltip("VR 기기가 붙어 있어도 데스크탑 OnGUI를 그린다(디버그용). IMGUI는 헤드셋에 안 보인다")]
         [SerializeField] private bool _forceLegacyGui = false;
 
+        [Header("VR 패널(월드 Canvas)")]
+        [Tooltip("켜두면 실행할 때 월드 공간 도구벨트를 스스로 만든다. 씬에 미리 배치할 필요 없음")]
+        [SerializeField] private bool _autoCreateVrPanel = true;
+        [Tooltip("VR 패널에 쓸 한글 폰트. 비우면 씬의 다른 UI가 올려둔 공용 폰트를 쓴다")]
+        [SerializeField] private Font _vrFont;
+
         public static string SelectedToolId { get; private set; } = "";
 
         /// <summary>씬에 하나만 두는 도구벨트. 뷰가 이걸 찾아 붙는다.</summary>
@@ -99,7 +105,28 @@ namespace IMUNROK.Common
         {
             Instance = this;
             HudSide.LeftHanded = _leftHanded;
+            UiFont.Publish(_vrFont);
             Apply();
+        }
+
+        private void Start()
+        {
+            if (_autoCreateVrPanel) CreateVrPanel();
+        }
+
+        /// <summary>
+        /// 월드 공간 도구벨트를 코드로 만들어 붙인다(Canvas + 앵커 + 패널).
+        /// 씬에 미리 만들어 두면 그걸 쓰고, 없으면 여기서 만든다 — 씬 작업 없이 바로 확인할 수 있게.
+        /// </summary>
+        private void CreateVrPanel()
+        {
+            if (FindFirstObjectByType<ToolbeltPanel>() != null) return;   // 이미 씬에 있으면 그대로 둔다
+
+            var go = new GameObject("VR_도구벨트", typeof(Canvas));   // Canvas가 RectTransform을 같이 붙인다
+            var anchor = go.AddComponent<WorldHudAnchor>();
+            anchor.Configure(WorldHudAnchor.Placement.Waist);
+            var panel = go.AddComponent<ToolbeltPanel>();
+            panel.Configure(UiFont.Resolve(_vrFont));
         }
 
         private void OnDestroy()
