@@ -38,7 +38,7 @@ namespace IMUNROK.Common
             bool want = _open && !JournalView.AnyOpen;   // 수첩을 펼치면 지도는 접는다
             if (want == _shown) return;
             _shown = want;
-            if (want) WorldNotice.ShowImage("지도", _mapImage, -0.05f);
+            if (want) WorldNotice.ShowImage("지도", _mapImage, -0.05f, _title);
             else WorldNotice.Hide("지도");
         }
     }

@@ -35,15 +35,22 @@ namespace IMUNROK.Common
             n.SetVisible(true);
         }
 
-        /// <summary>그림을 띄운다(지도 등).</summary>
-        public static void ShowImage(string key, Texture texture, float verticalOffset)
+        /// <summary>그림을 띄운다(지도 등). caption을 주면 그림 위에 제목이 붙는다.</summary>
+        public static void ShowImage(string key, Texture texture, float verticalOffset, string caption = null)
         {
             var n = Get(key, verticalOffset);
             n._image.texture = texture;
             n._image.gameObject.SetActive(texture != null);
-            n._text.gameObject.SetActive(texture == null);
-            if (texture == null) n._text.text = "(지도 그림이 없다)";
             n._bg.enabled = true;
+
+            bool hasCaption = !string.IsNullOrEmpty(caption);
+            n._text.gameObject.SetActive(texture == null || hasCaption);
+            if (texture == null) n._text.text = "(지도 그림이 없다)";
+            else if (hasCaption) n._text.text = caption;
+            // 제목은 그림 위쪽으로 비켜 앉힌다
+            ((RectTransform)n._text.transform).anchoredPosition =
+                (texture != null && hasCaption) ? new Vector2(0f, 230f) : Vector2.zero;
+
             n.SetVisible(true);
         }
 

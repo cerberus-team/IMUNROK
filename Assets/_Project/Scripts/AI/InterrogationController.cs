@@ -41,13 +41,8 @@ namespace IMUNROK.Common
         [Tooltip("이 거리(m) 안에서만 말을 걸 수 있음. 너무 멀면 클릭해도 안 열림")]
         [SerializeField] private float _maxTalkDistance = 3f;
 
-        [Header("한지 테마(선택 — 넣으면 두루마리 느낌)")]
-        [Tooltip("패널 배경으로 쓸 한지 텍스처(없으면 어두운 기본)")]
-        [SerializeField] private Texture2D _paperTex;
-        [Tooltip("대사·버튼 폰트(조선궁서체 등). 없으면 기본")]
+        [Tooltip("대사에 쓸 한글 폰트(조선궁서체 등). 월드 UI가 공용으로 가져다 쓴다")]
         [SerializeField] private Font _font;
-        [Tooltip("한지 패널 불투명도(낮출수록 뒤가 비침)")]
-        [Range(0.3f, 1f)] [SerializeField] private float _paperAlpha = 0.5f;
 
         private bool _active;
 
@@ -70,14 +65,32 @@ namespace IMUNROK.Common
 
         private string _lastPlayerLine = "";
 
+        [Tooltip("클릭용 콜라이더가 없으면 몸 크기에 맞춰 자동으로 붙인다. 없으면 말을 걸 수 없다")]
+        [SerializeField] private bool _autoFitCollider = true;
+
         private void Awake()
         {
             // 이 컴포넌트에 이미 한글 폰트가 연결돼 있으면 월드 Canvas 쪽 UI도 같이 쓰게 공유한다.
             UiFont.Publish(_font);
         }
 
+        private void Start_EnsureClickable()
+        {
+            if (!_autoFitCollider) return;
+            if (GetComponentInChildren<Collider>() != null) return;
+            if (!ModelBounds.TryGet(transform, out Bounds b)) return;
+
+            // 몸 크기에 맞춘 캡슐. 콜라이더가 없으면 레이가 맞지 않아 클릭 자체가 안 된다.
+            var col = gameObject.AddComponent<CapsuleCollider>();
+            col.center = transform.InverseTransformPoint(b.center);
+            col.height = b.size.y / Mathf.Max(0.0001f, transform.lossyScale.y);
+            col.radius = Mathf.Max(b.size.x, b.size.z) * 0.5f / Mathf.Max(0.0001f, transform.lossyScale.x);
+            Debug.Log($"[InterrogationController] '{name}' 에 클릭용 콜라이더를 자동으로 붙였습니다.");
+        }
+
         private void Start()
         {
+            Start_EnsureClickable();
             if (_beginOnStart) Begin();
         }
 
@@ -147,8 +160,10 @@ namespace IMUNROK.Common
         {
             if (_active) return;
             var cam = Camera.main;
-            if (cam != null && Vector3.Distance(cam.transform.position, transform.position) > _maxTalkDistance)
-                return;   // 너무 멀다 → 무시(다가가야 말을 걸 수 있음)
+            // 피벗이 아니라 "몸"까지의 거리로 잰다. 외부 FBX는 피벗이 몸에서 멀리 떨어져 있을 수 있고,
+            // 그러면 코앞에 서 있어도 '멀다'로 막혀 말을 걸 수 없다(옹덕구가 그랬다).
+            if (cam != null && ModelBounds.DistanceTo(transform, cam.transform.position) > _maxTalkDistance)
+                return;
             Begin();
         }
 
@@ -334,8 +349,9 @@ namespace IMUNROK.Common
         //  데스크탑에선 월드 UI와 겹쳐 보여 오히려 가렸다.
         // ─────────────────────────────────────────────
 
-        /// <summary>월드 패널이 읽는 추천 질문 목록.</summary>
-        public IReadOnlyList<TopicQuestion> Topics => _character != null ? _character.topics : null;
+        /// <summary>월드 패널이 읽는 추천 질문 목록. 끄면(_showTopics=false) 말로만 진행한다.</summary>
+        public IReadOnlyList<TopicQuestion> Topics
+            => (_showTopics && _character != null) ? _character.topics : null;
 
         /// <summary>월드 패널의 추천 질문 버튼이 호출.</summary>
         public void AskTopicFromUi(TopicQuestion t) => AskTopic(t);

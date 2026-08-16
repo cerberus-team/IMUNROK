@@ -76,12 +76,7 @@ namespace IMUNROK.Common
         /// </summary>
         private void AlignFeetToGround()
         {
-            var renderers = GetComponentsInChildren<Renderer>();
-            if (renderers.Length == 0) return;
-
-            Bounds b = renderers[0].bounds;
-            for (int i = 1; i < renderers.Length; i++) b.Encapsulate(renderers[i].bounds);
-
+            if (!ModelBounds.TryGet(transform, out Bounds b)) return;
             if (!TryFindGroundUnder(b.center, out float floorY)) return;
 
             float lift = floorY - b.min.y;                 // 밑면을 바닥까지 끌어올릴(내릴) 양
