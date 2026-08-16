@@ -123,6 +123,8 @@ namespace IMUNROK.Common
                 MicInput.Instance.OnPartial += OnMicPartial;
                 MicInput.Instance.OnFinal += OnMicFinal;
             }
+
+            RefreshSubtitle();
         }
 
         private void OnDisable()
@@ -130,6 +132,7 @@ namespace IMUNROK.Common
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); }
             if (Active == this) Active = null;
             UnsubscribeMic();
+            SubtitleView.Hide();
         }
 
         private void UnsubscribeMic()
@@ -157,6 +160,7 @@ namespace IMUNROK.Common
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); } // 큐브 → 패널만 닫기
             if (Active == this) Active = null;
             UnsubscribeMic();
+            SubtitleView.Hide();
         }
 
         /// <summary>수첩에서 단서를 골라 "들이밀기" 눌렀을 때 호출(외부에서 증거 제시).</summary>
@@ -192,11 +196,12 @@ namespace IMUNROK.Common
                 justRevealedInfo = null,
             };
             _busy = true;
+            RefreshSubtitle();
             _responder.GetResponse(this, req, OnReply, OnError);
         }
 
         // 말하는 도중의 중간 전사 — 확정 전이라 대화 기록엔 넣지 않고 화면에만 보여준다.
-        private void OnMicPartial(string text) { if (_active) _lastPlayerLine = text; }
+        private void OnMicPartial(string text) { if (!_active) return; _lastPlayerLine = text; RefreshSubtitle(); }
 
         private void OnMicFinal(string text) { if (_active) Say(text); }
 
@@ -225,6 +230,7 @@ namespace IMUNROK.Common
                 scriptedAnswer = t.mockAnswer,
             };
             _busy = true;
+            RefreshSubtitle();
             _responder.GetResponse(this, req, OnReply, OnError);
         }
 
@@ -271,6 +277,7 @@ namespace IMUNROK.Common
                 justRevealedInfo = revealed,
             };
             _busy = true;
+            RefreshSubtitle();
             _responder.GetResponse(this, req, OnReply, OnError);
         }
 
@@ -279,12 +286,29 @@ namespace IMUNROK.Common
             _npcLine = text;
             _transcript.Add($"{_character.characterName}: {text}");
             _busy = false;
+            RefreshSubtitle();
         }
 
         private void OnError(string err)
         {
             _npcLine = $"(대답 오류: {err})";
             _busy = false;
+            RefreshSubtitle();
+        }
+
+        /// <summary>
+        /// 지금 대사를 월드 공간 자막(SubtitleView)에 내보낸다.
+        /// 아래 OnGUI는 헤드셋에 렌더링되지 않으므로, VR에서 대사가 보이는 통로는 이쪽뿐이다.
+        /// (추천 질문 칩·닫기 버튼은 아직 OnGUI에 있어 VR에선 안 보인다 — 다음 차례)
+        /// </summary>
+        private void RefreshSubtitle()
+        {
+            if (!_active || _character == null) { SubtitleView.Hide(); return; }
+            string line = _busy ? "…" : _npcLine;
+            string hint = string.IsNullOrEmpty(_lastPlayerLine)
+                        ? "마이크로 묻거나, 수첩에서 증거를 제시하시오"
+                        : $"어사 — {_lastPlayerLine}";
+            SubtitleView.Show(_character.characterName, line, hint);
         }
 
         private void Update()
