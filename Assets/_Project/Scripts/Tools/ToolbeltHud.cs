@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.XR;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -8,11 +10,16 @@ namespace IMUNROK.Common
 {
     /// <summary>
     /// 손에 든 도구 선택 — 맨손 → 등불 → 돋보기 → … 를 돌려가며 고른다.
-    ///  · 전환: 마우스 휠 또는 Q 키(개발용). VR에선 컨트롤러 버튼으로 같은 방식.
-    ///  · 화면 하단 중앙에 벨트를 작게 표시(현재 든 것 강조). 슬롯 클릭으로도 선택.
-    ///  · 수첩(J)·지도(M)는 "손에 드는 도구"가 아니라 UI라서 여기 없음 → 코너 버튼으로 분리.
     ///
-    /// SelectedToolId: 지금 손에 든 도구 id("" = 맨손). 등불 등 다른 시스템이 이걸 참고.
+    /// 이 클래스는 "무엇을 들고 있는가"(상태)만 책임진다. 그리는 일은 뷰가 맡는다:
+    ///   · 데스크탑(에디터 테스트) → 아래 OnGUI. VR 기기가 붙어 있으면 스스로 그리지 않는다.
+    ///   · VR                     → <see cref="ToolbeltPanel"/> 이 월드 공간 Canvas로 그린다.
+    /// 뷰를 늘리거나 갈아끼워도 이 파일은 건드리지 않는다.
+    ///
+    /// 전환: 마우스 휠 또는 Q 키(개발용). VR에선 컨트롤러 버튼에서 Next/Prev를 호출하면 된다
+    /// (public 메서드라 UnityEvent에 그대로 연결 가능).
+    ///
+    /// SelectedToolId: 지금 손에 든 도구 id("" = 맨손). 등불·돋보기 등이 이걸 참고한다.
     /// </summary>
     public class ToolbeltHud : MonoBehaviour
     {
@@ -20,45 +27,124 @@ namespace IMUNROK.Common
         [SerializeField] private List<ToolDef> _tools = new List<ToolDef>();
         [Tooltip("왼손잡이 배려: 수첩/지도 코너를 좌우 반전")]
         [SerializeField] private bool _leftHanded = false;
+        [Tooltip("VR 기기가 붙어 있어도 데스크탑 OnGUI를 그린다(디버그용). IMGUI는 헤드셋에 안 보인다")]
+        [SerializeField] private bool _forceLegacyGui = false;
 
         public static string SelectedToolId { get; private set; } = "";
+
+        /// <summary>씬에 하나만 두는 도구벨트. 뷰가 이걸 찾아 붙는다.</summary>
+        public static ToolbeltHud Instance { get; private set; }
+
         private int _index;   // 0 = 맨손, 1.. = _tools[_index-1]
 
-        private GUIStyle _iconText, _label;
-        private Texture2D _slot, _slotOn;
+        // ─────────────────────────────────────────────
+        //  모델 — 뷰가 읽는 부분
+        // ─────────────────────────────────────────────
 
-        private void Awake() => HudSide.LeftHanded = _leftHanded;
+        /// <summary>도구 목록(맨손은 포함하지 않는다). 슬롯 개수는 SlotCount를 쓸 것.</summary>
+        public IReadOnlyList<ToolDef> Tools => _tools;
+
+        /// <summary>맨손을 포함한 전체 슬롯 수.</summary>
+        public int SlotCount => _tools.Count + 1;
+
+        /// <summary>지금 고른 슬롯(0 = 맨손).</summary>
+        public int SelectedIndex => _index;
+
+        /// <summary>선택이 바뀌면 발생. 뷰가 구독해 하이라이트를 갱신한다.</summary>
+        public event Action OnChanged;
+
+        /// <summary>지금 벨트를 감춰야 하는가(심문·수첩 중엔 숨긴다).</summary>
+        public bool Hidden => InterrogationController.AnyOpen || JournalView.AnyOpen;
+
+        /// <summary>슬롯 i의 표시 이름("맨손" 포함).</summary>
+        public string SlotName(int i)
+        {
+            if (i <= 0 || i > _tools.Count || _tools[i - 1] == null) return "맨손";
+            return _tools[i - 1].displayName;
+        }
+
+        /// <summary>슬롯 i의 아이콘(없으면 null).</summary>
+        public Texture2D SlotIcon(int i)
+            => (i <= 0 || i > _tools.Count || _tools[i - 1] == null) ? null : _tools[i - 1].icon;
+
+        // ─────────────────────────────────────────────
+        //  조작 — 뷰·VR 컨트롤러가 호출
+        // ─────────────────────────────────────────────
+
+        /// <summary>다음 도구로(마지막 다음은 맨손으로 순환). VR 버튼의 UnityEvent에 연결 가능.</summary>
+        public void Next() => Select(_index + 1);
+
+        /// <summary>이전 도구로. VR 버튼의 UnityEvent에 연결 가능.</summary>
+        public void Prev() => Select(_index - 1);
+
+        /// <summary>슬롯을 직접 고른다(0 = 맨손). 범위를 벗어나면 순환한다.</summary>
+        public void Select(int slot)
+        {
+            int n = SlotCount;
+            int next = ((slot % n) + n) % n;
+            if (next == _index) return;
+            _index = next;
+            Apply();
+        }
+
+        private void Apply()
+        {
+            SelectedToolId = (_index == 0 || _tools[_index - 1] == null) ? "" : _tools[_index - 1].id;
+            OnChanged?.Invoke();
+        }
+
+        // ─────────────────────────────────────────────
+
+        private void Awake()
+        {
+            Instance = this;
+            HudSide.LeftHanded = _leftHanded;
+            Apply();
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+            foreach (var t in new[] { _slot, _slotOn })
+                if (t != null) Destroy(t);
+        }
 
         private void Update()
         {
             // 심문 중엔 도구 전환 잠금(든 도구 그대로 유지)
             if (InterrogationController.AnyOpen) return;
 
-            int n = _tools.Count + 1;   // 맨손 포함
 #if ENABLE_INPUT_SYSTEM
             var kb = Keyboard.current;
             var mouse = Mouse.current;
-            bool next = false, prev = false;
 
-            if (kb != null && kb.qKey.wasPressedThisFrame) next = true;
+            if (kb != null && kb.qKey.wasPressedThisFrame) { Next(); return; }
             if (mouse != null)
             {
                 float sy = mouse.scroll.ReadValue().y;
-                if (sy > 0f) next = true;
-                else if (sy < 0f) prev = true;
+                if (sy > 0f) Next();
+                else if (sy < 0f) Prev();
             }
-            if (next) _index = (_index + 1) % n;
-            if (prev) _index = (_index - 1 + n) % n;
 #endif
-            SelectedToolId = (_index == 0 || _tools[_index - 1] == null) ? "" : _tools[_index - 1].id;
         }
+
+        // ─────────────────────────────────────────────
+        //  데스크탑 뷰(OnGUI) — 에디터에서 헤드셋 없이 테스트할 때만
+        // ─────────────────────────────────────────────
+
+        private GUIStyle _iconText, _label;
+        private Texture2D _slot, _slotOn;
+
+        /// <summary>IMGUI는 XR 스테레오 렌더링에 합성되지 않는다 → 헤드셋이 붙어 있으면 그리지 않는다.</summary>
+        private bool SkipLegacyGui => XRSettings.isDeviceActive && !_forceLegacyGui;
 
         private void OnGUI()
         {
-            if (InterrogationController.AnyOpen || JournalView.AnyOpen) return;   // 심문·수첩 중엔 벨트 숨김
+            if (SkipLegacyGui || Hidden) return;
             EnsureStyles();
+
             const float size = 54f, gap = 8f, margin = 16f;
-            int n = _tools.Count + 1;
+            int n = SlotCount;
             float totalW = n * size + (n - 1) * gap;
             float y = Screen.height - size - margin;
             float x0 = (Screen.width - totalW) * 0.5f;   // 하단 중앙(수첩·지도 코너와 안 겹침)
@@ -66,28 +152,19 @@ namespace IMUNROK.Common
             for (int i = 0; i < n; i++)
             {
                 Rect r = new Rect(x0 + i * (size + gap), y, size, size);
-                bool on = (i == _index);
-                GUI.DrawTexture(r, on ? _slotOn : _slot);
+                GUI.DrawTexture(r, i == _index ? _slotOn : _slot);
 
-                if (i == 0)
-                {
-                    GUI.Label(r, "맨손", _iconText);
-                }
+                var icon = SlotIcon(i);
+                if (icon != null)
+                    GUI.DrawTexture(new Rect(r.x + 7, r.y + 7, size - 14, size - 14), icon, ScaleMode.ScaleToFit);
                 else
-                {
-                    var t = _tools[i - 1];
-                    if (t == null) continue;
-                    if (t.icon != null)
-                        GUI.DrawTexture(new Rect(r.x + 7, r.y + 7, size - 14, size - 14), t.icon, ScaleMode.ScaleToFit);
-                    else
-                        GUI.Label(r, First(t.displayName), _iconText);
-                }
+                    GUI.Label(r, i == 0 ? "맨손" : First(SlotName(i)), _iconText);
 
-                if (GUI.Button(r, GUIContent.none, GUIStyle.none)) _index = i;   // 클릭으로도 선택
+                if (GUI.Button(r, GUIContent.none, GUIStyle.none)) Select(i);   // 클릭으로도 선택
             }
 
-            string cur = (_index == 0 || _tools[_index - 1] == null) ? "맨손" : _tools[_index - 1].displayName;
-            GUI.Label(new Rect(x0, y - 24f, totalW, 22f), $"손 : {cur}     (Q / 휠 전환)", _label);
+            GUI.Label(new Rect(x0, y - 24f, totalW, 22f),
+                      $"손 : {SlotName(_index)}     (Q / 휠 전환)", _label);
         }
 
         private static string First(string s) => string.IsNullOrEmpty(s) ? "?" : s.Substring(0, 1);
