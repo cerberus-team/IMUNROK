@@ -22,9 +22,9 @@ namespace IMUNROK.Common
     {
         [Header("모양")]
         [SerializeField] private Font _font;
-        [SerializeField] private int _lineFontSize = 34;
-        [SerializeField] private int _nameFontSize = 26;
-        [SerializeField] private int _hintFontSize = 22;
+        [SerializeField] private int _lineFontSize = 58;
+        [SerializeField] private int _nameFontSize = 40;
+        [SerializeField] private int _hintFontSize = 30;
 
         [Header("색")]
         [SerializeField] private Color _panelColor = new Color(0.03f, 0.035f, 0.05f, 0.86f);
@@ -65,6 +65,17 @@ namespace IMUNROK.Common
         public static void Hide()
         {
             if (_instance != null) _instance.SetVisible(false);
+        }
+
+        /// <summary>
+        /// 읽기 거리를 실행 중에 바꾼다. 헤드셋을 쓰고 직접 보며 맞추는 용도 —
+        /// 편한 거리는 사람마다 다르고 모니터로는 판단이 안 된다.
+        ///   SubtitleView.SetReadingDistance(1.0f, -0.22f);
+        /// </summary>
+        public static void SetReadingDistance(float distance, float verticalOffset = -0.28f)
+        {
+            var a = Instance._anchor;
+            if (a != null) a.SetDistance(distance, verticalOffset);
         }
 
         /// <summary>지금 자막이 떠 있는가(다른 UI가 겹치지 않게 참고).</summary>
@@ -114,22 +125,22 @@ namespace IMUNROK.Common
             _group = gameObject.GetComponent<CanvasGroup>();
             if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
 
-            const float w = 1300f, h = 300f;
+            const float w = 1200f, h = 380f;
 
             var panel = NewRect("바탕", Vector2.zero, new Vector2(w, h), transform);
             panel.gameObject.AddComponent<Image>().color = _panelColor;
 
             // 화자 이름표 — 바탕 왼쪽 위에 걸치는 낙관
-            _nameplate = NewRect("이름판", new Vector2(-w * 0.5f + 130f, h * 0.5f), new Vector2(220f, 60f), panel);
+            _nameplate = NewRect("이름판", new Vector2(-w * 0.5f + 150f, h * 0.5f), new Vector2(260f, 74f), panel);
             _nameplate.gameObject.AddComponent<Image>().color = _nameplateColor;
-            _nameText = NewText("이름", "", Vector2.zero, new Vector2(220f, 60f), _nameplate, _nameFontSize, _textColor);
+            _nameText = NewText("이름", "", Vector2.zero, new Vector2(260f, 74f), _nameplate, _nameFontSize, _textColor);
 
-            _lineText = NewText("대사", "", new Vector2(0f, 12f), new Vector2(w - 120f, h - 110f),
+            _lineText = NewText("대사", "", new Vector2(0f, 16f), new Vector2(w - 140f, h - 140f),
                                 panel, _lineFontSize, _textColor);
             _lineText.alignment = TextAnchor.MiddleLeft;
             _lineText.horizontalOverflow = HorizontalWrapMode.Wrap;
 
-            _hintText = NewText("힌트", "", new Vector2(0f, -h * 0.5f + 34f), new Vector2(w - 120f, 40f),
+            _hintText = NewText("힌트", "", new Vector2(0f, -h * 0.5f + 40f), new Vector2(w - 140f, 44f),
                                 panel, _hintFontSize, _hintColor);
         }
 

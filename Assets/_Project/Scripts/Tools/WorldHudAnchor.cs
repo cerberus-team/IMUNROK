@@ -82,15 +82,33 @@ namespace IMUNROK.Common
             }
             else
             {
-                _distance = 2f;
-                _verticalOffset = -0.15f;
-                _recenterAngle = 25f;
-                _canvasSize = new Vector2(1400f, 500f);
+                // 자막은 읽어야 하므로 가깝게. 2m는 글자가 시야각 1도 남짓이라 작다.
+                _distance = 1.3f;
+                _verticalOffset = -0.28f;  // 시선 정면보다 살짝 아래 — 앞을 보면서 읽기 편하게
+                _recenterAngle = 20f;
+                _canvasSize = new Vector2(1200f, 380f);
             }
 
             if (_canvas != null) ConfigureCanvas();   // Awake가 이미 지났으면 새 값으로 다시 잡는다
             _placed = false;
         }
+
+        /// <summary>
+        /// 거리·높이를 실행 중에 바꾼다. 헤드셋을 쓰고 직접 보면서 맞출 때 쓴다
+        /// (읽기 편한 거리는 사람마다 다르고, 화면으로는 판단이 안 된다).
+        /// </summary>
+        public void SetDistance(float distance, float verticalOffset)
+        {
+            _distance = Mathf.Clamp(distance, 0.4f, 5f);
+            _verticalOffset = verticalOffset;
+            _placed = false;   // 감쇠 없이 새 자리로 바로
+        }
+
+        /// <summary>지금 거리(m).</summary>
+        public float Distance => _distance;
+
+        /// <summary>지금 높이 오프셋(m).</summary>
+        public float VerticalOffset => _verticalOffset;
 
         /// <summary>월드 Canvas로 만들고 카메라를 물린다(레이 인터랙터 클릭이 먹으려면 필수).</summary>
         private void ConfigureCanvas()
