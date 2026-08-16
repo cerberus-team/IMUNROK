@@ -36,8 +36,10 @@ namespace IMUNROK.Common
         [SerializeField] private bool _disableRootMotion = true;
 
         [Header("바닥 맞추기")]
-        [Tooltip("시작할 때 발밑으로 레이를 쏴 바닥 높이를 찾는다(공중에 뜨거나 파묻히는 것 방지)")]
-        [SerializeField] private bool _snapToGround = true;
+        [Tooltip("시작할 때 발밑으로 레이를 쏴 바닥 높이를 찾는다. " +
+                 "모델 피벗이 발밑에 있을 때만 켤 것 — 피벗이 허리쯤인 모델(예: 옹덕구)은 " +
+                 "씬에서 높이를 손으로 보정해 두는데, 이걸 켜면 그 보정을 지워 땅에 파묻힌다.")]
+        [SerializeField] private bool _snapToGround = false;
         [Tooltip("레이를 쏘기 시작할 머리 위 높이(m)")]
         [SerializeField] private float _groundProbeUp = 2f;
         [Tooltip("발밑으로 이만큼까지 바닥을 찾는다(m)")]
@@ -78,12 +80,16 @@ namespace IMUNROK.Common
             Vector3 origin = transform.position + Vector3.up * _groundProbeUp;
             var hits = Physics.RaycastAll(origin, Vector3.down, _groundProbeUp + _groundProbeDown,
                                           ~0, QueryTriggerInteraction.Ignore);
+            // '가장 높은 면'을 고르면 머리 위를 지나는 서까래·툇마루에 올라타 버린다.
+            // 지금 서 있는 높이에 가장 가까운 면을 바닥으로 본다 — 살짝 뜬 경우와 살짝 묻힌 경우 모두 맞는다.
             bool found = false;
-            float best = float.NegativeInfinity;
+            float best = 0f, bestGap = float.PositiveInfinity;
+            float myY = transform.position.y;
             foreach (var h in hits)
             {
                 if (h.collider != null && h.collider.transform.IsChildOf(transform)) continue;  // 자기 몸통
-                if (h.point.y > best) { best = h.point.y; found = true; }   // 발밑에서 가장 높은 면 = 서 있을 바닥
+                float gap = Mathf.Abs(h.point.y - myY);
+                if (gap < bestGap) { bestGap = gap; best = h.point.y; found = true; }
             }
             if (found) groundY = best;
             return found;
