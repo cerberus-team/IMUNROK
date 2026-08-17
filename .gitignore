@@ -126,4 +126,5 @@ gemini_api_key.txt
 # 사건 문서 텍스처 — 생성물이라 커밋 안 함.
 # 재생성: 유니티 메뉴 [이문록 ▸ 에셋: 사건 문서 텍스처 굽기] (생성기는 Tools/DocBaker/)
 # .meta는 일부러 커밋한다 → 팀원이 다시 구워도 GUID가 유지돼 재질 연결이 안 끊김
-/Assets/_Project/Art/Props/Textures/T_Doc_*.png
+# 경로를 박지 않는다: 공통 문서는 Art/Props/Textures, 사건 전용은 <사건>/Art/Textures 로 갈린다
+T_Doc_*.png
