@@ -37,8 +37,60 @@ function Get-OutDir($doc) {
 
 $installed = (New-Object System.Drawing.Text.InstalledFontCollection).Families | ForEach-Object { $_.Name }
 
-# Two hands. They must be visibly different brushes, not two sizes of one brush -
-# the whole point of the ledger clue is that a player can tell them apart.
+# Fonts ship with the repo, they are not installed on anyone's machine. Load them
+# straight out of the project so a teammate can bake without installing anything.
+# While each file is open we also record which characters it actually has - these
+# calligraphy faces are drawn for Chinese and drop a lot of Joseon hanja.
+$fontDir = Join-Path $ProjectRoot 'Assets\_Project\_Common\Art\Fonts'
+$script:privateFonts = New-Object System.Drawing.Text.PrivateFontCollection
+$script:familyByName = @{}
+$script:coverByName  = @{}
+if (Test-Path $fontDir) {
+    $wpf = $true
+    try { Add-Type -AssemblyName PresentationCore -ErrorAction Stop } catch { $wpf = $false }
+    $seen = @{}
+    foreach ($file in (Get-ChildItem (Join-Path $fontDir '*') -Include *.ttf,*.otf -File)) {
+        try { $script:privateFonts.AddFontFile($file.FullName) } catch { continue }
+        $added = $null
+        foreach ($fam in $script:privateFonts.Families) {
+            if (-not $seen.ContainsKey($fam.Name)) { $seen[$fam.Name] = $true; $added = $fam }
+        }
+        if ($null -eq $added) { continue }
+        $script:familyByName[$added.Name] = $added
+        if ($wpf) {
+            try {
+                $gt = New-Object System.Windows.Media.GlyphTypeface (New-Object System.Uri($file.FullName))
+                $set = New-Object System.Collections.Generic.HashSet[int]
+                foreach ($k in $gt.CharacterToGlyphMap.Keys) { [void]$set.Add($k) }
+                $script:coverByName[$added.Name] = $set
+            } catch { }
+        }
+        Write-Host ("  loaded font from project: {0}  ({1})" -f $added.Name, $file.Name)
+    }
+    $installed = @($installed) + @($script:familyByName.Keys)
+}
+
+# A face by family name: the repo's own fonts first, then whatever Windows has.
+function New-Face($name, $size, $style) {
+    if ($script:familyByName.ContainsKey($name)) {
+        return New-Object System.Drawing.Font($script:familyByName[$name], $size, $style, [System.Drawing.GraphicsUnit]::Pixel)
+    }
+    return New-Object System.Drawing.Font($name, $size, $style, [System.Drawing.GraphicsUnit]::Pixel)
+}
+
+# If the chosen face has no glyph for this character, hand back a stand-in face that
+# does. An empty box does not read as bad handwriting - it reads as a broken asset.
+$script:fallbackName = 'Batang'
+foreach ($cand in @('HCR Batang','Batang','Gungsuh','Malgun Gothic')) {
+    if ($installed -contains $cand) { $script:fallbackName = $cand; break }
+}
+function Resolve-Face($font, $ch) {
+    $fam = $font.FontFamily.Name
+    if (-not $script:coverByName.ContainsKey($fam)) { return $null }
+    if ($script:coverByName[$fam].Contains([int]$ch)) { return $null }
+    return (New-Face $script:fallbackName $font.Size $font.Style)
+}
+
 # Two people wrote this ledger, and the whole clue is that you can tell.
 #
 #   hand 0 = Ong Deok-gu. Twenty years of entries in a landowner's trained brush.
@@ -64,23 +116,28 @@ if ($fontAlt -eq $fontName) { Write-Host "  ! no second face installed - the two
 # A missing glyph renders as an empty box, so name it here instead of letting a
 # tofu square ship as a clue.
 function Report-MissingGlyphs($familyName, $texts) {
-    try { Add-Type -AssemblyName PresentationCore -ErrorAction Stop } catch { return }
-    try {
-        $tf = New-Object System.Windows.Media.Typeface($familyName)
-        $gt = $null
-        if (-not $tf.TryGetGlyphTypeface([ref]$gt)) { return }
-    } catch { return }
+    $cover = $null
+    if ($script:coverByName.ContainsKey($familyName)) { $cover = $script:coverByName[$familyName] }
+    if ($null -eq $cover) {
+        try { Add-Type -AssemblyName PresentationCore -ErrorAction Stop } catch { return }
+        try {
+            $tf = New-Object System.Windows.Media.Typeface($familyName)
+            $gt = $null
+            if (-not $tf.TryGetGlyphTypeface([ref]$gt)) { return }
+            $cover = New-Object System.Collections.Generic.HashSet[int]
+            foreach ($k in $gt.CharacterToGlyphMap.Keys) { [void]$cover.Add($k) }
+        } catch { return }
+    }
     $missing = New-Object System.Collections.Generic.List[char]
     foreach ($t in $texts) {
         foreach ($ch in $t.ToCharArray()) {
             if ($ch -eq ' ') { continue }
             if ($missing -contains $ch) { continue }
-            if (-not $gt.CharacterToGlyphMap.ContainsKey([int]$ch)) { [void]$missing.Add($ch) }
+            if (-not $cover.Contains([int]$ch)) { [void]$missing.Add($ch) }
         }
     }
     if ($missing.Count -gt 0) {
-        Write-Host ("  ! '{0}' has no glyph for {1} character(s): {2}" -f $familyName, $missing.Count, (-join $missing))
-        Write-Host "    (those will print as empty boxes - pick another face or change the wording)"
+        Write-Host ("  ! '{0}' lacks {1} character(s), falling back to '{2}' for: {3}" -f $familyName, $missing.Count, $script:fallbackName, (-join $missing))
     } else {
         Write-Host ("  '{0}': all characters covered" -f $familyName)
     }
@@ -182,7 +239,7 @@ function Paint-Column($g, $text, $font, $x, $y, $step, $ink, $inkSoft, $jitter, 
         $gf = $font
         $made = $false
         if ($sloppy -eq 1) {
-            $sz = $baseSize * (0.86 + $rng.NextDouble() * 0.30)
+            $sz = $baseSize * (0.78 + $rng.NextDouble() * 0.52)
             $gf = New-Object System.Drawing.Font($font.FontFamily, $sz, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
             $made = $true
             $drift += ($rng.NextDouble() - 0.5) * ($jitter * 0.8)
@@ -190,17 +247,24 @@ function Paint-Column($g, $text, $font, $x, $y, $step, $ink, $inkSoft, $jitter, 
             if ($drift -lt -$jitter * 1.6) { $drift = -$jitter * 1.6 }
         }
 
-        $cs = $g.MeasureString($s, $gf)
+        # This face may simply not have the character. Swap in one that does rather
+        # than stamping an empty box onto a clue.
+        $fb = Resolve-Face $gf $ch
+        $use = $gf
+        if ($null -ne $fb) { $use = $fb }
+
+        $cs = $g.MeasureString($s, $use)
         $brush = $ink
         $r = $rng.Next(0, 5)
         if ($r -eq 0) { $brush = $inkSoft }        # the brush had run dry
         $dx = $rng.Next(-$jitter, $jitter + 1) + $drift
         $dy = $rng.Next(-$jitter, $jitter + 1)
         $px0 = $x - $cs.Width / 2 + $dx
-        $g.DrawString($s, $gf, $brush, $px0, ($y + $dy))
+        $g.DrawString($s, $use, $brush, $px0, ($y + $dy))
         if ($sloppy -eq 1 -and $r -eq 1) {         # ink pooled - stamped twice
-            $g.DrawString($s, $gf, $brush, ($px0 + 1.2), ($y + $dy + 0.9))
+            $g.DrawString($s, $use, $brush, ($px0 + 1.2), ($y + $dy + 0.9))
         }
+        if ($null -ne $fb) { $fb.Dispose() }
         if ($made) { $gf.Dispose() }
 
         if ($sloppy -eq 1) { $y += $step * (0.90 + $rng.NextDouble() * 0.22) }
@@ -227,7 +291,7 @@ function Paint-Seal($g, $seal, $sx, $sy, $size, $fontName, $rng) {
     if ([string]::IsNullOrEmpty($seal)) { return }
     $sealBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(205, 158, 42, 34))
     $g.FillRectangle($sealBrush, $sx, $sy, $size, $size)
-    $sealFont   = New-Object System.Drawing.Font($fontName, 46, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+    $sealFont   = New-Face $fontName 46 ([System.Drawing.FontStyle]::Bold)
     $paperBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(230, 236, 224, 194))
     $sci = 0
     foreach ($ch in $seal.ToCharArray()) {
@@ -254,7 +318,7 @@ function Draw-Doc($g, $doc, $w, $h, $fontName, $rng) {
     $inkSoft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(210, 52, 42, 32))
 
     # title: hanja, horizontal, centered near the top
-    $titleFont = New-Object System.Drawing.Font($fontName, 118, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
+    $titleFont = New-Face $fontName 118 ([System.Drawing.FontStyle]::Regular)
     $tSize = $g.MeasureString($doc.title, $titleFont)
     $g.DrawString($doc.title, $titleFont, $ink, (($w - $tSize.Width) / 2), 92)
     $titleBottom = 92 + $tSize.Height
@@ -273,7 +337,7 @@ function Draw-Doc($g, $doc, $w, $h, $fontName, $rng) {
     $colStep  = [Math]::Min(122.0, ($startX - 96) / [Math]::Max($doc.columns.Count - 1, 1))
     Write-Host ("  {0}: doc, {1} cols, charStep {2:N1}, font {3:N1}" -f $doc.file, $doc.columns.Count, $charStep, $fontSize)
 
-    $bodyFont = New-Object System.Drawing.Font($fontName, $fontSize, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
+    $bodyFont = New-Face $fontName $fontSize ([System.Drawing.FontStyle]::Regular)
     $ci = 0
     foreach ($col in $doc.columns) {
         $x = $startX - ($ci * $colStep)
@@ -291,11 +355,12 @@ function Draw-Doc($g, $doc, $w, $h, $fontName, $rng) {
 function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontAlt, $rng) {
     $ink     = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(238, 38, 30, 24))
     $inkSoft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(210, 52, 42, 32))
-    # the forger writes with a wetter, blacker brush
-    $ink2     = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(244, 24, 20, 18))
-    $ink2Soft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(220, 40, 34, 28))
+    # Bok-dong writes with a thinner, waterier brush than the master's - it is not
+    # his ink and not his hand, and both should show.
+    $ink2     = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(196, 62, 52, 42))
+    $ink2Soft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(150, 78, 66, 52))
 
-    $titleFont = New-Object System.Drawing.Font($fontName, 84, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
+    $titleFont = New-Face $fontName 84 ([System.Drawing.FontStyle]::Regular)
     $tSize = $g.MeasureString($doc.title, $titleFont)
     $g.DrawString($doc.title, $titleFont, $ink, (($w - $tSize.Width) / 2), 54)
     $gridTop = 54 + $tSize.Height + 34
@@ -325,13 +390,13 @@ function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontAlt, $rng) {
     }
     $rulePen.Dispose()
 
-    $fontA = New-Object System.Drawing.Font($fontName, $fontSize, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
+    $fontA = New-Face $fontName $fontSize ([System.Drawing.FontStyle]::Regular)
     # Regular, not Italic. A synthesised italic on a CJK face makes MeasureString
     # report nonsense widths, which shoved these columns clean off the sheet -
     # and Joseon documents have no such thing as an italic anyway.
-    $fontB = New-Object System.Drawing.Font($fontAlt, ($fontSize * 0.92), [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
+    $fontB = New-Face $fontAlt ($fontSize * 0.92) ([System.Drawing.FontStyle]::Regular)
 
-    $markFont  = New-Object System.Drawing.Font($fontName, ($fontSize * 1.05), [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+    $markFont  = New-Face $fontName ($fontSize * 1.05) ([System.Drawing.FontStyle]::Bold)
     $markBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(200, 132, 40, 32))
 
     $ci = 0
@@ -414,7 +479,7 @@ foreach ($doc in $docs) {
         $fontSize = [Math]::Max(18.0, $charStep * 0.78)
         $colStep  = [Math]::Min(126.0, ($W - 380) / [Math]::Max($doc.columns.Count - 1, 1))
         Write-Host ("  {0}: burnt, {1} cols, charStep {2:N1}, font {3:N1}" -f $doc.file, $doc.columns.Count, $charStep, $fontSize)
-        $bodyFont = New-Object System.Drawing.Font($fontName, $fontSize, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
+        $bodyFont = New-Face $fontName $fontSize ([System.Drawing.FontStyle]::Regular)
         $ci = 0
         foreach ($col in $doc.columns) {
             # first column sits where the paper is gone - the letter's opening burned away
