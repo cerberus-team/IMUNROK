@@ -46,8 +46,10 @@ namespace IMUNROK.Common.Editor
             ("T_Doc_J10_Mulmok",   false, OnggojipFolder),   // J10 물목기 — 최근 두 줄에만 수결(押)
             ("T_Doc_J11_Chayong",  false, OnggojipFolder),   // J11 차용증 — 갑리(연 10할)
             ("T_Doc_J12_Jeungseo", false, OnggojipFolder),   // J12 수표 — 미회수, 다른 고을
-            ("T_Doc_J15_Sokryang", false, OnggojipFolder),   // J15 속량문기 — 노 복동을 속량
+            ("T_Doc_J15_Byeolgeup",false, OnggojipFolder),   // J15 별급문기 — '오래 부린 종 복동에게'
             ("T_Doc_J13_Seochal",  true,  OnggojipFolder),   // J13 타다 만 서찰 조각 — 가장자리가 뚫려 있다
+            ("T_Doc_J16_Hojeok",   false, OnggojipFolder),   // J16 호적대장 — 관리의 손. 복동이 살아 있다
+            ("T_Doc_J17_Hogu",     false, OnggojipFolder),   // J17 호구단자 — 집안 사람의 손. 복동이 죽었다
         };
 
         /// <summary>
