@@ -39,6 +39,10 @@ namespace IMUNROK.Common
         [Tooltip("발이 바닥보다 살짝 눌리게(신발 두께). 파묻히면 줄인다")]
         [SerializeField] private float _sink = 0.01f;
 
+        [Tooltip("발 뼈는 발등 안쪽에 있어 발바닥보다 위다. 켜면 몸을 한 번 구워 " +
+                 "뼈에서 발바닥까지가 몇 cm인지 재서 그만큼 올린다 — 발이 땅에 묻히지 않는다")]
+        [SerializeField] private bool _soleOnGround = true;
+
         [Tooltip("몸(엉덩이뼈)을 마커 자리에 수평으로 맞출지. fbx 의 바인드 자세가 원점에서 " +
                  "멀리 떨어져 있어도 인물이 마커 위에 선다. 끄면 높이만 맞춘다")]
         [SerializeField] private bool _pinHorizontally = true;
@@ -58,6 +62,12 @@ namespace IMUNROK.Common
                 var sk = _model.GetComponentInChildren<SkinnedMeshRenderer>(true);
                 if (sk != null) _bodyBone = sk.rootBone;
             }
+            // 이 모델은 스크립트가 매 프레임 옮긴다. 스킨메시의 경계는 미리 계산된 것을 쓰므로
+            // 옮겨 다니는 동안 실제 몸과 어긋나, 가까이 있는데도 화면 밖으로 판정돼 통째로
+            // 사라져 버린다(복동이 걷다가 없어진 원인). 매 프레임 다시 재게 한다.
+            foreach (var sk2 in _model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                sk2.updateWhenOffscreen = true;
+
             if (_footBones != null && _footBones.Length > 0) return;
 
             // 발 뼈를 이름으로 찾는다. 못 찾으면 LateUpdate 에서 가장 낮은 것을 쓴다.
@@ -107,9 +117,39 @@ namespace IMUNROK.Common
                 if (h.distance < best) { best = h.distance; groundY = h.point.y; }
             }
 
-            float delta = (groundY - _sink) - lowest;
+            float delta = (groundY - _sink + SoleOffset(lowest)) - lowest;
             if (Mathf.Abs(delta) < 0.0005f) return;
             _model.position += new Vector3(0f, delta, 0f);
+        }
+
+        private float _soleOffset = -1f;   // 아직 안 재봄
+
+        /// <summary>
+        /// 발 뼈에서 발바닥까지의 거리. 몸을 한 번 구워 가장 낮은 정점과 발 뼈를 비교해 잰다.
+        /// 인물마다 신발 두께가 다르고 뼈가 발등 어디에 박혔는지도 달라서, 숫자를 손으로
+        /// 적어 넣으면 인물을 바꿀 때마다 다시 틀린다.
+        /// </summary>
+        private float SoleOffset(float lowestBoneY)
+        {
+            if (!_soleOnGround) return 0f;
+            if (_soleOffset >= 0f) return _soleOffset;
+
+            var sk = _model.GetComponentInChildren<SkinnedMeshRenderer>(true);
+            if (sk == null || sk.sharedMesh == null) { _soleOffset = 0f; return 0f; }
+
+            var baked = new Mesh();
+            sk.BakeMesh(baked, true);
+            var l2w = sk.transform.localToWorldMatrix;
+            float meshLow = float.MaxValue;
+            foreach (var v in baked.vertices)
+            {
+                float y = l2w.MultiplyPoint3x4(v).y;
+                if (y < meshLow) meshLow = y;
+            }
+            if (Application.isPlaying) Destroy(baked); else DestroyImmediate(baked);
+
+            _soleOffset = meshLow == float.MaxValue ? 0f : Mathf.Clamp(lowestBoneY - meshLow, 0f, 0.25f);
+            return _soleOffset;
         }
     }
 }

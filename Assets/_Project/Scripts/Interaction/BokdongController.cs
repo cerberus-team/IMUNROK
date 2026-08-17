@@ -60,7 +60,16 @@ namespace IMUNROK.Common
         [Tooltip("문이 다 열린 순간 한 번 실행(순간이동 영역 열기 등)")]
         [SerializeField] private UnityEngine.Events.UnityEvent _onDoorOpened;
 
-        private enum Phase { Idle, Leading, Opening, Arrived }
+        [Header("문을 넘어 계속 걸어가기 (비우면 문 앞에서 멈춘다)")]
+        [Tooltip("문을 열고 나서 넘어가 설 자리(사랑채 쪽). 앞장서는 사람이 문간에서 " +
+                 "멈춰 서 있으면 따라 들어갈 마음이 안 든다 — 넘어가 걸어가야 뒤를 따라간다")]
+        [SerializeField] private Transform _throughDoorSpot;
+        [Tooltip("넘어갈 때 지날 길목(문간을 비껴 돌 때). 비우면 직선")]
+        [SerializeField] private Transform[] _throughDoorWaypoints;
+        [Tooltip("문이 열리고 → 넘어가기 시작까지 뜸")]
+        [SerializeField] private float _delayAfterOpen = 0.5f;
+
+        private enum Phase { Idle, Leading, Opening, GoingThrough, Arrived }
         private Phase _phase;
         private int _wpIndex;
         private float _wait;
@@ -124,6 +133,23 @@ namespace IMUNROK.Common
                 return;
             }
 
+            // 문을 열고 나서 문간을 넘어 사랑채 쪽으로 계속 걸어간다.
+            if (_phase == Phase.GoingThrough)
+            {
+                KeepWalking();
+                if (_throughDoorWaypoints != null && _wpIndex < _throughDoorWaypoints.Length && _throughDoorWaypoints[_wpIndex] != null)
+                {
+                    if (MoveTo(_throughDoorWaypoints[_wpIndex].position, transform.rotation)) _wpIndex++;
+                }
+                else if (MoveTo(_throughDoorSpot.position, _throughDoorSpot.rotation))
+                {
+                    transform.rotation = _throughDoorSpot.rotation;
+                    HoldStand();
+                    _phase = Phase.Arrived;
+                }
+                return;
+            }
+
             if (_phase != Phase.Leading) return;
             KeepWalking();
 
@@ -156,6 +182,16 @@ namespace IMUNROK.Common
             HoldStand();
             _phase = Phase.Arrived;
             _onDoorOpened?.Invoke();
+            if (_throughDoorSpot != null) Delay(_delayAfterOpen, DoWalkThrough);
+        }
+
+        /// <summary>문간을 넘어 사랑채 쪽으로. 플레이어는 뒤를 따라오다 넘어가게 된다.</summary>
+        private void DoWalkThrough()
+        {
+            _wpIndex = 0;
+            _mvHasTarget = false;
+            CrossTo(_walkState);
+            _phase = Phase.GoingThrough;
         }
 
         private bool StateDone(string state)
