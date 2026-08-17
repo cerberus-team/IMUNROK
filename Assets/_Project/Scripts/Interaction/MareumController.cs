@@ -27,6 +27,9 @@ namespace IMUNROK.Common
         [SerializeField] private Animator _animator;
         [SerializeField] private string _openState = "opening_door";
         [SerializeField] private string _walkState = "Walking";
+        [Tooltip("서 있을 때 멈춰 세울 클립. 그 클립의 첫 프레임이 '선 자세'가 된다. " +
+                 "비우면 걷기 클립을 쓴다(문 여는 클립은 손을 뻗은 자세라 안 어울린다)")]
+        [SerializeField] private string _standPoseState = "";
 
         [Header("경로")]
         [Tooltip("문 열고 걸어가서 설/앉을 자리(이 오브젝트의 회전 = 도착 방향). 비우면 이동 없음.")]
@@ -103,6 +106,9 @@ namespace IMUNROK.Common
         private float _sitTimer;      // 남은 앉기 시간
         private float _sitDownLen;    // 일어서기 클립 실제 길이(자동 감지)
         private float _sitBlend;      // 걷기→선 자세 블렌드 남은 시간
+        private float _closeTimer;    // 문 닫기(여는 동작 역재생) 남은 시간
+        private float _closeLen;      // 문 여는 클립 길이
+        private float _closeBlend;    // 문 연 끝 자세로 붙는 블렌드 남은 시간
 
         private float _wait;
         private System.Action _then;
@@ -182,6 +188,23 @@ namespace IMUNROK.Common
                 return;
             }
 
+            // 문 닫기: 문 여는 클립을 t=1→0으로 긁어 거꾸로 재생한다(= 닫는 동작).
+            // 앉기와 같은 수법 — 전용 클립이 없어 여는 동작을 뒤집어 쓴다.
+            if (_phase == Phase.Closing)
+            {
+                if (_closeBlend > 0f) { _closeBlend -= Time.deltaTime; return; }
+                if (_animator != null) _animator.speed = 0f;
+                _closeTimer -= Time.deltaTime * Mathf.Max(0.01f, _openSpeed);
+                float ct = Mathf.Clamp01(_closeTimer / _closeLen);
+                if (_animator != null) { _animator.Play(_openState, 0, ct); _animator.Update(0f); }
+                if (_closeTimer <= 0f)
+                {
+                    if (_standSpot != null) DoWalk();
+                    else OnArrived();
+                }
+                return;
+            }
+
             // 앉기: ①걷기→선 자세로 블렌드(_sitBlend) → ②일어서기 클립을 t=1→0으로 긁어 거꾸로(=앉기)
             if (_phase == Phase.SittingDown)
             {
@@ -237,13 +260,6 @@ namespace IMUNROK.Common
                     }
                     break;
 
-                case Phase.Closing:
-                    if (StateDone(_openState))
-                    {
-                        if (_standSpot != null) DoWalk();
-                        else OnArrived();
-                    }
-                    break;
 
                 case Phase.WalkToStand:
                     KeepWalking();   // 이동 내내 걷기 애니 유지
@@ -288,14 +304,22 @@ namespace IMUNROK.Common
         private void DoReturnToDoor() { CrossTo(_walkState); _phase = Phase.ReturnToDoor; }
 
         /// <summary>
-        /// 문을 닫는다. 전용 클립이 없어 문 여는 동작을 그대로 쓴다 —
-        /// 어차피 문짝에 손을 뻗는 동작이라 닫을 때도 읽힌다. 문짝은 DoorController가 돌린다.
+        /// 문을 닫는다. 전용 클립이 없으니 문 여는 동작을 <b>거꾸로</b> 돌린다 —
+        /// 그냥 정방향으로 틀면 닫으면서 여는 시늉을 하게 된다. 문짝은 DoorController가 돌린다.
         /// </summary>
         private void DoClose()
         {
             if (_door != null) _door.Close();
-            CrossTo(_openState);
-            if (_animator != null) _animator.speed = Mathf.Max(0.01f, _openSpeed);
+
+            _closeLen = ClipLength(_openState, 1.5f);
+            if (_animator != null)
+            {
+                _animator.speed = 1f;
+                // 문을 연 '끝 자세'로 먼저 붙였다가, 다음 Update부터 t=1→0으로 긁는다.
+                _animator.CrossFadeInFixedTime(_openState, _blend, 0, _closeLen);
+            }
+            _closeBlend = _blend;
+            _closeTimer = _closeLen;
             _phase = Phase.Closing;
         }
 
@@ -342,12 +366,16 @@ namespace IMUNROK.Common
             return fallback;
         }
 
-        // 서있는 idle이 없어 opening_door 첫 프레임(선 자세)에서 멈춰 세운다.
+        // 서있는 idle이 없어 어떤 클립의 첫 프레임에서 멈춰 세워 '서있기'로 쓴다.
+        // 문 여는 클립의 첫 프레임은 이미 문에 손을 뻗는 자세라 가만히 서 있는 것으로 안 읽힌다 —
+        // 걷기 클립의 첫 프레임이 훨씬 자연스럽다.
         private void HoldStand()
         {
             if (_animator == null) return;
+            string pose = string.IsNullOrEmpty(_standPoseState) ? _walkState : _standPoseState;
+            if (string.IsNullOrEmpty(pose)) return;
             _animator.speed = 1f;
-            _animator.Play(_openState, 0, 0f);
+            _animator.Play(pose, 0, 0f);
             _animator.Update(0f);
             _animator.speed = 0f;
         }
