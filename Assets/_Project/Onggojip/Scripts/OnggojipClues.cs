@@ -11,7 +11,7 @@ namespace IMUNROK.Onggojip
 
     /// <summary>
     /// 제1사건(옹고집전)의 단서 목록과 규칙 데이터.
-    /// - J01~J15: 1부 잠행에서만 얻을 수 있음(출도 후엔 영영 못 얻음).
+    /// - J01~J17: 1부 잠행에서만 얻을 수 있음(출도 후엔 영영 못 얻음).
     /// - G01~G06: 2부 공개조사에서만 접근.
     /// - 출도 필수: J04·J09·J13·J15 (하나라도 없으면 2부에서 막힘 → 판별 불가).
     /// 실제 단서 텍스트는 여기서 자유롭게 수정 가능.
@@ -35,11 +35,15 @@ namespace IMUNROK.Onggojip
             new ClueDef { key = "J12", text = "미회수 증서 — 큰 금액, 다른 고을", stealth = true },
             new ClueDef { key = "J13", text = "아궁이 재 — 타다 만 서찰 조각", stealth = true, required = true },
             new ClueDef { key = "J14", text = "재 안쪽 — 종이 재 한 뭉치 더", stealth = true },
-            new ClueDef { key = "J15", text = "행랑채 궤 — 속량 문서", stealth = true, required = true },
+            new ClueDef { key = "J15", text = "보료 밑 별급문기 — 수취인이 \"오래 부린 종 복동\"", stealth = true, required = true },
+            new ClueDef { key = "J16", text = "호적대장(삼 년 전) — 노 복동이 살아 있다", stealth = true },
+            new ClueDef { key = "J17", text = "호구단자(올해) — \"노 복동 신미년 사망\", 관리의 필적이 아니다", stealth = true },
 
             // ── 2부 공개 (G) ──
-            new ClueDef { key = "G01", text = "옛 호적대장 — \"노 복동, 왼팔 안쪽 데인 자국 두 치 남짓\"", stealth = false },
-            new ClueDef { key = "G02", text = "이번 호구단자 — \"노 복동 신미년 사망\", 필체 다름", stealth = false },
+            // G01·G02 는 관아가 보관한 원본이다. 문갑에서 나온 J16·J17 은 이 집이
+            // 가지고 있던 것이고, 2부에서 관아 원본과 대조해 위조가 확정된다.
+            new ClueDef { key = "G01", text = "관아 호적대장 원본 — \"노 복동, 왼팔 안쪽 데인 자국 두 치 남짓\"", stealth = false },
+            new ClueDef { key = "G02", text = "관아가 받은 호구단자 — 집에서 나온 것과 같은 필적", stealth = false },
             new ClueDef { key = "G03", text = "입안 대장 — 별급문기 사본, 수취인 \"종 복동\"", stealth = false },
             new ClueDef { key = "G04", text = "환곡·소작 대장 — 한 달간 소작료 인하", stealth = false },
             new ClueDef { key = "G05", text = "아내 증언 — \"서방님께 아우가 하나 있긴 했습니다\"", stealth = false },
