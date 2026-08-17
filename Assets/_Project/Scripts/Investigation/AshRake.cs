@@ -4,8 +4,11 @@ using UnityEngine.Events;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 헤집어야 나오는 단서. 재를 덮어둔 채로는 아무것도 안 보이고,
-    /// 한 번 헤집어야 밑에 있던 것이 드러난다.
+    /// 헤집거나 들춰야 나오는 단서. 덮인 채로는 아무것도 안 보이고,
+    /// 한 번 손을 대야 밑에 있던 것이 드러난다.
+    ///
+    /// 이름은 아궁이 재에서 왔지만 하는 일은 "감춘 것을 들추기"라 그대로 쓴다 —
+    /// 아궁이 재, 甲이 깔고 앉았던 보료, 문갑 서랍이 전부 같은 장치다.
     ///
     /// 가리키면 설명이 뜨고(IInspectable), <b>눌러야</b> 헤집어진다(ISelectable).
     /// 가리키기만 해도 헤집히면 지나가다 눈만 스쳐도 단서가 열려버린다 —
@@ -57,13 +60,27 @@ namespace IMUNROK.Common
         [Tooltip("헤집은 순간 한 번 실행(더 안쪽을 열어주는 등)")]
         [SerializeField] private UnityEvent _onRaked;
 
+        [Header("잠금")]
+        [Tooltip("켜면 처음엔 손댈 수 없다. Unlock() 을 부른 뒤부터 열린다 — " +
+                 "甲이 자리를 뜬 뒤에야 보료를 들출 수 있게 할 때 쓴다")]
+        [SerializeField] private bool _lockedAtStart = false;
+        [Tooltip("잠겨 있을 때 가리키면 뜨는 말. 왜 지금은 못 하는지 알려준다")]
+        [SerializeField] private string _lockedBody = "지금은 손을 댈 수 없다.";
+
         /// <summary>이미 헤집었나. 다른 스크립트가 '더 안쪽'을 열 때 조건으로 쓴다.</summary>
         public bool Raked { get; private set; }
+
+        private bool _locked;
+
+        /// <summary>손댈 수 있게 연다(甲이 나간 뒤 등).</summary>
+        public void Unlock() { _locked = false; }
+        /// <summary>다시 잠근다.</summary>
+        public void Lock() { _locked = true; }
 
         private float _boostLeft;
         private float _emberBase = -1f;
 
-        private void Start() => ShowState();
+        private void Start() { _locked = _lockedAtStart; ShowState(); }
 
         private void Update()
         {
@@ -82,8 +99,11 @@ namespace IMUNROK.Common
         public string GetInspectTitle() => _title;
 
         public string GetInspectBody()
-            => Raked ? _bodyAfter
-                     : (string.IsNullOrEmpty(_hint) ? _bodyBefore : _bodyBefore + "\n" + _hint);
+        {
+            if (Raked) return _bodyAfter;
+            if (_locked) return string.IsNullOrEmpty(_lockedBody) ? _bodyBefore : _lockedBody;
+            return string.IsNullOrEmpty(_hint) ? _bodyBefore : _bodyBefore + "\n" + _hint;
+        }
 
         /// <summary>가리킨 것만으로는 아무 일도 없다. 단서는 헤집어야 열린다.</summary>
         public void OnInspected() { }
@@ -95,7 +115,7 @@ namespace IMUNROK.Common
 
         public void OnSelect()
         {
-            if (Raked) return;
+            if (Raked || _locked) return;
             Raked = true;
 
             ShowState();

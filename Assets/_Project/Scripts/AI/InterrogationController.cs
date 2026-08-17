@@ -51,6 +51,10 @@ namespace IMUNROK.Common
         [Tooltip("대사에 쓸 한글 폰트(조선궁서체 등). 월드 UI가 공용으로 가져다 쓴다")]
         [SerializeField] private Font _font;
 
+        [Tooltip("심문을 닫는 순간 한 번 실행. 이 인물과의 볼일이 끝나야 열리는 것을 여기에 건다 — " +
+                 "甲이 자리를 뜬 뒤에야 그가 깔고 앉았던 보료를 들출 수 있는 것처럼")]
+        [SerializeField] private UnityEngine.Events.UnityEvent _onClosed;
+
         private bool _active;
         private bool _locked;
 
@@ -255,6 +259,8 @@ namespace IMUNROK.Common
                 Invoke(nameof(HideClosingLine), _closingLineSeconds);
             }
             else SubtitleView.Hide();
+
+            _onClosed?.Invoke();
         }
 
         private void HideClosingLine() => SubtitleView.Hide();
