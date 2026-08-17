@@ -60,7 +60,9 @@ namespace IMUNROK.Common.Editor
         {
             if (!RunScript(IconScriptRel, "도구 아이콘 그리는 중", out string stdout)) return;
             Debug.Log($"[도구아이콘] {stdout}");
-            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            // ForceUpdate 까지 줘야 유니티가 디스크 쪽을 정답으로 삼고 다시 읽는다.
+            // 빼면 굽기 전 기록을 붙들고 Import Error Code 4 를 낸다.
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
             EditorUtility.DisplayDialog("이문록",
                 "도구 아이콘을 다시 구웠어요.\n\n" +
                 "모양을 바꾸려면 Tools/DocBaker/make_tool_icons.ps1 을 고치고 다시 실행하세요.", "확인");
@@ -72,7 +74,9 @@ namespace IMUNROK.Common.Editor
             if (!RunScript(ScriptRel, "사건 문서 굽는 중", out string stdout)) return;
 
             Debug.Log($"[사건문서] {stdout}");
-            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            // ForceUpdate 까지 줘야 유니티가 디스크 쪽을 정답으로 삼고 다시 읽는다.
+            // 빼면 굽기 전 기록을 붙들고 Import Error Code 4 를 낸다.
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
 
             int applied = 0;
             foreach (var (name, needsAlpha, folder) in Textures)
@@ -115,11 +119,20 @@ namespace IMUNROK.Common.Editor
             try
             {
                 EditorUtility.DisplayProgressBar(progressTitle, "궁서체 세로쓰기 렌더링…", 0.4f);
-                using var p = Process.Start(psi);
-                stdout = p!.StandardOutput.ReadToEnd();
-                stderr = p.StandardError.ReadToEnd();
-                p.WaitForExit();
-                exitCode = p.ExitCode;
+
+                // 굽는 동안 자동 새로고침을 막는다. 켜두면 유니티가 아직 쓰는 중인 PNG를
+                // 물고 들어가 "modification time of ... while content on disk has ..."
+                // (Import Error Code 4)를 무더기로 뱉는다 — 에셋DB와 디스크가 어긋난 것이다.
+                AssetDatabase.DisallowAutoRefresh();
+                try
+                {
+                    using var p = Process.Start(psi);
+                    stdout = p!.StandardOutput.ReadToEnd();
+                    stderr = p.StandardError.ReadToEnd();
+                    p.WaitForExit();
+                    exitCode = p.ExitCode;
+                }
+                finally { AssetDatabase.AllowAutoRefresh(); }
             }
             catch (System.Exception e)
             {

@@ -108,7 +108,11 @@ $fontAlt = $fontName
 foreach ($cand in @('Long Cang','Liu Jian Mao Cao','Zhi Mang Xing','Yuji Mai','Gungsuh','BatangChe')) {
     if ($installed -contains $cand -and $cand -ne $fontName) { $fontAlt = $cand; break }
 }
-if ($fontAlt -eq $fontName) { Write-Host "  ! no second face installed - the two hands differ by wobble only" }
+if ($fontAlt -eq $fontName) {
+    Write-Host "  ! only one face available - the two hands will differ by wobble alone."
+    Write-Host "    The brush fonts are art, so they are not in git. Copy them from the"
+    Write-Host "    team share into Assets\_Project\_Common\Art\Fonts and bake again."
+}
 
 # Brush faces drawn for Chinese drop hanja that Joseon paperwork needs - the
 # Korean-coined ones above all. 畓 (paddy) has no Chinese counterpart at all, and
