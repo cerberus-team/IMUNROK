@@ -28,6 +28,15 @@ namespace IMUNROK.Common
         [Tooltip("그 동작의 몇 초 지점에서 멈출지")]
         [SerializeField] private float _atSeconds = 0f;
 
+        [Header("숨쉬기 (0이면 정말로 얼어붙는다)")]
+        [Tooltip("멈춘 자리 앞뒤로 이만큼(초)을 아주 느리게 왕복한다. 서 있는 클립이 없어 " +
+                 "한 프레임에 세워 두는데, 그러면 사람이 아니라 인형이 된다. 대신 그 프레임 " +
+                 "주변만 오가면 진짜 동작 데이터로 숨을 쉰다 — 몸이 기울지 않는 폭까지만 준다. " +
+                 "옹덕구는 0.63~0.71초 사이가 1.3도 안쪽이라 0.08 이 한계다")]
+        [SerializeField] private float _swaySeconds = 0f;
+        [Tooltip("한 번 왕복하는 데 걸리는 시간(초). 숨 한 번쯤")]
+        [SerializeField] private float _swayPeriod = 5f;
+
         [Header("가끔 몸짓 (비우면 완전히 멈춰 있는다)")]
         [Tooltip("이따금 한 번씩 통째로 재생할 동작들. 끝나면 다시 위 자세로 돌아온다. " +
                  "제자리에서 하는 동작만 넣을 것 — 걷기를 넣으면 어디론가 가버린다")]
@@ -50,7 +59,6 @@ namespace IMUNROK.Common
         private void Update()
         {
             if (!Application.isPlaying) return;                    // 에디터에서는 그냥 멈춰 있는다
-            if (_gestureStates == null || _gestureStates.Length == 0) return;
             if (_animator == null || _animator.runtimeAnimatorController == null) return;
 
             if (_gesturing)
@@ -60,12 +68,44 @@ namespace IMUNROK.Common
                 return;
             }
 
+            Breathe();
+
+            if (_gestureStates == null || _gestureStates.Length == 0) return;
             if (Time.time < _nextGesture) return;
             string pick = _gestureStates[Random.Range(0, _gestureStates.Length)];
             if (string.IsNullOrEmpty(pick)) { Schedule(); return; }
             _animator.speed = 1f;
             _animator.Play(pick, 0, 0f);
             _gesturing = true;
+        }
+
+        /// <summary>
+        /// 멈춰 세운 자리 주변을 아주 느리게 오간다. 클립을 재생하는 것이 아니라
+        /// 세워 둔 프레임 앞뒤를 긁는 것이라, 몸이 그 자세를 벗어나지 않는다.
+        /// </summary>
+        private void Breathe()
+        {
+            if (_swaySeconds <= 0.0001f || _swayPeriod <= 0.01f) return;
+
+            float len = ClipLength();
+            if (len <= 0.01f) return;
+
+            // -1~1 을 오가되 끝에서 잠깐 머무는 모양(사인) — 숨을 들이켜고 내쉬는 결
+            float k = Mathf.Sin(Time.time * (2f * Mathf.PI / _swayPeriod));
+            float at = Mathf.Clamp(_atSeconds + k * _swaySeconds * 0.5f, 0f, len);
+
+            _animator.speed = 1f;
+            _animator.Play(_state, 0, at / len);
+            _animator.Update(0f);
+            _animator.speed = 0f;
+        }
+
+        private float ClipLength()
+        {
+            if (_animator == null || _animator.runtimeAnimatorController == null) return 0f;
+            foreach (var c in _animator.runtimeAnimatorController.animationClips)
+                if (c != null && c.name == _state && c.length > 0.01f) return c.length;
+            return 0f;
         }
 
         /// <summary>다시 그 자세로 세운다(자세가 흐트러졌을 때 외부에서 불러도 된다).</summary>

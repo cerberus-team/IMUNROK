@@ -12610,15 +12610,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 75bd2f10053806a469c5304427ea667b, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.04481429
+      value: 0.002200622
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 75bd2f10053806a469c5304427ea667b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.285531
+      value: 0.8928287
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 75bd2f10053806a469c5304427ea667b, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -2.829033
+      value: 0.030375903
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 75bd2f10053806a469c5304427ea667b, type: 3}
       propertyPath: m_LocalRotation.w
@@ -13270,6 +13270,8 @@ MonoBehaviour:
   _animator: {fileID: 1013716587}
   _state: Angry_Ground_Stomp
   _atSeconds: 0.67
+  _swaySeconds: 0.05
+  _swayPeriod: 6
   _gestureStates:
   - Angry_Ground_Stomp
   - Head_Hold_in_Pain
