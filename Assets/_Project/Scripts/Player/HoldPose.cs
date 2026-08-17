@@ -28,8 +28,45 @@ namespace IMUNROK.Common
         [Tooltip("그 동작의 몇 초 지점에서 멈출지")]
         [SerializeField] private float _atSeconds = 0f;
 
-        private void OnEnable() => Apply();
-        private void Start() => Apply();
+        [Header("가끔 몸짓 (비우면 완전히 멈춰 있는다)")]
+        [Tooltip("이따금 한 번씩 통째로 재생할 동작들. 끝나면 다시 위 자세로 돌아온다. " +
+                 "제자리에서 하는 동작만 넣을 것 — 걷기를 넣으면 어디론가 가버린다")]
+        [SerializeField] private string[] _gestureStates;
+        [Tooltip("몸짓 사이 간격(초) 최소~최대")]
+        [SerializeField] private Vector2 _gestureEvery = new Vector2(7f, 14f);
+
+        private float _nextGesture;
+        private bool _gesturing;
+
+        private void OnEnable() { Apply(); Schedule(); }
+        private void Start() { Apply(); Schedule(); }
+
+        private void Schedule()
+        {
+            _gesturing = false;
+            _nextGesture = Time.time + Random.Range(_gestureEvery.x, _gestureEvery.y);
+        }
+
+        private void Update()
+        {
+            if (!Application.isPlaying) return;                    // 에디터에서는 그냥 멈춰 있는다
+            if (_gestureStates == null || _gestureStates.Length == 0) return;
+            if (_animator == null || _animator.runtimeAnimatorController == null) return;
+
+            if (_gesturing)
+            {
+                var st = _animator.GetCurrentAnimatorStateInfo(0);
+                if (st.normalizedTime >= 1f) { Apply(); Schedule(); }   // 몸짓 끝 → 다시 선 자세
+                return;
+            }
+
+            if (Time.time < _nextGesture) return;
+            string pick = _gestureStates[Random.Range(0, _gestureStates.Length)];
+            if (string.IsNullOrEmpty(pick)) { Schedule(); return; }
+            _animator.speed = 1f;
+            _animator.Play(pick, 0, 0f);
+            _gesturing = true;
+        }
 
         /// <summary>다시 그 자세로 세운다(자세가 흐트러졌을 때 외부에서 불러도 된다).</summary>
         public void Apply()

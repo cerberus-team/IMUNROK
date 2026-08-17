@@ -52,6 +52,18 @@ namespace IMUNROK.Common
         [Tooltip("좁힐 화각(도). 작을수록 크게 당겨 보인다. 데스크탑 전용")]
         [SerializeField] private float _zoomFov = 26f;
 
+        [Header("한 번 진하게 보여주고 거두기")]
+        [Tooltip("연출 동안 확 진해질 것(연기 기둥). 발동하는 순간부터 뿜는 양을 올려 " +
+                 "카메라가 도착했을 때 이미 두껍게 서 있게 만든다")]
+        [SerializeField] private ParticleSystem[] _thickenWhilePlaying;
+        [Tooltip("뿜는 양을 몇 배로 올릴지")]
+        [SerializeField] private float _thickenBy = 4f;
+        [Tooltip("연출이 끝나면 꺼버릴 것. 한 번 못 박아 보여줬으면 그만이다 — " +
+                 "다시 말을 걸었을 때 같은 연기가 또 떠 있으면 '아까 그거'가 되어 무게가 빠진다")]
+        [SerializeField] private GameObject[] _hideWhenDone;
+        [Tooltip("연출이 끝나고 이만큼 뒤에 거둔다(사라지는 걸 보게 두지 않으려면 조금 길게)")]
+        [SerializeField] private float _hideDelay = 1.2f;
+
         [Header("연출 중 잠글 것")]
         [Tooltip("연출 동안 꺼둘 컴포넌트(시점 조작 등). 비우면 카메라의 DebugFlyCamera 를 자동으로 찾는다")]
         [SerializeField] private Behaviour[] _disableWhilePlaying;
@@ -86,6 +98,10 @@ namespace IMUNROK.Common
         private IEnumerator PlayRoutine()
         {
             _playing = true;
+
+            // 미루는 동안 이미 두꺼워지기 시작해야 한다. 카메라가 돌아본 뒤에 진해지면
+            // "지금 막 불을 지폈다"로 읽혀 버린다 — 원래부터 저러고 있었어야 한다.
+            Thicken(_thickenBy);
 
             if (_delay > 0f) yield return new WaitForSeconds(_delay);
 
@@ -133,7 +149,36 @@ namespace IMUNROK.Common
 
             _playing = false;
             _onFinished?.Invoke();
+
+            // 보여줄 만큼 보여줬으면 거둔다. 뿜는 것을 먼저 끊고, 떠 있던 것이 흩어질 참을 준 뒤 끈다.
+            if (_hideWhenDone != null && _hideWhenDone.Length > 0)
+            {
+                Thicken(0f);
+                yield return new WaitForSeconds(Mathf.Max(0f, _hideDelay));
+                foreach (var g in _hideWhenDone) if (g != null) g.SetActive(false);
+            }
         }
+
+        /// <summary>연기 뿜는 양을 배수로 조절한다(0이면 그친다). 원래 값은 처음 한 번만 기억한다.</summary>
+        private void Thicken(float multiplier)
+        {
+            if (_thickenWhilePlaying == null) return;
+            if (_baseRates == null)
+            {
+                _baseRates = new float[_thickenWhilePlaying.Length];
+                for (int i = 0; i < _thickenWhilePlaying.Length; i++)
+                    _baseRates[i] = _thickenWhilePlaying[i] == null
+                        ? 0f : _thickenWhilePlaying[i].emission.rateOverTimeMultiplier;
+            }
+            for (int i = 0; i < _thickenWhilePlaying.Length; i++)
+            {
+                var ps = _thickenWhilePlaying[i];
+                if (ps == null) continue;
+                var em = ps.emission;
+                em.rateOverTimeMultiplier = _baseRates[i] * multiplier;
+            }
+        }
+        private float[] _baseRates;
 
         /// <summary>
         /// 리그를 머리 중심으로 좌우로만 돌려 대상을 정면에 놓는다.

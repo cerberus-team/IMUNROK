@@ -105,12 +105,20 @@ namespace IMUNROK.Common
                 if (c.bounds.Contains(body.center)) return;   // 몸 자리를 덮는 콜라이더가 이미 있다
 
             // 렌더러가 달린 오브젝트(=실제 몸)에 붙여야 클릭 위치가 몸과 일치한다.
-            var rend = GetComponentInChildren<Renderer>();
+            // 마커 오브젝트 자신의 렌더러(안 보이게 꺼둔 큐브)를 잡으면 안 된다 —
+            // 그러면 콜라이더가 마커에 박혀, 인물이 걸어가 버린 뒤에도 빈 자리를 클릭하게 된다.
+            Renderer rend = GetComponentInChildren<SkinnedMeshRenderer>();
+            if (rend == null)
+                foreach (var r in GetComponentsInChildren<Renderer>(true))
+                    if (r.transform != transform) { rend = r; break; }
             var host = rend != null ? rend.transform : transform;
             // SkinnedMeshRenderer는 본 아래에 있을 수 있으니, 모델 루트 쪽으로 한 단계 올린다.
             if (host != transform && host.parent != null && host.parent != transform) host = host.parent;
 
             var col = host.gameObject.AddComponent<CapsuleCollider>();
+            // 트리거로 둔다. 클릭 레이는 트리거도 집지만, 바닥을 찾는 레이(발 붙이기·걷기)는
+            // 트리거를 무시한다 — 안 그러면 인물 몸통이 '바닥'으로 잡혀 옆 사람이 그 위에 올라선다.
+            col.isTrigger = true;
             Vector3 ls = host.lossyScale;
             col.center = host.InverseTransformPoint(body.center);
             col.height = body.size.y / Mathf.Max(0.0001f, Mathf.Abs(ls.y));

@@ -85,6 +85,11 @@ namespace IMUNROK.Common
 
             if (_walkMode)
             {
+                // 남이 나를 옮겼으면(순간이동) 그 높이를 받아들인다.
+                // 이걸 안 하면 다음 줄에서 _walkY 로 되돌려 놓아, 마루로 올라간 순간
+                // 다시 마당 높이로 끌어내려 머리가 바닥 밑에 처박힌다 — 화면이 캄캄해지는 원인이었다.
+                if (Mathf.Abs(transform.position.y - _walkY) > 0.02f) _walkY = transform.position.y;
+
                 // 수평(yaw 기준)으로만 이동, 높이 고정
                 Vector3 fwd = Quaternion.Euler(0f, _yaw, 0f) * Vector3.forward;
                 Vector3 right = Quaternion.Euler(0f, _yaw, 0f) * Vector3.right;

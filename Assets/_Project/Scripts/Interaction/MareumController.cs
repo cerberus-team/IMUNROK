@@ -76,6 +76,11 @@ namespace IMUNROK.Common
         [SerializeField] private float _turnSpeed = 540f;
         [SerializeField] private float _arriveDist = 0.12f;
 
+        [Header("플레이어가 문을 지난 순간")]
+        [Tooltip("플레이어가 대문을 넘어선 바로 그 순간 한 번 실행. 마름이 문을 닫고 자리에 앉기까지는 " +
+                 "한참 걸리므로, 안에서 맞이하는 인물(복동)을 움직이려면 _onSettled 가 아니라 여기에 걸어야 한다")]
+        [SerializeField] private UnityEvent _onPlayerPassed;
+
         [Header("자리 잡은 뒤")]
         [Tooltip("문 열어주는 일이 끝나고 제자리에 앉거나 선 순간 한 번 실행. " +
                  "여기에 마름의 InterrogationController.Unlock 을 걸면 '굳이 다시 찾아왔을 때만' 말을 걸 수 있게 된다")]
@@ -145,6 +150,7 @@ namespace IMUNROK.Common
         public void PlayerPassed()
         {
             if (_phase != Phase.WaitingForPass) return;
+            _onPlayerPassed?.Invoke();                 // 안에서 맞이하는 쪽은 지금 움직여야 한다
             Delay(_delayBeforeClose, DoReturnToDoor);
         }
 
@@ -404,6 +410,10 @@ namespace IMUNROK.Common
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, faceWhenArrived, _turnSpeed * Time.deltaTime);
                 transform.position = new Vector3(pos.x, target.y, pos.z);
                 _mvHasTarget = false;
+                // 도착 순간은 바닥에 즉시 붙인다. 여기서 천천히 내려가게 두면, 다음 단계로 넘어가
+                // SnapToGround 가 더 이상 불리지 않아 내려가던 중간 높이에 그대로 떠버린다
+                // (경유점 높이가 바닥보다 높게 찍혀 있으면 반 뼘씩 공중에 서 있게 된다).
+                _groundInit = false;
                 SnapToGround();
                 return true;
             }

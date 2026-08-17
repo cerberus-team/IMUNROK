@@ -28,10 +28,16 @@ namespace IMUNROK.Common
         [Tooltip("도착 후 바라보는 방향까지 맞출지. 끄면 위치만 옮긴다")]
         [SerializeField] private bool _matchFacing = true;
 
-        [Tooltip("도착하며 이만큼 높이를 더한다(m). 마당에서 마루로 오를 때처럼 바닥 높이가 " +
-                 "다른 곳으로 넘어갈 때 쓴다. 고택에 콜라이더가 없어 바닥을 자동으로 못 재므로 " +
-                 "직접 넣는다 — 마당(-1.67)에서 사랑채 마루(-0.85)면 0.82")]
+        [Tooltip("도착 지점 바닥을 못 찾았을 때만 쓰는 예비값(m). 바닥에 콜라이더가 있으면 " +
+                 "그 높이를 재서 올려놓으므로 이 값은 쓰이지 않는다")]
         [SerializeField] private float _heightOffset = 0f;
+
+        [Tooltip("도착 지점의 바닥을 재서 그 위에 세운다. 마당에서 마루로 오를 때 " +
+                 "높이를 손으로 적어 넣지 않아도 되고, 날아서 넘어와도 지붕 속에 처박히지 않는다")]
+        [SerializeField] private bool _standOnFloor = true;
+        [Tooltip("바닥 위 눈높이(m). 데스크탑 테스트 카메라(리그=카메라)일 때만 쓴다. " +
+                 "VR은 리그가 발밑이라 바닥 높이를 그대로 준다")]
+        [SerializeField] private float _eyeHeight = 1.6f;
 
         [Header("발동 조건")]
         [Tooltip("이 반경(m) 안에 들어오면 발동")]
@@ -128,12 +134,25 @@ namespace IMUNROK.Common
                 }
             }
 
-            // 머리의 수평 위치를 도착 지점으로. 높이는 리그가 딛고 선 바닥을 그대로 유지한다.
-            // (도착지점의 Y는 쓰지 않는다 — 데스크탑은 리그가 곧 카메라라 눈높이가, VR은 발밑이 기준이라
-            //  같은 값을 양쪽에 맞출 수 없다. 리그 높이를 건드리지 않으면 둘 다 맞는다.)
+            // 머리의 수평 위치를 도착 지점으로 옮긴다(방 안에서 걸어 다닌 만큼의 어긋남 보정).
             Vector3 headOnGround = new Vector3(head.position.x, rig.position.y, head.position.z);
             Vector3 offset = rig.position - headOnGround;
-            rig.position = new Vector3(_destination.position.x, rig.position.y + _heightOffset, _destination.position.z) + offset;
+
+            // 높이: 도착 지점의 바닥을 재서 그 위에 세운다.
+            // 예전에는 리그 높이에 정해진 값을 더했다 — 그러면 넘어올 때 어느 높이에 있었는지에
+            // 따라 마루 밑에 처박히거나 지붕 속에 들어가, 도착하자마자 화면이 캄캄해졌다.
+            float y = rig.position.y + _heightOffset;
+            if (_standOnFloor)
+            {
+                RaycastHit hit;
+                Vector3 from = _destination.position + Vector3.up * 3f;
+                if (Physics.Raycast(from, Vector3.down, out hit, 12f, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    bool rigIsHead = rig == head;              // 데스크탑 테스트 카메라
+                    y = hit.point.y + (rigIsHead ? _eyeHeight : 0f);
+                }
+            }
+            rig.position = new Vector3(_destination.position.x, y, _destination.position.z) + offset;
         }
 
         private void OnDrawGizmosSelected()
