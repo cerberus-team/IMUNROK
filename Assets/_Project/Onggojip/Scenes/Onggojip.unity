@@ -1235,7 +1235,6 @@ GameObject:
   - component: {fileID: 218465255}
   - component: {fileID: 218465254}
   - component: {fileID: 218465257}
-  - component: {fileID: 218465258}
   m_Layer: 0
   m_Name: "\uB9C8\uB984"
   m_TagString: Untagged
@@ -1368,34 +1367,6 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _autoFitCollider: 1
---- !u!114 &218465258
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 218465252}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6e1a226bb55be5842a92d864d5ee36fa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.GroundFeet
-  _model: {fileID: 115340906}
-  _footBones:
-  - {fileID: 772056481}
-  - {fileID: 558213685}
-  - {fileID: 1420547852}
-  - {fileID: 536698055}
-  - {fileID: 622316143}
-  - {fileID: 781735097}
-  _groundMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  _rayUp: 2.5
-  _fallbackY: -1.67
-  _sink: 0.01
-  _pinHorizontally: 1
-  _bodyBone: {fileID: 1184824977}
 --- !u!1 &235217088
 GameObject:
   m_ObjectHideFlags: 0
@@ -2345,16 +2316,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 734122489633926935, guid: 450985cfff3338745ae308056bad0589, type: 3}
   m_PrefabInstance: {fileID: 24547587}
   m_PrefabAsset: {fileID: 0}
---- !u!4 &536698055 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 8721056732114653340, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
-  m_PrefabInstance: {fileID: 115340905}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &558213685 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8211682993464967936, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
-  m_PrefabInstance: {fileID: 115340905}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &558622390
 GameObject:
   m_ObjectHideFlags: 0
@@ -3067,11 +3028,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!4 &622316143 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 734122489633926935, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
-  m_PrefabInstance: {fileID: 115340905}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &628741235 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2774220344278030320, guid: 368ab3fc9adae6a41a1c4a2280bba92a, type: 3}
@@ -4174,11 +4130,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 762811740}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
---- !u!4 &772056481 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -3013317397218381484, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
-  m_PrefabInstance: {fileID: 115340905}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &775777992 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7126286831541242533, guid: 7bf667f4ef24e13418f324bdf4257aff, type: 3}
@@ -4404,11 +4355,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!4 &781735097 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8173159877494144238, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
-  m_PrefabInstance: {fileID: 115340905}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &786661658
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5397,7 +5343,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 75bd2f10053806a469c5304427ea667b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.1599445
+      value: 2.1510782
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 75bd2f10053806a469c5304427ea667b, type: 3}
       propertyPath: m_LocalPosition.z
@@ -5477,8 +5423,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66d3db6bd23fe574886c118482c80985, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.IdleActionCycler
-  _animator: {fileID: 0}
-  _idleState: Idle
+  _animator: {fileID: 1013716587}
+  _idleState: 019ff7b8-950b-7697-8377-e3a8ada9c9e2
   _actions:
   - Angry_Ground_Stomp
   - Head_Hold_in_Pain
@@ -5486,14 +5432,19 @@ MonoBehaviour:
   _stillTime: 0.4
   _idleTime: 1.5
   _actionMaxTime: 8
-  _lockGroundY: 1
-  _lockHorizontal: 1
+  _lockGroundY: 0
+  _lockHorizontal: 0
   _lockRotation: 1
   _disableRootMotion: 1
-  _alignFeetToGround: 1
+  _alignFeetToGround: 0
   _alignEveryFrame: 1
   _groundProbeUp: 2
   _groundProbeDown: 5
+--- !u!95 &1013716587 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 75bd2f10053806a469c5304427ea667b, type: 3}
+  m_PrefabInstance: {fileID: 1013716583}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1018234100
 GameObject:
   m_ObjectHideFlags: 0
@@ -135979,11 +135930,6 @@ Transform:
   - {fileID: 1353964251}
   m_Father: {fileID: 1994009601}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!4 &1184824977 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 3742407835892290726, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
-  m_PrefabInstance: {fileID: 115340905}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1215473717
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -141831,11 +141777,6 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 6645783296107278276, guid: aa65210a98596d845b79856fa104acc4, type: 3}
   m_PrefabInstance: {fileID: 1389901049}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &1420547852 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 2929433342939688891, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
-  m_PrefabInstance: {fileID: 115340905}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &1421436355 stripped
 Transform:
