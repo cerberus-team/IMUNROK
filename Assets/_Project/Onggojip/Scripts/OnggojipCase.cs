@@ -18,7 +18,7 @@ namespace IMUNROK.Onggojip
     {
         public enum Phase { Stealth, Revealed, Judged }
 
-        [SerializeField] private bool _showDebugPanel = true;
+        [SerializeField] private bool _showDebugPanel = false;   // 기본 꺼둠(F2로 켜기)
         [SerializeField] private string _hubSceneName = "HubScene";
 
         [Tooltip("이 씬의 시작 단계. 1부(옹씨댁 밤)=Stealth, 2부(관아 아침)=Revealed")]

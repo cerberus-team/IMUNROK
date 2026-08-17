@@ -123,10 +123,12 @@ namespace IMUNROK.Common
                 }
             }
 
-            // 머리의 수평 위치를 도착 지점으로. 높이는 리그가 딛고 선 바닥을 기준으로 유지한다.
+            // 머리의 수평 위치를 도착 지점으로. 높이는 리그가 딛고 선 바닥을 그대로 유지한다.
+            // (도착지점의 Y는 쓰지 않는다 — 데스크탑은 리그가 곧 카메라라 눈높이가, VR은 발밑이 기준이라
+            //  같은 값을 양쪽에 맞출 수 없다. 리그 높이를 건드리지 않으면 둘 다 맞는다.)
             Vector3 headOnGround = new Vector3(head.position.x, rig.position.y, head.position.z);
             Vector3 offset = rig.position - headOnGround;
-            rig.position = new Vector3(_destination.position.x, _destination.position.y, _destination.position.z) + offset;
+            rig.position = new Vector3(_destination.position.x, rig.position.y, _destination.position.z) + offset;
         }
 
         private void OnDrawGizmosSelected()

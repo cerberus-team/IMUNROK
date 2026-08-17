@@ -108,8 +108,11 @@ namespace IMUNROK.Common
             var sb = new StringBuilder();
             sb.AppendLine(req.character != null ? req.character.persona : "너는 심문받는 인물이다.");
             sb.AppendLine();
-            sb.AppendLine("[규칙] 위 인물로서 어사의 심문에 답하라. 반드시 1~2문장, 아주 짧게(한두 줄), 조선시대 말투로. 장황하게 늘어놓지 마라.");
+            sb.AppendLine("[규칙] 위 인물로서 묻는 이에게 답하라. 반드시 1~2문장, 아주 짧게(한두 줄), 조선시대 말투로. 장황하게 늘어놓지 마라.");
             sb.AppendLine("아래 '밝혀진 사실'에 없는 핵심 비밀은 절대 먼저 말하지 마라. 시치미를 떼라.");
+            // 플레이어의 신분은 이야기의 반전이다. 인물이 먼저 "어사또"라 부르면 그 반전이 새어나간다.
+            if (!string.IsNullOrEmpty(req.playerIdentityBrief))
+                sb.AppendLine("[묻는 이] " + req.playerIdentityBrief);
             sb.AppendLine();
             sb.AppendLine("[밝혀진 사실]");
             if (req.unlockedFacts != null && req.unlockedFacts.Count > 0)
@@ -132,8 +135,10 @@ namespace IMUNROK.Common
             {
                 foreach (var line in req.transcript)
                 {
-                    bool isUser = line.StartsWith("어사");
-                    if (!started) { if (!isUser) continue; started = true; } // 첫 어사(user) 턴부터
+                    // 이름표(=req.playerTitle)로 플레이어 줄을 가려낸다. 호칭이 막마다 바뀌므로 하드코딩하지 않는다.
+                    string me = string.IsNullOrEmpty(req.playerTitle) ? "나그네" : req.playerTitle;
+                    bool isUser = line.StartsWith(me, StringComparison.Ordinal);
+                    if (!started) { if (!isUser) continue; started = true; } // 플레이어의 첫 턴부터
                     list.Add(new GContent
                     {
                         role = isUser ? "user" : "model",

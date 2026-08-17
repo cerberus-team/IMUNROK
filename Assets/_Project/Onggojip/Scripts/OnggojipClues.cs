@@ -43,7 +43,7 @@ namespace IMUNROK.Onggojip
             new ClueDef { key = "G03", text = "입안 대장 — 별급문기 사본, 수취인 \"종 복동\"", stealth = false },
             new ClueDef { key = "G04", text = "환곡·소작 대장 — 한 달간 소작료 인하", stealth = false },
             new ClueDef { key = "G05", text = "아내 증언 — \"서방님께 아우가 하나 있긴 했습니다\"", stealth = false },
-            new ClueDef { key = "G06", text = "늙은 하인 — 속량 관련해 무너짐", stealth = false },
+            new ClueDef { key = "G06", text = "마름 — 속량 관련해 무너짐", stealth = false },
         };
 
         /// <summary>출도(1부→2부)에 반드시 필요한 단서 key.</summary>

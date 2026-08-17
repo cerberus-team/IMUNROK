@@ -41,10 +41,21 @@ namespace IMUNROK.Common
         [Tooltip("이 거리(m) 안에서만 말을 걸 수 있음. 너무 멀면 클릭해도 안 열림")]
         [SerializeField] private float _maxTalkDistance = 3f;
 
+        [Tooltip("켜면 처음엔 말을 걸 수 없다. 다른 스크립트가 Unlock()을 부른 뒤부터 열림. " +
+                 "제 볼일이 끝난 다음에야 붙잡을 수 있는 인물(마름처럼)에 쓴다")]
+        [SerializeField] private bool _lockedAtStart = false;
+
+        [Tooltip("심문을 닫은 뒤 인물의 마지막 한 마디를 몇 초 동안 자막으로 남길지")]
+        [SerializeField] private float _closingLineSeconds = 5f;
+
         [Tooltip("대사에 쓸 한글 폰트(조선궁서체 등). 월드 UI가 공용으로 가져다 쓴다")]
         [SerializeField] private Font _font;
 
         private bool _active;
+        private bool _locked;
+
+        /// <summary>인물들이 플레이어를 부르는 이름표. 1막은 과객이라 '나그네'(→ GameState가 정한다).</summary>
+        private static string PlayerTitle => GameState.Instance.PlayerTitle;
 
         // 지금 심문창이 하나라도 열려 있나(다른 UI가 참고: 목표 HUD 숨김 등)
         private static int s_openCount;
@@ -138,8 +149,18 @@ namespace IMUNROK.Common
         private void Start()
         {
             EnsureClickable();
+            _locked = _lockedAtStart;
             if (_beginOnStart) Begin();
         }
+
+        /// <summary>지금 말을 걸 수 있나(잠겨 있으면 클릭해도 안 열린다).</summary>
+        public bool Locked => _locked;
+
+        /// <summary>말을 걸 수 있게 연다. 연출이 끝난 시점에 부르면 된다(마름은 제자리에 앉은 뒤).</summary>
+        public void Unlock() { _locked = false; }
+
+        /// <summary>다시 잠근다.</summary>
+        public void Lock() { _locked = true; }
 
         /// <summary>심문 시작(단독 무대는 Start에서, 인물 큐브는 클릭 때 호출).</summary>
         public void Begin()
@@ -150,6 +171,9 @@ namespace IMUNROK.Common
                 Debug.LogError("[InterrogationController] 심문 캐릭터가 지정되지 않았습니다.");
                 return;
             }
+
+            // 앞서 헤어질 때 남긴 자막이 아직 사라지는 중일 수 있다 — 새 대화를 덮어쓰지 않게 취소한다
+            CancelInvoke(nameof(HideClosingLine));
 
             // 심문은 사건 안에서 일어난다 → 수첩이 이 사건 단서를 보여줌
             GameState.Instance.EnterCase(_character.caseId);
@@ -205,7 +229,7 @@ namespace IMUNROK.Common
         public void OnHoverExit() { }
         public void OnSelect()
         {
-            if (_active) return;
+            if (_active || _locked) return;
             var cam = Camera.main;
             // 피벗이 아니라 "몸"까지의 거리로 잰다. 외부 FBX는 피벗이 몸에서 멀리 떨어져 있을 수 있고,
             // 그러면 코앞에 서 있어도 '멀다'로 막혀 말을 걸 수 없다(옹덕구가 그랬다).
@@ -220,9 +244,20 @@ namespace IMUNROK.Common
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); } // 큐브 → 패널만 닫기
             if (Active == this) Active = null;
             UnsubscribeMic();
-            SubtitleView.Hide();
             InterrogationPanel.Close();
+
+            // 돌아설 때 등 뒤로 던지는 한 마디.
+            // 조작창은 닫고 자막만 잠깐 더 남긴다 — 무엇을 물었든 이건 반드시 듣게 된다.
+            if (_character != null && !string.IsNullOrEmpty(_character.closingLine))
+            {
+                SubtitleView.Show(_character.characterName, _character.closingLine, "");
+                CancelInvoke(nameof(HideClosingLine));
+                Invoke(nameof(HideClosingLine), _closingLineSeconds);
+            }
+            else SubtitleView.Hide();
         }
+
+        private void HideClosingLine() => SubtitleView.Hide();
 
         /// <summary>수첩에서 단서를 골라 "들이밀기" 눌렀을 때 호출(외부에서 증거 제시).</summary>
         public void PresentFromJournal(ClueEntry clue)
@@ -245,7 +280,7 @@ namespace IMUNROK.Common
             if (!_active || _busy || string.IsNullOrWhiteSpace(text)) return;
             string say = text.Trim();
             _lastPlayerLine = say;
-            _transcript.Add($"어사: {say}");
+            _transcript.Add($"{PlayerTitle}: {say}");
 
             var req = new NpcRequest
             {
@@ -255,6 +290,8 @@ namespace IMUNROK.Common
                 playerInput = say,
                 isEvidence = false,
                 justRevealedInfo = null,
+                playerTitle = PlayerTitle,
+                playerIdentityBrief = GameState.Instance.PlayerIdentityBrief,
             };
             _busy = true;
             RefreshSubtitle();
@@ -271,7 +308,7 @@ namespace IMUNROK.Common
         {
             if (_busy || t == null) return;
             _lastPlayerLine = t.question;
-            _transcript.Add($"어사: {t.question}");
+            _transcript.Add($"{PlayerTitle}: {t.question}");
 
             // 이 대화로 단서 얻기(한 번만)
             if (!string.IsNullOrEmpty(t.grantsClueKey) && !_grantedTopics.Contains(t.grantsClueKey))
@@ -289,6 +326,8 @@ namespace IMUNROK.Common
                 isEvidence = false,
                 justRevealedInfo = null,
                 scriptedAnswer = t.mockAnswer,
+                playerTitle = PlayerTitle,
+                playerIdentityBrief = GameState.Instance.PlayerIdentityBrief,
             };
             _busy = true;
             RefreshSubtitle();
@@ -300,7 +339,7 @@ namespace IMUNROK.Common
         {
             if (_busy || clue == null) return;
             _lastPlayerLine = $"(증거) {clue.text}";
-            _transcript.Add($"어사(증거): {clue.text}");
+            _transcript.Add($"{PlayerTitle}(증거): {clue.text}");
 
             // 제시한 증거의 상황 그림을 잠깐 "탁" 띄운다
             InterrogationPanel.ShowEvidence(Journal.Instance.GetClueImage(_character.caseId, clue.key), 4.5f);
@@ -335,6 +374,8 @@ namespace IMUNROK.Common
                 playerInput = clue.text,
                 isEvidence = true,
                 justRevealedInfo = revealed,
+                playerTitle = PlayerTitle,
+                playerIdentityBrief = GameState.Instance.PlayerIdentityBrief,
             };
             _busy = true;
             RefreshSubtitle();
@@ -366,7 +407,7 @@ namespace IMUNROK.Common
             string line = _busy ? "…" : _npcLine;
             string hint = string.IsNullOrEmpty(_lastPlayerLine)
                         ? "마이크로 묻거나, 수첩에서 증거를 제시하시오"
-                        : $"어사 — {_lastPlayerLine}";
+                        : $"{PlayerTitle} — {_lastPlayerLine}";
             SubtitleView.Show(_character.characterName, line, hint);
         }
 

@@ -75,6 +75,11 @@ namespace IMUNROK.Common
         [TextArea(2, 4)]
         public string openingLine = "무슨 일로 오셨소?";
 
+        [Tooltip("심문을 끝내고 돌아설 때 인물이 등 뒤로 던지는 한 마디. 비우면 그냥 닫힌다.\n" +
+                 "무엇을 물었든 반드시 듣게 되므로, 다음에 갈 곳을 흘리는 자리로 쓰기 좋다")]
+        [TextArea(2, 4)]
+        public string closingLine = "";
+
         [Tooltip("추천 질문(대화 버튼). 플레이어가 고를 수 있는 질문들")]
         public List<TopicQuestion> topics = new List<TopicQuestion>();
 
