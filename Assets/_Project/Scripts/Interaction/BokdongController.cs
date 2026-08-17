@@ -50,7 +50,17 @@ namespace IMUNROK.Common
         [Tooltip("내려갈 때 바닥 따라가는 속도(올라갈 땐 즉시)")]
         [SerializeField] private float _groundFollowSpeed = 5f;
 
-        private enum Phase { Idle, Leading, Arrived }
+        [Header("도착해서 문 열기 (비우면 그냥 서 있는다)")]
+        [Tooltip("도착 자리에서 열어줄 문. 중문의 DoorController 를 연결")]
+        [SerializeField] private DoorController _door;
+        [Tooltip("문 여는 동작 상태 이름. 없으면 문짝만 열린다")]
+        [SerializeField] private string _openState = "open_door_2";
+        [Tooltip("도착 → 문에 손대기까지 뜸")]
+        [SerializeField] private float _delayBeforeOpen = 0.4f;
+        [Tooltip("문이 다 열린 순간 한 번 실행(순간이동 영역 열기 등)")]
+        [SerializeField] private UnityEngine.Events.UnityEvent _onDoorOpened;
+
+        private enum Phase { Idle, Leading, Opening, Arrived }
         private Phase _phase;
         private int _wpIndex;
         private float _wait;
@@ -107,6 +117,13 @@ namespace IMUNROK.Common
                 return;
             }
 
+            // 문 여는 동작이 끝나면 문짝을 열고 알린다.
+            if (_phase == Phase.Opening)
+            {
+                if (StateDone(_openState)) DoOpened();
+                return;
+            }
+
             if (_phase != Phase.Leading) return;
             KeepWalking();
 
@@ -117,12 +134,36 @@ namespace IMUNROK.Common
             else if (_arriveSpot == null || MoveTo(_arriveSpot.position, _arriveSpot.rotation))
             {
                 if (_arriveSpot != null) transform.rotation = _arriveSpot.rotation;
-                HoldStand();                 // 도착해 서있기
-                _phase = Phase.Arrived;
+                if (_door != null) { HoldStand(); Delay(_delayBeforeOpen, DoOpen); }
+                else { HoldStand(); _phase = Phase.Arrived; }
             }
         }
 
         private void DoLead() { _wpIndex = 0; CrossTo(_walkState); _phase = Phase.Leading; }
+
+        /// <summary>문에 손을 뻗는다. 전용 동작이 없으면 곧장 문짝만 연다.</summary>
+        private void DoOpen()
+        {
+            if (_animator == null || string.IsNullOrEmpty(_openState)) { DoOpened(); return; }
+            CrossTo(_openState);
+            _phase = Phase.Opening;
+        }
+
+        /// <summary>문짝을 열고, 이 뒤로 벌어질 일(순간이동 등)에 신호를 준다.</summary>
+        private void DoOpened()
+        {
+            if (_door != null) _door.Open();
+            HoldStand();
+            _phase = Phase.Arrived;
+            _onDoorOpened?.Invoke();
+        }
+
+        private bool StateDone(string state)
+        {
+            if (_animator == null) return true;
+            var st = _animator.GetCurrentAnimatorStateInfo(0);
+            return st.IsName(state) && st.normalizedTime >= 1f;
+        }
 
         // ───────── 헬퍼(마름과 동일) ─────────
 

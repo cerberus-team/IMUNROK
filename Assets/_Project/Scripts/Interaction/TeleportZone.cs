@@ -28,6 +28,11 @@ namespace IMUNROK.Common
         [Tooltip("도착 후 바라보는 방향까지 맞출지. 끄면 위치만 옮긴다")]
         [SerializeField] private bool _matchFacing = true;
 
+        [Tooltip("도착하며 이만큼 높이를 더한다(m). 마당에서 마루로 오를 때처럼 바닥 높이가 " +
+                 "다른 곳으로 넘어갈 때 쓴다. 고택에 콜라이더가 없어 바닥을 자동으로 못 재므로 " +
+                 "직접 넣는다 — 마당(-1.67)에서 사랑채 마루(-0.85)면 0.82")]
+        [SerializeField] private float _heightOffset = 0f;
+
         [Header("발동 조건")]
         [Tooltip("이 반경(m) 안에 들어오면 발동")]
         [SerializeField] private float _radius = 1.2f;
@@ -128,7 +133,7 @@ namespace IMUNROK.Common
             //  같은 값을 양쪽에 맞출 수 없다. 리그 높이를 건드리지 않으면 둘 다 맞는다.)
             Vector3 headOnGround = new Vector3(head.position.x, rig.position.y, head.position.z);
             Vector3 offset = rig.position - headOnGround;
-            rig.position = new Vector3(_destination.position.x, rig.position.y, _destination.position.z) + offset;
+            rig.position = new Vector3(_destination.position.x, rig.position.y + _heightOffset, _destination.position.z) + offset;
         }
 
         private void OnDrawGizmosSelected()
