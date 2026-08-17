@@ -39,11 +39,19 @@ $installed = (New-Object System.Drawing.Text.InstalledFontCollection).Families |
 
 # Two hands. They must be visibly different brushes, not two sizes of one brush -
 # the whole point of the ledger clue is that a player can tell them apart.
-$fontName = 'Gungsuh'
-if ($installed -notcontains $fontName) { $fontName = 'Batang' }
-$fontAlt = 'Batang'
-if ($installed -notcontains $fontAlt) { $fontAlt = $fontName }
-if ($fontAlt -eq $fontName -and ($installed -contains 'BatangChe')) { $fontAlt = 'BatangChe' }
+# The original hand (hand 0) is a trained clerk's upright book face.
+# Gungsuh and Batang are both Ming-style and do not read as two different people,
+# so hand 1 takes the most unlike face that is installed.
+$fontName = 'Batang'
+foreach ($cand in @('HCR Batang','Batang','Gungsuh')) { if ($installed -contains $cand) { $fontName = $cand; break } }
+
+# The forged lines. Add a name at the FRONT of this list after installing a
+# handwriting font and it will be picked up automatically.
+$fontAlt = $fontName
+foreach ($cand in @('Yuji Mai','Yuji Boku','LXGW WenKai KR','Gungsuh','BatangChe')) {
+    if ($installed -contains $cand -and $cand -ne $fontName) { $fontAlt = $cand; break }
+}
+if ($fontAlt -eq $fontName) { Write-Host "  ! no second face installed - the two hands differ by wobble only" }
 
 Write-Host "font: $fontName  (second hand: $fontAlt)"
 Write-Host "out : $sharedDir  (+ per-case folders)"
@@ -112,17 +120,46 @@ function Paint-Grain($g, $w, $h, $rng) {
 
 # One vertical run of characters, centered on $x, growing downward from $y.
 # A space advances 45% of a character. Returns the y it ended at.
-function Paint-Column($g, $text, $font, $x, $y, $step, $ink, $inkSoft, $jitter, $rng) {
+# $sloppy 0 = a trained clerk's hand: even, upright, evenly inked.
+# $sloppy 1 = someone forging it in a hurry: every glyph leans a different way,
+#             sizes wander, the column drifts off true, ink pools and runs dry.
+# A different font alone does not read as a different hand - the wobble is what does.
+function Paint-Column($g, $text, $font, $x, $y, $step, $ink, $inkSoft, $jitter, $rng, $sloppy = 0) {
+    $drift = 0.0                      # how far the column has wandered off the rule
+    $baseSize = $font.Size
     foreach ($ch in $text.ToCharArray()) {
         if ($ch -eq ' ') { $y += $step * 0.45; continue }
         $s  = [string]$ch
-        $cs = $g.MeasureString($s, $font)
+
+        # One drawing path for both hands. An earlier attempt gave the forged hand its
+        # own path (per-glyph canvas rotation) and whole columns landed off the sheet.
+        # The difference now comes from glyph size, ink and drift - nothing else.
+        $gf = $font
+        $made = $false
+        if ($sloppy -eq 1) {
+            $sz = $baseSize * (0.86 + $rng.NextDouble() * 0.30)
+            $gf = New-Object System.Drawing.Font($font.FontFamily, $sz, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
+            $made = $true
+            $drift += ($rng.NextDouble() - 0.5) * ($jitter * 0.8)
+            if ($drift -gt  $jitter * 1.6) { $drift =  $jitter * 1.6 }
+            if ($drift -lt -$jitter * 1.6) { $drift = -$jitter * 1.6 }
+        }
+
+        $cs = $g.MeasureString($s, $gf)
         $brush = $ink
-        if ($rng.Next(0, 6) -eq 0) { $brush = $inkSoft }
-        $dx = $rng.Next(-$jitter, $jitter + 1)
+        $r = $rng.Next(0, 5)
+        if ($r -eq 0) { $brush = $inkSoft }        # the brush had run dry
+        $dx = $rng.Next(-$jitter, $jitter + 1) + $drift
         $dy = $rng.Next(-$jitter, $jitter + 1)
-        $g.DrawString($s, $font, $brush, ($x - $cs.Width / 2 + $dx), ($y + $dy))
-        $y += $step
+        $px0 = $x - $cs.Width / 2 + $dx
+        $g.DrawString($s, $gf, $brush, $px0, ($y + $dy))
+        if ($sloppy -eq 1 -and $r -eq 1) {         # ink pooled - stamped twice
+            $g.DrawString($s, $gf, $brush, ($px0 + 1.2), ($y + $dy + 0.9))
+        }
+        if ($made) { $gf.Dispose() }
+
+        if ($sloppy -eq 1) { $y += $step * (0.90 + $rng.NextDouble() * 0.22) }
+        else { $y += $step }
     }
     return $y
 }
@@ -244,7 +281,10 @@ function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontAlt, $rng) {
     $rulePen.Dispose()
 
     $fontA = New-Object System.Drawing.Font($fontName, $fontSize, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
-    $fontB = New-Object System.Drawing.Font($fontAlt, ($fontSize * 0.92), [System.Drawing.FontStyle]::Italic, [System.Drawing.GraphicsUnit]::Pixel)
+    # Regular, not Italic. A synthesised italic on a CJK face makes MeasureString
+    # report nonsense widths, which shoved these columns clean off the sheet -
+    # and Joseon documents have no such thing as an italic anyway.
+    $fontB = New-Object System.Drawing.Font($fontAlt, ($fontSize * 0.92), [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
 
     $markFont  = New-Object System.Drawing.Font($fontName, ($fontSize * 1.05), [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
     $markBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(200, 132, 40, 32))
@@ -254,7 +294,7 @@ function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontAlt, $rng) {
         $x = $rightX - ($ci * $colStep)
         $hand = Get-Field $e 'hand' 0
         if ($hand -eq 1) {
-            $endY = Paint-Column $g $e.text $fontB $x ($gridTop + 34) ($charStep * 1.04) $ink2 $ink2Soft 4 $rng
+            $endY = Paint-Column $g $e.text $fontB $x ($gridTop + 34) ($charStep * 1.04) $ink2 $ink2Soft 7 $rng 1
         } else {
             $endY = Paint-Column $g $e.text $fontA $x ($gridTop + 34) $charStep $ink $inkSoft 2 $rng
         }
