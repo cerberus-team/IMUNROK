@@ -3,17 +3,19 @@ using UnityEngine;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 인물의 발을 바닥에 붙여 둔다.
+    /// 인물의 몸을 마커 자리에, 발을 바닥에 붙여 둔다.
     ///
-    /// 왜 필요한가: 이 프로젝트의 캐릭터 fbx들은 클립마다 몸 높이가 다르다.
-    /// 바인드 자세와 애니메이션 자세가 다르고, 애니메이션끼리도 다르다. 그래서
-    /// 오브젝트에 고정 오프셋을 넣어 맞추면 씬뷰에서 맞을 때 플레이에서 뜨고,
-    /// 플레이에서 맞추면 씬뷰에서 파묻힌다 — 어느 한쪽을 포기해야 한다.
+    /// 왜 필요한가: 이 프로젝트의 캐릭터 fbx들은 <b>바인드 자세와 애니메이션 자세가
+    /// 서로 다른 자리</b>에 있다. 옹덕구는 그 차이가 수평으로 2.63m, 높이로 수십 cm다.
+    /// 그래서 오브젝트에 고정 오프셋을 넣어 맞추면 씬뷰에서 맞을 때 플레이에서 어긋나고,
+    /// 플레이에서 맞추면 씬뷰가 어긋난다 — 어느 한쪽을 포기해야 한다.
     ///
-    /// 고정 오프셋 대신 <b>지금 자세의 실제 발 높이</b>를 재서 맞춘다. 그러면
-    /// 어떤 클립이 돌든, 에디터든 플레이든 발이 바닥에 있다.
+    /// 고정 오프셋 대신 <b>지금 자세의 실제 뼈 위치</b>를 재서 맞춘다. 그러면 어떤
+    /// 클립이 돌든, 에디터든 플레이든 몸이 마커 위에 서 있고 발이 바닥에 있다.
     ///
-    /// 붙이는 법: 인물 마커(모델의 부모)에 붙이면 끝. 발 뼈는 스스로 찾는다.
+    /// 붙이는 법: 인물 마커(모델의 부모)에 붙이면 끝. 뼈는 스스로 찾는다.
+    /// 걸어다니는 인물(복동)도 그대로 쓸 수 있다 — 마커를 스크립트가 옮기면
+    /// 몸이 마커를 따라간다.
     /// 고택에 콜라이더가 거의 없으므로 바닥을 못 찾으면 _fallbackY 를 쓴다.
     /// </summary>
     [ExecuteAlways]
@@ -37,14 +39,26 @@ namespace IMUNROK.Common
         [Tooltip("발이 바닥보다 살짝 눌리게(신발 두께). 파묻히면 줄인다")]
         [SerializeField] private float _sink = 0.01f;
 
+        [Tooltip("몸(엉덩이뼈)을 마커 자리에 수평으로 맞출지. fbx 의 바인드 자세가 원점에서 " +
+                 "멀리 떨어져 있어도 인물이 마커 위에 선다. 끄면 높이만 맞춘다")]
+        [SerializeField] private bool _pinHorizontally = true;
+
+        [Tooltip("몸의 기준으로 삼을 뼈. 비우면 스킨메시의 루트 뼈(보통 Hips)")]
+        [SerializeField] private Transform _bodyBone;
+
         private void Reset() => CacheBones();
         private void OnEnable() => CacheBones();
 
         private void CacheBones()
         {
             if (_model == null && transform.childCount > 0) _model = transform.GetChild(0);
-            if (_footBones != null && _footBones.Length > 0) return;
             if (_model == null) return;
+            if (_bodyBone == null)
+            {
+                var sk = _model.GetComponentInChildren<SkinnedMeshRenderer>(true);
+                if (sk != null) _bodyBone = sk.rootBone;
+            }
+            if (_footBones != null && _footBones.Length > 0) return;
 
             // 발 뼈를 이름으로 찾는다. 못 찾으면 LateUpdate 에서 가장 낮은 것을 쓴다.
             var found = new System.Collections.Generic.List<Transform>();
@@ -59,6 +73,15 @@ namespace IMUNROK.Common
         private void LateUpdate()
         {
             if (_model == null) return;
+
+            // 먼저 몸을 마커 자리로. fbx 의 바인드 자세와 애니메이션 자세가 서로 다른
+            // 자리에 있어도, 지금 뼈가 있는 곳을 재서 밀면 늘 마커 위에 선다.
+            if (_pinHorizontally && _bodyBone != null)
+            {
+                Vector3 d = transform.position - _bodyBone.position;
+                d.y = 0f;
+                if (d.sqrMagnitude > 0.0000005f) _model.position += d;
+            }
 
             float lowest = float.MaxValue;
             if (_footBones != null && _footBones.Length > 0)
