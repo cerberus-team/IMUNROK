@@ -23,6 +23,14 @@ namespace IMUNROK.Onggojip
 
         private const CaseId ThisCase = CaseId.Case1_Onggojip;
 
+        private bool _inside;
+
+        /// <summary>
+        /// 집 안으로 들어섰다는 신호. 중간대문 TeleportZone 의 _onTeleported 에 물리면 된다.
+        /// 이 뒤로는 "지나는 이에게 말을 걸어보자"가 뜨지 않는다 — 이미 지나쳐 온 단계다.
+        /// </summary>
+        public void EnterInside() => _inside = true;
+
         private void Update()
         {
 #if ENABLE_INPUT_SYSTEM
@@ -62,7 +70,9 @@ namespace IMUNROK.Onggojip
             }
 
             bool ready = have >= req;
-            bool intro = found == 0;   // 아직 아무 단서도 못 얻음 = 도입(마을 어귀)
+            // 도입 문구("지나는 이에게 말을 걸어보자")는 마을 어귀에서만 뜻이 있다.
+            // 아무에게도 안 묻고 담을 넘어 들어와 버렸다면 단서 수는 0이어도 이미 도입이 아니다.
+            bool intro = found == 0 && !_inside;
             string main = ready ? _readyLine : (intro ? _introLine : _investigateLine);
             string sub = ready
                 ? "필수 단서 완료"
