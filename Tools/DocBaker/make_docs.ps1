@@ -39,19 +39,64 @@ $installed = (New-Object System.Drawing.Text.InstalledFontCollection).Families |
 
 # Two hands. They must be visibly different brushes, not two sizes of one brush -
 # the whole point of the ledger clue is that a player can tell them apart.
-# The original hand (hand 0) is a trained clerk's upright book face.
-# Gungsuh and Batang are both Ming-style and do not read as two different people,
-# so hand 1 takes the most unlike face that is installed.
+# Two people wrote this ledger, and the whole clue is that you can tell.
+#
+#   hand 0 = Ong Deok-gu. Twenty years of entries in a landowner's trained brush.
+#   hand 1 = Bok-dong. He was a household slave (see the manumission deed, J15) and
+#            never had a scholar's schooling, so his brush is the looser of the two.
+#            He only starts appearing in the last two lines - that is the forgery.
+#
+# Each list is tried in order, so the first installed name wins. Put a new font at
+# the front of a list and it is picked up with no other change.
 $fontName = 'Batang'
-foreach ($cand in @('HCR Batang','Batang','Gungsuh')) { if ($installed -contains $cand) { $fontName = $cand; break } }
-
-# The forged lines. Add a name at the FRONT of this list after installing a
-# handwriting font and it will be picked up automatically.
+foreach ($cand in @('Ma Shan Zheng','LXGW WenKai KR','HCR Batang','Batang','Gungsuh')) {
+    if ($installed -contains $cand) { $fontName = $cand; break }
+}
 $fontAlt = $fontName
-foreach ($cand in @('Yuji Mai','Yuji Boku','LXGW WenKai KR','Gungsuh','BatangChe')) {
+foreach ($cand in @('Long Cang','Liu Jian Mao Cao','Zhi Mang Xing','Yuji Mai','Gungsuh','BatangChe')) {
     if ($installed -contains $cand -and $cand -ne $fontName) { $fontAlt = $cand; break }
 }
 if ($fontAlt -eq $fontName) { Write-Host "  ! no second face installed - the two hands differ by wobble only" }
+
+# Brush faces drawn for Chinese drop hanja that Joseon paperwork needs - the
+# Korean-coined ones above all. 畓 (paddy) has no Chinese counterpart at all, and
+# traditional forms like 記 證 標 爲 錢 are often absent from simplified sets.
+# A missing glyph renders as an empty box, so name it here instead of letting a
+# tofu square ship as a clue.
+function Report-MissingGlyphs($familyName, $texts) {
+    try { Add-Type -AssemblyName PresentationCore -ErrorAction Stop } catch { return }
+    try {
+        $tf = New-Object System.Windows.Media.Typeface($familyName)
+        $gt = $null
+        if (-not $tf.TryGetGlyphTypeface([ref]$gt)) { return }
+    } catch { return }
+    $missing = New-Object System.Collections.Generic.List[char]
+    foreach ($t in $texts) {
+        foreach ($ch in $t.ToCharArray()) {
+            if ($ch -eq ' ') { continue }
+            if ($missing -contains $ch) { continue }
+            if (-not $gt.CharacterToGlyphMap.ContainsKey([int]$ch)) { [void]$missing.Add($ch) }
+        }
+    }
+    if ($missing.Count -gt 0) {
+        Write-Host ("  ! '{0}' has no glyph for {1} character(s): {2}" -f $familyName, $missing.Count, (-join $missing))
+        Write-Host "    (those will print as empty boxes - pick another face or change the wording)"
+    } else {
+        Write-Host ("  '{0}': all characters covered" -f $familyName)
+    }
+}
+
+$allText = @()
+foreach ($d in $docs) {
+    if ($d.PSObject.Properties.Name -contains 'title'   -and $d.title)   { $allText += $d.title }
+    if ($d.PSObject.Properties.Name -contains 'seal'    -and $d.seal)    { $allText += $d.seal }
+    if ($d.PSObject.Properties.Name -contains 'columns' -and $d.columns) { $allText += $d.columns }
+    if ($d.PSObject.Properties.Name -contains 'entries' -and $d.entries) {
+        foreach ($e in $d.entries) { $allText += $e.text }
+    }
+}
+Report-MissingGlyphs $fontName $allText
+if ($fontAlt -ne $fontName) { Report-MissingGlyphs $fontAlt $allText }
 
 Write-Host "font: $fontName  (second hand: $fontAlt)"
 Write-Host "out : $sharedDir  (+ per-case folders)"
