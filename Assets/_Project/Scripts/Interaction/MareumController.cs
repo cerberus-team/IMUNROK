@@ -102,7 +102,7 @@ namespace IMUNROK.Common
         {
             StandAtDoor, Opening,
             StepAside, WaitingForPass, ReturnToDoor, Closing,   // 길 비켜주고 → 기다리고 → 닫으러 돌아가기
-            WalkToStand, SittingDown, Sitting, Stood, WalkToDoor
+            WalkToStand, SittingDown, ToDoze, Sitting, Stood, WalkToDoor
         }
         private Phase _phase;
         private Vector3 _homePos;         // 둔 자리 = 문 여는 시작 자리
@@ -114,6 +114,9 @@ namespace IMUNROK.Common
         private float _closeTimer;    // 문 닫기(여는 동작 역재생) 남은 시간
         private float _closeLen;      // 문 여는 클립 길이
         private float _closeBlend;    // 문 연 끝 자세로 붙는 블렌드 남은 시간
+        private Vector3 _dozeFrom;    // 앉은 자리 → 조는 자리로 옮기는 중의 시작점
+        private Quaternion _dozeRotFrom;
+        private float _dozeT;
 
         private float _wait;
         private System.Action _then;
@@ -221,12 +224,27 @@ namespace IMUNROK.Common
                 if (_animator != null) { _animator.Play(_sitDownReverseState, 0, t); _animator.Update(0f); }
                 if (_sitTimer <= 0f)
                 {
-                    if (_dozeSpot != null)   // 졸기 자리로
-                        transform.SetPositionAndRotation(_dozeSpot.position, _dozeSpot.rotation);
-                    CrossTo(_sitIdleState);   // 앉기→졸기 부드럽게
-                    _phase = Phase.Sitting;
-                    Settle();
+                    CrossTo(_sitIdleState);            // 앉기→졸기 부드럽게
+                    if (_dozeSpot == null) { _phase = Phase.Sitting; Settle(); return; }
+                    // 졸기 자리로 '순간이동' 시키면, 몸이 뒤로 훌쩍 갔다가 졸기 동작의
+                    // 앞쪽 오프셋 때문에 다시 앞으로 쭉 나오는 것처럼 보인다.
+                    // 자리를 옮기는 동안 동작도 섞이는 중이니, 같은 시간에 걸쳐 옮기면 상쇄된다.
+                    _dozeFrom = transform.position;
+                    _dozeRotFrom = transform.rotation;
+                    _dozeT = 0f;
+                    _phase = Phase.ToDoze;
                 }
+                return;
+            }
+
+            // 앉은 자리 → 조는 자리로 미끄러지듯(동작 섞이는 시간과 같은 길이로).
+            if (_phase == Phase.ToDoze)
+            {
+                _dozeT += Time.deltaTime / Mathf.Max(0.01f, _blend);
+                float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_dozeT));
+                transform.position = Vector3.Lerp(_dozeFrom, _dozeSpot.position, k);
+                transform.rotation = Quaternion.Slerp(_dozeRotFrom, _dozeSpot.rotation, k);
+                if (_dozeT >= 1f) { _phase = Phase.Sitting; Settle(); }
                 return;
             }
 

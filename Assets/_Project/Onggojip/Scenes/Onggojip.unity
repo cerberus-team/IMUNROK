@@ -1325,9 +1325,8 @@ MonoBehaviour:
   _zoomFov: 32
   _thickenWhilePlaying:
   - {fileID: 1720484532}
-  _thickenBy: 1.8
-  _hideWhenDone:
-  - {fileID: 1720484529}
+  _thickenBy: 2.2
+  _hideWhenDone: []
   _hideDelay: 1.5
   _disableWhilePlaying: []
   _onFinished:
@@ -2808,6 +2807,8 @@ MonoBehaviour:
   _beginOnStart: 0
   _showTopics: 1
   _maxTalkDistance: 3
+  _walkAwayDistance: 5
+  _walkAwayGrace: 0.7
   _lockedAtStart: 1
   _closingLineSeconds: 5
   _font: {fileID: 12800000, guid: dafdf968e3b186e41accd381d368dc9c, type: 3}
@@ -7942,6 +7943,8 @@ MonoBehaviour:
   _beginOnStart: 0
   _showTopics: 1
   _maxTalkDistance: 3
+  _walkAwayDistance: 5
+  _walkAwayGrace: 0.7
   _lockedAtStart: 0
   _closingLineSeconds: 5
   _font: {fileID: 12800000, guid: dafdf968e3b186e41accd381d368dc9c, type: 3}
@@ -8985,6 +8988,8 @@ MonoBehaviour:
   _beginOnStart: 0
   _showTopics: 1
   _maxTalkDistance: 3
+  _walkAwayDistance: 5
+  _walkAwayGrace: 0.7
   _lockedAtStart: 0
   _closingLineSeconds: 5
   _font: {fileID: 12800000, guid: dafdf968e3b186e41accd381d368dc9c, type: 3}
@@ -12351,6 +12356,7 @@ GameObject:
   - component: {fileID: 995650159}
   - component: {fileID: 995650160}
   - component: {fileID: 995650161}
+  - component: {fileID: 995650162}
   m_Layer: 0
   m_Name: "\uB300\uBB38(\uBC14\uAE65\uD589\uB791\uCC44)"
   m_TagString: Untagged
@@ -12400,10 +12406,46 @@ MonoBehaviour:
   _locked: 1
   OnKnock:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 995650162}
+        m_TargetAssemblyTypeName: IMUNROK.Common.KnockPrompt, IMUNROK.Common
+        m_MethodName: Done
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   OnOpened:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1688468740}
+        m_TargetAssemblyTypeName: IMUNROK.Common.BokdongController, IMUNROK.Common
+        m_MethodName: ComeOutToGreet
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!65 &995650160
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -12444,6 +12486,25 @@ MonoBehaviour:
   _openAtLine: 3
   _bokdongLeadAtLine: 4
   _lineDuration: 3.5
+--- !u!114 &995650162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 995650157}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbad28dab43d26842943c6f7f28a2972, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.KnockPrompt
+  _door: {fileID: 995650159}
+  _at: {fileID: 484303594}
+  _radius: 4
+  _onlyWhileClosed: 1
+  _text: "\uAD73\uAC8C \uB2EB\uD78C \uB300\uBB38\uC774\uB2E4. \uB450\uB4E4\uACA8
+    \uBCF4\uC790."
+  _hint: "(\uBB38\uC744 \uB20C\uB7EC \uB450\uB4DC\uB9AC\uAE30)"
 --- !u!1 &1004767015 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1030989429, guid: abc00000000006647345309391297075, type: 3}
@@ -13286,14 +13347,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.HoldPose
   _animator: {fileID: 1013716587}
-  _state: Angry_Ground_Stomp
+  _state: 019ff7b8-950b-7697-8377-e3a8ada9c9e2
   _atSeconds: 0.67
-  _swaySeconds: 0.05
+  _loop: 1
+  _swaySeconds: 0
   _swayPeriod: 6
   _gestureStates:
   - Angry_Ground_Stomp
   - Head_Hold_in_Pain
-  _gestureEvery: {x: 25, y: 50}
+  _gestureEvery: {x: 30, y: 60}
 --- !u!1 &1018234100
 GameObject:
   m_ObjectHideFlags: 0
@@ -13657,6 +13719,7 @@ MonoBehaviour:
   _period: 5.5
   _swayPeriodScale: 1.6
   _phase: 0
+  _renderer: {fileID: 0}
 --- !u!1001 &1030987576
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -19154,7 +19217,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1030988225, guid: abc00000000012396096933102580737, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1249512835}
   m_SourcePrefab: {fileID: 100100000, guid: abc00000000012396096933102580737, type: 3}
 --- !u!4 &1030988230 stripped
 Transform:
@@ -147867,6 +147933,33 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: abc00000000004294382340401917574, type: 3}
+--- !u!1 &1249512831 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1030988225, guid: abc00000000012396096933102580737, type: 3}
+  m_PrefabInstance: {fileID: 1030988229}
+  m_PrefabAsset: {fileID: 0}
+--- !u!64 &1249512835
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1249512831}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: abc00000000009919095256432489753, type: 3}
 --- !u!1 &1249930947 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1031000917, guid: abc00000000000539541734340366616, type: 3}
@@ -153850,6 +153943,8 @@ MonoBehaviour:
   _beginOnStart: 0
   _showTopics: 1
   _maxTalkDistance: 3
+  _walkAwayDistance: 5
+  _walkAwayGrace: 0.7
   _lockedAtStart: 0
   _closingLineSeconds: 5
   _font: {fileID: 12800000, guid: dafdf968e3b186e41accd381d368dc9c, type: 3}
@@ -153987,8 +154082,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1379753155}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.3924886, z: -0, w: 0.9197569}
-  m_LocalPosition: {x: 1.2, y: -1.67, z: -15.6}
+  m_LocalRotation: {x: -0, y: 0.21100456, z: -0, w: 0.97748506}
+  m_LocalPosition: {x: 3.6, y: -1.54, z: -16.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -154910,6 +155005,37 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: abc00000000004247523108674608492, type: 3}
+--- !u!1 &1460417422
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1460417423}
+  m_Layer: 0
+  m_Name: "\uBCF5\uB3D9_\uB9DE\uC774\uC790\uB9AC"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1460417423
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1460417422}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 1, z: -0, w: -0.00000004371139}
+  m_LocalPosition: {x: -6.64, y: -1.67, z: -19.57}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1994009601}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1463815075 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1030997795, guid: abc00000000011506122180191075232, type: 3}
@@ -155888,6 +156014,7 @@ MonoBehaviour:
   _period: 5.5
   _swayPeriodScale: 1.6
   _phase: 0.37
+  _renderer: {fileID: 0}
 --- !u!1 &1563576550 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1030993357, guid: abc00000000015682379529708428915, type: 3}
@@ -159228,8 +159355,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1688468734}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 1, z: -0, w: -0.00000004371139}
-  m_LocalPosition: {x: -6.64, y: -1.6688663, z: -19.57}
+  m_LocalRotation: {x: -0, y: 0.9659259, z: -0, w: -0.25881907}
+  m_LocalPosition: {x: -3.05, y: -1.67, z: -17.6}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -159334,6 +159461,8 @@ MonoBehaviour:
   _beginOnStart: 0
   _showTopics: 1
   _maxTalkDistance: 3
+  _walkAwayDistance: 5
+  _walkAwayGrace: 0.7
   _lockedAtStart: 0
   _closingLineSeconds: 5
   _font: {fileID: 12800000, guid: dafdf968e3b186e41accd381d368dc9c, type: 3}
@@ -159369,6 +159498,9 @@ MonoBehaviour:
   _idleState: 
   _walkState: "\uC591\uBC18\uAC77\uAE30"
   _freezeWalkAsIdle: 1
+  _greetSpot: {fileID: 1460417423}
+  _greetWaypoints: []
+  _delayBeforeGreet: 0.6
   _arriveSpot: {fileID: 1263496990}
   _waypoints: []
   _delayBeforeLead: 0.6
@@ -159390,7 +159522,8 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _throughDoorSpot: {fileID: 1379753156}
-  _throughDoorWaypoints: []
+  _throughDoorWaypoints:
+  - {fileID: 1921870555}
   _delayAfterOpen: 0.5
 --- !u!114 &1688468741
 MonoBehaviour:
@@ -164729,6 +164862,18 @@ MonoBehaviour:
         m_TargetAssemblyTypeName: IMUNROK.Common.SnapTo, IMUNROK.Common
         m_MethodName: Go
         m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 1720484529}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: 
@@ -171854,6 +171999,37 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: abc00000000003412564665547873995, type: 3}
+--- !u!1 &1921870554
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1921870555}
+  m_Layer: 0
+  m_Name: "\uBCF5\uB3D9_\uD310\uC11D\uAE38"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1921870555
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1921870554}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.9, y: -1.54, z: -16.9}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1994009601}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1923173200
 GameObject:
   m_ObjectHideFlags: 0
@@ -172780,6 +172956,8 @@ Transform:
   - {fileID: 794536285}
   - {fileID: 1251263660}
   - {fileID: 1379753156}
+  - {fileID: 1460417423}
+  - {fileID: 1921870555}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1998853224 stripped

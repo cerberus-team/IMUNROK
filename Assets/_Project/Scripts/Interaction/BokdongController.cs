@@ -24,6 +24,15 @@ namespace IMUNROK.Common
         [Tooltip("서있기 클립이 없을 때, 걷기 클립의 첫 프레임(선 자세)에서 멈춰 세워 '서있기'로 쓴다(마름과 같은 방식)")]
         [SerializeField] private bool _freezeWalkAsIdle = true;
 
+        [Header("맞이하러 나오기 (비우면 처음부터 그 자리에 서 있는다)")]
+        [Tooltip("대문이 열리면 걸어나와 설 자리(안마당). 복동을 씬에 둔 자리 = 나오기 전 " +
+                 "서 있던 곳(중문 안쪽). 대문 DoorController 의 OnOpened 에 ComeOutToGreet 을 걸면 된다")]
+        [SerializeField] private Transform _greetSpot;
+        [Tooltip("나오기 전 지날 길목. 비우면 직선")]
+        [SerializeField] private Transform[] _greetWaypoints;
+        [Tooltip("대문이 열리고 → 걸어나오기까지 뜸")]
+        [SerializeField] private float _delayBeforeGreet = 0.4f;
+
         [Header("경로 — 사랑방까지")]
         [Tooltip("앞장서 걸어가 설 도착 자리(사랑방 앞). 이 오브젝트 회전 = 도착 방향. 비우면 이동 없음.")]
         [SerializeField] private Transform _arriveSpot;
@@ -69,7 +78,7 @@ namespace IMUNROK.Common
         [Tooltip("문이 열리고 → 넘어가기 시작까지 뜸")]
         [SerializeField] private float _delayAfterOpen = 0.5f;
 
-        private enum Phase { Idle, Leading, Opening, GoingThrough, Arrived }
+        private enum Phase { Idle, Greeting, Leading, Opening, GoingThrough, Arrived }
         private Phase _phase;
         private int _wpIndex;
         private float _wait;
@@ -108,6 +117,16 @@ namespace IMUNROK.Common
 
         // ───────── 밖에서 부르는 신호 ─────────
 
+        /// <summary>
+        /// 대문이 열렸다 — 중문 쪽에서 안마당으로 걸어나와 손님을 맞는 자리에 선다.
+        /// 처음부터 마당 한복판에 뒷짐 지고 서 있으면 "기다리고 있었다"가 되어 어색하다.
+        /// </summary>
+        public void ComeOutToGreet()
+        {
+            if (_phase != Phase.Idle || _greetSpot == null) return;
+            Delay(_delayBeforeGreet, DoGreet);
+        }
+
         /// <summary>맞이 대사 순번 → (뜸 후) 사랑방으로 앞장서 걷기.</summary>
         public void LeadInside()
         {
@@ -123,6 +142,23 @@ namespace IMUNROK.Common
             {
                 _wait -= Time.deltaTime;
                 if (_wait <= 0f) { var t = _then; _then = null; t?.Invoke(); }
+                return;
+            }
+
+            // 중문 쪽에서 안마당으로 걸어나오는 중.
+            if (_phase == Phase.Greeting)
+            {
+                KeepWalking();
+                if (_greetWaypoints != null && _wpIndex < _greetWaypoints.Length && _greetWaypoints[_wpIndex] != null)
+                {
+                    if (MoveTo(_greetWaypoints[_wpIndex].position, transform.rotation)) _wpIndex++;
+                }
+                else if (MoveTo(_greetSpot.position, _greetSpot.rotation))
+                {
+                    transform.rotation = _greetSpot.rotation;
+                    HoldStand();
+                    _phase = Phase.Idle;      // 여기서부터 다시 LeadInside 를 받을 수 있다
+                }
                 return;
             }
 
@@ -165,7 +201,9 @@ namespace IMUNROK.Common
             }
         }
 
-        private void DoLead() { _wpIndex = 0; CrossTo(_walkState); _phase = Phase.Leading; }
+        private void DoGreet() { _wpIndex = 0; _mvHasTarget = false; CrossTo(_walkState); _phase = Phase.Greeting; }
+
+        private void DoLead() { _wpIndex = 0; _mvHasTarget = false; CrossTo(_walkState); _phase = Phase.Leading; }
 
         /// <summary>문에 손을 뻗는다. 전용 동작이 없으면 곧장 문짝만 연다.</summary>
         private void DoOpen()

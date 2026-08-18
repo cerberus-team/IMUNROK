@@ -41,6 +41,13 @@ namespace IMUNROK.Common
         [Tooltip("이 거리(m) 안에서만 말을 걸 수 있음. 너무 멀면 클릭해도 안 열림")]
         [SerializeField] private float _maxTalkDistance = 3f;
 
+        [Tooltip("말을 거는 중에 이만큼 멀어지면 대화가 저절로 끝난다. 0이면 안 끝난다. " +
+                 "말 걸 수 있는 거리보다 넉넉히 잡는다 — 조금 물러섰다고 창이 닫히면 답답하다")]
+        [SerializeField] private float _walkAwayDistance = 5f;
+
+        [Tooltip("멀어진 뒤 이만큼(초) 지나야 끝낸다. 스쳐 지나가듯 잠깐 벗어난 것으로 끊기지 않게")]
+        [SerializeField] private float _walkAwayGrace = 0.7f;
+
         [Tooltip("켜면 처음엔 말을 걸 수 없다. 다른 스크립트가 Unlock()을 부른 뒤부터 열림. " +
                  "제 볼일이 끝난 다음에야 붙잡을 수 있는 인물(마름처럼)에 쓴다")]
         [SerializeField] private bool _lockedAtStart = false;
@@ -425,8 +432,30 @@ namespace IMUNROK.Common
             SubtitleView.Show(_character.characterName, line, hint);
         }
 
+        private float _awayFor;
+
+        /// <summary>
+        /// 말을 걸어놓고 걸어가 버렸는가. 그러면 대화를 끝낸다 —
+        /// 등을 돌리고 멀어졌는데 창이 계속 떠 있으면 말이 안 된다.
+        /// </summary>
+        private void CheckWalkedAway()
+        {
+            if (!_active || _beginOnStart || _walkAwayDistance <= 0f) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+
+            if (ModelBounds.DistanceTo(transform, cam.transform.position) <= _walkAwayDistance)
+            {
+                _awayFor = 0f;
+                return;
+            }
+            _awayFor += Time.deltaTime;
+            if (_awayFor >= _walkAwayGrace) { _awayFor = 0f; ClosePanel(); }
+        }
+
         private void Update()
         {
+            CheckWalkedAway();
 #if ENABLE_INPUT_SYSTEM
             var kb = UnityEngine.InputSystem.Keyboard.current;
             // ESC로 심문창 닫기(인물 큐브 방식일 때). J는 수첩(JournalView)이 처리

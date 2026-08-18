@@ -47,11 +47,15 @@ namespace IMUNROK.Common
         [Tooltip("사람마다 숨을 쉬는 때가 다르게. 0~1 중 아무 값")]
         [SerializeField] private float _phase = 0f;
 
+        [Tooltip("보이는지 판단할 렌더러. 비우면 자식에서 찾는다")]
+        [SerializeField] private Renderer _renderer;
+
         private void Awake()
         {
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
             if (_facing == null) _facing = transform.parent != null ? transform.parent : transform;
             if (_bones == null || _bones.Length == 0) FindSpine();
+            if (_renderer == null) _renderer = GetComponentInChildren<SkinnedMeshRenderer>();
         }
 
         /// <summary>등뼈를 이름으로 찾는다. 다리 쪽은 절대 담지 않는다.</summary>
@@ -73,6 +77,11 @@ namespace IMUNROK.Common
 
             // 이미 움직이는 중이면 숨을 얹지 않는다. 얼려 세워 둔 동안만 하는 일이다.
             if (_animator.speed != 0f) return;
+
+            // 화면 밖이면 손대지 않는다. 애니메이터 컬링이 CullUpdateTransforms 라
+            // 보이지 않는 동안에는 자세를 다시 써 주지 않는데, 그때도 각도를 더하면
+            // 매 프레임 쌓여 몸이 통째로 비틀린 채 화면에 돌아온다.
+            if (_renderer != null && !_renderer.isVisible) return;
 
             float t = Time.time + _phase * _period;
             float bow  = Mathf.Sin(t * (2f * Mathf.PI / Mathf.Max(0.01f, _period)));

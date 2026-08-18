@@ -28,6 +28,11 @@ namespace IMUNROK.Common
         [Tooltip("그 동작의 몇 초 지점에서 멈출지")]
         [SerializeField] private float _atSeconds = 0f;
 
+        [Tooltip("진짜 서 있는 클립이 있으면 켠다 — 멈춰 세우지 않고 그냥 돌린다. " +
+                 "켜면 위의 '몇 초 지점'과 아래 숨쉬기는 쓰이지 않는다(그럴 필요가 없다). " +
+                 "가끔 하는 몸짓은 그대로 작동하고, 몸짓이 끝나면 이 클립으로 돌아온다")]
+        [SerializeField] private bool _loop = false;
+
         [Header("숨쉬기 (0이면 정말로 얼어붙는다)")]
         [Tooltip("멈춘 자리 앞뒤로 이만큼(초)을 아주 느리게 왕복한다. 서 있는 클립이 없어 " +
                  "한 프레임에 세워 두는데, 그러면 사람이 아니라 인형이 된다. 대신 그 프레임 " +
@@ -68,7 +73,7 @@ namespace IMUNROK.Common
                 return;
             }
 
-            Breathe();
+            if (!_loop) Breathe();
 
             if (_gestureStates == null || _gestureStates.Length == 0) return;
             if (Time.time < _nextGesture) return;
@@ -114,6 +119,14 @@ namespace IMUNROK.Common
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
             if (_animator == null || string.IsNullOrEmpty(_state)) return;
             if (_animator.runtimeAnimatorController == null) return;
+
+            // 서 있는 클립이 있으면 멈춰 세울 이유가 없다 — 그냥 돌린다.
+            if (_loop)
+            {
+                _animator.speed = 1f;
+                _animator.Play(_state, 0, 0f);
+                return;
+            }
 
             float len = 1f;
             foreach (var c in _animator.runtimeAnimatorController.animationClips)
