@@ -34,6 +34,14 @@ namespace IMUNROK.Common
         [Tooltip("걷기/바닥내려서기 시 눈높이(바닥으로부터)")]
         [SerializeField] private float _eyeHeight = 1.6f;
 
+        [Header("턱 오르내림")]
+        [Tooltip("한 번에 올라설 수 있는 턱 높이(m). 한옥 마루는 마당보다 0.56m 높다. 이보다 높으면 막힌 것으로 친다")]
+        [SerializeField] private float _stepUp = 0.62f;
+        [Tooltip("발밑을 얼마나 아래까지 훑을지(m). 계단을 내려갈 때 쓴다")]
+        [SerializeField] private float _stepDown = 2.0f;
+        [Tooltip("턱을 오르내리는 속도(m/s). 즉시 붙으면 화면이 튄다")]
+        [SerializeField] private float _stepSpeed = 4f;
+
         private float _yaw;
         private float _pitch;
         private float _walkY;
@@ -101,13 +109,16 @@ namespace IMUNROK.Common
 
                 transform.position += move.normalized * speed * Time.deltaTime;
 
-                // 발밑에서 "짧게" 아래로 쏴서 바닥을 따라감(지붕·처마로 튀지 않게)
+                // 발밑에서 "짧게" 아래로 쏴서 바닥을 따라감(지붕·처마로 튀지 않게).
+                // 광선을 발보다 _stepUp 만큼만 위에서 시작한다 — 그보다 높은 턱은 아예 안 보이므로
+                // 디딤돌을 밟고 담장 위로 기어오르는 일이 생기지 않는다.
                 float feetY = transform.position.y - _eyeHeight;
-                Vector3 origin = new Vector3(transform.position.x, feetY + 0.5f, transform.position.z);
-                if (Physics.Raycast(origin, Vector3.down, out var gh, 2.5f, ~0, QueryTriggerInteraction.Ignore))
+                Vector3 origin = new Vector3(transform.position.x, feetY + _stepUp, transform.position.z);
+                if (Physics.Raycast(origin, Vector3.down, out var gh, _stepUp + _stepDown, ~0, QueryTriggerInteraction.Ignore))
                 {
                     float targetY = gh.point.y + _eyeHeight;
-                    _walkY = Mathf.MoveTowards(_walkY, targetY, 4f * Time.deltaTime); // 계단·문턱만 천천히 오르내림
+                    if (targetY - _walkY <= _stepUp + 0.01f)                    // 오를 수 있는 턱만
+                        _walkY = Mathf.MoveTowards(_walkY, targetY, _stepSpeed * Time.deltaTime);
                 }
 
                 Vector3 p = transform.position;
