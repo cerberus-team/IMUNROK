@@ -62,6 +62,7 @@ namespace IMUNROK.Common
 
         private bool _fired;
         private bool _playerInside;
+        private bool _wasReady;      // 지난 프레임에 "안에 있고 조건도 맞았나"
 
         private void Update()
         {
@@ -75,8 +76,16 @@ namespace IMUNROK.Common
             a.y = b.y = 0f;
             bool inside = (a - b).sqrMagnitude <= _radius * _radius;
 
-            // 들어온 "순간"에만 발동. 안에 서 있는 동안 계속 옮기면 안 된다.
-            if (inside && !_playerInside && CanFire()) Fire(cam);
+            // 조건이 다 갖춰지는 "순간"에 발동한다.
+            //
+            // 예전엔 '들어온 순간'만 봤다. 그런데 복동을 바짝 따라가면 내가 먼저 중문 앞에
+            // 서 있고 복동은 아직 문간을 넘는 중이라, 그 순간엔 안내자 조건이 걸려 못 나간다.
+            // 그 뒤로는 내가 계속 '안에 있는' 상태라 '들어온 순간'이 다시 오지 않아,
+            // 복동이 다 지나가도 영영 발동하지 않았다 — 한 발 나갔다 다시 들어와야 했다.
+            // 이제는 '안에 있고 + 조건이 맞는' 상태가 되는 순간을 본다.
+            bool ready = inside && CanFire();
+            if (ready && !_wasReady) Fire(cam);
+            _wasReady = ready;
             _playerInside = inside;
         }
 

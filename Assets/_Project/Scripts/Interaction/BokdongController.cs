@@ -86,12 +86,20 @@ namespace IMUNROK.Common
         [Tooltip("문을 열고 나서 넘어가 설 자리(사랑채 쪽). 앞장서는 사람이 문간에서 " +
                  "멈춰 서 있으면 따라 들어갈 마음이 안 든다 — 넘어가 걸어가야 뒤를 따라간다")]
         [SerializeField] private Transform _throughDoorSpot;
+
+        [Header("사랑방에 앉기")]
+        [Tooltip("이 상태를 '거꾸로' 돌려 앉는 동작으로 쓴다(일어서기 애니 역재생). 마름과 같은 수")]
+        [SerializeField] private string _sitDownReverseState = "Stand_Up3";
+        [Tooltip("앉을 자리(보료 위). 비우면 선 자리에서 그대로 앉는다")]
+        [SerializeField] private Transform _sitSpot;
+        [Tooltip("앉는 동작 앞에 걷기→선 자세로 섞는 시간")]
+        [SerializeField] private float _sitBlend = 0.2f;
         [Tooltip("넘어갈 때 지날 길목(문간을 비껴 돌 때). 비우면 직선")]
         [SerializeField] private Transform[] _throughDoorWaypoints;
         [Tooltip("문이 열리고 → 넘어가기 시작까지 뜸")]
         [SerializeField] private float _delayAfterOpen = 0.5f;
 
-        private enum Phase { Idle, Greeting, Leading, Opening, GoingThrough, Arrived }
+        private enum Phase { Idle, Greeting, Leading, Opening, GoingThrough, Arrived, SittingDown, Seated }
         private Phase _phase;
         private int _wpIndex;
         private float _wait;
@@ -101,6 +109,8 @@ namespace IMUNROK.Common
         private Vector3 _mvFrom;
         private bool _mvHasTarget;
         private float _standBlendLeft;   // 선 자세로 섞이는 중 남은 시간
+        private float _sitTimer;         // 앉기(일어서기 역재생) 남은 시간
+        private float _sitLen;           // 일어서기 클립 길이
 
         private void Awake()
         {
@@ -185,6 +195,54 @@ namespace IMUNROK.Common
             Delay(_delayBeforeLead, DoLead);
         }
 
+        /// <summary>
+        /// 사랑방에 앉는다. 앉는 클립이 따로 없으므로 <b>일어서기를 거꾸로</b> 돌려 쓴다
+        /// (마름이 이미 쓰는 수다). 실내 씬이 올라온 순간에 부르면 된다 —
+        /// 화면이 어두워졌다 밝아지는 사이라 자리를 옮겨도 눈에 띄지 않는다.
+        /// </summary>
+        public void SitDown()
+        {
+            if (_phase == Phase.SittingDown || _phase == Phase.Seated) return;
+
+            _wait = 0f; _then = null;
+            if (_sitSpot != null)
+            {
+                transform.position = _sitSpot.position;
+                transform.rotation = _sitSpot.rotation;
+                _groundInit = false;                    // 새 자리에서 발밑을 다시 잡는다
+            }
+
+            // 발 붙이기는 선 자세를 기준으로 보정한다 — 앉은 자세엔 그 보정이 안 맞아
+            // 몸이 마루 밑으로 44cm 꺼진다. 앉는 동안은 꺼 두고 자리를 직접 잡는다.
+            var feet = GetComponent<GroundFeet>();
+            if (feet != null) feet.enabled = false;
+
+            _sitLen = Mathf.Max(0.05f, ClipLength(_sitDownReverseState));
+            _sitTimer = _sitLen;
+            if (_animator != null) { _animator.speed = 1f; CrossTo(_sitDownReverseState); }
+            _standBlendLeft = 0f;
+            _phase = Phase.SittingDown;
+        }
+
+        /// <summary>
+        /// 다 앉은 뒤 한 번만 — 엉덩이가 마루(또는 보료)에 닿게 높이를 맞춘다.
+        /// 자세마다 몸이 어디까지 내려오는지가 달라서, 숫자를 박아두는 대신 실제로 재서 올린다.
+        /// </summary>
+        private void SeatOnFloor()
+        {
+            var sk = GetComponentInChildren<SkinnedMeshRenderer>();
+            if (sk == null) return;
+            sk.updateWhenOffscreen = true;
+
+            RaycastHit hit;
+            Vector3 from = transform.position + Vector3.up * 1.2f;
+            if (!Physics.Raycast(from, Vector3.down, out hit, 4f, ~0, QueryTriggerInteraction.Ignore)) return;
+
+            float bottom = sk.bounds.min.y;
+            float lift = hit.point.y - bottom;
+            if (Mathf.Abs(lift) > 0.005f) transform.position += Vector3.up * lift;
+        }
+
         // ───────── 진행 ─────────
 
         private void Update()
@@ -209,6 +267,21 @@ namespace IMUNROK.Common
                 if (_wait <= 0f) { var t = _then; _then = null; t?.Invoke(); }
                 return;
             }
+
+            // 앉는 중 — 일어서기 클립을 t=1 → 0 으로 긁어 거꾸로 돌린다.
+            // 음수 속도로 틀면 비반복 상태에서 어긋나는 일이 있어 직접 긁는다(마름과 같은 방식).
+            if (_phase == Phase.SittingDown)
+            {
+                if (_sitBlend > 0f && _sitTimer > _sitLen - _sitBlend) { _sitTimer -= Time.deltaTime; return; }
+                if (_animator != null) _animator.speed = 0f;
+                _sitTimer -= Time.deltaTime;
+                float k = Mathf.Clamp01(_sitTimer / _sitLen);
+                if (_animator != null) { _animator.Play(_sitDownReverseState, 0, k); _animator.Update(0f); }
+                if (_sitTimer <= 0f) { _phase = Phase.Seated; SeatOnFloor(); }   // 앉은 첫 프레임에서 멈춘다
+                return;
+            }
+
+            if (_phase == Phase.Seated) return;                  // 앉아 있는 동안은 가만히
 
             // 중문 쪽에서 안마당으로 걸어나오는 중.
             if (_phase == Phase.Greeting)
