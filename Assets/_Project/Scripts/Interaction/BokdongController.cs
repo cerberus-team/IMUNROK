@@ -163,9 +163,24 @@ namespace IMUNROK.Common
             Delay(_delayBeforeGreet, DoGreet);
         }
 
-        /// <summary>맞이 대사 순번 → (뜸 후) 사랑방으로 앞장서 걷기.</summary>
+        /// <summary>
+        /// 손님이 대문을 넘었다 — 사랑방으로 앞장선다.
+        ///
+        /// 걸어나오던 중에 이 신호가 와도 받는다. 예전엔 Idle 일 때만 받아서,
+        /// 손님이 문 열리자마자 성큼 들어서면 이 신호가 통째로 버려졌다.
+        /// 복동은 맞이 자리까지 걸어가 선 채로 영영 굳어 있었다.
+        /// 이제는 걷던 자리에서 그대로 돌아서 앞장선다 — 맞이 자리까지 갔다가
+        /// 되돌아 나오는 군더더기가 없다.
+        /// </summary>
         public void LeadInside()
         {
+            if (_phase == Phase.Greeting)
+            {
+                _wait = 0f; _then = null;                  // 걸어나오기를 그만둔다
+                if (_animator != null) _animator.speed = 1f;   // 도착하며 늦춰둔 걸음을 되돌린다
+                DoLead();
+                return;
+            }
             if (_phase != Phase.Idle) return;
             Delay(_delayBeforeLead, DoLead);
         }
