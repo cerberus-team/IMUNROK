@@ -55,6 +55,14 @@ namespace IMUNROK.Common
         [SerializeField] private float _turnSpeed = 540f;
         [SerializeField] private float _arriveDist = 0.12f;
 
+        [Tooltip("도착 이만큼 앞에서부터 걸음을 늦춘다(m). 0이면 끝까지 같은 속도로 오다 뚝 선다 — " +
+                 "그게 어색하다. 걷는 속도와 동작 속도를 함께 줄여야 발이 안 미끄러진다")]
+        [SerializeField] private float _slowDownDist = 1.2f;
+        [Tooltip("늦춘 끝의 속도 비율(0.3 = 원래의 30%)")]
+        [SerializeField] private float _slowDownTo = 0.3f;
+        [Tooltip("멈출 때 선 자세로 섞이는 시간(초). 0이면 하드컷")]
+        [SerializeField] private float _standBlend = 0.35f;
+
         [Header("바닥 붙이기")]
         [Tooltip("켜면 바닥 자동추적(평지용). 돌담·계단은 끄고 경유점 높이를 쓰는 게 자연스러움")]
         [SerializeField] private bool _stickToGround = false;
@@ -92,6 +100,7 @@ namespace IMUNROK.Common
         private Vector3 _mvTarget;
         private Vector3 _mvFrom;
         private bool _mvHasTarget;
+        private float _standBlendLeft;   // 선 자세로 섞이는 중 남은 시간
 
         private void Awake()
         {
@@ -114,10 +123,32 @@ namespace IMUNROK.Common
             if (!string.IsNullOrEmpty(_idleState)) { Play(_idleState); return; }
             if (!_freezeWalkAsIdle || string.IsNullOrEmpty(_walkState)) return;
 
+            float at = Mathf.Repeat(_standAtNormalized, 1f);
+            if (_standBlend <= 0.001f)
+            {
+                _animator.speed = 1f;
+                _animator.Play(_walkState, 0, at);
+                _animator.Update(0f);
+                _animator.speed = 0f;
+                return;
+            }
+
+            // 걷다 말고 한 프레임으로 뚝 자르면 어색하다. 선 자세로 섞어 들어가되,
+            // 섞이는 동안에도 클립이 흐르므로 그만큼 앞에서 시작해 끝나는 순간 딱 그 프레임에 선다.
+            float len = ClipLength(_walkState);
+            float startAt = len > 0.01f ? Mathf.Repeat(at - _standBlend / len, 1f) : at;
             _animator.speed = 1f;
-            _animator.Play(_walkState, 0, Mathf.Repeat(_standAtNormalized, 1f));
-            _animator.Update(0f);
-            _animator.speed = 0f;
+            _animator.CrossFadeInFixedTime(_walkState, _standBlend, 0, startAt * Mathf.Max(0.01f, len));
+            _standBlendLeft = _standBlend;
+        }
+
+        /// <summary>컨트롤러에서 클립 길이를 재생 없이 조회.</summary>
+        private float ClipLength(string state)
+        {
+            if (_animator == null || _animator.runtimeAnimatorController == null) return 0f;
+            foreach (var c in _animator.runtimeAnimatorController.animationClips)
+                if (c != null && c.name == state && c.length > 0.05f) return c.length;
+            return 0f;
         }
 
         // ───────── 밖에서 부르는 신호 ─────────
@@ -143,6 +174,20 @@ namespace IMUNROK.Common
 
         private void Update()
         {
+            // 선 자세로 섞이는 중 — 다 섞이면 그 프레임에 멈춘다
+            if (_standBlendLeft > 0f)
+            {
+                _standBlendLeft -= Time.deltaTime;
+                if (_standBlendLeft <= 0f)
+                {
+                    float len = ClipLength(_walkState);
+                    _animator.speed = 1f;
+                    _animator.Play(_walkState, 0, Mathf.Repeat(_standAtNormalized, 1f));
+                    _animator.Update(0f);
+                    _animator.speed = 0f;
+                }
+            }
+
             if (_wait > 0f)
             {
                 _wait -= Time.deltaTime;
@@ -268,9 +313,15 @@ namespace IMUNROK.Common
             }
 
             Vector3 dir = flat / flatDist;
+            // 도착이 가까우면 걸음을 늦춘다. 동작 속도도 같이 줄여야 발이 바닥에서 안 미끄러진다.
+            float ease = 1f;
+            if (_slowDownDist > 0.01f && flatDist < _slowDownDist)
+                ease = Mathf.Lerp(_slowDownTo, 1f, flatDist / _slowDownDist);
+            if (_animator != null && _standBlendLeft <= 0f && _animator.speed > 0f) _animator.speed = ease;
+
             transform.rotation = Quaternion.RotateTowards(
-                transform.rotation, Quaternion.LookRotation(dir, Vector3.up), _turnSpeed * Time.deltaTime);
-            Vector3 next = pos + dir * _moveSpeed * Time.deltaTime;
+                transform.rotation, Quaternion.LookRotation(dir, Vector3.up), _turnSpeed * ease * Time.deltaTime);
+            Vector3 next = pos + dir * _moveSpeed * ease * Time.deltaTime;
 
             float total = new Vector2(target.x - _mvFrom.x, target.z - _mvFrom.z).magnitude;
             float remain = new Vector2(target.x - next.x, target.z - next.z).magnitude;
@@ -311,7 +362,11 @@ namespace IMUNROK.Common
             if (_animator.IsInTransition(0)) return;   // 전환(블렌드) 중엔 안 건드림 → CrossFade 안 끊김
             var st = _animator.GetCurrentAnimatorStateInfo(0);
             if (_animator.speed == 0f || !st.IsName(_walkState) || st.normalizedTime >= 1f)
+            {
+                float keep = _animator.speed;                 // 늦추던 속도를 잃지 않게
                 Play(_walkState);
+                if (keep > 0f && keep < 1f) _animator.speed = keep;
+            }
         }
 
         private void Play(string state)
