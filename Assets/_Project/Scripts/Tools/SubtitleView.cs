@@ -74,8 +74,8 @@ namespace IMUNROK.Common
         /// </summary>
         public static void SetReadingDistance(float distance, float verticalOffset = -0.28f)
         {
-            var a = Instance._anchor;
-            if (a != null) a.SetDistance(distance, verticalOffset);
+            if (_instance == null || _instance._anchor == null) return;   // 없으면 만들지 않는다
+            _instance._anchor.SetDistance(distance, verticalOffset);
         }
 
         /// <summary>지금 자막이 떠 있는가(다른 UI가 겹치지 않게 참고).</summary>
@@ -85,8 +85,11 @@ namespace IMUNROK.Common
         /// </summary>
         public static void KeepInFrontOf(Transform target)
         {
-            var a = Instance._anchor;
-            if (a != null) a.KeepInFrontOf(target);
+            // Instance 를 쓰면 안 된다 — 없을 때 새로 만들어 버린다.
+            // 심문이 끝날 때(OnDisable) 풀어주는데, 그 순간이 씬이 닫히는 중일 수 있다.
+            // 그러면 "닫는 중에 오브젝트가 새로 생겼다"고 유니티가 경고한다.
+            if (_instance == null || _instance._anchor == null) return;
+            _instance._anchor.KeepInFrontOf(target);
         }
 
         public static bool IsShowing => _instance != null && _instance._group != null && _instance._group.alpha > 0.5f;
