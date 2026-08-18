@@ -1590,10 +1590,28 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1562303627}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1562303628}
   m_SourcePrefab: {fileID: 100100000, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
 --- !u!4 &115340906 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
+  m_PrefabInstance: {fileID: 115340905}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &115340907 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -7520100684144184798, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
+  m_PrefabInstance: {fileID: 115340905}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &115340908 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2933462074546144371, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
+  m_PrefabInstance: {fileID: 115340905}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &115340909 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 9209473232806845289, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
   m_PrefabInstance: {fileID: 115340905}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &117361979 stripped
@@ -13565,6 +13583,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7bf667f4ef24e13418f324bdf4257aff, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1029669644}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7bf667f4ef24e13418f324bdf4257aff, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1029669648}
   m_SourcePrefab: {fileID: 100100000, guid: 7bf667f4ef24e13418f324bdf4257aff, type: 3}
 --- !u!4 &1029669642 stripped
 Transform:
@@ -13598,6 +13619,44 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!4 &1029669645 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -1243508361809390084, guid: 7bf667f4ef24e13418f324bdf4257aff, type: 3}
+  m_PrefabInstance: {fileID: 1029669641}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1029669646 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8353334687694493458, guid: 7bf667f4ef24e13418f324bdf4257aff, type: 3}
+  m_PrefabInstance: {fileID: 1029669641}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1029669647 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7735791810609077387, guid: 7bf667f4ef24e13418f324bdf4257aff, type: 3}
+  m_PrefabInstance: {fileID: 1029669641}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1029669648
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1029669643}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39b967ea594015c4ab933a7b4585d67b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.BreathSway
+  _animator: {fileID: 1029669644}
+  _bones:
+  - {fileID: 1029669647}
+  - {fileID: 1029669646}
+  - {fileID: 1029669645}
+  _facing: {fileID: 1688468735}
+  _bowDegrees: 0.35
+  _swayDegrees: 0.25
+  _period: 5.5
+  _swayPeriodScale: 1.6
+  _phase: 0
 --- !u!1001 &1030987576
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -155806,6 +155865,29 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   _groundFollowSpeed: 5
+--- !u!114 &1562303628
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1562303625}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39b967ea594015c4ab933a7b4585d67b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.BreathSway
+  _animator: {fileID: 1562303626}
+  _bones:
+  - {fileID: 115340909}
+  - {fileID: 115340908}
+  - {fileID: 115340907}
+  _facing: {fileID: 115340906}
+  _bowDegrees: 0.35
+  _swayDegrees: 0.25
+  _period: 5.5
+  _swayPeriodScale: 1.6
+  _phase: 0.37
 --- !u!1 &1563576550 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1030993357, guid: abc00000000015682379529708428915, type: 3}
