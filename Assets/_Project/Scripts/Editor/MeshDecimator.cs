@@ -124,6 +124,12 @@ namespace IMUNROK.Common.Editor
             return Mathf.Max(20000, Mathf.RoundToInt(src * 0.25f));
         }
 
+        /// <summary>
+        /// 다른 도구가 쓰라고 열어 둔 문. 씬을 건드리지 않고 줄인 메시만 구워 돌려준다.
+        /// (먼거리 판을 만드는 <see cref="HeavyMeshLod"/> 가 쓴다)
+        /// </summary>
+        public static Mesh Bake(Mesh src, int targetTriangles) => BakeSimplified(src, targetTriangles);
+
         /// <summary>줄인 메시를 만들어 원본 옆 폴더에 저장한다. 이미 있으면 덮어쓴다.</summary>
         private static Mesh BakeSimplified(Mesh src, int targetTriangles)
         {

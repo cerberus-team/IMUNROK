@@ -316,6 +316,12 @@ namespace IMUNROK.Common
         {
             CrossTo(_openState);
             if (_animator != null) _animator.speed = Mathf.Max(0.01f, _openSpeed);   // 문 여는 동작만 느리게
+
+            // 문짝도 여기서 연다. 예전엔 씬의 OnKnock 이벤트가 열었는데, 그 연결이 끊어져
+            // (대상이 비어 있었다) 마름은 문 여는 시늉만 하고 대문은 닫힌 채로 있었다.
+            // 코드로 옮겨 두면 씬을 만지다 다시 끊길 일이 없다.
+            if (_door != null) { _door.Unlock(); _door.Open(); }
+
             _phase = Phase.Opening;
         }
 

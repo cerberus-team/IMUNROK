@@ -79,6 +79,16 @@ namespace IMUNROK.Common
         }
 
         /// <summary>지금 자막이 떠 있는가(다른 UI가 겹치지 않게 참고).</summary>
+        /// <summary>
+        /// 이 인물보다 앞에 서게 한다. 바짝 붙어도 상대 몸이 자막을 덮지 않는다.
+        /// null 을 넣으면 원래 읽는 거리로 돌아간다.
+        /// </summary>
+        public static void KeepInFrontOf(Transform target)
+        {
+            var a = Instance._anchor;
+            if (a != null) a.KeepInFrontOf(target);
+        }
+
         public static bool IsShowing => _instance != null && _instance._group != null && _instance._group.alpha > 0.5f;
 
         private void Awake()

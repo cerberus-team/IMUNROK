@@ -52,6 +52,14 @@ namespace IMUNROK.Common
         [Tooltip("비우면 Camera.main을 쓴다")]
         [SerializeField] private Camera _camera;
 
+        [Header("가림 피하기")]
+        [Tooltip("이 대상보다 앞에 서게 한다. 심문 중인 인물을 넣으면, 바짝 붙어도 상대 몸에 대사가 가리지 않는다")]
+        [SerializeField] private Transform _keepInFrontOf;
+        [Tooltip("대상보다 이만큼 앞(m)")]
+        [SerializeField] private float _frontMargin = 0.35f;
+        [Tooltip("아무리 가까워도 이보다 가까이는 안 붙인다(m). 너무 붙으면 눈이 아프다")]
+        [SerializeField] private float _minDistance = 0.6f;
+
         private Canvas _canvas;
         private RectTransform _rect;
         private bool _placed;      // 첫 프레임엔 감쇠 없이 즉시 배치
@@ -166,11 +174,40 @@ namespace IMUNROK.Common
             ApplyTransform(head, instant: false);
         }
 
+        /// <summary>
+        /// 심문 중엔 이 인물보다 앞에 서라고 알려 준다.
+        ///
+        /// 왜 필요한가: 이 앵커는 눈앞 1.3m에 못 박혀 있고, 월드 캔버스는 깊이 검사를 받는다.
+        /// 그래서 인물에게 1m 안쪽으로 다가서면 <b>상대 몸이 대사창을 덮어</b> 글씨가 안 보인다.
+        /// "뒤로 물러서세요"라고 안내하는 대신, 창이 알아서 상대 앞으로 당겨 온다.
+        /// (VR에서는 뒤에 벽이 있어 물러설 수 없는 경우가 실제로 있다)
+        /// </summary>
+        public void KeepInFrontOf(Transform target) => _keepInFrontOf = target;
+
+        /// <summary>지금 프레임에 쓸 거리. 대상이 나보다 가까우면 그 앞으로 당긴다.</summary>
+        private float EffectiveDistance(Transform head)
+        {
+            if (_keepInFrontOf == null) return _distance;
+            float toTarget = ModelBounds.DistanceTo(_keepInFrontOf, head.position);
+            return Mathf.Clamp(toTarget - _frontMargin, _minDistance, _distance);
+        }
+
         private void ApplyTransform(Transform head, bool instant)
         {
+            float d = EffectiveDistance(head);
+
+            // 가까이 당겨오면 글씨가 그만큼 커 보인다 — 거리에 맞춰 같은 비율로 줄인다.
+            // 그래야 "자리만 옮겼을 뿐 보기엔 똑같다"가 된다.
+            float scale = _canvasScale * (d / Mathf.Max(0.01f, _distance));
+            if (!Mathf.Approximately(_rect.localScale.x, scale))
+                _rect.localScale = Vector3.one * scale;
+
+            // 위아래 치우침도 같은 비율로. 안 그러면 당겨온 창이 시야 아래로 내려앉는다.
+            float drop = _verticalOffset * (d / Mathf.Max(0.01f, _distance));
+
             Vector3 target = head.position
-                             + _anchorForward * _distance
-                             + Vector3.up * _verticalOffset;
+                             + _anchorForward * d
+                             + Vector3.up * drop;
 
             // Waist는 아래를 보고 있으므로 살짝 눕혀서 정면으로 마주 보게 한다.
             Vector3 toHead = head.position - target;

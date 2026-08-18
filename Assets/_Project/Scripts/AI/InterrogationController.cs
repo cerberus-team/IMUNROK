@@ -225,6 +225,12 @@ namespace IMUNROK.Common
 
             RefreshSubtitle();
             InterrogationPanel.Open(this);
+
+            // 대사창은 눈앞 1.3m 에 못 박혀 있고 월드 캔버스는 깊이 검사를 받는다.
+            // 인물에게 1m 안쪽으로 다가서면 상대 몸이 글씨를 덮어 버린다.
+            // "뒤로 물러서세요" 라고 가르치는 대신, 창이 알아서 상대 앞으로 당겨 온다.
+            SubtitleView.KeepInFrontOf(transform);
+            InterrogationPanel.KeepInFrontOf(transform);
         }
 
         private void OnDisable()
@@ -232,6 +238,7 @@ namespace IMUNROK.Common
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); }
             if (Active == this) Active = null;
             UnsubscribeMic();
+            SubtitleView.KeepInFrontOf(null);
             SubtitleView.Hide();
             InterrogationPanel.Close();
         }
@@ -263,6 +270,7 @@ namespace IMUNROK.Common
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); } // 큐브 → 패널만 닫기
             if (Active == this) Active = null;
             UnsubscribeMic();
+            SubtitleView.KeepInFrontOf(null);
             InterrogationPanel.Close();
 
             // 돌아설 때 등 뒤로 던지는 한 마디.

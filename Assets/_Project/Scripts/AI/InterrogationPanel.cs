@@ -63,6 +63,13 @@ namespace IMUNROK.Common
         }
 
         /// <summary>심문이 끝날 때 호출.</summary>
+        /// <summary>이 인물보다 앞에 서게 한다(상대 몸에 가리지 않게).</summary>
+        public static void KeepInFrontOf(Transform target)
+        {
+            var p = _instance;
+            if (p != null && p._anchor != null) p._anchor.KeepInFrontOf(target);
+        }
+
         public static void Close()
         {
             if (_instance != null) _instance.SetVisible(false);
