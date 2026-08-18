@@ -21,8 +21,13 @@ namespace IMUNROK.Common
         [SerializeField] private string _idleState = "";
         [Tooltip("걷기. 복동은 양반걸음이라 기본 Walking 이 아니다")]
         [SerializeField] private string _walkState = "양반걷기";
-        [Tooltip("서있기 클립이 없을 때, 걷기 클립의 첫 프레임(선 자세)에서 멈춰 세워 '서있기'로 쓴다(마름과 같은 방식)")]
+        [Tooltip("서있기 클립이 없을 때, 걷기 클립의 한 프레임에서 멈춰 세워 '서있기'로 쓴다(마름과 같은 방식)")]
         [SerializeField] private bool _freezeWalkAsIdle = true;
+
+        [Tooltip("걷기 클립의 몇 지점(0~1)에서 멈출지. 첫 프레임은 한 발이 들려 있어 " +
+                 "걷다 만 것처럼 보인다 — 두 발이 다 땅에 닿는 순간을 찾아 넣을 것. " +
+                 "양반걷기는 0.840 에서 두 발 높이차가 0.000, 앞뒤로도 거의 안 벌어진다")]
+        [SerializeField] private float _standAtNormalized = 0f;
 
         [Header("맞이하러 나오기 (비우면 처음부터 그 자리에 서 있는다)")]
         [Tooltip("대문이 열리면 걸어나와 설 자리(안마당). 복동을 씬에 둔 자리 = 나오기 전 " +
@@ -110,7 +115,7 @@ namespace IMUNROK.Common
             if (!_freezeWalkAsIdle || string.IsNullOrEmpty(_walkState)) return;
 
             _animator.speed = 1f;
-            _animator.Play(_walkState, 0, 0f);
+            _animator.Play(_walkState, 0, Mathf.Repeat(_standAtNormalized, 1f));
             _animator.Update(0f);
             _animator.speed = 0f;
         }

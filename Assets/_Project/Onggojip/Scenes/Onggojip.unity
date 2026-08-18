@@ -14041,10 +14041,11 @@ MonoBehaviour:
   - {fileID: 1029669647}
   - {fileID: 1029669646}
   - {fileID: 1029669645}
+  - {fileID: 1459999103}
   _facing: {fileID: 1688468735}
-  _bowDegrees: 0.35
-  _swayDegrees: 0.25
-  _period: 5.5
+  _bowDegrees: 1
+  _swayDegrees: 0.7
+  _period: 4.6
   _swayPeriodScale: 1.6
   _phase: 0
   _renderer: {fileID: 0}
@@ -156581,6 +156582,11 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: abc00000000004247523108674608492, type: 3}
+--- !u!4 &1459999103 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -6944465351610959468, guid: 7bf667f4ef24e13418f324bdf4257aff, type: 3}
+  m_PrefabInstance: {fileID: 1029669641}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1460417422
 GameObject:
   m_ObjectHideFlags: 0
@@ -156800,6 +156806,11 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: abc00000000010609724210142908404, type: 3}
+--- !u!4 &1473487163 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8573173560056127949, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
+  m_PrefabInstance: {fileID: 115340905}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1477458066 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1030997795, guid: abc00000000011506122180191075232, type: 3}
@@ -157717,10 +157728,11 @@ MonoBehaviour:
   - {fileID: 115340909}
   - {fileID: 115340908}
   - {fileID: 115340907}
+  - {fileID: 1473487163}
   _facing: {fileID: 115340906}
-  _bowDegrees: 0.35
-  _swayDegrees: 0.25
-  _period: 5.5
+  _bowDegrees: 1
+  _swayDegrees: 0.7
+  _period: 4.6
   _swayPeriodScale: 1.6
   _phase: 0.37
   _renderer: {fileID: 0}
@@ -160972,6 +160984,7 @@ MonoBehaviour:
   _idleState: 
   _walkState: "\uC591\uBC18\uAC77\uAE30"
   _freezeWalkAsIdle: 1
+  _standAtNormalized: 0.84
   _greetSpot: {fileID: 1460417423}
   _greetWaypoints: []
   _delayBeforeGreet: 0.6
