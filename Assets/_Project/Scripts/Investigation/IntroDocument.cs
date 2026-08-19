@@ -42,6 +42,8 @@ namespace IMUNROK.Common
         [SerializeField] private float _readDrop = 0.06f;
         [Tooltip("떠오르는 데 걸리는 시간(초)")]
         [SerializeField] private float _liftSeconds = 0.7f;
+        [Tooltip("읽는 동안 시선을 따라오는 빠르기. 낮으면 천천히 따라와 손에 든 느낌이 난다")]
+        [SerializeField] private float _readFollow = 8f;
         [Tooltip("읽는 중임을 알리는 말")]
         [SerializeField] private string _readPrompt = "맡으려면 글을 · 물리려면 옆을 누르시오";
 
@@ -191,14 +193,8 @@ namespace IMUNROK.Common
             // 종이는 축에 매달려 아래로 자란다. 그대로 눈높이에 두면 글이 죄 아래에 걸리므로
             // 다 폈을 때의 절반만큼 올려 달아 한가운데가 눈에 오게 한다.
             float half = _scroll != null ? _scroll.FullHeight * 0.5f : 0.2f;
-            Vector3 toPos = cam.transform.position
-                            + cam.transform.forward * _readDistance
-                            + cam.transform.up * (half - _readDrop);
-
-            // 종이를 세워 두면 안 된다. 이 장면의 시선은 쉰한 도 아래를 보는데,
-            // 세계의 위쪽을 기준으로 세우면 종이가 눕혀 보여 글이 납작하게 찌그러진다.
-            // 보는 사람의 위쪽을 기준으로 세워야 화면과 나란해진다.
-            Quaternion toRot = Quaternion.LookRotation(cam.transform.position - toPos, cam.transform.up);
+            Vector3 toPos = ReadPosition(cam, half);
+            Quaternion toRot = ReadRotation(cam);
 
             float t = 0f;
             while (t < 1f)
@@ -277,6 +273,31 @@ namespace IMUNROK.Common
         private void KillPutBackTarget()
         {
             if (_putBack != null) { Destroy(_putBack); _putBack = null; }
+        }
+
+        /// <summary>
+        /// 읽을 때 종이가 놓일 자리. 종이는 축에 매달려 아래로 자라므로, 축을 종이
+        /// 절반만큼 위에 달아야 <b>종이 한가운데가</b> 시선 위에 온다.
+        /// </summary>
+        private Vector3 ReadPosition(Camera cam, float half)
+        {
+            Vector3 center = cam.transform.position
+                             + cam.transform.forward * _readDistance
+                             - cam.transform.up * _readDrop;
+            return center + cam.transform.up * half;
+        }
+
+        /// <summary>
+        /// 읽을 때 종이가 향할 쪽. 시선의 정반대를 보게 하면 종이 면과 화면이
+        /// 정확히 나란해진다 — 한 치도 기울지 않는다.
+        ///
+        /// 앞서는 '카메라 자리를 바라보게' 했는데, 종이가 축보다 아래에 매달려 있어
+        /// 그 방향과 시선이 열세 도 어긋났다. 바라볼 곳은 카메라의 <b>자리</b>가 아니라
+        /// 카메라가 보는 <b>방향</b>이다.
+        /// </summary>
+        private Quaternion ReadRotation(Camera cam)
+        {
+            return Quaternion.LookRotation(-cam.transform.forward, cam.transform.up);
         }
 
         /// <summary>도로 발치에 내려놓는다(다른 봉서를 집었을 때).</summary>
@@ -418,9 +439,21 @@ namespace IMUNROK.Common
 
         private void LateUpdate()
         {
-            if (_labelGo == null || !_labelGo.activeSelf) return;
             var cam = Camera.main;
             if (cam == null) return;
+
+            // 읽는 동안에는 고개를 돌려도 종이가 늘 정면을 보게 따라온다.
+            // 헤드셋에서는 머리가 가만히 있지 않으므로, 한 번 맞춰 놓는 것만으로는
+            // 곧 비스듬해진다. 손에 든 것을 눈앞에 고쳐 드는 것과 같다.
+            if (_phase == Phase.읽는중 && _scroll != null)
+            {
+                float half = _scroll.FullHeight * 0.5f;
+                float t = 1f - Mathf.Exp(-_readFollow * Time.deltaTime);   // 프레임률에 안 흔들리는 감쇠
+                transform.position = Vector3.Lerp(transform.position, ReadPosition(cam, half), t);
+                transform.rotation = Quaternion.Slerp(transform.rotation, ReadRotation(cam), t);
+            }
+
+            if (_labelGo == null || !_labelGo.activeSelf) return;
 
             var b = new Bounds(transform.position, Vector3.zero);
             bool f = true;
