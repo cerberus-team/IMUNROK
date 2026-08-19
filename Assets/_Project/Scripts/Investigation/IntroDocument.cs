@@ -12,7 +12,6 @@ namespace IMUNROK.Common
     /// 선택은 ISelectable로 추상화되어, 지금은 마우스 클릭 / 나중엔 VR 손뻗기(레이·Grab)로
     /// 같은 OnSelect()가 호출된다.
     /// </summary>
-    [RequireComponent(typeof(Renderer))]
     public class IntroDocument : MonoBehaviour, ISelectable
     {
         [SerializeField] private CaseId _caseId = CaseId.Case1_Onggojip;
@@ -28,7 +27,9 @@ namespace IMUNROK.Common
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
-        private Renderer _renderer;
+        // 모델이 자식으로 들어올 수 있다(두루마리 프리팹처럼). 자기 자신에게만
+        // 렌더러를 찾으면 그런 구조에서 아무것도 안 보이고 색도 안 바뀐다.
+        private Renderer[] _renderers;
         private MaterialPropertyBlock _mpb;
         private Collider _collider;
 
@@ -47,7 +48,7 @@ namespace IMUNROK.Common
 
         private void Awake()
         {
-            _renderer = GetComponent<Renderer>();
+            _renderers = GetComponentsInChildren<Renderer>(true);
             _collider = GetComponent<Collider>();
             _mpb = new MaterialPropertyBlock();
             _shownLocalPos = transform.localPosition;
@@ -59,7 +60,7 @@ namespace IMUNROK.Common
         private void Hide()
         {
             _ready = false;
-            _renderer.enabled = false;
+            SetRenderers(false);
             if (_collider != null) _collider.enabled = false;
         }
 
@@ -73,7 +74,7 @@ namespace IMUNROK.Common
         {
             if (delay > 0f) yield return new WaitForSeconds(delay);
 
-            _renderer.enabled = true;
+            SetRenderers(true);
             Vector3 from = _shownLocalPos + new Vector3(0f, 0f, fromDistance); // 왕 쪽에서
             float t = 0f;
             float dur = Mathf.Max(0.01f, duration);
@@ -150,12 +151,22 @@ namespace IMUNROK.Common
             SetColor(c);
         }
 
+        private void SetRenderers(bool on)
+        {
+            if (_renderers == null) return;
+            foreach (var r in _renderers) if (r != null) r.enabled = on;
+        }
+
         private void SetColor(Color c)
         {
-            if (_renderer == null) return;
-            _renderer.GetPropertyBlock(_mpb);
-            _mpb.SetColor(BaseColorId, c);
-            _renderer.SetPropertyBlock(_mpb);
+            if (_renderers == null) return;
+            foreach (var r in _renderers)
+            {
+                if (r == null) continue;
+                r.GetPropertyBlock(_mpb);
+                _mpb.SetColor(BaseColorId, c);
+                r.SetPropertyBlock(_mpb);
+            }
         }
     }
 }

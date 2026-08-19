@@ -182,6 +182,12 @@ namespace IMUNROK.Common
         /// <summary>풀린 정도(0~1)를 부재들에 반영.</summary>
         private void Apply(float amount)
         {
+            // 편집 모드에서는 Awake 가 불리지 않는다. 씬을 짜는 도구가 SetInstant 로
+            // 말린 모습을 만들어 두는 일이 있으므로, 없으면 여기서 만든다.
+            if (_mpb == null) _mpb = new MaterialPropertyBlock();
+            if (_paperRenderer == null && _paper != null) _paperRenderer = _paper.GetComponent<Renderer>();
+            if (_paperCollider == null && _paper != null) _paperCollider = _paper.GetComponent<BoxCollider>();
+
             _shown = Mathf.Clamp01(amount);
             float full = FullHeight;
             float h = full * _shown;
