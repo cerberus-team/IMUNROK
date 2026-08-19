@@ -103,6 +103,14 @@ gemini_api_key.txt
 /Assets/_Project/Art/Props/*.fbx
 /Assets/_Project/Art/Props/*.obj
 
+# 음원 — 모델과 같은 규칙이다. 노래 한 곡이 몇 MB라 git 이 감당할 물건이 아니다.
+# .meta 는 커밋한다 → 공유폴더에서 파일만 제자리에 넣으면 연결이 그대로 살아난다.
+*.mp3
+*.wav
+*.ogg
+*.aiff
+*.flac
+
 # 안전망: 어디에 두든 모델·대용량 텍스처 원본은 git에 못 올라가게
 # (아트는 공유폴더 원칙. UI용 png/jpg는 필요해서 제외하지 않음)
 *.blend
