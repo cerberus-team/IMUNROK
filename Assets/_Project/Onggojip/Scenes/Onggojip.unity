@@ -13414,6 +13414,7 @@ MonoBehaviour:
   _soleOnGround: 1
   _pinHorizontally: 1
   _bodyBone: {fileID: 2089543900}
+  _followSpeed: 1.5
 --- !u!1 &715823138 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1030989961, guid: abc00000000000019561070714601592, type: 3}
@@ -157201,19 +157202,7 @@ MonoBehaviour:
   _previewGroupName: "_\uBBF8\uB9AC\uBCF4\uAE30"
   _onReady:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1688468740}
-        m_TargetAssemblyTypeName: IMUNROK.Common.BokdongController, IMUNROK.Common
-        m_MethodName: SitDown
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: 
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!4 &1174840587
 Transform:
   m_ObjectHideFlags: 0
@@ -165482,6 +165471,7 @@ MonoBehaviour:
   _soleOnGround: 1
   _pinHorizontally: 1
   _bodyBone: {fileID: 0}
+  _followSpeed: 1.5
 --- !u!1 &1369867044 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1030989961, guid: abc00000000000019561070714601592, type: 3}
@@ -168767,6 +168757,9 @@ MonoBehaviour:
   _sitDownSpot: {fileID: 1923173201}
   _dozeSpot: {fileID: 467883253}
   _delayBeforeOpen: 0.4
+  _answerLine: "\uB258\uC2DC\uC624?"
+  _answerSpeaker: "\uBB38 \uC548\uCABD"
+  _openLeafAt: 0.35
   _delayBeforeWalk: 1
   _openSpeed: 1
   _blend: 0.2
@@ -172924,6 +172917,8 @@ MonoBehaviour:
   _sitDownReverseState: Stand_Up3
   _sitSpot: {fileID: 2064993465}
   _sitBlend: 0.2
+  _sitYOffset: 0
+  _sitSpeed: 1.4
   _throughDoorWaypoints:
   - {fileID: 1921870555}
   _delayAfterOpen: 0.5
@@ -172954,6 +172949,7 @@ MonoBehaviour:
   _soleOnGround: 1
   _pinHorizontally: 1
   _bodyBone: {fileID: 25345825}
+  _followSpeed: 1.5
 --- !u!114 &1688468742
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -178553,6 +178549,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.TeleportZone
   _destination: {fileID: 1669334947}
   _matchFacing: 1
+  _lookAt: {fileID: 2064993465}
   _heightOffset: 0
   _standOnFloor: 1
   _eyeHeight: 1.6
@@ -178605,6 +178602,18 @@ MonoBehaviour:
       - m_Target: {fileID: 1174840586}
         m_TargetAssemblyTypeName: IMUNROK.Common.InteriorSceneSwap, IMUNROK.Common
         m_MethodName: EnterInside
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 1688468740}
+        m_TargetAssemblyTypeName: IMUNROK.Common.BokdongController, IMUNROK.Common
+        m_MethodName: SitDown
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

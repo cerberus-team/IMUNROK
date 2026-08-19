@@ -50,6 +50,16 @@ namespace IMUNROK.Common
         [Tooltip("몸의 기준으로 삼을 뼈. 비우면 스킨메시의 루트 뼈(보통 Hips)")]
         [SerializeField] private Transform _bodyBone;
 
+        [Tooltip("바닥 높이가 갑자기 바뀔 때 따라가는 속도(m/s). 0이면 그 자리에서 즉시 — " +
+                 "중문 문지방처럼 턱이 있으면 한 프레임에 훌쩍 올라가 점프하는 것처럼 보인다")]
+        [SerializeField] private float _followSpeed = 1.5f;
+
+        [Tooltip("발보다 이만큼 위까지만 바닥으로 친다(m). 그보다 높은 것은 문짝·처마·서까래라 딛을 수 없다")]
+        [SerializeField] private float _maxStepUp = 0.5f;
+
+        private float _shownGroundY;      // 지금 몸이 딛고 있는 것으로 치는 높이
+        private bool _hasGround;
+
         private void Reset() => CacheBones();
         private void OnEnable() => CacheBones();
 
@@ -114,10 +124,23 @@ namespace IMUNROK.Common
             foreach (var h in hits)
             {
                 if (h.collider.transform.IsChildOf(transform)) continue;   // 나 자신 제외
+
+                // 발보다 한참 위에 있는 것은 바닥이 아니다.
+                // 중문 문짝 콜라이더가 마당보다 1.71m 위에 떠 있어서, 위에서 쏜 광선이
+                // 그것을 먼저 맞고 바닥으로 쳤다 — 복동이 문간에서 1.7m 솟구친 원인이다.
+                // 디딤돌(10cm)·문지방은 넘고 문짝·처마는 거르도록 딛을 수 있는 높이로 자른다.
+                if (h.point.y > lowest + _maxStepUp) continue;
+
                 if (h.distance < best) { best = h.distance; groundY = h.point.y; }
             }
 
-            float delta = (groundY - _sink + SoleOffset(lowest)) - lowest;
+            // 문지방을 넘을 때 바닥이 한 번에 몇 십 cm 뛴다. 그대로 따라가면 몸이 튀어오르므로
+            // 정해진 속도로만 쫓아간다. 편집 모드에서는 즉시 맞춘다(씬뷰가 흔들리면 안 된다).
+            if (!Application.isPlaying || !_hasGround || _followSpeed <= 0f) _shownGroundY = groundY;
+            else _shownGroundY = Mathf.MoveTowards(_shownGroundY, groundY, _followSpeed * Time.deltaTime);
+            _hasGround = true;
+
+            float delta = (_shownGroundY - _sink + SoleOffset(lowest)) - lowest;
             if (Mathf.Abs(delta) < 0.0005f) return;
             _model.position += new Vector3(0f, delta, 0f);
         }

@@ -62,8 +62,16 @@ namespace IMUNROK.Common
         [SerializeField] private Transform _dozeSpot;
 
         [Header("시간차 (초)")]
-        [Tooltip("문 여는 신호 → 실제 여는 동작까지 뜸")]
-        [SerializeField] private float _delayBeforeOpen = 0.15f;
+        [Tooltip("두드린 뒤 → 여는 동작까지 뜸. 안에서 인기척을 내고 다가오는 사이다. " +
+                 "0에 가까우면 두드리자마자 문이 열려 허락받는 느낌이 없다")]
+        [SerializeField] private float _delayBeforeOpen = 1.6f;
+        [Tooltip("두드리면 안에서 먼저 건네는 말. 비우면 말 없이 뜸만 둔다")]
+        [SerializeField] private string _answerLine = "뉘시오?";
+        [Tooltip("말하는 이 이름(자막에 붙는다)")]
+        [SerializeField] private string _answerSpeaker = "문 안쪽";
+        [Tooltip("여는 동작의 어느 대목에서 문짝이 실제로 움직이기 시작하는가(0~1). " +
+                 "0이면 손도 대기 전에 문이 열린다 — 빗장을 벗기고 미는 사이가 있어야 한다")]
+        [Range(0f, 1f)] [SerializeField] private float _openLeafAt = 0.35f;
         [Tooltip("문 연 뒤 → 걸어가기 시작까지 뜸(문 잡고 잠깐 서 있음)")]
         [SerializeField] private float _delayBeforeWalk = 1.0f;
 
@@ -113,6 +121,7 @@ namespace IMUNROK.Common
         private float _sitBlend;      // 걷기→선 자세 블렌드 남은 시간
         private float _closeTimer;    // 문 닫기(여는 동작 역재생) 남은 시간
         private float _closeLen;      // 문 여는 클립 길이
+        private bool _leafOpened;     // 이번 여는 동작에서 문짝을 이미 열었나
         private float _closeBlend;    // 문 연 끝 자세로 붙는 블렌드 남은 시간
         private Vector3 _dozeFrom;    // 앉은 자리 → 조는 자리로 옮기는 중의 시작점
         private Quaternion _dozeRotFrom;
@@ -142,6 +151,11 @@ namespace IMUNROK.Common
         public void OpenDoorThenStepAside()
         {
             if (_phase != Phase.StandAtDoor) return;   // 이미 열었거나 진행 중이면 무시
+
+            // 두드리자마자 문이 열리면 "허락을 받고 들어간다"가 아니라 "문이 저절로 열린다"가 된다.
+            // 안에서 먼저 인기척을 내고, 그 사이 다가오는 뜸을 둔 뒤에 연다.
+            if (!string.IsNullOrEmpty(_answerLine)) SubtitleView.Show(_answerSpeaker, _answerLine);
+
             Delay(_delayBeforeOpen, DoOpen);
         }
 
@@ -251,6 +265,12 @@ namespace IMUNROK.Common
             switch (_phase)
             {
                 case Phase.Opening:
+                    if (!_leafOpened && _door != null)
+                    {
+                        var st = _animator == null ? default(AnimatorStateInfo) : _animator.GetCurrentAnimatorStateInfo(0);
+                        bool reached = _animator == null || (st.IsName(_openState) && st.normalizedTime >= _openLeafAt);
+                        if (reached) { _door.Unlock(); _door.Open(); _leafOpened = true; }
+                    }
                     if (StateDone(_openState))
                     {
                         // 비켜설 자리를 걸어뒀으면 자리로 바로 가지 않는다 — 문간을 열어주고 기다린다.
@@ -317,10 +337,9 @@ namespace IMUNROK.Common
             CrossTo(_openState);
             if (_animator != null) _animator.speed = Mathf.Max(0.01f, _openSpeed);   // 문 여는 동작만 느리게
 
-            // 문짝도 여기서 연다. 예전엔 씬의 OnKnock 이벤트가 열었는데, 그 연결이 끊어져
-            // (대상이 비어 있었다) 마름은 문 여는 시늉만 하고 대문은 닫힌 채로 있었다.
-            // 코드로 옮겨 두면 씬을 만지다 다시 끊길 일이 없다.
-            if (_door != null) { _door.Unlock(); _door.Open(); }
+            // 문짝은 여기서 곧장 열지 않는다 — 빗장을 벗기고 미는 사이가 있어야 한다.
+            // 여는 동작이 _openLeafAt 만큼 지난 뒤에 연다(Opening 처리에서).
+            _leafOpened = false;
 
             _phase = Phase.Opening;
         }

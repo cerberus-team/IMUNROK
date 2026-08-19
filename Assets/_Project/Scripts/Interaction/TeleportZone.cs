@@ -28,6 +28,10 @@ namespace IMUNROK.Common
         [Tooltip("도착 후 바라보는 방향까지 맞출지. 끄면 위치만 옮긴다")]
         [SerializeField] private bool _matchFacing = true;
 
+        [Tooltip("연결하면 도착 자리의 정면 대신 이쪽을 바라본다. " +
+                 "사랑방에 들어서는 순간 복동이 앉는 장면이 눈에 들어오게 할 때 쓴다")]
+        [SerializeField] private Transform _lookAt;
+
         [Tooltip("도착 지점 바닥을 못 찾았을 때만 쓰는 예비값(m). 바닥에 콜라이더가 있으면 " +
                  "그 높이를 재서 올려놓으므로 이 값은 쓰이지 않는다")]
         [SerializeField] private float _heightOffset = 0f;
@@ -135,7 +139,19 @@ namespace IMUNROK.Common
                 // 머리가 보는 수평 방향을 도착 방향에 맞춘다. 리그를 머리 중심으로 돌려야
                 // 몸(리그)만 돌아가고 머리 위치는 유지된다.
                 Vector3 headFlat = new Vector3(head.forward.x, 0f, head.forward.z);
-                Vector3 destFlat = new Vector3(_destination.forward.x, 0f, _destination.forward.z);
+
+                // _lookAt 을 걸어두면 그쪽을 바라보게 한다 — 사랑방에 들어서는 순간
+                // 복동이 앉는 장면이 눈에 들어와야 하는데, 도착 자리의 정면이
+                // 늘 그쪽을 향한다는 보장이 없다.
+                Vector3 destFlat;
+                if (_lookAt != null)
+                {
+                    Vector3 toward = _lookAt.position - _destination.position;
+                    destFlat = new Vector3(toward.x, 0f, toward.z);
+                    if (destFlat.sqrMagnitude < 0.0001f)
+                        destFlat = new Vector3(_destination.forward.x, 0f, _destination.forward.z);
+                }
+                else destFlat = new Vector3(_destination.forward.x, 0f, _destination.forward.z);
                 if (headFlat.sqrMagnitude > 0.0001f && destFlat.sqrMagnitude > 0.0001f)
                 {
                     float yaw = Vector3.SignedAngle(headFlat, destFlat, Vector3.up);

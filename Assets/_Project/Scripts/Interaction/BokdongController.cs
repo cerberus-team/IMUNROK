@@ -94,6 +94,10 @@ namespace IMUNROK.Common
         [SerializeField] private Transform _sitSpot;
         [Tooltip("앉는 동작 앞에 걷기→선 자세로 섞는 시간")]
         [SerializeField] private float _sitBlend = 0.2f;
+        [Tooltip("앉은 높이 미세 조정(m). 몸이 자리에 파묻히면 올리고, 떠 있으면 내린다")]
+        [SerializeField] private float _sitYOffset = 0f;
+        [Tooltip("앉는 속도 배수. 일어서기 클립이 6초라 그대로 거꾸로 돌리면 느릿하다")]
+        [SerializeField] private float _sitSpeed = 1.4f;
         [Tooltip("넘어갈 때 지날 길목(문간을 비껴 돌 때). 비우면 직선")]
         [SerializeField] private Transform[] _throughDoorWaypoints;
         [Tooltip("문이 열리고 → 넘어가기 시작까지 뜸")]
@@ -217,7 +221,7 @@ namespace IMUNROK.Common
             var feet = GetComponent<GroundFeet>();
             if (feet != null) feet.enabled = false;
 
-            _sitLen = Mathf.Max(0.05f, ClipLength(_sitDownReverseState));
+            _sitLen = Mathf.Max(0.05f, ClipLength(_sitDownReverseState) / Mathf.Max(0.1f, _sitSpeed));
             _sitTimer = _sitLen;
             if (_animator != null) { _animator.speed = 1f; CrossTo(_sitDownReverseState); }
             _standBlendLeft = 0f;
@@ -225,22 +229,40 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// 다 앉은 뒤 한 번만 — 엉덩이가 마루(또는 보료)에 닿게 높이를 맞춘다.
-        /// 자세마다 몸이 어디까지 내려오는지가 달라서, 숫자를 박아두는 대신 실제로 재서 올린다.
+        /// 다 앉은 뒤 한 번만 — 몸이 자리(보료 또는 마루)에 닿게 높이를 맞춘다.
+        ///
+        /// 메시 경계로 맞추면 안 된다. 한복 도포 자락이 앉은 몸보다 한참 아래로 드리워서,
+        /// 그 옷자락을 바닥에 맞추면 정작 몸은 위로 떠 버린다("보료 위에 떠 있다").
+        /// 그래서 옷이 아니라 <b>가장 낮은 뼈</b>를 기준으로 삼는다 — 서 있을 때 발을
+        /// 바닥에 붙이는 GroundFeet 과 같은 방식이다.
+        ///
+        /// 자리 높이는 밑에 깔린 것 중 가장 높은 면을 쓴다. 보료에 콜라이더가 있으면
+        /// 방석 위에, 없으면 마루에 앉는다.
         /// </summary>
         private void SeatOnFloor()
         {
             var sk = GetComponentInChildren<SkinnedMeshRenderer>();
-            if (sk == null) return;
+            if (sk == null || sk.bones == null || sk.bones.Length == 0) return;
             sk.updateWhenOffscreen = true;
 
-            RaycastHit hit;
-            Vector3 from = transform.position + Vector3.up * 1.2f;
-            if (!Physics.Raycast(from, Vector3.down, out hit, 4f, ~0, QueryTriggerInteraction.Ignore)) return;
+            float lowest = float.MaxValue;
+            for (int i = 0; i < sk.bones.Length; i++)
+            {
+                var b = sk.bones[i];
+                if (b == null) continue;
+                if (b.position.y < lowest) lowest = b.position.y;
+            }
+            if (lowest == float.MaxValue) return;
 
-            float bottom = sk.bounds.min.y;
-            float lift = hit.point.y - bottom;
-            if (Mathf.Abs(lift) > 0.005f) transform.position += Vector3.up * lift;
+            Vector3 from = transform.position + Vector3.up * 1.5f;
+            var hits = Physics.RaycastAll(from, Vector3.down, 5f, ~0, QueryTriggerInteraction.Ignore);
+            float surface = float.MinValue;
+            for (int i = 0; i < hits.Length; i++)
+                if (hits[i].point.y > surface) surface = hits[i].point.y;
+            if (surface == float.MinValue) return;
+
+            float lift = (surface + _sitYOffset) - lowest;
+            if (Mathf.Abs(lift) > 0.003f) transform.position += Vector3.up * lift;
         }
 
         // ───────── 진행 ─────────
