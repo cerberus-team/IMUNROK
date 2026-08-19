@@ -177,6 +177,19 @@ namespace IMUNROK.Common
         /// 어느 봉서를 지금 펼쳐 읽고 있는지 알린다. 나머지는 도로 내려놓는다 —
         /// 둘이 한꺼번에 눈앞에 떠 있으면 무엇을 고른 것인지 알 수 없다.
         /// </summary>
+        /// <summary>
+        /// 아무 봉서도 가리키지 않게 되면 "집어 보라" 안내를 도로 띄운다.
+        /// 하나라도 눈앞에 펼쳐 읽는 중이면 띄우지 않는다 — 그때는 읽는 것이 먼저다.
+        /// </summary>
+        public void RestorePickPrompt()
+        {
+            if (_taken || !_speechDone) return;
+            if (_documents != null)
+                foreach (var d in _documents)
+                    if (d != null && d.IsReading) return;
+            SubtitleView.Show("", _pickPrompt, "(가리켜 누르기)");
+        }
+
         public void NowReading(IntroDocument open)
         {
             if (_documents == null) return;
@@ -206,6 +219,12 @@ namespace IMUNROK.Common
         private void LeaveForHub()
         {
             SubtitleView.Hide();
+
+            // 눈앞에 들어 올린 두루마리는 화면을 덮는 검은 막보다 앞에 있다.
+            // 그냥 두면 캄캄해진 화면 위에 그것만 남아 떠 있다.
+            if (_documents != null)
+                foreach (var d in _documents)
+                    if (d != null) d.HideNow();
 
             if (string.IsNullOrEmpty(_hubSceneName) || !Application.CanStreamedLevelBeLoaded(_hubSceneName))
             {

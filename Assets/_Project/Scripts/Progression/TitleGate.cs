@@ -86,8 +86,11 @@ namespace IMUNROK.Common
         [SerializeField] private string _skipHint = "(누르면 건너뛰기)";
         [Tooltip("연출이 다 끝나고 <b>기다릴 때</b> 뜨는 말. 이걸 눌러야 어명이 시작된다")]
         [SerializeField] private string _startPrompt = "누르면 어전에 든다";
-        [SerializeField] private string _continueHint = "(꾹 누르면 하던 데부터)";
-        [SerializeField] private float _holdSeconds = 1.0f;
+        [Tooltip("저장이 있을 때 제목 아래에 덧붙는 말. 꾹 누르기는 VR 에서 배우기 어려운 방식이라 " +
+                 "— 눌러도 한참 아무 일이 없다가 갑자기 되니 — 되돌릴 수 없는 일에나 쓴다. " +
+                 "여기서는 별도의 글줄로 알리고, 누르는 시간도 짧게 잡는다")]
+        [SerializeField] private string _continueHint = "(길게 누르면 하던 데부터)";
+        [SerializeField] private float _holdSeconds = 0.7f;
         [SerializeField] private string _hubSceneName = "HubScene";
 
         [Tooltip("VR 에서 컨트롤러 레이로 누를 수 있도록 눈앞에 보이지 않는 판을 둔다. " +

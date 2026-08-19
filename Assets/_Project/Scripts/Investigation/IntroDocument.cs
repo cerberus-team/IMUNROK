@@ -43,7 +43,13 @@ namespace IMUNROK.Common
         [Tooltip("떠오르는 데 걸리는 시간(초)")]
         [SerializeField] private float _liftSeconds = 0.7f;
         [Tooltip("읽는 중임을 알리는 말")]
-        [SerializeField] private string _readPrompt = "맡으려면 한 번 더 누르시오.";
+        [SerializeField] private string _readPrompt = "맡으려면 글을 · 물리려면 옆을 누르시오";
+
+        [Header("이름표")]
+        [Tooltip("물건에서 이만큼 위에 뜬다(m). 자막판처럼 화면을 가리지 않게 물건 곁에 붙인다")]
+        [SerializeField] private float _labelHeight = 0.20f;
+        [SerializeField] private int _labelFontSize = 40;
+        [SerializeField] private Color _labelColor = new Color(1f, 0.92f, 0.72f);
 
         [SerializeField] private Color _paperColor = new Color(0.85f, 0.80f, 0.68f); // 종이/한지 색
         [Range(0f, 1f)]
@@ -65,6 +71,9 @@ namespace IMUNROK.Common
         private Phase _phase = Phase.숨음;
         private bool _hovered;
         private Coroutine _moving;
+        private GameObject _putBack;      // 종이 바깥을 누르면 물리는 판
+        private Vector3 _restCenter, _restSize;
+        private bool _restSaved;
 
         public CaseId CaseId => _caseId;
         /// <summary>지금 눈앞에 펼쳐 읽는 중인가.</summary>
@@ -200,8 +209,68 @@ namespace IMUNROK.Common
 
             if (_scroll != null) _scroll.Unroll();
             _phase = Phase.읽는중;
-            SubtitleView.Show("", string.IsNullOrEmpty(_label) ? _readPrompt : _label, _readPrompt);
+            SubtitleView.Hide();          // 펼친 글을 자막판이 덮으면 읽을 수가 없다
+            ShowLabel(_readPrompt);
+            FitColliderToPaper();
+            MakePutBackTarget();
             _moving = null;
+        }
+
+        /// <summary>
+        /// 읽는 동안 집는 자리를 펼친 종이에 맞춘다. 말렸을 때의 넓적한 자리를 그대로
+        /// 두면 글 밖 허공을 눌러도 '맡기'가 된다.
+        /// </summary>
+        private void FitColliderToPaper()
+        {
+            if (_collider == null || _scroll == null) return;
+            var box = _collider as BoxCollider;
+            if (box == null) return;
+
+            Transform paper = null;
+            foreach (var t in GetComponentsInChildren<Transform>(true)) if (t.name == "종이") paper = t;
+            var r = paper == null ? null : paper.GetComponent<Renderer>();
+            if (r == null) return;
+
+            if (!_restSaved) { _restCenter = box.center; _restSize = box.size; _restSaved = true; }
+            Vector3 ls = transform.lossyScale;
+            box.center = transform.InverseTransformPoint(r.bounds.center);
+            box.size = new Vector3(r.bounds.size.x / Mathf.Max(0.001f, ls.x),
+                                   r.bounds.size.y / Mathf.Max(0.001f, ls.y),
+                                   0.06f / Mathf.Max(0.001f, ls.z));
+        }
+
+        private void RestoreCollider()
+        {
+            var box = _collider as BoxCollider;
+            if (box == null || !_restSaved) return;
+            box.center = _restCenter;
+            box.size = _restSize;
+        }
+
+        /// <summary>
+        /// 종이 바깥을 누르면 도로 내려놓는다.
+        ///
+        /// 얼굴 앞에 펼친 종이는 그 뒤를 가린다 — 옆의 봉서를 곧장 누를 수가 없다.
+        /// 기하로 풀 일이 아니라 조작으로 풀 일이다. 실제로도, VR 에서도, 손에 든 것을
+        /// 먼저 내려놓고 다른 것을 집는다. 종이 밖 아무 데나 누르면 물러진다.
+        /// </summary>
+        private void MakePutBackTarget()
+        {
+            if (_putBack != null) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+
+            _putBack = new GameObject("물리기판");
+            _putBack.transform.SetParent(cam.transform, false);
+            _putBack.transform.localPosition = new Vector3(0f, 0f, _readDistance + 0.35f);
+            var col = _putBack.AddComponent<BoxCollider>();
+            col.size = new Vector3(6f, 6f, 0.02f);
+            _putBack.AddComponent<DocumentPutBack>().Bind(this);
+        }
+
+        private void KillPutBackTarget()
+        {
+            if (_putBack != null) { Destroy(_putBack); _putBack = null; }
         }
 
         /// <summary>도로 발치에 내려놓는다(다른 봉서를 집었을 때).</summary>
@@ -215,6 +284,9 @@ namespace IMUNROK.Common
         private IEnumerator LowerRoutine()
         {
             _phase = Phase.내려가는중;
+            HideLabel();
+            KillPutBackTarget();
+            RestoreCollider();
             if (_scroll != null) _scroll.Roll();
             if (_sealBand != null) _sealBand.enabled = true;   // 도로 말았으니 띠도 돌아온다
 
@@ -242,6 +314,19 @@ namespace IMUNROK.Common
         /// 고르지 않은 봉서를 굳힌다. 하나를 맡는 순간 나머지도 눌러지면
         /// 사건 둘이 한꺼번에 시작돼 버린다.
         /// </summary>
+        /// <summary>
+        /// 지금 당장 안 보이게 한다. 고른 뒤 화면을 검게 덮을 때 쓴다 —
+        /// 눈앞에 들어 올린 두루마리는 그 검은 막보다 앞에 있어서, 그냥 두면
+        /// 캄캄한 화면 위에 두루마리만 덩그러니 남는다.
+        /// </summary>
+        public void HideNow()
+        {
+            HideLabel();
+            KillPutBackTarget();
+            SetRenderers(false);
+            if (_collider != null) _collider.enabled = false;
+        }
+
         public void Freeze()
         {
             _hovered = false;
@@ -258,7 +343,11 @@ namespace IMUNROK.Common
             if (_phase != Phase.놓임) return;
             _hovered = true;
             RefreshColor();
-            if (!string.IsNullOrEmpty(_label)) SubtitleView.Show("", _label, "(집어 보려면 누르기)");
+            ShowLabel(_label);
+
+            // 자막판은 폭이 화면만 해서 옆의 봉서를 덮는다. 가리키는 동안에는
+            // 곁에 붙는 작은 이름표가 그 일을 대신하므로 자막은 물러난다.
+            SubtitleView.Hide();
         }
 
         public void OnHoverExit()
@@ -266,6 +355,83 @@ namespace IMUNROK.Common
             if (!_hovered) return;
             _hovered = false;
             RefreshColor();
+            if (_phase == Phase.읽는중) return;
+
+            HideLabel();
+            // 아무것도 안 가리키게 되면 원래 안내로 돌아간다.
+            var intro = FindFirstObjectByType<IntroController>();
+            if (intro != null) intro.RestorePickPrompt();
+        }
+
+        // ── 이름표 ────────────────────────────────────
+        //
+        // 자막판(SubtitleView)은 폭이 화면만 해서, 물건 이름을 그것으로 띄우면
+        // 옆에 놓인 다른 봉서를 통째로 덮어 고를 수가 없다. 이름표는 그 물건 곁에
+        // 작게 붙어야 한다 — VR 에서 물건을 가리켰을 때의 보통 방식이기도 하다.
+
+        private GameObject _labelGo;
+        private UnityEngine.UI.Text _labelText;
+
+        private void ShowLabel(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return;
+            if (_labelGo == null) BuildLabel();
+            _labelText.text = s;
+            _labelGo.SetActive(true);
+        }
+
+        private void HideLabel()
+        {
+            if (_labelGo != null) _labelGo.SetActive(false);
+        }
+
+        private void BuildLabel()
+        {
+            _labelGo = new GameObject("이름표", typeof(Canvas));
+            var canvas = _labelGo.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            var rt = canvas.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(900f, 90f);
+            rt.localScale = Vector3.one * 0.0006f;
+
+            var t = new GameObject("글", typeof(UnityEngine.UI.Text));
+            _labelText = t.GetComponent<UnityEngine.UI.Text>();
+            _labelText.font = UiFont.Resolve(null);
+            _labelText.fontSize = _labelFontSize;
+            _labelText.color = _labelColor;
+            _labelText.alignment = TextAnchor.MiddleCenter;
+            _labelText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            _labelText.verticalOverflow = VerticalWrapMode.Overflow;
+            var sh = t.AddComponent<UnityEngine.UI.Shadow>();
+            sh.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            sh.effectDistance = new Vector2(2.5f, -2.5f);
+            var trt = t.GetComponent<RectTransform>();
+            trt.SetParent(rt, false);
+            trt.sizeDelta = new Vector2(880f, 80f);
+        }
+
+        private void LateUpdate()
+        {
+            if (_labelGo == null || !_labelGo.activeSelf) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+
+            var b = new Bounds(transform.position, Vector3.zero);
+            bool f = true;
+            foreach (var r in _renderers)
+            {
+                if (r == null || !r.enabled) continue;
+                if (f) { b = r.bounds; f = false; } else b.Encapsulate(r.bounds);
+            }
+            Vector3 pos = new Vector3(b.center.x, b.max.y + _labelHeight, b.center.z);
+            _labelGo.transform.position = pos;
+            _labelGo.transform.rotation = Quaternion.LookRotation(pos - cam.transform.position, Vector3.up);
+        }
+
+        private void OnDestroy()
+        {
+            if (_labelGo != null) Destroy(_labelGo);
+            KillPutBackTarget();
         }
 
         public void OnSelect()
@@ -318,5 +484,19 @@ namespace IMUNROK.Common
                 r.SetPropertyBlock(_mpb);
             }
         }
+    }
+
+    /// <summary>
+    /// 펼쳐 든 봉서의 종이 바깥. 누르면 도로 내려놓는다.
+    /// <see cref="IntroDocument"/> 가 코드로 세우므로 인스펙터에서 다룰 일은 없다.
+    /// </summary>
+    public class DocumentPutBack : MonoBehaviour, ISelectable
+    {
+        private IntroDocument _doc;
+        public void Bind(IntroDocument doc) => _doc = doc;
+
+        public void OnHoverEnter() { }
+        public void OnHoverExit() { }
+        public void OnSelect() { if (_doc != null) _doc.Lower(); }
     }
 }
