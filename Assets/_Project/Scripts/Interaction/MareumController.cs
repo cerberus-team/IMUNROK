@@ -66,7 +66,7 @@ namespace IMUNROK.Common
                  "0에 가까우면 두드리자마자 문이 열려 허락받는 느낌이 없다")]
         [SerializeField] private float _delayBeforeOpen = 1.6f;
         [Tooltip("두드리면 문 안에서 마름이 건네는 말. 비우면 말 없이 뜸만 둔다")]
-        [SerializeField] private string _answerLine = "뉘시오?";
+        [SerializeField] private string _answerLine = "이 밤중에 뉘시오?";
         [Tooltip("그 말을 하는 이 이름(자막에 붙는다)")]
         [SerializeField] private string _answerSpeaker = "문 안쪽";
 
@@ -76,7 +76,7 @@ namespace IMUNROK.Common
         [Tooltip("주인의 말 → 문이 열리기 시작하기까지 뜸(초)")]
         [SerializeField] private float _askSeconds = 0.9f;
         [Tooltip("안에서 주인이 들이라 이르는 말. 이 말이 나온 뒤에야 문이 열린다")]
-        [SerializeField] private string _permitLine = "누추하오나 드시라 이르게.";
+        [SerializeField] private string _permitLine = "…누추하오나, 드시지요.";
         [Tooltip("그 말을 하는 이 이름")]
         [SerializeField] private string _permitSpeaker = "안에서";
         [Tooltip("여는 동작의 어느 대목에서 문짝이 실제로 움직이기 시작하는가(0~1). " +
