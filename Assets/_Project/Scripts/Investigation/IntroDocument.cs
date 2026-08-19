@@ -48,6 +48,8 @@ namespace IMUNROK.Common
         [Header("이름표")]
         [Tooltip("물건에서 이만큼 위에 뜬다(m). 자막판처럼 화면을 가리지 않게 물건 곁에 붙인다")]
         [SerializeField] private float _labelHeight = 0.20f;
+        [Tooltip("펼쳐 든 동안 종이 아래에 붙는 틈(m). 크게 잡으면 화면 밖으로 밀려난다")]
+        [SerializeField] private float _readLabelGap = 0.045f;
         [SerializeField] private int _labelFontSize = 40;
         [SerializeField] private Color _labelColor = new Color(1f, 0.92f, 0.72f);
 
@@ -192,7 +194,11 @@ namespace IMUNROK.Common
             Vector3 toPos = cam.transform.position
                             + cam.transform.forward * _readDistance
                             + cam.transform.up * (half - _readDrop);
-            Quaternion toRot = Quaternion.LookRotation(cam.transform.position - toPos, Vector3.up);
+
+            // 종이를 세워 두면 안 된다. 이 장면의 시선은 쉰한 도 아래를 보는데,
+            // 세계의 위쪽을 기준으로 세우면 종이가 눕혀 보여 글이 납작하게 찌그러진다.
+            // 보는 사람의 위쪽을 기준으로 세워야 화면과 나란해진다.
+            Quaternion toRot = Quaternion.LookRotation(cam.transform.position - toPos, cam.transform.up);
 
             float t = 0f;
             while (t < 1f)
@@ -423,9 +429,15 @@ namespace IMUNROK.Common
                 if (r == null || !r.enabled) continue;
                 if (f) { b = r.bounds; f = false; } else b.Encapsulate(r.bounds);
             }
-            Vector3 pos = new Vector3(b.center.x, b.max.y + _labelHeight, b.center.z);
+            // 발치에 놓인 동안엔 물건 위에, 얼굴 앞에 펼친 동안엔 종이 아래에 붙인다.
+            // 펼친 종이는 화면을 거의 채우므로 그 위에 두면 이름표가 화면 밖으로 밀려난다.
+            Vector3 pos = _phase == Phase.읽는중
+                ? b.center - cam.transform.up * (b.size.y * 0.5f + _readLabelGap)
+                : new Vector3(b.center.x, b.max.y + _labelHeight, b.center.z);
+
             _labelGo.transform.position = pos;
-            _labelGo.transform.rotation = Quaternion.LookRotation(pos - cam.transform.position, Vector3.up);
+            _labelGo.transform.rotation = Quaternion.LookRotation(pos - cam.transform.position,
+                                                                 _phase == Phase.읽는중 ? cam.transform.up : Vector3.up);
         }
 
         private void OnDestroy()
@@ -479,6 +491,8 @@ namespace IMUNROK.Common
                 if (r == null) continue;
                 // 펼쳐진 종이에는 글 그림이 얹혀 있다. 거기까지 물들이면 글씨가 사라진다.
                 if (_scroll != null && r.transform.name == "종이") continue;
+                // 봉인 띠는 인주 빛이라야 한다. 종이색을 덮어씌우면 붉은 띠가 하얘진다.
+                if (r.transform.name == "봉인") continue;
                 r.GetPropertyBlock(_mpb);
                 _mpb.SetColor(BaseColorId, c);
                 r.SetPropertyBlock(_mpb);

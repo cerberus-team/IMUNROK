@@ -78,6 +78,7 @@ namespace IMUNROK.Common
         private bool _speechDone;
         private bool _docsRevealed;
         private bool _taken;
+        private bool _everPicked;   // 봉서를 한 번이라도 집어 봤는가
         private float _holdTimer;
 
         private static bool SeenBefore
@@ -184,6 +185,11 @@ namespace IMUNROK.Common
         public void RestorePickPrompt()
         {
             if (_taken || !_speechDone) return;
+
+            // 한 번이라도 집어 본 사람에게는 다시 알리지 않는다. 그 안내는 무엇을
+            // 하라는 것인지 모를 때를 위한 것이지, 아는 사람 앞을 계속 가릴 이유가 없다.
+            if (_everPicked) return;
+
             if (_documents != null)
                 foreach (var d in _documents)
                     if (d != null && d.IsReading) return;
@@ -192,6 +198,8 @@ namespace IMUNROK.Common
 
         public void NowReading(IntroDocument open)
         {
+            _everPicked = true;
+            SubtitleView.Hide();
             if (_documents == null) return;
             foreach (var d in _documents)
                 if (d != null && d != open) d.Lower();
