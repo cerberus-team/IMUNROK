@@ -741,6 +741,11 @@ MonoBehaviour:
   - {fileID: 140129604}
   - {fileID: 1527164208}
   _intro: {fileID: 76830929}
+  _promptDelay: 1.6
+  _prompt: "\uBD09\uC11C\uB97C \uC9D1\uC73C\uB77C."
+  _promptWithSave: "\uBD09\uC11C\uB97C \uC9D1\uC73C\uBA74 \uCC98\uC74C\uBD80\uD130,
+    \uC218\uCCA9\uC744 \uC9D1\uC73C\uBA74 \uD558\uB358 \uB370\uBD80\uD130."
+  _promptHint: "(\uAC00\uB9AC\uCF1C \uB204\uB974\uAE30)"
   _hubSceneName: HubScene
   _fadeOut: 0.5
   _fadeIn: 0.6
@@ -1297,8 +1302,10 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
+  stringTagMap:
+    RenderType: Opaque
+  disabledShaderPasses:
+  - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -1395,7 +1402,7 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 0.23, g: 0.14, b: 0.09, a: 1}
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0.22999996, g: 0.13999996, b: 0.089999996, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
@@ -1520,8 +1527,10 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
+  stringTagMap:
+    RenderType: Opaque
+  disabledShaderPasses:
+  - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -1618,7 +1627,7 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 0.8, g: 0.75, b: 0.62, a: 1}
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0.8, g: 0.75, b: 0.62, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []

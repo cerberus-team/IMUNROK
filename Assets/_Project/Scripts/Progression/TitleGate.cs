@@ -52,6 +52,15 @@ namespace IMUNROK.Common
         [Tooltip("어명 진행 담당. 표제 동안 꺼두었다가 시작할 때 켠다")]
         [SerializeField] private IntroController _intro;
 
+        [Header("무엇을 하라는 말")]
+        [Tooltip("제목이 뜬 뒤 이만큼 있다가 안내가 나온다(초). 제목을 먼저 읽게 두는 뜸이다")]
+        [SerializeField] private float _promptDelay = 1.6f;
+        [Tooltip("저장이 없을 때")]
+        [SerializeField] private string _prompt = "봉서를 집으라.";
+        [Tooltip("저장이 있을 때 — 물건이 둘이라 어느 쪽인지 말해 줘야 한다")]
+        [SerializeField] private string _promptWithSave = "봉서를 집으면 처음부터, 수첩을 집으면 하던 데부터.";
+        [SerializeField] private string _promptHint = "(가리켜 누르기)";
+
         [Header("이어하기가 갈 곳")]
         [SerializeField] private string _hubSceneName = "HubScene";
 
@@ -78,6 +87,17 @@ namespace IMUNROK.Common
             Arm(_continueObject, true);
 
             BuildTitle();
+
+            // 제목만 떠 있으면 무엇을 하라는 건지 알 수가 없다. 물건이 놓여 있어도
+            // 그게 손대야 하는 것인지는 말해 주기 전엔 모른다.
+            Invoke(nameof(ShowPrompt), Mathf.Max(0f, _promptDelay));
+        }
+
+        private void ShowPrompt()
+        {
+            if (_left) return;
+            bool hasSave = _continueObject != null && _continueObject.activeSelf;
+            SubtitleView.Show("", hasSave ? _promptWithSave : _prompt, _promptHint);
         }
 
         /// <summary>집을 수 있게 만든다. 콜라이더가 없으면 알려 준다.</summary>
@@ -209,21 +229,50 @@ namespace IMUNROK.Common
     /// </summary>
     public class TitleOption : MonoBehaviour, ISelectable
     {
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+
         private TitleGate _gate;
         private bool _isContinue;
+        private Renderer[] _renderers;
+        private MaterialPropertyBlock _mpb;
+        private Color[] _base;
 
         public void Bind(TitleGate gate, bool isContinue)
         {
             _gate = gate;
             _isContinue = isContinue;
+
+            // 가리키면 밝아지게 — 어둠 속에 놓인 물건은 손대도 되는 것인지
+            // 눈으로 알 길이 없다. 반응이 있어야 만질 수 있는 것으로 읽힌다.
+            _renderers = GetComponentsInChildren<Renderer>(true);
+            _mpb = new MaterialPropertyBlock();
+            _base = new Color[_renderers.Length];
+            for (int i = 0; i < _renderers.Length; i++)
+            {
+                var m = _renderers[i].sharedMaterial;
+                _base[i] = (m != null && m.HasProperty(BaseColorId)) ? m.GetColor(BaseColorId) : Color.white;
+            }
         }
 
-        public void OnHoverEnter() { }
-        public void OnHoverExit() { }
+        public void OnHoverEnter() => Tint(0.34f);
+        public void OnHoverExit() => Tint(0f);
+
+        private void Tint(float toward)
+        {
+            if (_renderers == null) return;
+            for (int i = 0; i < _renderers.Length; i++)
+            {
+                if (_renderers[i] == null) continue;
+                _renderers[i].GetPropertyBlock(_mpb);
+                _mpb.SetColor(BaseColorId, Color.Lerp(_base[i], Color.white, toward));
+                _renderers[i].SetPropertyBlock(_mpb);
+            }
+        }
 
         public void OnSelect()
         {
             if (_gate == null) return;
+            SubtitleView.Hide();
             if (_isContinue) _gate.ContinueSaved();
             else _gate.BeginNew();
         }
