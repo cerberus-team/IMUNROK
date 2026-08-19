@@ -77,11 +77,23 @@ namespace IMUNROK.Common
         [Tooltip("표제 동안의 환경광. 거의 검정이어야 한다")]
         [SerializeField] private Color _darkAmbient = new Color(0.012f, 0.012f, 0.018f);
 
-        [Header("건너뛰기·이어하기")]
-        [SerializeField] private string _skipHint = "(아무 키나 눌러 넘기기)";
+        [Header("넘어가기·이어하기")]
+        [Tooltip("연출이 흐르는 동안 아래에 뜨는 말")]
+        [SerializeField] private string _skipHint = "(누르면 건너뛰기)";
+        [Tooltip("연출이 다 끝나고 <b>기다릴 때</b> 뜨는 말. 이걸 눌러야 어명이 시작된다")]
+        [SerializeField] private string _startPrompt = "누르면 어전에 든다";
         [SerializeField] private string _continueHint = "(꾹 누르면 하던 데부터)";
         [SerializeField] private float _holdSeconds = 1.0f;
         [SerializeField] private string _hubSceneName = "HubScene";
+
+        [Tooltip("VR 에서 컨트롤러 레이로 누를 수 있도록 눈앞에 보이지 않는 판을 둔다. " +
+                 "키보드가 없는 헤드셋에서는 이것이 유일한 넘어가는 길이다")]
+        [SerializeField] private bool _makePressTarget = true;
+        [Tooltip("그 판의 한 변(m). 눈앞을 넉넉히 덮어야 아무 데나 겨눠도 집힌다")]
+        [SerializeField] private float _pressTargetSize = 2f;
+        [Tooltip("눈에서 이만큼 앞(m). 바닥·제목보다 앞이라야 레이가 이것을 먼저 맞는다 — " +
+                 "뒤에 두면 바닥이 먼저 맞아 눌러도 아무 일이 없다")]
+        [SerializeField] private float _pressTargetDistance = 0.45f;
 
         private GameObject _titleGo;
         private CanvasGroup _titleGroup;
@@ -94,7 +106,9 @@ namespace IMUNROK.Common
         private bool _done;
         private float _hold;
         private bool _running;
+        private bool _waiting;      // 연출이 끝나 사람의 손을 기다리는 중
         private float _titleLift;   // 제목이 제자리보다 얼마나 위에 떠 있는가(m)
+        private GameObject _pressTarget;
 
         private void Awake()
         {
@@ -123,6 +137,9 @@ namespace IMUNROK.Common
                 _cam.rotation = Quaternion.Euler(e.x + _bowExtra, e.y, e.z);
             }
             BuildTitle();
+            // 누름판은 처음부터 둔다. 헤드셋에는 키보드가 없어 이것이 없으면
+            // 연출이 다 끝날 때까지 손쓸 방법이 아예 없다.
+            MakePressTarget();
             StartCoroutine(Sequence());
         }
 
@@ -144,7 +161,7 @@ namespace IMUNROK.Common
 
         private void Update()
         {
-            if (_done || !_running) return;
+            if (_done) return;
 
             if (Held())
             {
@@ -153,10 +170,33 @@ namespace IMUNROK.Common
             }
             else
             {
-                // 짧게 눌렀다 뗀 것 = 건너뛰기
-                if (_hold > 0f && _hold < _holdSeconds) { Finish(); return; }
+                if (_hold > 0f && _hold < _holdSeconds) { Advance(); return; }
                 _hold = 0f;
             }
+
+            // 기다리는 동안 안내가 천천히 밝았다 어두웠다 한다 — 눌러야 할 것이 있다는 표
+            if (_waiting && _hintText != null)
+            {
+                float k = 0.55f + 0.45f * Mathf.Abs(Mathf.Sin(Time.time * 1.5f));
+                var c = _hintText.color;
+                _hintText.color = new Color(c.r, c.g, c.b, k);
+            }
+        }
+
+        /// <summary>
+        /// 사람이 눌렀다. 연출 도중이면 끝 모습으로 건너뛰고, 이미 기다리는 중이면
+        /// 제목을 걷고 어명을 연다.
+        ///
+        /// 저절로 넘어가지 않는다. 제목이 뜬 화면은 사람이 "이제 시작한다"고
+        /// 마음먹는 자리이지, 흘려보내는 자리가 아니다.
+        /// </summary>
+        public void Advance()
+        {
+            if (_done) return;
+            if (_waiting) { StartCoroutine(CloseTitle()); return; }
+            StopAllCoroutines();
+            ShowAll();
+            EnterWaiting();
         }
 
         // ── 차례 ───────────────────────────────────────
@@ -198,10 +238,64 @@ namespace IMUNROK.Common
             yield return new WaitForSeconds(_titleHold);
             if (_done) yield break;
 
-            // ④ 제목이 스러진다.
-            yield return Ramp(_titleOut, delegate (float k) { _titleGroup.alpha = 1f - k; });
+            // ④ 여기서 멎는다. 사람이 누를 때까지 기다린다.
+            EnterWaiting();
+        }
 
+        /// <summary>연출을 끝 모습으로 즉시 맞춘다(건너뛸 때).</summary>
+        private void ShowAll()
+        {
+            if (_titleGroup != null) _titleGroup.alpha = 1f;
+            _titleLift = 0f;
+            WakeWorld();
+            for (int i = 0; i < _lights.Count; i++)
+                if (_lights[i] != null) _lights[i].intensity = _lightHome[i];
+            RenderSettings.ambientLight = _ambientHome;
+            if (_cam != null) _cam.rotation = _camHome;
+        }
+
+        /// <summary>제목을 띄운 채 사람의 손을 기다린다.</summary>
+        private void EnterWaiting()
+        {
+            if (_waiting) return;
+            _waiting = true;
+            _running = false;
+
+            if (_hintText != null)
+            {
+                string s = _startPrompt;
+                if (SaveSystem.HasSave && !string.IsNullOrEmpty(_continueHint)) s += "   " + _continueHint;
+                _hintText.text = s;
+            }
+            MakePressTarget();
+        }
+
+        /// <summary>제목을 걷고 어명을 연다.</summary>
+        private IEnumerator CloseTitle()
+        {
+            _waiting = false;
+            if (_pressTarget != null) Destroy(_pressTarget);
+            yield return Ramp(_titleOut, delegate (float k) { _titleGroup.alpha = 1f - k; });
             Finish();
+        }
+
+        /// <summary>
+        /// 눈앞에 보이지 않는 판을 하나 둔다. 헤드셋에는 키보드가 없으므로
+        /// 컨트롤러 레이로 누를 것이 있어야 한다 — 이 게임의 다른 모든 것과 같은 길이다.
+        /// </summary>
+        private void MakePressTarget()
+        {
+            if (!_makePressTarget || _pressTarget != null || _cam == null) return;
+
+            _pressTarget = new GameObject("표제_누름판");
+            _pressTarget.transform.SetParent(_cam, false);
+            _pressTarget.transform.localPosition = new Vector3(0f, 0f, _pressTargetDistance);
+            _pressTarget.transform.localRotation = Quaternion.identity;
+
+            var col = _pressTarget.AddComponent<BoxCollider>();
+            col.size = new Vector3(_pressTargetSize, _pressTargetSize, 0.02f);
+
+            _pressTarget.AddComponent<TitlePress>().Bind(this);
         }
 
         private IEnumerator Ramp(float seconds, System.Action<float> step)
@@ -243,6 +337,8 @@ namespace IMUNROK.Common
             if (_done) return;
             _done = true;
             _running = false;
+            _waiting = false;
+            if (_pressTarget != null) Destroy(_pressTarget);
             StopAllCoroutines();
 
             WakeWorld();
@@ -383,5 +479,20 @@ namespace IMUNROK.Common
             rt.sizeDelta = new Vector2(880f, size + 40f);
             return t;
         }
+    }
+
+    /// <summary>
+    /// 표제에서 눈앞에 두는 보이지 않는 누름판. 헤드셋에는 키보드가 없으니
+    /// 컨트롤러 레이가 집을 것이 하나는 있어야 한다.
+    /// <see cref="TitleGate"/> 가 코드로 붙이므로 인스펙터에서 다룰 일은 없다.
+    /// </summary>
+    public class TitlePress : MonoBehaviour, ISelectable
+    {
+        private TitleGate _gate;
+        public void Bind(TitleGate gate) => _gate = gate;
+
+        public void OnHoverEnter() { }
+        public void OnHoverExit() { }
+        public void OnSelect() { if (_gate != null) _gate.Advance(); }
     }
 }
