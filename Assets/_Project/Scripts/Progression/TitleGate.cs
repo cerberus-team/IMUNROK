@@ -45,6 +45,11 @@ namespace IMUNROK.Common
         [Tooltip("집으면 이어하기. 저장이 없으면 저절로 감춰진다. 없어도 된다")]
         [SerializeField] private GameObject _continueObject;
 
+        [Tooltip("봉서를 가리켰을 때 뜰 이름표")]
+        [SerializeField] private string _startLabel = "봉서 — 처음부터 시작한다";
+        [Tooltip("수첩을 가리켰을 때 뜰 이름표")]
+        [SerializeField] private string _continueLabel = "수첩 — 하던 데부터 이어한다";
+
         [Header("시작 전엔 없어야 할 것")]
         [Tooltip("어전의 불·왕·봉서 셋 등. 표제 동안 꺼둔다")]
         [SerializeField] private GameObject[] _hideUntilStart;
@@ -85,8 +90,8 @@ namespace IMUNROK.Common
             // 물건이 놓여 있으면 플레이어는 그것을 고장으로 읽는다.
             if (_continueObject != null) _continueObject.SetActive(SaveSystem.HasSave);
 
-            Arm(_startObject, false);
-            Arm(_continueObject, true);
+            Arm(_startObject, false, _startLabel);
+            Arm(_continueObject, true, _continueLabel);
 
             BuildTitle();
 
@@ -103,7 +108,7 @@ namespace IMUNROK.Common
         }
 
         /// <summary>집을 수 있게 만든다. 콜라이더가 없으면 알려 준다.</summary>
-        private void Arm(GameObject go, bool isContinue)
+        private void Arm(GameObject go, bool isContinue, string label)
         {
             if (go == null || !go.activeSelf) return;
             if (go.GetComponent<Collider>() == null)
@@ -111,7 +116,14 @@ namespace IMUNROK.Common
 
             var opt = go.GetComponent<TitleOption>();
             if (opt == null) opt = go.AddComponent<TitleOption>();
-            opt.Bind(this, isContinue);
+            opt.Bind(this, isContinue, label);
+        }
+
+        /// <summary>가리키던 것에서 눈을 떼면 원래 안내로 돌아간다.</summary>
+        public void RestorePrompt()
+        {
+            if (_left) return;
+            ShowPrompt();
         }
 
         // ── 제목 글씨 ──────────────────────────────────
@@ -265,17 +277,26 @@ namespace IMUNROK.Common
 
         private TitleGate _gate;
         private bool _isContinue;
+        private string _label;
         private Renderer[] _renderers;
         private MaterialPropertyBlock _mpb;
         private Color[] _base;
 
-        public void Bind(TitleGate gate, bool isContinue)
+        private Vector3 _home;
+        private bool _hovered;
+        private float _t;
+
+        public void Bind(TitleGate gate, bool isContinue, string label)
         {
             _gate = gate;
             _isContinue = isContinue;
+            _label = label;
+            _home = transform.localPosition;
 
-            // 가리키면 밝아지게 — 어둠 속에 놓인 물건은 손대도 되는 것인지
-            // 눈으로 알 길이 없다. 반응이 있어야 만질 수 있는 것으로 읽힌다.
+            // 어둠 속에 놓인 물건은 손대도 되는 것인지 눈으로 알 길이 없다.
+            // 색이 살짝 변하는 정도로는 모자란다 — 어두운 데서는 그 차이가 안 보인다.
+            // 그래서 셋을 겹친다: 가만히 있어도 천천히 오르내리고, 가리키면 확 밝아지고,
+            // 무엇을 하는 물건인지 이름을 띄운다.
             _renderers = GetComponentsInChildren<Renderer>(true);
             _mpb = new MaterialPropertyBlock();
             _base = new Color[_renderers.Length];
@@ -286,8 +307,29 @@ namespace IMUNROK.Common
             }
         }
 
-        public void OnHoverEnter() => Tint(0.34f);
-        public void OnHoverExit() => Tint(0f);
+        private void Update()
+        {
+            _t += Time.deltaTime;
+
+            // 아주 느리게 숨쉬듯 — 멈춰 있는 것과 만질 수 있는 것을 가르는 신호다
+            float bob = Mathf.Sin(_t * 1.7f) * 0.008f;
+            transform.localPosition = _home + new Vector3(0f, bob + (_hovered ? 0.012f : 0f), 0f);
+
+            float pulse = 0.5f + 0.5f * Mathf.Sin(_t * 1.7f);
+            Tint(_hovered ? 0.62f : 0.10f + pulse * 0.10f);
+        }
+
+        public void OnHoverEnter()
+        {
+            _hovered = true;
+            if (!string.IsNullOrEmpty(_label)) SubtitleView.Show("", _label, "(누르기)");
+        }
+
+        public void OnHoverExit()
+        {
+            _hovered = false;
+            if (_gate != null) _gate.RestorePrompt();
+        }
 
         private void Tint(float toward)
         {
