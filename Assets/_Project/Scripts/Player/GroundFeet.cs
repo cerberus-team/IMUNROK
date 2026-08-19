@@ -57,6 +57,16 @@ namespace IMUNROK.Common
         [Tooltip("발보다 이만큼 위까지만 바닥으로 친다(m). 그보다 높은 것은 문짝·처마·서까래라 딛을 수 없다")]
         [SerializeField] private float _maxStepUp = 0.5f;
 
+        /// <summary>
+        /// 높이 맞추기만 잠시 끈다. 몸을 마커 자리에 붙들어 두는 일은 계속한다.
+        ///
+        /// 앉은 자세에는 이 보정이 안 맞는다 — 발바닥까지의 거리를 선 자세로 재 뒀기 때문에
+        /// 그대로 쓰면 몸이 마루 밑으로 꺼진다. 그렇다고 이 부품을 통째로 끄면 수평 고정까지
+        /// 같이 꺼져서, 앉기 클립의 원점 어긋남 때문에 몸이 2m 넘게 밀려나 버린다
+        /// (실제로 머리가 x 6.05 → 3.35 로 날아갔다).
+        /// </summary>
+        public bool PinHeight { get; set; } = true;
+
         private float _shownGroundY;      // 지금 몸이 딛고 있는 것으로 치는 높이
         private bool _hasGround;
 
@@ -136,6 +146,8 @@ namespace IMUNROK.Common
 
             // 문지방을 넘을 때 바닥이 한 번에 몇 십 cm 뛴다. 그대로 따라가면 몸이 튀어오르므로
             // 정해진 속도로만 쫓아간다. 편집 모드에서는 즉시 맞춘다(씬뷰가 흔들리면 안 된다).
+            if (!PinHeight) return;      // 수평 고정만 하고 높이는 부르는 쪽이 알아서 한다
+
             if (!Application.isPlaying || !_hasGround || _followSpeed <= 0f) _shownGroundY = groundY;
             else _shownGroundY = Mathf.MoveTowards(_shownGroundY, groundY, _followSpeed * Time.deltaTime);
             _hasGround = true;

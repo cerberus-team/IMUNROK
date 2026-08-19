@@ -40,6 +40,10 @@ namespace IMUNROK.Common
         [Tooltip("여는 데 걸리는 시간(초)")]
         [SerializeField] private float _openDuration = 1.2f;
         [SerializeField] private bool _startOpen = false;
+        [Tooltip("끄면 플레이어가 손대도 여닫히지 않는다(마름·복동이 여는 대문·중문). " +
+                 "실수로 닫아 못 들어가는 일을 막는다. 잠금이 풀린 뒤에도 유효하다")]
+        [SerializeField] private bool _playerCanToggle = true;
+
         [Tooltip("잠기면 클릭해도 안 열리고 OnKnock만 발생(대문 시퀀스용)")]
         [SerializeField] private bool _locked = false;
 
@@ -140,6 +144,7 @@ namespace IMUNROK.Common
                 OnKnock?.Invoke();   // 두드리기 → 시퀀스가 받아 처리
                 return;
             }
+            if (!_playerCanToggle) return;   // 시퀀스가 여닫는 문 — 손대도 안 움직인다
             Toggle();
         }
     }

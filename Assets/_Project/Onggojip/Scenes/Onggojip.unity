@@ -13415,6 +13415,7 @@ MonoBehaviour:
   _pinHorizontally: 1
   _bodyBone: {fileID: 2089543900}
   _followSpeed: 1.5
+  _maxStepUp: 0.5
 --- !u!1 &715823138 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1030989961, guid: abc00000000000019561070714601592, type: 3}
@@ -18116,6 +18117,7 @@ MonoBehaviour:
     slideOffset: {x: 0, y: 0, z: 0}
   _openDuration: 2
   _startOpen: 0
+  _playerCanToggle: 0
   _locked: 1
   OnKnock:
     m_PersistentCalls:
@@ -165472,6 +165474,7 @@ MonoBehaviour:
   _pinHorizontally: 1
   _bodyBone: {fileID: 0}
   _followSpeed: 1.5
+  _maxStepUp: 0.5
 --- !u!1 &1369867044 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1030989961, guid: abc00000000000019561070714601592, type: 3}
@@ -168756,9 +168759,14 @@ MonoBehaviour:
   _sitIdleState: Sit_and_Doze_Off
   _sitDownSpot: {fileID: 1923173201}
   _dozeSpot: {fileID: 467883253}
-  _delayBeforeOpen: 0.4
+  _delayBeforeOpen: 0.5
   _answerLine: "\uB258\uC2DC\uC624?"
   _answerSpeaker: "\uBB38 \uC548\uCABD"
+  _delayBeforeAsk: 1
+  _askDistance: 2.5
+  _askSeconds: 1.4
+  _permitLine: "\u2026\uB4E4\uB77C \uD558\uAC8C."
+  _permitSpeaker: "\uC548\uCABD\uC5D0\uC11C"
   _openLeafAt: 0.35
   _delayBeforeWalk: 1
   _openSpeed: 1
@@ -172919,6 +172927,8 @@ MonoBehaviour:
   _sitBlend: 0.2
   _sitYOffset: 0
   _sitSpeed: 1.4
+  _leanBack: 14
+  _leanBones: []
   _throughDoorWaypoints:
   - {fileID: 1921870555}
   _delayAfterOpen: 0.5
@@ -172950,6 +172960,7 @@ MonoBehaviour:
   _pinHorizontally: 1
   _bodyBone: {fileID: 25345825}
   _followSpeed: 1.5
+  _maxStepUp: 0.5
 --- !u!114 &1688468742
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -184960,6 +184971,7 @@ MonoBehaviour:
     slideOffset: {x: 0, y: 0, z: 0}
   _openDuration: 1.2
   _startOpen: 0
+  _playerCanToggle: 0
   _locked: 0
   OnKnock:
     m_PersistentCalls:

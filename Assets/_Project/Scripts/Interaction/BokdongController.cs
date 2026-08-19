@@ -98,6 +98,10 @@ namespace IMUNROK.Common
         [SerializeField] private float _sitYOffset = 0f;
         [Tooltip("앉는 속도 배수. 일어서기 클립이 6초라 그대로 거꾸로 돌리면 느릿하다")]
         [SerializeField] private float _sitSpeed = 1.4f;
+        [Tooltip("앉은 뒤 상체를 뒤로 기울이는 각도(도). 등 뒤 안석에 기댄 것처럼 보이게 한다. 0이면 꼿꼿이 앉는다")]
+        [SerializeField] private float _leanBack = 14f;
+        [Tooltip("기울일 등뼈. 비우면 이름으로 찾는다(Spine, Spine01, Spine02)")]
+        [SerializeField] private Transform[] _leanBones;
         [Tooltip("넘어갈 때 지날 길목(문간을 비껴 돌 때). 비우면 직선")]
         [SerializeField] private Transform[] _throughDoorWaypoints;
         [Tooltip("문이 열리고 → 넘어가기 시작까지 뜸")]
@@ -218,8 +222,10 @@ namespace IMUNROK.Common
 
             // 발 붙이기는 선 자세를 기준으로 보정한다 — 앉은 자세엔 그 보정이 안 맞아
             // 몸이 마루 밑으로 44cm 꺼진다. 앉는 동안은 꺼 두고 자리를 직접 잡는다.
+            // 부품을 통째로 끄면 몸을 자리에 붙들어 두는 수평 고정까지 꺼져서
+            // 앉기 클립의 원점 어긋남 때문에 몸이 2m 넘게 밀려난다. 높이만 끈다.
             var feet = GetComponent<GroundFeet>();
-            if (feet != null) feet.enabled = false;
+            if (feet != null) feet.PinHeight = false;
 
             _sitLen = Mathf.Max(0.05f, ClipLength(_sitDownReverseState) / Mathf.Max(0.1f, _sitSpeed));
             _sitTimer = _sitLen;
@@ -254,18 +260,74 @@ namespace IMUNROK.Common
             }
             if (lowest == float.MaxValue) return;
 
-            Vector3 from = transform.position + Vector3.up * 1.5f;
-            var hits = Physics.RaycastAll(from, Vector3.down, 5f, ~0, QueryTriggerInteraction.Ignore);
-            float surface = float.MinValue;
-            for (int i = 0; i < hits.Length; i++)
-                if (hits[i].point.y > surface) surface = hits[i].point.y;
-            if (surface == float.MinValue) return;
+            // 앉을 면은 광선으로 찾지 않는다. 보료에는 콜라이더가 없어서 광선이 그 밑
+            // 마루(-0.80)를 짚고, 그러면 보료 윗면(-0.65)보다 15cm 파묻힌 채 앉는다.
+            // 자리 표식(甲_보료자리)이 이미 보료 윗면 높이에 놓여 있으므로 그 값을 쓴다.
+            float surface;
+            if (_sitSpot != null) surface = _sitSpot.position.y;
+            else
+            {
+                Vector3 from = transform.position + Vector3.up * 1.5f;
+                var hits = Physics.RaycastAll(from, Vector3.down, 5f, ~0, QueryTriggerInteraction.Ignore);
+                surface = float.MinValue;
+                for (int i = 0; i < hits.Length; i++)
+                    if (hits[i].point.y > surface) surface = hits[i].point.y;
+                if (surface == float.MinValue) return;
+            }
 
             float lift = (surface + _sitYOffset) - lowest;
             if (Mathf.Abs(lift) > 0.003f) transform.position += Vector3.up * lift;
         }
 
         // ───────── 진행 ─────────
+
+        /// <summary>
+        /// 앉아 있는 동안 상체를 뒤로 살짝 젖힌다 — 등 뒤 안석에 기댄 모양새.
+        ///
+        /// 애니메이터가 자세를 쓴 <b>뒤</b>에 손대야 한다(LateUpdate). Update 에서 돌리면
+        /// 다음 프레임에 애니메이터가 그대로 덮어써서 아무 일도 일어나지 않는다.
+        /// 앉기 클립은 꼿꼿이 앉은 자세뿐이라, 기대는 자세는 이렇게 만들어 쓴다.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (_phase != Phase.Seated || Mathf.Abs(_leanBack) < 0.01f) return;
+            if (_leanBones == null || _leanBones.Length == 0) CacheLeanBones();
+            if (_leanBones == null || _leanBones.Length == 0) return;
+            if (_leanBase == null || _leanBase.Length != _leanBones.Length) return;
+
+            // 먼저 앉은 그대로의 자세로 되돌린 다음 젖힌다.
+            // 그냥 매 프레임 Rotate 만 하면 각도가 쌓여서, 몇 초 뒤엔 병풍에 처박힌다
+            // (실제로 머리가 x 6.05 → 5.12 까지 젖혀졌다).
+            for (int i = 0; i < _leanBones.Length; i++)
+                if (_leanBones[i] != null) _leanBones[i].localRotation = _leanBase[i];
+
+            // 등뼈 여러 마디에 나눠 걸어야 한 마디만 꺾이지 않고 자연스럽게 휜다.
+            float each = _leanBack / _leanBones.Length;
+            for (int i = 0; i < _leanBones.Length; i++)
+                if (_leanBones[i] != null)
+                    _leanBones[i].Rotate(transform.right, -each, Space.World);
+
+            SeatOnFloor();      // 젖힌 만큼 몸이 내려앉으므로 높이를 다시 맞춘다
+        }
+
+        /// <summary>앉은 그대로의 등뼈 각도. 젖힘은 늘 여기서 다시 계산한다(쌓이면 안 된다).</summary>
+        private Quaternion[] _leanBase;
+
+        private void CacheLeanBones()
+        {
+            var found = new System.Collections.Generic.List<Transform>();
+            var want = new string[] { "spine", "spine01", "spine02" };
+            foreach (var t in GetComponentsInChildren<Transform>(true))
+            {
+                string n = t.name.ToLowerInvariant();
+                for (int i = 0; i < want.Length; i++)
+                    if (n == want[i]) { found.Add(t); break; }
+            }
+            _leanBones = found.ToArray();
+            _leanBase = new Quaternion[_leanBones.Length];
+            for (int i = 0; i < _leanBones.Length; i++)
+                _leanBase[i] = _leanBones[i].localRotation;
+        }
 
         private void Update()
         {
@@ -299,7 +361,12 @@ namespace IMUNROK.Common
                 _sitTimer -= Time.deltaTime;
                 float k = Mathf.Clamp01(_sitTimer / _sitLen);
                 if (_animator != null) { _animator.Play(_sitDownReverseState, 0, k); _animator.Update(0f); }
-                if (_sitTimer <= 0f) { _phase = Phase.Seated; SeatOnFloor(); }   // 앉은 첫 프레임에서 멈춘다
+                if (_sitTimer <= 0f)
+                {
+                    _phase = Phase.Seated;
+                    CacheLeanBones();      // 앉은 자세를 기준으로 삼는다
+                    SeatOnFloor();
+                }
                 return;
             }
 

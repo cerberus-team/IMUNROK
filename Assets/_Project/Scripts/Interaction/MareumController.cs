@@ -65,10 +65,22 @@ namespace IMUNROK.Common
         [Tooltip("두드린 뒤 → 여는 동작까지 뜸. 안에서 인기척을 내고 다가오는 사이다. " +
                  "0에 가까우면 두드리자마자 문이 열려 허락받는 느낌이 없다")]
         [SerializeField] private float _delayBeforeOpen = 1.6f;
-        [Tooltip("두드리면 안에서 먼저 건네는 말. 비우면 말 없이 뜸만 둔다")]
-        [SerializeField] private string _answerLine = "뉘시오?";
-        [Tooltip("말하는 이 이름(자막에 붙는다)")]
+        [Tooltip("두드리면 문 안에서 마름이 건네는 말. 비우면 말 없이 뜸만 둔다")]
+        [SerializeField] private string _answerLine = "뉘시오? …잠시 기다리시오. 여쭙고 오리다.";
+        [Tooltip("그 말을 하는 이 이름(자막에 붙는다)")]
         [SerializeField] private string _answerSpeaker = "문 안쪽";
+
+        [Header("여쭙고 오기")]
+        [Tooltip("두드림 → 마름이 안으로 들어가기까지 뜸(초)")]
+        [SerializeField] private float _delayBeforeAsk = 1.0f;
+        [Tooltip("여쭈러 안쪽으로 몇 m 들어갔다 오는가. 0이면 안 들어가고 그 자리에서 연다")]
+        [SerializeField] private float _askDistance = 2.5f;
+        [Tooltip("안에서 여쭙고 답을 듣는 데 걸리는 시간(초)")]
+        [SerializeField] private float _askSeconds = 1.4f;
+        [Tooltip("주인이 들이라고 이르는 말. 이 말이 나온 뒤에야 문이 열린다")]
+        [SerializeField] private string _permitLine = "…들라 하게.";
+        [Tooltip("그 말을 하는 이 이름")]
+        [SerializeField] private string _permitSpeaker = "안쪽에서";
         [Tooltip("여는 동작의 어느 대목에서 문짝이 실제로 움직이기 시작하는가(0~1). " +
                  "0이면 손도 대기 전에 문이 열린다 — 빗장을 벗기고 미는 사이가 있어야 한다")]
         [Range(0f, 1f)] [SerializeField] private float _openLeafAt = 0.35f;
@@ -108,7 +120,7 @@ namespace IMUNROK.Common
 
         private enum Phase
         {
-            StandAtDoor, Opening,
+            StandAtDoor, GoingToAsk, Asking, ReturningToOpen, Opening,
             StepAside, WaitingForPass, ReturnToDoor, Closing,   // 길 비켜주고 → 기다리고 → 닫으러 돌아가기
             WalkToStand, SittingDown, ToDoze, Sitting, Stood, WalkToDoor
         }
@@ -153,10 +165,27 @@ namespace IMUNROK.Common
             if (_phase != Phase.StandAtDoor) return;   // 이미 열었거나 진행 중이면 무시
 
             // 두드리자마자 문이 열리면 "허락을 받고 들어간다"가 아니라 "문이 저절로 열린다"가 된다.
-            // 안에서 먼저 인기척을 내고, 그 사이 다가오는 뜸을 둔 뒤에 연다.
+            // 마름은 먼저 대꾸를 하고, 안으로 여쭈러 들어갔다 온다. 주인이 들이라고
+            // 이른 뒤에야 문이 열린다.
             if (!string.IsNullOrEmpty(_answerLine)) SubtitleView.Show(_answerSpeaker, _answerLine);
 
-            Delay(_delayBeforeOpen, DoOpen);
+            if (_askDistance > 0.05f) Delay(_delayBeforeAsk, DoGoAsk);
+            else Delay(_delayBeforeOpen, DoOpen);          // 여쭈러 가지 않는 설정이면 바로
+        }
+
+        /// <summary>여쭈러 안쪽으로 들어간다.</summary>
+        private void DoGoAsk() { _mvHasTarget = false; CrossTo(_walkState); _phase = Phase.GoingToAsk; }
+
+        /// <summary>답을 듣고 문 앞으로 되돌아온다.</summary>
+        private void DoReturnToOpen() { _mvHasTarget = false; CrossTo(_walkState); _phase = Phase.ReturningToOpen; }
+
+        /// <summary>여쭈러 들어가 서는 자리 — 문간 안쪽으로 _askDistance 만큼.</summary>
+        private Vector3 AskSpot()
+        {
+            Vector3 inward = _passSpot != null ? _passSpot.forward : transform.forward;
+            inward.y = 0f;
+            if (inward.sqrMagnitude < 0.0001f) inward = transform.forward;
+            return _homePos + inward.normalized * _askDistance;
         }
 
         /// <summary>
@@ -264,6 +293,33 @@ namespace IMUNROK.Common
 
             switch (_phase)
             {
+                case Phase.GoingToAsk:
+                    KeepWalking();
+                    if (MoveTo(AskSpot(), transform.rotation))
+                    {
+                        HoldStand();
+                        // 안에서 주인이 이르는 말. 이걸 듣고서야 되돌아 나와 문을 연다.
+                        if (!string.IsNullOrEmpty(_permitLine)) SubtitleView.Show(_permitSpeaker, _permitLine);
+                        _phase = Phase.Asking;
+                        Delay(_askSeconds, DoReturnToOpen);
+                    }
+                    break;
+
+                case Phase.Asking:
+                    break;                      // 뜸(_wait)이 다 돌면 DoReturnToOpen 이 불린다
+
+                case Phase.ReturningToOpen:
+                    KeepWalking();
+                    if (MoveTo(_homePos, _homeRot))
+                    {
+                        transform.rotation = _homeRot;
+                        HoldStand();
+                        // StandAtDoor 로 되돌리면 안 된다 — 그 사이 또 두드리면 여쭈러 다시 간다.
+                        _phase = Phase.Asking;
+                        Delay(_delayBeforeOpen, DoOpen);
+                    }
+                    break;
+
                 case Phase.Opening:
                     if (!_leafOpened && _door != null)
                     {
