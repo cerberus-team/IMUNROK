@@ -33,6 +33,8 @@ namespace IMUNROK.Common
         [SerializeField] private Transform _titleAnchor;
         [SerializeField] private float _titleDistance = 2.2f;
         [SerializeField] private float _titleHeight = 0.15f;
+        [Tooltip("글씨 크기. 키우면 화면을 덮어 소반이 안 보인다")]
+        [SerializeField] private float _titleScale = 0.00085f;
         [SerializeField] private Font _font;
         [SerializeField] private Color _titleColor = new Color(0.97f, 0.93f, 0.82f);
         [SerializeField] private Color _subtitleColor = new Color(0.78f, 0.24f, 0.19f);
@@ -123,7 +125,7 @@ namespace IMUNROK.Common
 
             var rt = canvas.GetComponent<RectTransform>();
             rt.sizeDelta = new Vector2(900f, 460f);
-            rt.localScale = Vector3.one * 0.0016f;
+            rt.localScale = Vector3.one * _titleScale;
 
             if (_titleAnchor != null)
             {
@@ -139,8 +141,32 @@ namespace IMUNROK.Common
             var font = UiFont.Resolve(_font);
             UiFont.Publish(_font);
 
-            MakeText(rt, _title, font, 190, _titleColor, new Vector2(0f, 40f));
-            MakeText(rt, _subtitle, font, 72, _subtitleColor, new Vector2(0f, -140f));
+            // 제목 석 자는 붙여 쓰면 덩어리로 보인다. 사이를 벌려야 현판처럼 읽힌다.
+            // 낡은 UI 글자에는 자간이 없어 글자 사이에 공백을 끼워 벌린다.
+            MakeText(rt, Spaced(_title), font, 210, _titleColor, new Vector2(0f, 52f));
+
+            // 한글과 한자 사이에 가는 줄 하나. 둘을 갈라 놔야 부제로 읽힌다.
+            var rule = new GameObject("가는줄", typeof(Image));
+            var rrt = rule.GetComponent<RectTransform>();
+            rrt.SetParent(rt, false);
+            rrt.anchoredPosition = new Vector2(0f, -78f);
+            rrt.sizeDelta = new Vector2(300f, 2f);
+            rule.GetComponent<Image>().color = new Color(_subtitleColor.r, _subtitleColor.g, _subtitleColor.b, 0.55f);
+
+            MakeText(rt, Spaced(_subtitle), font, 78, _subtitleColor, new Vector2(0f, -142f));
+        }
+
+        /// <summary>글자 사이를 한 칸씩 벌린다.</summary>
+        private static string Spaced(string s)
+        {
+            if (string.IsNullOrEmpty(s) || s.Length < 2) return s;
+            var sb = new System.Text.StringBuilder(s.Length * 2);
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (i > 0) sb.Append(' ');
+                sb.Append(s[i]);
+            }
+            return sb.ToString();
         }
 
         private void MakeText(RectTransform parent, string s, Font font, int size, Color color, Vector2 offset)
@@ -154,6 +180,12 @@ namespace IMUNROK.Common
             t.alignment = TextAnchor.MiddleCenter;
             t.horizontalOverflow = HorizontalWrapMode.Overflow;
             t.verticalOverflow = VerticalWrapMode.Overflow;
+
+            // 어둠 위에 얹는 글씨라 가장자리가 흐려 보인다. 뒤에 그림자를 한 겹 깔면
+            // 바탕이 어떻든 획이 또렷하게 선다.
+            var sh = go.AddComponent<Shadow>();
+            sh.effectColor = new Color(0f, 0f, 0f, 0.75f);
+            sh.effectDistance = new Vector2(3f, -3f);
 
             var rt = go.GetComponent<RectTransform>();
             rt.SetParent(parent, false);

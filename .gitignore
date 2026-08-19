@@ -85,7 +85,13 @@ gemini_api_key.txt
 /Assets/_Project/Art/UI/
 /Assets/_Project/Art/Fonts/
 # 공통 아트(한지 텍스처·폰트 등) — git 제외, 공유폴더로 배포
-/Assets/_Project/_Common/Art/
+/Assets/_Project/_Common/Art/*
+# 폰트만은 .meta 를 커밋한다. 씬이 폰트를 GUID 로 가리키므로 .meta 가 빠지면
+# 팀원 화면에서 글씨가 통째로 다른 것으로 바뀐다. 부모 폴더가 통으로 빠져 있으면
+# 안쪽만 되살릴 수 없어, 폴더를 한 번 열고 그 안에서 다시 거른다.
+!/Assets/_Project/_Common/Art/Fonts/
+/Assets/_Project/_Common/Art/Fonts/*
+!/Assets/_Project/_Common/Art/Fonts/*.meta
 
 # ─────────────────────────────────────────────
 # 대용량 에셋 팩 — git 제외, 팀 공유폴더로 "폴더째" 배포
