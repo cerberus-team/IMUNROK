@@ -111,6 +111,8 @@ namespace IMUNROK.Common
         private float _hold;
         private bool _running;
         private bool _waiting;      // 연출이 끝나 사람의 손을 기다리는 중
+        private bool _closing;      // 제목을 걷는 중 — 이때 또 부르면 그 걷기가 죽는다
+        private bool _heldByKey;    // 지금 누르고 있는 것이 키보드인가(마우스는 레이가 따로 본다)
         private float _titleLift;   // 제목이 제자리보다 얼마나 위에 떠 있는가(m)
         private GameObject _pressTarget;
 
@@ -172,15 +174,25 @@ namespace IMUNROK.Common
         {
             if (_done) return;
 
-            if (Held())
+            bool key = KeyHeld();
+            bool mouse = MouseHeld();
+
+            if (key || mouse)
             {
                 _hold += Time.deltaTime;
+                if (key) _heldByKey = true;
                 if (SaveSystem.HasSave && _hold >= _holdSeconds) { ContinueSaved(); return; }
             }
             else
             {
-                if (_hold > 0f && _hold < _holdSeconds) { Advance(); return; }
+                // 짧게 눌렀다 뗀 것 — <b>키보드만</b> 여기서 처리한다.
+                // 마우스는 레이가 누름판을 집어 TitlePress 가 이미 불렀다. 여기서 또 부르면
+                // 누를 때 시작한 일을 뗄 때 되돌려 놓아, 눌러도 아무 일이 없는 것처럼 보인다.
+                bool shortPress = _hold > 0f && _hold < _holdSeconds;
+                bool wasKey = _heldByKey;
                 _hold = 0f;
+                _heldByKey = false;
+                if (shortPress && wasKey) { Advance(); return; }
             }
 
             // 기다리는 동안 안내가 천천히 밝았다 어두웠다 한다 — 눌러야 할 것이 있다는 표
@@ -201,8 +213,8 @@ namespace IMUNROK.Common
         /// </summary>
         public void Advance()
         {
-            if (_done) return;
-            if (_waiting) { StartCoroutine(CloseTitle()); return; }
+            if (_done || _closing) return;      // 걷는 중에 또 부르면 그 걷기를 죽인다
+            if (_waiting) { _closing = true; StartCoroutine(CloseTitle()); return; }
             StopAllCoroutines();
             ShowAll();
             EnterWaiting();
@@ -388,14 +400,21 @@ namespace IMUNROK.Common
                 Debug.LogWarning($"[TitleGate] 조사청 씬('{_hubSceneName}')을 찾을 수 없습니다.", this);
         }
 
-        private bool Held()
+        private bool KeyHeld()
         {
 #if ENABLE_INPUT_SYSTEM
             var kb = Keyboard.current;
-            var mouse = Mouse.current;
-            if (mouse != null && mouse.leftButton.isPressed) return true;
-            if (kb != null && (kb.anyKey.isPressed)) return true;
+            return kb != null && kb.anyKey.isPressed;
+#else
             return false;
+#endif
+        }
+
+        private bool MouseHeld()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var mouse = Mouse.current;
+            return mouse != null && mouse.leftButton.isPressed;
 #else
             return false;
 #endif
