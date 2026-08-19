@@ -38,8 +38,12 @@ namespace IMUNROK.Common
         [SerializeField] private string _subtitle = "異聞錄";
         [Tooltip("제목이 앉을 자리. 비우면 카메라 앞에 띄운다")]
         [SerializeField] private Transform _titleAnchor;
-        [SerializeField] private float _titleDistance = 1.15f;
-        [SerializeField] private float _titleHeight = 0.10f;
+        [Tooltip("눈에서 이만큼 앞(m). 고개를 숙인 자세에서는 멀리 둘수록 땅속으로 들어간다")]
+        [SerializeField] private float _titleDistance = 0.85f;
+        [SerializeField] private float _titleHeight = 0.15f;
+        [Tooltip("제목이 이 높이 아래로는 내려가지 않는다(m). 숙인 시선 그대로 두면 " +
+                 "바닥 밑에 놓여 통째로 가려진다 — 소리 없이 사라지는 종류의 탈이다")]
+        [SerializeField] private float _titleMinHeight = 0.22f;
         [SerializeField] private float _titleScale = 0.00072f;
         [SerializeField] private Font _font;
         [SerializeField] private Color _titleColor = new Color(0.97f, 0.93f, 0.82f);
@@ -155,6 +159,11 @@ namespace IMUNROK.Common
             Vector3 pos = _cam.position
                           + _cam.forward * _titleDistance
                           + _cam.up * (_titleHeight + _titleLift);
+
+            // 바닥 밑으로는 내려보내지 않는다. 월드 캔버스도 깊이 검사를 받으므로
+            // 땅 밑에 놓이면 통째로 가려져, 아무 오류 없이 제목만 사라진다.
+            if (pos.y < _titleMinHeight) pos.y = _titleMinHeight;
+
             _titleGo.transform.position = pos;
             _titleGo.transform.rotation = Quaternion.LookRotation(pos - _cam.position, _cam.up);
         }
