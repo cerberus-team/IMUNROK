@@ -25,7 +25,10 @@ namespace IMUNROK.Common
     public class InteriorSceneSwap : MonoBehaviour
     {
         [Tooltip("불러올 실내 씬 이름. 빌드 설정에 들어 있어야 한다")]
-        [SerializeField] private string _sceneName = "Onggojip_사랑채";
+        [SerializeField] private string _sceneName = "";
+
+        [Tooltip("실내에 들어설 때 켤 것 — 상자로 지은 사랑채 실내. 이걸 걸면 씬을 따로 안 불러온다")]
+        [SerializeField] private GameObject _showWhileInside;
 
         [Tooltip("실내에 있는 동안 꺼둘 것 — 원본 사랑채를 묶어 둔 오브젝트")]
         [SerializeField] private GameObject _hideWhileInside;
@@ -48,6 +51,26 @@ namespace IMUNROK.Common
 
         private IEnumerator SwapRoutine()
         {
+            // 실내가 같은 씬 안에 있으면 켜고 끄기만 하면 된다.
+            //
+            // 예전엔 실내를 따로 만든 씬으로 두고 겹쳐 불러왔다. 그럴 이유가 없어졌다 —
+            // 실내는 8,844 삼각형뿐이라 꺼둔 채 들고 있어도 부담이 없고, 무거운 것은
+            // 원본 사랑채(203,652)인데 그건 어느 쪽이든 들어갈 때 끈다. 화면에 그려지는
+            // 양은 씬을 나누든 합치든 똑같다.
+            //
+            // 나눠 두면 오히려 손해가 있었다. 유니티는 씬을 건너뛰는 참조를 저장하지 못해
+            // 방과 그 방에서 쓰는 표식·단서를 한 데 둘 수가 없었고, 불러오기가 비동기라
+            // 복동이 앉는 동작이 화면 밝아진 뒤에야 시작되기도 했다.
+            if (_showWhileInside != null)
+            {
+                _showWhileInside.SetActive(true);
+                if (_hideWhileInside != null) _hideWhileInside.SetActive(false);
+                _onReady?.Invoke();
+                yield break;
+            }
+
+            if (string.IsNullOrEmpty(_sceneName)) { _onReady?.Invoke(); yield break; }
+
             if (!Application.CanStreamedLevelBeLoaded(_sceneName))
             {
                 Debug.LogWarning($"[{name}] 실내 씬 '{_sceneName}' 을 빌드 설정에서 못 찾았습니다. " +
