@@ -174,6 +174,17 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
+        /// 어느 봉서를 지금 펼쳐 읽고 있는지 알린다. 나머지는 도로 내려놓는다 —
+        /// 둘이 한꺼번에 눈앞에 떠 있으면 무엇을 고른 것인지 알 수 없다.
+        /// </summary>
+        public void NowReading(IntroDocument open)
+        {
+            if (_documents == null) return;
+            foreach (var d in _documents)
+                if (d != null && d != open) d.Lower();
+        }
+
+        /// <summary>
         /// 봉서 하나를 골라 받았다. 고른 사건은 <see cref="IntroDocument"/> 가 이미
         /// 진행중으로 표시했고, 여기서는 받는 말 한 마디와 조사청으로 넘어가는 일만 한다.
         /// </summary>

@@ -158,15 +158,14 @@ MonoBehaviour:
   - "\uB098\uB294 \uADF8 \uB9D0\uC744 \uBBFF\uC9C0 \uC54A\uB294\uB2E4."
   - "\uBD09\uC11C\uC640 \uB9C8\uD328, \uC720\uCC99\uC744 \uB0B4\uB9AC\uB2C8 \u2014
     \uAC00\uC11C \uBB34\uC5C7\uC774 \uC788\uC5C8\uB294\uC9C0 \uAE30\uB85D\uD574 \uC624\uB77C."
-  _pickPrompt: "\uC138 \uBB38\uC11C \uC911 \uD558\uB098\uB97C \uC9D1\uC73C\uB77C.
-    \uAC70\uAE30\uC11C\uBD80\uD130 \uC870\uC0AC\uAC00 \uC2DC\uC791\uB41C\uB2E4."
+  _pickPrompt: "\uAD74\uB7EC\uC628 \uBD09\uC11C\uB97C \uC9D1\uC5B4 \uBCF4\uB77C."
   _documents:
   - {fileID: 769633752}
   - {fileID: 1168603006}
   - {fileID: 1425768607}
-  _docStagger: 0.4
-  _docSlideDuration: 0.6
-  _docFromDistance: 1.2
+  _docStagger: 0.55
+  _docSlideDuration: 1.5
+  _docFromDistance: 2.6
   _takeLine: "\u2026\uC0BC\uAC00 \uBC1B\uC7A1\uACA0\uB098\uC774\uB2E4."
   _takeSpeaker: "\uB098"
   _leaveAfter: 1.8
@@ -1238,8 +1237,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 769633749}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.2419219, z: 0, w: 0.9702957}
-  m_LocalPosition: {x: -0.5, y: 0.030375034, z: -0.1}
+  m_LocalRotation: {x: 0, y: 0.061048545, z: 0, w: 0.99813485}
+  m_LocalPosition: {x: -0.5, y: 0.03, z: -0.1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1282,6 +1281,11 @@ MonoBehaviour:
   _caseId: 0
   _hubSceneName: HubScene
   _label: "\uC81C\uC77C\uC0AC\uAC74 \u2014 \uB204\uAC00 \uC9C4\uC9DC\uC778\uAC00"
+  _document: {fileID: 2800000, guid: b534ecce5322f4244bfa389a9cc08fa2, type: 3}
+  _readDistance: 0.62
+  _readDrop: 0.06
+  _liftSeconds: 0.7
+  _readPrompt: "\uB9E1\uC73C\uB824\uBA74 \uD55C \uBC88 \uB354 \uB204\uB974\uC2DC\uC624."
   _paperColor: {r: 0.85, g: 0.8, b: 0.68, a: 1}
   _hoverBrighten: 0.3
 --- !u!1 &1097069502
@@ -1640,8 +1644,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1168603003}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0.19080901, z: 0, w: 0.9816272}
-  m_LocalPosition: {x: 0, y: 0.030375034, z: 0.06}
+  m_LocalRotation: {x: 0, y: -0.043619387, z: 0, w: 0.99904823}
+  m_LocalPosition: {x: 0, y: 0.03, z: 0.06}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1684,6 +1688,11 @@ MonoBehaviour:
   _caseId: 1
   _hubSceneName: HubScene
   _label: "\uC81C\uC774\uC0AC\uAC74 \u2014 \uB124 \uBC88\uC9F8 \uD658\uC0DD\uC790"
+  _document: {fileID: 2800000, guid: d5a713b739abbff4597d5e4bb0fa0bfe, type: 3}
+  _readDistance: 0.62
+  _readDrop: 0.06
+  _liftSeconds: 0.7
+  _readPrompt: "\uB9E1\uC73C\uB824\uBA74 \uD55C \uBC88 \uB354 \uB204\uB974\uC2DC\uC624."
   _paperColor: {r: 0.85, g: 0.8, b: 0.68, a: 1}
   _hoverBrighten: 0.3
 --- !u!1 &1238037154
@@ -2117,6 +2126,11 @@ MonoBehaviour:
   _caseId: 2
   _hubSceneName: HubScene
   _label: "\uC81C\uC0BC\uC0AC\uAC74 \u2014 \uCE60\uC11D \uC2E4\uC885"
+  _document: {fileID: 2800000, guid: d331a06afe5b362499516bf66f947875, type: 3}
+  _readDistance: 0.62
+  _readDrop: 0.06
+  _liftSeconds: 0.7
+  _readPrompt: "\uB9E1\uC73C\uB824\uBA74 \uD55C \uBC88 \uB354 \uB204\uB974\uC2DC\uC624."
   _paperColor: {r: 0.85, g: 0.8, b: 0.68, a: 1}
   _hoverBrighten: 0.3
 --- !u!65 &1425768608
@@ -2148,8 +2162,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1425768606}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.28401536, z: 0, w: 0.95881975}
-  m_LocalPosition: {x: 0.5, y: 0.030375034, z: -0.08}
+  m_LocalRotation: {x: 0, y: 0.05233596, z: 0, w: 0.9986295}
+  m_LocalPosition: {x: 0.5, y: 0.03, z: -0.08}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -3131,6 +3145,10 @@ PrefabInstance:
     - target: {fileID: 7562167623318388315, guid: f769be096bf2ed44aa701d7dff10b94e, type: 3}
       propertyPath: m_LocalScale.z
       value: 0.115
+      objectReference: {fileID: 0}
+    - target: {fileID: 7918660454324351752, guid: f769be096bf2ed44aa701d7dff10b94e, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.0001
       objectReference: {fileID: 0}
     - target: {fileID: 7918660454324351752, guid: f769be096bf2ed44aa701d7dff10b94e, type: 3}
       propertyPath: m_LocalPosition.y
