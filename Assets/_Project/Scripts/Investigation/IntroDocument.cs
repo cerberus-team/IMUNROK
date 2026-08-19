@@ -105,10 +105,14 @@ namespace IMUNROK.Common
         {
             if (!_ready) return;
 
-            // 집은 사건을 진행중으로 표시(조사청 큐브가 주황이 됨). 순서는 완전 자유이므로 잠금 아님.
-            GameState.Instance.StartCase(_caseId);
-            Debug.Log($"[IntroDocument] {_caseId} 문서를 집었습니다 — 조사청으로 진입합니다.");
+            // 어느 통을 집어도 셋을 다 받는다. 왕이 셋을 내렸는데 하나만 들고 나갈 수는 없고,
+            // 여기서 사건을 고르면 첫 조사청 방문이 할 일 없는 통로가 된다.
+            // 고르는 일은 조사청 사건판이 맡는다 — 그래서 여기서는 StartCase 를 부르지 않는다.
+            var intro = FindFirstObjectByType<IntroController>();
+            if (intro != null) { intro.TakeAll(); return; }
 
+            // 어전에 진행 담당이 없으면(따로 시험할 때) 예전처럼 혼자 넘어간다.
+            Debug.LogWarning("[IntroDocument] IntroController 를 찾지 못해 혼자 넘어갑니다.", this);
             if (!string.IsNullOrEmpty(_hubSceneName) && Application.CanStreamedLevelBeLoaded(_hubSceneName))
                 SceneManager.LoadScene(_hubSceneName);
             else

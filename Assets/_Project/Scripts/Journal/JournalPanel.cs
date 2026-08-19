@@ -180,8 +180,9 @@ namespace IMUNROK.Common
                 card.gameObject.AddComponent<Image>().color = _cardColor;
                 _cards.Add(card.gameObject);
 
-                // 심문에서 이미 밝혀진 사실("_revealed")은 다시 들이밀 수 없다
-                bool canPresent = talking && !c.key.EndsWith("_revealed");
+                // 심문에서 이미 밝혀진 사실("_revealed")은 다시 들이밀 수 없다.
+                // 조사종이처럼 처음부터 쥐고 있던 것도 마찬가지다 — 증거가 아니라 출발점이다.
+                bool canPresent = talking && c.presentable && !c.key.EndsWith("_revealed");
                 float btnW = canPresent ? 190f : 0f;
 
                 var label = NewText("문구", "· " + c.text, new Vector2(-btnW * 0.5f, 0f),

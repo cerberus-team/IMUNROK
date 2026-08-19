@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -6,12 +7,25 @@ using UnityEngine.InputSystem;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 장면 1 — 어전(도입). 플레이어는 왕 앞에 부복(무릎 꿇음)한 상태로 시작한다.
-    /// 왕은 모델 없이 목소리+자막(지금은 자막만)으로 세 미제 사건을 내린다.
-    /// 대사가 끝나면 세 문서가 하나씩 "주르륵" 밀려나오고, 하나를 집으면
-    /// 그 사건을 시작하며 조사청으로 진입한다.
+    /// 장면 1 — 어전(도입). 플레이어는 왕 앞에 부복한 채로 시작한다.
+    /// 왕은 모습을 보이지 않고 목소리와 자막으로 세 미제 사건을 내린다.
+    /// 대사가 끝나면 봉서 세 통이 하나씩 밀려나오고, 받으면 조사청으로 간다.
     ///
-    /// 자막은 OnGUI(엔딩과 동일 방식)로 그린다 — 한글 폰트 에셋 없이 확실히 표시.
+    /// <b>봉서는 세 통을 한꺼번에 받는다.</b> 예전에는 하나를 골라 집으면 그 사건이
+    /// 곧장 시작됐는데, 그러면 첫 조사청 방문이 할 일 없는 통로가 된다. 게다가
+    /// 마지막에 세 사건을 모두 복명하는 구조인데 하나만 받아 나가는 그림은 앞뒤가
+    /// 안 맞는다. 고르는 일은 조사청 사건판이 맡는다.
+    ///
+    /// <b>자막은 SubtitleView 로 그린다.</b> 예전 OnGUI 는 헤드셋에 아예 렌더링되지
+    /// 않는다 — 모니터로 보면 멀쩡한데 쓰고 보면 왕이 말없이 서 있다.
+    ///
+    /// <b>건너뛰기는 한 번 본 뒤부터만 열린다.</b> 어명은 내가 왜 여기 있는지를 말해
+    /// 주는 유일한 자리이고, 신분을 감춘다는 전제도 여기서만 선다(1막에서 사람들이
+    /// 어사또라 부르지 않는 이유가 여기 있다). 첫 회에 건너뛰면 그걸 통째로 놓친다.
+    /// 대신 다시 시작하거나 시연할 때 매번 앉아 있을 수는 없으니, 끝까지 한 번 본
+    /// 기록이 남으면 그때부터 열어 준다.
+    /// 누르는 방식은 <b>길게 누르기</b>다 — VR 컨트롤러는 스치기만 해도 눌리는데,
+    /// 실수로 프롤로그를 날리면 되돌릴 방법이 없다.
     /// </summary>
     public class IntroController : MonoBehaviour
     {
@@ -32,7 +46,7 @@ namespace IMUNROK.Common
         };
 
         [Tooltip("문서를 집으라는 안내(대사 후 표시)")]
-        [SerializeField] private string _pickPrompt = "세 문서 중 하나를 집으라. 거기서부터 조사가 시작된다.";
+        [SerializeField] private string _pickPrompt = "세 통을 모두 받잡는다.";
 
         [Header("문서 등장 연출")]
         [SerializeField] private IntroDocument[] _documents;
@@ -42,17 +56,50 @@ namespace IMUNROK.Common
         [Tooltip("문서가 왕 쪽(뒤)에서 밀려나오는 거리")]
         [SerializeField] private float _docFromDistance = 1.2f;
 
+        [Header("받은 뒤")]
+        [Tooltip("봉서를 받을 때 한 줄. 비우면 그냥 넘어간다")]
+        [SerializeField] private string _takeLine = "…삼가 받잡겠나이다.";
+        [SerializeField] private string _takeSpeaker = "나";
+        [Tooltip("받은 뒤 조사청으로 넘어가기까지(초)")]
+        [SerializeField] private float _leaveAfter = 1.8f;
+        [SerializeField] private string _hubSceneName = "HubScene";
+
+        [Header("건너뛰기")]
+        [Tooltip("이만큼 누르고 있으면 어명을 건너뛴다. 스치듯 눌러 날아가지 않게 길게 잡는다")]
+        [SerializeField] private float _skipHoldSeconds = 1.2f;
+        [Tooltip("끄면 처음부터 건너뛸 수 있다(시연·개발용)")]
+        [SerializeField] private bool _skipOnlyAfterSeen = true;
+
+        /// <summary>어명을 끝까지 본 적이 있는가. 기기에 남는다.</summary>
+        private const string SeenKey = "이문록_어명_봄";
+
         private int _index;
         private float _timer;
         private bool _speechDone;
         private bool _docsRevealed;
+        private bool _taken;
+        private float _holdTimer;
 
-        private GUIStyle _speakerStyle;
-        private GUIStyle _lineStyle;
-        private GUIStyle _hintStyle;
+        private static bool SeenBefore
+        {
+            get { return PlayerPrefs.GetInt(SeenKey, 0) == 1; }
+            set { PlayerPrefs.SetInt(SeenKey, value ? 1 : 0); PlayerPrefs.Save(); }
+        }
+
+        private bool CanSkip => !_skipOnlyAfterSeen || SeenBefore;
+
+        private void Start()
+        {
+            _index = 0;
+            _timer = 0f;
+            ShowLine();
+        }
 
         private void Update()
         {
+            if (_speechDone) return;
+
+            HandleSkipHold();
             if (_speechDone) return;
 
             _timer += Time.deltaTime;
@@ -60,19 +107,56 @@ namespace IMUNROK.Common
                 Next();
         }
 
+        /// <summary>누르고 있는 시간을 재서 건너뛴다. 짧게 누른 것은 '다음 줄'이라 여기 걸리지 않는다.</summary>
+        private void HandleSkipHold()
+        {
+            if (!CanSkip) return;
+
+            if (!AdvanceHeld()) { _holdTimer = 0f; return; }
+
+            _holdTimer += Time.deltaTime;
+            if (_holdTimer < _skipHoldSeconds) return;
+
+            _holdTimer = 0f;
+            EndSpeech();
+        }
+
         private void Next()
         {
             _timer = 0f;
             _index++;
-            if (_index >= _kingLines.Length)
-            {
-                _index = _kingLines.Length - 1;
-                _speechDone = true;
-                RevealDocuments();
-            }
+            if (_index >= _kingLines.Length) { EndSpeech(); return; }
+            ShowLine();
         }
 
-        /// <summary>세 문서를 시차를 두고 등장시키고 선택 가능하게 만든다.</summary>
+        private void ShowLine()
+        {
+            if (_kingLines == null || _kingLines.Length == 0) { EndSpeech(); return; }
+            string line = _kingLines[Mathf.Clamp(_index, 0, _kingLines.Length - 1)];
+            SubtitleView.Show(_speakerName, line, HintText());
+        }
+
+        private string HintText()
+        {
+            return CanSkip
+                ? "(다음 — 누르기 · 건너뛰기 — 꾹 누르기)"
+                : "(다음 — 누르기)";
+        }
+
+        private void EndSpeech()
+        {
+            if (_speechDone) return;
+            _speechDone = true;
+            _index = Mathf.Max(0, _kingLines.Length - 1);
+
+            // 끝까지 들었든 건너뛰었든, 이 지점에 닿았으면 본 것으로 친다.
+            SeenBefore = true;
+
+            SubtitleView.Show("", _pickPrompt, "(봉서를 가리켜 집는다)");
+            RevealDocuments();
+        }
+
+        /// <summary>봉서 셋을 시차를 두고 등장시키고 집을 수 있게 만든다.</summary>
         private void RevealDocuments()
         {
             if (_docsRevealed) return;
@@ -80,7 +164,7 @@ namespace IMUNROK.Common
 
             if (_documents == null || _documents.Length == 0)
             {
-                Debug.LogWarning("[IntroController] 연결된 문서가 없습니다.");
+                Debug.LogWarning("[IntroController] 연결된 봉서가 없습니다.", this);
                 return;
             }
 
@@ -89,6 +173,37 @@ namespace IMUNROK.Common
                     _documents[i].PlaySlideIn(i * _docStagger, _docSlideDuration, _docFromDistance);
         }
 
+        /// <summary>
+        /// 봉서 셋을 한꺼번에 받는다. 어느 통을 집어도 여기로 온다 —
+        /// 왕이 셋을 다 내렸으니 하나만 들고 나갈 수는 없다.
+        /// </summary>
+        public void TakeAll()
+        {
+            if (_taken) return;
+            _taken = true;
+
+            if (!string.IsNullOrEmpty(_takeLine)) SubtitleView.Show(_takeSpeaker, _takeLine);
+            else SubtitleView.Hide();
+
+            Invoke(nameof(LeaveForHub), Mathf.Max(0.1f, _leaveAfter));
+        }
+
+        private void LeaveForHub()
+        {
+            SubtitleView.Hide();
+
+            if (string.IsNullOrEmpty(_hubSceneName) || !Application.CanStreamedLevelBeLoaded(_hubSceneName))
+            {
+                Debug.LogWarning($"[IntroController] 조사청 씬('{_hubSceneName}')을 찾을 수 없습니다. " +
+                                 "File ▸ Build Profiles 의 씬 목록을 확인하세요.", this);
+                return;
+            }
+
+            // 눈을 한 번 감았다 뜨는 사이에 옮긴다 — 갑자기 자리가 바뀌면 멀미가 난다.
+            ScreenFade.Blink(0.45f, 0.5f, () => SceneManager.LoadScene(_hubSceneName));
+        }
+
+        /// <summary>다음 줄로 넘기려고 눌렀는가(한 번 누름).</summary>
         private bool AdvancePressed()
         {
 #if ENABLE_INPUT_SYSTEM
@@ -102,50 +217,27 @@ namespace IMUNROK.Common
 #endif
         }
 
-        private void OnGUI()
+        /// <summary>누르고 있는가(건너뛰기 판정용).</summary>
+        private bool AdvanceHeld()
         {
-            EnsureStyles();
-
-            float w = Screen.width * 0.8f;
-            float h = 150f;
-            float x = (Screen.width - w) * 0.5f;
-            float y = Screen.height - h - 48f;
-
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
-
-            if (!_speechDone)
-            {
-                GUI.Label(new Rect(x + 24, y + 12, w - 48, 30), _speakerName, _speakerStyle);
-                string line = (_kingLines != null && _kingLines.Length > 0)
-                    ? _kingLines[Mathf.Clamp(_index, 0, _kingLines.Length - 1)] : "";
-                GUI.Label(new Rect(x + 24, y + 48, w - 48, h - 60), line, _lineStyle);
-                GUI.Label(new Rect(x, y + h + 6, w, 24), "(스페이스 / 클릭: 다음)", _hintStyle);
-            }
-            else
-            {
-                GUI.Label(new Rect(x + 24, y + 24, w - 48, h - 40), _pickPrompt, _lineStyle);
-                GUI.Label(new Rect(x, y + h + 6, w, 24), "(문서를 가리켜 클릭 — 나중엔 손을 뻗어 집는다)", _hintStyle);
-            }
+#if ENABLE_INPUT_SYSTEM
+            var kb = Keyboard.current;
+            var mouse = Mouse.current;
+            bool space = kb != null && kb.spaceKey.isPressed;
+            bool click = mouse != null && mouse.leftButton.isPressed;
+            return space || click;
+#else
+            return false;
+#endif
         }
 
-        private void EnsureStyles()
+        /// <summary>기록을 지운다 — 처음 보는 것처럼 다시 시험하고 싶을 때.</summary>
+        [ContextMenu("어명 본 기록 지우기")]
+        private void ForgetSeen()
         {
-            if (_lineStyle != null) return;
-            _speakerStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 18, fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(1f, 0.85f, 0.4f) }
-            };
-            _lineStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 22, wordWrap = true, richText = true,
-                normal = { textColor = Color.white }
-            };
-            _hintStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 13, alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = new Color(1f, 1f, 1f, 0.5f) }
-            };
+            PlayerPrefs.DeleteKey(SeenKey);
+            PlayerPrefs.Save();
+            Debug.Log("[IntroController] 어명 본 기록을 지웠습니다 — 다음 실행에서 건너뛸 수 없습니다.");
         }
     }
 }

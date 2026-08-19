@@ -15,6 +15,13 @@ namespace IMUNROK.Common
         public string key;   // 중복 기록 방지용 식별자(같은 key는 한 번만)
         public string text;  // 표시 문구
         public ClueKind kind; // 물증/정황
+
+        /// <summary>
+        /// 심문에서 들이밀 수 있는가. 사건에 들어설 때 받는 조사종이처럼
+        /// "내가 이미 아는 것"은 증거가 아니라 출발점이라 들이밀 수 없다.
+        /// 예전에 저장한 파일에는 이 값이 없는데, 그때는 이 초기값(true)이 그대로 남는다.
+        /// </summary>
+        public bool presentable = true;
     }
 
     /// <summary>
@@ -81,13 +88,14 @@ namespace IMUNROK.Common
 
         /// <summary>단서를 기록. 같은 (사건,key)는 한 번만. 새로 기록되면 true.
         /// image: 상황 그림(선택), kind: 물증/정황(수첩 탭 분류).</summary>
-        public bool AddClue(CaseId caseId, string key, string text, Texture2D image = null, ClueKind kind = ClueKind.물증)
+        public bool AddClue(CaseId caseId, string key, string text, Texture2D image = null,
+                            ClueKind kind = ClueKind.물증, bool presentable = true)
         {
             if (string.IsNullOrEmpty(key)) key = text;
             if (image != null) _clueImages[ImgKey(caseId, key)] = image;
             if (HasClue(caseId, key)) return false;
 
-            var entry = new ClueEntry { caseId = caseId, key = key, text = text, kind = kind };
+            var entry = new ClueEntry { caseId = caseId, key = key, text = text, kind = kind, presentable = presentable };
             _clues.Add(entry);
             Debug.Log($"[Journal] 단서 기록: [{caseId}] {text}");
             OnClueAdded?.Invoke(entry);
