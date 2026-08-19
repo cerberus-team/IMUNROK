@@ -52,6 +52,10 @@ namespace IMUNROK.Common
         [SerializeField] private float _labelHeight = 0.20f;
         [Tooltip("펼쳐 든 동안 종이 아래에 붙는 틈(m). 크게 잡으면 화면 밖으로 밀려난다")]
         [SerializeField] private float _readLabelGap = 0.045f;
+        [Tooltip("펼쳐 든 동안 이름표를 눈에서 이만큼 떨어진 곳에 못 박는다(m). " +
+                 "두루마리는 아랫축이 앞으로 튀어나와 있어, 조금 빼는 정도로는 " +
+                 "글자가 그 축에 걸쳐 파묻힌다. 아예 그보다 앞에 세운다")]
+        [SerializeField] private float _readLabelDistance = 0.34f;
         [SerializeField] private int _labelFontSize = 40;
         [SerializeField] private Color _labelColor = new Color(1f, 0.92f, 0.72f);
 
@@ -464,13 +468,30 @@ namespace IMUNROK.Common
             }
             // 발치에 놓인 동안엔 물건 위에, 얼굴 앞에 펼친 동안엔 종이 아래에 붙인다.
             // 펼친 종이는 화면을 거의 채우므로 그 위에 두면 이름표가 화면 밖으로 밀려난다.
-            Vector3 pos = _phase == Phase.읽는중
-                ? b.center - cam.transform.up * (b.size.y * 0.5f + _readLabelGap)
-                : new Vector3(b.center.x, b.max.y + _labelHeight, b.center.z);
+            const float LabelScale = 0.0006f;
 
+            if (_phase == Phase.읽는중)
+            {
+                // 종이 아래에 두되, 눈에서 정해진 거리에 못 박는다. 두루마리보다 앞이라야
+                // 아랫축에 걸려 글자가 파묻히지 않는다. 가까워진 만큼 작게 그려
+                // 보기에는 늘 같은 크기가 되게 한다.
+                Vector3 want = b.center - cam.transform.up * (b.size.y * 0.5f + _readLabelGap);
+                Vector3 dir = (want - cam.transform.position).normalized;
+                Vector3 at = cam.transform.position + dir * _readLabelDistance;
+
+                _labelGo.transform.position = at;
+                _labelGo.transform.rotation = Quaternion.LookRotation(-cam.transform.forward, cam.transform.up);
+                // 눈앞으로 당겨 세운 만큼 작게 그린다. 0.62 는 예전에 두던 거리이고,
+                // 거기에 한 번 더 줄여 화면 폭의 절반쯤에 들어오게 한다 —
+                // 이름표가 종이만큼 커지면 읽을 것이 둘이 된다.
+                _labelGo.transform.localScale = Vector3.one * (LabelScale * (_readLabelDistance / 0.62f) * 0.62f);
+                return;
+            }
+
+            Vector3 pos = new Vector3(b.center.x, b.max.y + _labelHeight, b.center.z);
             _labelGo.transform.position = pos;
-            _labelGo.transform.rotation = Quaternion.LookRotation(pos - cam.transform.position,
-                                                                 _phase == Phase.읽는중 ? cam.transform.up : Vector3.up);
+            _labelGo.transform.rotation = Quaternion.LookRotation(pos - cam.transform.position, Vector3.up);
+            _labelGo.transform.localScale = Vector3.one * LabelScale;
         }
 
         private void OnDestroy()
