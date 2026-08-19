@@ -44,6 +44,9 @@ namespace IMUNROK.Common
                  "실수로 닫아 못 들어가는 일을 막는다. 잠금이 풀린 뒤에도 유효하다")]
         [SerializeField] private bool _playerCanToggle = true;
 
+        [Tooltip("이 거리(m) 안에서만 눌린다. 문짝까지의 거리로 잰다. 0이면 거리를 안 본다")]
+        [SerializeField] private float _maxTouchDistance = 3f;
+
         [Tooltip("잠기면 클릭해도 안 열리고 OnKnock만 발생(대문 시퀀스용)")]
         [SerializeField] private bool _locked = false;
 
@@ -139,6 +142,13 @@ namespace IMUNROK.Common
 
         public void OnSelect()
         {
+            // 손이 닿는 거리에서만 눌린다. 문짝 자체까지의 거리로 재야 한다 —
+            // 피벗은 문틀 구석에 박혀 있어서, 그것으로 재면 코앞에 서 있어도 멀다고 막힌다.
+            var cam = Camera.main;
+            if (cam != null && _maxTouchDistance > 0f &&
+                ModelBounds.DistanceTo(transform, cam.transform.position) > _maxTouchDistance)
+                return;
+
             if (_locked)
             {
                 OnKnock?.Invoke();   // 두드리기 → 시퀀스가 받아 처리

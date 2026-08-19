@@ -18118,6 +18118,7 @@ MonoBehaviour:
   _openDuration: 2
   _startOpen: 0
   _playerCanToggle: 0
+  _maxTouchDistance: 3
   _locked: 1
   OnKnock:
     m_PersistentCalls:
@@ -168759,14 +168760,13 @@ MonoBehaviour:
   _sitIdleState: Sit_and_Doze_Off
   _sitDownSpot: {fileID: 1923173201}
   _dozeSpot: {fileID: 467883253}
-  _delayBeforeOpen: 0.5
+  _delayBeforeOpen: 0.4
   _answerLine: "\uB258\uC2DC\uC624?"
   _answerSpeaker: "\uBB38 \uC548\uCABD"
-  _delayBeforeAsk: 1
-  _askDistance: 2.5
-  _askSeconds: 1.4
-  _permitLine: "\u2026\uB4E4\uB77C \uD558\uAC8C."
-  _permitSpeaker: "\uC548\uCABD\uC5D0\uC11C"
+  _delayBeforeAsk: 1.6
+  _askSeconds: 0.9
+  _permitLine: "\uB204\uCD94\uD558\uC624\uB098 \uB4DC\uC2DC\uB77C \uC774\uB974\uAC8C."
+  _permitSpeaker: "\uC548\uC5D0\uC11C"
   _openLeafAt: 0.35
   _delayBeforeWalk: 1
   _openSpeed: 1
@@ -184972,6 +184972,7 @@ MonoBehaviour:
   _openDuration: 1.2
   _startOpen: 0
   _playerCanToggle: 0
+  _maxTouchDistance: 3
   _locked: 0
   OnKnock:
     m_PersistentCalls:
