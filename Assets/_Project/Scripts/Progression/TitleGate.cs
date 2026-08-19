@@ -78,14 +78,20 @@ namespace IMUNROK.Common
         private GameObject _titleGo;
         private bool _left;
 
-        private void Start()
+        private void Awake()
         {
-            // 어전을 통째로 재워 둔다. 표제가 걷히면 깨운다.
+            // 재우는 일은 Awake 에서 해야 한다. Start 에서 끄면 유니티가 Start 를
+            // 부르는 순서에 따라 어명이 먼저 깨어나 첫 줄("어사는 부복하라")을
+            // 표제 뒤에서 혼자 읽어 버린다. 다시 켜도 Start 는 두 번 불리지 않으므로
+            // 그 한 줄은 영영 사라진다.
             if (_hideUntilStart != null)
                 foreach (var go in _hideUntilStart)
                     if (go != null) go.SetActive(false);
             if (_intro != null) _intro.enabled = false;
+        }
 
+        private void Start()
+        {
             // 이어할 것이 없으면 수첩은 아예 없는 편이 낫다 — 눌러도 아무 일이 없는
             // 물건이 놓여 있으면 플레이어는 그것을 고장으로 읽는다.
             if (_continueObject != null) _continueObject.SetActive(SaveSystem.HasSave);

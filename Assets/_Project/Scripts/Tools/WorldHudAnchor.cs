@@ -43,6 +43,10 @@ namespace IMUNROK.Common
         [Tooltip("따라오는 부드러움. 낮을수록 천천히·자연스럽게")]
         [Range(0.5f, 12f)] [SerializeField] private float _damping = 3f;
 
+        [Tooltip("시선에서 이 각도(도) 넘게 벗어나면 그만큼만 끌어온다. " +
+                 "수평만 따라가면 고개를 크게 숙였을 때 창이 화면 위로 빠져나가 아예 안 보인다")]
+        [Range(5f, 45f)] [SerializeField] private float _maxOffAxis = 20f;
+
         [Header("크기")]
         [Tooltip("Canvas 스케일. 월드 Canvas는 1픽셀=1m라 아주 작게 잡아야 한다")]
         [SerializeField] private float _canvasScale = 0.001f;
@@ -192,6 +196,25 @@ namespace IMUNROK.Common
             return Mathf.Clamp(toTarget - _frontMargin, _minDistance, _distance);
         }
 
+        /// <summary>
+        /// 자막이 놓일 방향. 밑바탕은 수평 시선(위아래로 출렁이면 멀미가 난다)이지만,
+        /// 고개를 크게 숙이거나 든 자세에서는 그것만으로는 창이 화면 밖으로 나간다.
+        ///
+        /// 어전이 그랬다 — 부복한 카메라가 51도 아래를 보는데 창은 수평에서 12도
+        /// 아래에 놓여, 왕의 말이 나오고는 있는데 프레임 위쪽 바깥에 있었다.
+        /// 그래서 시선과 벌어진 각이 정해진 값을 넘으면 넘은 만큼만 끌어온다.
+        /// 평소처럼 고개를 조금 움직이는 동안에는 예전과 똑같이 가만히 있는다.
+        /// </summary>
+        private Vector3 ViewDirection(Transform head)
+        {
+            Vector3 dir = _anchorForward;
+            Vector3 eye = head.forward;
+            float off = Vector3.Angle(dir, eye);
+            if (off <= _maxOffAxis) return dir;
+
+            return Vector3.RotateTowards(dir, eye, (off - _maxOffAxis) * Mathf.Deg2Rad, 0f).normalized;
+        }
+
         private void ApplyTransform(Transform head, bool instant)
         {
             float d = EffectiveDistance(head);
@@ -205,15 +228,21 @@ namespace IMUNROK.Common
             // 위아래 치우침도 같은 비율로. 안 그러면 당겨온 창이 시야 아래로 내려앉는다.
             float drop = _verticalOffset * (d / Mathf.Max(0.01f, _distance));
 
+            Vector3 dir = ViewDirection(head);
+
+            // 아래로 치우치는 양은 시선 기준이라야 한다. 세계의 아래로 내리면
+            // 고개를 숙였을 때 창이 발밑으로 파고든다.
+            Vector3 down = _placement == Placement.Waist ? Vector3.up : head.up;
+
             Vector3 target = head.position
-                             + _anchorForward * d
-                             + Vector3.up * drop;
+                             + dir * d
+                             + down * drop;
 
             // Waist는 아래를 보고 있으므로 살짝 눕혀서 정면으로 마주 보게 한다.
             Vector3 toHead = head.position - target;
             Quaternion targetRot = _placement == Placement.Waist
                 ? Quaternion.LookRotation(-toHead.normalized, Vector3.up)
-                : Quaternion.LookRotation(_anchorForward, Vector3.up);
+                : Quaternion.LookRotation(-toHead.normalized, Vector3.up);
 
             if (instant)
             {
