@@ -901,13 +901,13 @@ MonoBehaviour:
   _font: {fileID: 12800000, guid: dafdf968e3b186e41accd381d368dc9c, type: 3}
   _titleColor: {r: 0.97, g: 0.93, b: 0.82, a: 1}
   _subtitleColor: {r: 0.78, g: 0.24, b: 0.19, a: 1}
-  _blackHold: 1.8
-  _titleIn: 2.6
+  _blackHold: 0.5
+  _titleIn: 1.2
   _titleDrop: 0.16
-  _beforeWorld: 0.9
-  _worldIn: 4.4
-  _titleHold: 1
-  _titleOut: 1.6
+  _beforeWorld: 0.15
+  _worldIn: 1.9
+  _titleHold: 0.15
+  _titleOut: 0.8
   _bowExtra: 22
   _titleFollowsView: 1
   _hideUntilStart:
@@ -917,9 +917,13 @@ MonoBehaviour:
   _intro: {fileID: 76830929}
   _darkAmbient: {r: 0.012, g: 0.012, b: 0.018, a: 1}
   _skipHint: "(\uC544\uBB34 \uD0A4\uB098 \uB20C\uB7EC \uB118\uAE30\uAE30)"
+  _startPrompt: "\uB204\uB974\uBA74 \uC5B4\uC804\uC5D0 \uB4E0\uB2E4"
   _continueHint: "(\uAFB9 \uB204\uB974\uBA74 \uD558\uB358 \uB370\uBD80\uD130)"
   _holdSeconds: 1
   _hubSceneName: HubScene
+  _makePressTarget: 1
+  _pressTargetSize: 3
+  _pressTargetDistance: 0.45
 --- !u!4 &656084190
 Transform:
   m_ObjectHideFlags: 0
