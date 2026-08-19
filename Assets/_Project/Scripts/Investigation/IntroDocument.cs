@@ -19,6 +19,9 @@ namespace IMUNROK.Common
         [Tooltip("문서를 집었을 때 진입할 조사청 씬 이름")]
         [SerializeField] private string _hubSceneName = "HubScene";
 
+        [Tooltip("가리켰을 때 뜰 이름. 어느 사건인지 알고 고를 수 있어야 한다")]
+        [SerializeField] private string _label = "";
+
         [SerializeField] private Color _paperColor = new Color(0.85f, 0.80f, 0.68f); // 종이/한지 색
         [Range(0f, 1f)]
         [SerializeField] private float _hoverBrighten = 0.30f;
@@ -93,6 +96,9 @@ namespace IMUNROK.Common
             if (!_ready) return;
             _hovered = true;
             RefreshColor();
+
+            // 어느 사건인지 모른 채 고르게 하면 고르는 것이 아니라 찍는 것이 된다.
+            if (!string.IsNullOrEmpty(_label)) SubtitleView.Show("", _label, "(집으려면 누르기)");
         }
 
         public void OnHoverExit()
@@ -101,18 +107,35 @@ namespace IMUNROK.Common
             RefreshColor();
         }
 
+        /// <summary>
+        /// 고르지 않은 문서를 굳힌다. 하나를 집는 순간 나머지도 눌러지면
+        /// 사건 둘이 한꺼번에 시작돼 버린다.
+        /// </summary>
+        public void Freeze()
+        {
+            _ready = false;
+            _hovered = false;
+            if (_collider != null) _collider.enabled = false;
+            RefreshColor();
+        }
+
         public void OnSelect()
         {
             if (!_ready) return;
 
-            // 어느 통을 집어도 셋을 다 받는다. 왕이 셋을 내렸는데 하나만 들고 나갈 수는 없고,
-            // 여기서 사건을 고르면 첫 조사청 방문이 할 일 없는 통로가 된다.
-            // 고르는 일은 조사청 사건판이 맡는다 — 그래서 여기서는 StartCase 를 부르지 않는다.
-            var intro = FindFirstObjectByType<IntroController>();
-            if (intro != null) { intro.TakeAll(); return; }
+            // 집은 문서의 사건이 그 자리에서 시작된다. 조사청 사건판의 그 큐브가
+            // 주황으로 켜져 있고, 거기서 현장으로 들어가면 된다.
+            //
+            // 한때 "어느 걸 집어도 셋 다 받는다"로 바꿔 본 적이 있다. 어전에서 고르면
+            // 첫 조사청 방문이 할 일 없는 통로가 된다는 이유였는데, 그 이유가 틀렸다 —
+            // 조사청은 도구를 지급받는 곳이고 기록대가 있는 곳이라 들를 까닭이 충분하다.
+            GameState.Instance.StartCase(_caseId);
+            Debug.Log($"[IntroDocument] {_caseId} 문서를 집었습니다 — 조사청으로 갑니다.");
 
-            // 어전에 진행 담당이 없으면(따로 시험할 때) 예전처럼 혼자 넘어간다.
-            Debug.LogWarning("[IntroDocument] IntroController 를 찾지 못해 혼자 넘어갑니다.", this);
+            var intro = FindFirstObjectByType<IntroController>();
+            if (intro != null) { intro.TakeChosen(_caseId); return; }
+
+            // 어전에 진행 담당이 없으면(따로 시험할 때) 혼자 넘어간다.
             if (!string.IsNullOrEmpty(_hubSceneName) && Application.CanStreamedLevelBeLoaded(_hubSceneName))
                 SceneManager.LoadScene(_hubSceneName);
             else

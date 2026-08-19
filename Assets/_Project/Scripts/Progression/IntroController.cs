@@ -46,7 +46,7 @@ namespace IMUNROK.Common
         };
 
         [Tooltip("문서를 집으라는 안내(대사 후 표시)")]
-        [SerializeField] private string _pickPrompt = "세 통을 모두 받잡는다.";
+        [SerializeField] private string _pickPrompt = "세 문서 중 하나를 집으라. 거기서부터 조사가 시작된다.";
 
         [Header("문서 등장 연출")]
         [SerializeField] private IntroDocument[] _documents;
@@ -174,13 +174,17 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// 봉서 셋을 한꺼번에 받는다. 어느 통을 집어도 여기로 온다 —
-        /// 왕이 셋을 다 내렸으니 하나만 들고 나갈 수는 없다.
+        /// 봉서 하나를 골라 받았다. 고른 사건은 <see cref="IntroDocument"/> 가 이미
+        /// 진행중으로 표시했고, 여기서는 받는 말 한 마디와 조사청으로 넘어가는 일만 한다.
         /// </summary>
-        public void TakeAll()
+        public void TakeChosen(CaseId chosen)
         {
             if (_taken) return;
             _taken = true;
+
+            // 고르지 않은 둘은 사건판에 회색으로 남는다. 나중에 아무 때나 집으면 된다.
+            foreach (var d in _documents)
+                if (d != null && d.CaseId != chosen) d.Freeze();
 
             if (!string.IsNullOrEmpty(_takeLine)) SubtitleView.Show(_takeSpeaker, _takeLine);
             else SubtitleView.Hide();
