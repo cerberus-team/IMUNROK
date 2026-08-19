@@ -62,8 +62,12 @@ namespace IMUNROK.Common
         [SerializeField] private float _titleOut = 1.6f;
 
         [Header("고개")]
-        [Tooltip("처음에 이만큼 덜 숙인 채로 시작해, 배경이 밝아 오르는 동안 제자리까지 숙인다(도)")]
-        [SerializeField] private float _bowFrom = 26f;
+        [Tooltip("처음에 이만큼 <b>더</b> 숙인 채로 시작해, 배경이 밝아 오르는 동안 제자리까지 든다(도). " +
+                 "부복은 용안을 우러러보지 않는 자세다 — 얼굴을 바닥에 두고 시작해야 맞다")]
+        [SerializeField] private float _bowExtra = 22f;
+
+        [Tooltip("제목이 시선을 따라다닌다. 고개가 도는 동안에도 늘 눈앞에 있게 된다")]
+        [SerializeField] private bool _titleFollowsView = true;
 
         [Header("어전")]
         [Tooltip("표제 동안 꺼둘 것 — 어전의 불·왕·문서. 밝아 오를 때 켠다")]
@@ -90,6 +94,7 @@ namespace IMUNROK.Common
         private bool _done;
         private float _hold;
         private bool _running;
+        private float _titleLift;   // 제목이 제자리보다 얼마나 위에 떠 있는가(m)
 
         private void Awake()
         {
@@ -111,12 +116,30 @@ namespace IMUNROK.Common
             {
                 _cam = cam.transform;
                 _camHome = _cam.rotation;
-                // 아직 덜 숙인 채로 시작한다. 배경이 밝아 오르는 동안 제자리까지 숙여진다.
+                // 이마가 바닥에 닿을 만큼 숙인 채로 시작한다. 배경이 밝아 오르는 동안
+                // 제자리까지 고개를 든다 — 왕 쪽을 보다가 숙이는 것이 아니라,
+                // 엎드려 있다가 겨우 눈을 드는 순서라야 부복이 된다.
                 var e = _camHome.eulerAngles;
-                _cam.rotation = Quaternion.Euler(e.x - _bowFrom, e.y, e.z);
+                _cam.rotation = Quaternion.Euler(e.x + _bowExtra, e.y, e.z);
             }
             BuildTitle();
             StartCoroutine(Sequence());
+        }
+
+        /// <summary>
+        /// 제목을 눈앞에 붙들어 둔다. 고개가 이십도 넘게 도는 동안 제목이 한자리에
+        /// 못 박혀 있으면 화면 밖으로 밀려나 아무것도 안 보인다.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (_done || _titleGo == null || _cam == null) return;
+            if (!_titleFollowsView && _titleAnchor != null) return;
+
+            Vector3 pos = _cam.position
+                          + _cam.forward * _titleDistance
+                          + _cam.up * (_titleHeight + _titleLift);
+            _titleGo.transform.position = pos;
+            _titleGo.transform.rotation = Quaternion.LookRotation(pos - _cam.position, _cam.up);
         }
 
         private void Update()
@@ -146,14 +169,13 @@ namespace IMUNROK.Common
             yield return new WaitForSeconds(_blackHold);
             if (_done) yield break;
 
-            // ② 제목이 위에서 내려앉는다.
-            Vector3 home = _titleGo.transform.position;
-            Vector3 from = home + Vector3.up * _titleDrop;
+            // ② 제목이 위에서 내려앉는다. 자리는 LateUpdate 가 시선에 맞춰 잡으므로
+            //    여기서는 얼마나 위에 떠 있는지(_titleLift)만 줄여 준다.
             yield return Ramp(_titleIn, delegate (float k)
             {
                 float e = 1f - Mathf.Pow(1f - k, 3f);        // 끝에서 부드럽게 멎는다
                 _titleGroup.alpha = e;
-                _titleGo.transform.position = Vector3.Lerp(from, home, e);
+                _titleLift = Mathf.Lerp(_titleDrop, 0f, e);
             });
             if (_done) yield break;
 
@@ -289,17 +311,20 @@ namespace IMUNROK.Common
             rt.sizeDelta = new Vector2(900f, 520f);
             rt.localScale = Vector3.one * _titleScale;
 
-            if (_titleAnchor != null)
+            _titleLift = _titleDrop;
+
+            if (!_titleFollowsView && _titleAnchor != null)
             {
                 rt.position = _titleAnchor.position;
                 rt.rotation = _titleAnchor.rotation;
             }
             else if (cam != null)
             {
-                // 고개를 덜 숙인 지금 시선이 아니라, 다 숙였을 때의 시선에 맞춰 놓는다.
-                Vector3 fwd = _camHome * Vector3.forward;
-                rt.position = cam.transform.position + fwd * _titleDistance + Vector3.up * _titleHeight;
-                rt.rotation = Quaternion.LookRotation(rt.position - cam.transform.position);
+                // 자리는 LateUpdate 가 매 프레임 시선에 맞춰 잡는다. 여기서는 첫 프레임에
+                // 엉뚱한 데서 튀어나오지 않게 한 번 미리 놓아 둘 뿐이다.
+                var t = cam.transform;
+                rt.position = t.position + t.forward * _titleDistance + t.up * (_titleHeight + _titleLift);
+                rt.rotation = Quaternion.LookRotation(rt.position - t.position, t.up);
             }
 
             var font = UiFont.Resolve(_font);
