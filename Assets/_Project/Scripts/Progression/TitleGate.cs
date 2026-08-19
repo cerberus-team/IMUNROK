@@ -114,6 +114,15 @@ namespace IMUNROK.Common
             if (go.GetComponent<Collider>() == null)
                 Debug.LogWarning($"[TitleGate] '{go.name}' 에 콜라이더가 없어 집을 수 없습니다.", go);
 
+            // 한 오브젝트에 ISelectable 이 둘이면 레이는 먼저 붙은 것만 부른다.
+            // 봉서를 두루마리 프리팹으로 만들었을 때 ScrollUnroll 이 클릭을 먹어
+            // 눌러도 아무 일이 없었다. 소리 없이 막히는 종류라 미리 알려 준다.
+            foreach (var other in go.GetComponents<MonoBehaviour>())
+                if (other is ISelectable && !(other is TitleOption))
+                    Debug.LogWarning($"[TitleGate] '{go.name}' 에 {other.GetType().Name} 이(가) 함께 붙어 있습니다. " +
+                                     "레이가 그쪽을 먼저 잡아 눌러도 시작되지 않을 수 있습니다 — " +
+                                     "빈 오브젝트에 콜라이더를 두고 모델을 자식으로 넣으세요.", go);
+
             var opt = go.GetComponent<TitleOption>();
             if (opt == null) opt = go.AddComponent<TitleOption>();
             opt.Bind(this, isContinue, label);
