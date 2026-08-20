@@ -91,62 +91,8 @@ function Resolve-Face($font, $ch) {
     return (New-Face $script:fallbackName $font.Size $font.Style)
 }
 
-# Two people wrote this ledger, and the whole clue is that you can tell.
-#
-#   hand 0 = Ong Deok-gu. Twenty years of entries in a landowner's trained brush.
-#   hand 1 = Bok-dong. He was a household slave (see the manumission deed, J15) and
-#            never had a scholar's schooling, so his brush is the looser of the two.
-#            He only starts appearing in the last two lines - that is the forgery.
-#
-# Each list is tried in order, so the first installed name wins. Put a new font at
-# the front of a list and it is picked up with no other change.
-$fontName = 'Batang'
-foreach ($cand in @('Ma Shan Zheng','LXGW WenKai KR','HCR Batang','Batang','Gungsuh')) {
-    if ($installed -contains $cand) { $fontName = $cand; break }
-}
-$fontAlt = $fontName
-foreach ($cand in @('Long Cang','Liu Jian Mao Cao','Zhi Mang Xing','Yuji Mai','Gungsuh','BatangChe')) {
-    if ($installed -contains $cand -and $cand -ne $fontName) { $fontAlt = $cand; break }
-}
-if ($fontAlt -eq $fontName) {
-    Write-Host "  ! only one face available - the two hands will differ by wobble alone."
-    Write-Host "    The brush fonts are art, so they are not in git. Copy them from the"
-    Write-Host "    team share into Assets\_Project\_Common\Art\Fonts and bake again."
-}
-
-# Brush faces drawn for Chinese drop hanja that Joseon paperwork needs - the
-# Korean-coined ones above all. 畓 (paddy) has no Chinese counterpart at all, and
-# traditional forms like 記 證 標 爲 錢 are often absent from simplified sets.
-# A missing glyph renders as an empty box, so name it here instead of letting a
-# tofu square ship as a clue.
-function Report-MissingGlyphs($familyName, $texts) {
-    $cover = $null
-    if ($script:coverByName.ContainsKey($familyName)) { $cover = $script:coverByName[$familyName] }
-    if ($null -eq $cover) {
-        try { Add-Type -AssemblyName PresentationCore -ErrorAction Stop } catch { return }
-        try {
-            $tf = New-Object System.Windows.Media.Typeface($familyName)
-            $gt = $null
-            if (-not $tf.TryGetGlyphTypeface([ref]$gt)) { return }
-            $cover = New-Object System.Collections.Generic.HashSet[int]
-            foreach ($k in $gt.CharacterToGlyphMap.Keys) { [void]$cover.Add($k) }
-        } catch { return }
-    }
-    $missing = New-Object System.Collections.Generic.List[char]
-    foreach ($t in $texts) {
-        foreach ($ch in $t.ToCharArray()) {
-            if ($ch -eq ' ') { continue }
-            if ($missing -contains $ch) { continue }
-            if (-not $cover.Contains([int]$ch)) { [void]$missing.Add($ch) }
-        }
-    }
-    if ($missing.Count -gt 0) {
-        Write-Host ("  ! '{0}' lacks {1} character(s), falling back to '{2}' for: {3}" -f $familyName, $missing.Count, $script:fallbackName, (-join $missing))
-    } else {
-        Write-Host ("  '{0}': all characters covered" -f $familyName)
-    }
-}
-
+# Everything the documents ask a font to draw. The face is chosen against this
+# list, so it has to be gathered before the choosing and not after.
 $allText = @()
 foreach ($d in $docs) {
     if ($d.PSObject.Properties.Name -contains 'title'   -and $d.title)   { $allText += $d.title }
@@ -156,6 +102,89 @@ foreach ($d in $docs) {
         foreach ($e in $d.entries) { $allText += $e.text }
     }
 }
+
+# Which of those characters a face cannot draw. Repo fonts were read straight from
+# the file while loading; for installed ones ask WPF once and keep the answer.
+function Get-Missing($familyName, $texts) {
+    $cover = $null
+    if ($script:coverByName.ContainsKey($familyName)) { $cover = $script:coverByName[$familyName] }
+    if ($null -eq $cover) {
+        try { Add-Type -AssemblyName PresentationCore -ErrorAction Stop } catch { return '' }
+        try {
+            $tf = New-Object System.Windows.Media.Typeface($familyName)
+            $gt = $null
+            if (-not $tf.TryGetGlyphTypeface([ref]$gt)) { return '' }
+            $cover = New-Object System.Collections.Generic.HashSet[int]
+            foreach ($k in $gt.CharacterToGlyphMap.Keys) { [void]$cover.Add($k) }
+            $script:coverByName[$familyName] = $cover
+        } catch { return '' }
+    }
+    $missing = New-Object System.Collections.Generic.List[char]
+    foreach ($t in $texts) {
+        foreach ($ch in $t.ToCharArray()) {
+            if ($ch -eq ' ') { continue }
+            if ($missing -contains $ch) { continue }
+            if (-not $cover.Contains([int]$ch)) { [void]$missing.Add($ch) }
+        }
+    }
+    return (-join $missing)
+}
+
+# Two people wrote this ledger, and the whole clue is that you can tell.
+#
+#   hand 0 = Ong Deok-gu. Twenty years of entries in a landowner's trained brush.
+#   hand 1 = Bok-dong. He was a household slave (see the manumission deed, J15) and
+#            never had a scholar's schooling, so his brush is the looser of the two.
+#            He only starts appearing in the last two lines - that is the forgery.
+#
+# A hand is picked by what it can DRAW, not by which name comes first. The brush
+# faces here were cut for Chinese: they carry no Hangul at all, and they drop the
+# Korean-coined hanja on top of that. Crowning one of them the main hand meant
+# every character it lacked fell through to the plain fallback face - half a sheet
+# in one hand and half in another, which reads as a broken asset long before it
+# reads as calligraphy. So: a face that draws all of it wins; failing that, the one
+# that drops the fewest, and the shortfall is printed. The order below is still the
+# tie-break, so putting a new font at the front still works.
+function Pick-Face($cands, $texts, $exclude, $mustCoverAll) {
+    $best = $null
+    $bestMiss = [int]::MaxValue
+    foreach ($cand in $cands) {
+        if (-not ($installed -contains $cand)) { continue }
+        if ($exclude -and $cand -eq $exclude) { continue }
+        $miss = (Get-Missing $cand $texts).Length
+        if ($miss -eq 0) { return $cand }
+        if (-not $mustCoverAll -and $miss -lt $bestMiss) { $best = $cand; $bestMiss = $miss }
+    }
+    return $best
+}
+
+$fontName = Pick-Face @('LXGW WenKai KR','LXGW WenKai TC','Ma Shan Zheng','HCR Batang','Batang','Gungsuh') $allText $null $false
+if (-not $fontName) { $fontName = 'Batang' }
+
+# The second hand may only be a face that draws everything too. A half-covering
+# one would let the fallback back onto the page through the other door.
+$fontAlt = Pick-Face @('LXGW WenKai TC','LXGW WenKai Mono','Long Cang','Liu Jian Mao Cao','Zhi Mang Xing','Yuji Mai','Gungsuh','BatangChe') $allText $fontName $true
+if (-not $fontAlt) {
+    $fontAlt = $fontName
+    Write-Host "  ! only one face draws every character - the two hands will differ by wobble alone."
+    Write-Host "    Fonts are art, so they are not in git. Copy another full-coverage face from"
+    Write-Host "    the team share into Assets\_Project\_Common\Art\Fonts and bake again."
+}
+
+# Brush faces drawn for Chinese drop hanja that Joseon paperwork needs - the
+# Korean-coined ones above all. 畓 (paddy) has no Chinese counterpart at all, and
+# traditional forms like 記 證 標 爲 錢 are often absent from simplified sets.
+# A missing glyph renders as an empty box, so name it here instead of letting a
+# tofu square ship as a clue.
+function Report-MissingGlyphs($familyName, $texts) {
+    $missing = Get-Missing $familyName $texts
+    if ($missing.Length -gt 0) {
+        Write-Host ("  ! '{0}' lacks {1} character(s), falling back to '{2}' for: {3}" -f $familyName, $missing.Length, $script:fallbackName, $missing)
+    } else {
+        Write-Host ("  '{0}': all characters covered" -f $familyName)
+    }
+}
+
 Report-MissingGlyphs $fontName $allText
 if ($fontAlt -ne $fontName) { Report-MissingGlyphs $fontAlt $allText }
 
