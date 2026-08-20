@@ -29,8 +29,13 @@ namespace IMUNROK.Common.EditorTools
     {
         private const string PrefabPath = "Assets/_Project/Onggojip/Prefabs/사랑채_실내.prefab";
 
-        /// <summary>甲이 나갈 때 열 창호 칸. 그가 앉은 보료에서 가장 가까운 칸이다.</summary>
-        private const int ExitBay = 1;
+        /// <summary>
+        /// 甲이 나가는 문 — 아궁이가 있는 뒤쪽 쪽문이다.
+        ///
+        /// 처음엔 보료에서 가장 가까운 사랑방 창호(세 짝)로 내보냈는데, 세 짝이 한꺼번에
+        /// 펄럭이며 열리는 것이 요란하기만 했다. 쪽문은 한 짝이고 원래부터 제대로 짜여 있다.
+        /// </summary>
+        private const string ExitDoor = "쪽문_서";
 
         [MenuItem("이문록/사랑채 실내 정리")]
         public static void Run()
@@ -73,6 +78,7 @@ namespace IMUNROK.Common.EditorTools
                 SitOnFloor(root, "문갑");
                 SitOnFloor(root, "장롱");
                 PutCushionAtSeat(root);
+                BuildBojaHinge(root);
                 bays = BuildDoors(root);
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             }
@@ -149,6 +155,37 @@ namespace IMUNROK.Common.EditorTools
             float floor;
             if (!SurfaceUnder(root, cushion, b, out floor)) floor = b.min.y;
             cushion.transform.position = new Vector3(seat.transform.position.x, floor + lift, seat.transform.position.z);
+        }
+
+        /// <summary>
+        /// 보료를 <b>실제로 들릴 수 있게</b> 남쪽 끝에 경첩을 세운다.
+        ///
+        /// 지금까지 보료 들추기는 눈에 보이는 변화가 거의 없었다. 덮인 모습 쪽이 아예 비어
+        /// 있어서, 눌러도 깔린 보료는 그대로고 접힌 귀퉁이 흉내 한 덩이만 슬쩍 나타났다 —
+        /// 마루와 같은 재질이라 나타난 줄도 모른다. 들췄다는 것은 <b>그 물건이 들리는</b>
+        /// 일이어야 한다. 남쪽 끝을 축으로 삼아 북쪽 끝이 들리게 하면, 밑에 깔린 별급문기가
+        /// 있는 쪽(z −9.6)이 열린다.
+        /// </summary>
+        private static void BuildBojaHinge(GameObject root)
+        {
+            var props = FindIn(root, "소품");
+            var boja = FindIn(root, "보료");
+            if (props == null || boja == null) return;
+
+            // 다시 재려면 일단 꺼낸다(여러 번 눌러도 같은 자리에 서게)
+            boja.transform.SetParent(props.transform, true);
+
+            var hinge = FindIn(root, "보료_경첩");
+            if (hinge == null)
+            {
+                hinge = new GameObject("보료_경첩");
+                hinge.transform.SetParent(props.transform, false);
+            }
+
+            Bounds bb = WorldBounds(boja);
+            hinge.transform.rotation = Quaternion.identity;      // 세계의 X 축으로 젖히게
+            hinge.transform.position = new Vector3(bb.center.x, bb.min.y, bb.min.z);
+            boja.transform.SetParent(hinge.transform, true);
         }
 
         // ── ① 창호를 여닫이로 ────────────────────────
@@ -415,9 +452,10 @@ namespace IMUNROK.Common.EditorTools
             sso.ApplyModifiedPropertiesWithoutUndo();
 
             // 나가는 길 — 문 앞에 서는 자리와 문 밖 자리
-            float floorY = seatSpot.transform.position.y + 0.05f;   // 마루 윗면
-            var doorFront = EnsureMarker("甲_나갈문앞", new Vector3(7.64f, floorY, -12.10f), 180f);
-            var doorOut = EnsureMarker("甲_문밖", new Vector3(7.64f, floorY, -13.75f), 180f);
+            // 쪽문은 서쪽 벽(x 4.60)에 있고, 나가면 기단(-1.27)을 딛고 아궁이 쪽으로 간다.
+            float floorY = seatSpot.transform.position.y + 0.05f;   // 마루 윗면 -0.80
+            var doorFront = EnsureMarker("甲_나갈문앞", new Vector3(5.25f, floorY, -12.63f), 270f);
+            var doorOut = EnsureMarker("甲_문밖", new Vector3(4.00f, -1.27f, -12.63f), 270f);
 
             var exitDoor = FindExitDoor();
 
@@ -427,7 +465,12 @@ namespace IMUNROK.Common.EditorTools
             bso.FindProperty("_leaveDoorSpot").objectReferenceValue = doorFront;
             bso.FindProperty("_leaveThroughSpot").objectReferenceValue = doorOut;
             bso.FindProperty("_leaveDoor").objectReferenceValue = exitDoor;
+            // 문 여는 손동작은 넣지 않는다 — 제대로 된 동작이 나오기 전까지는
+            // 어설픈 시늉보다 그냥 지나가는 편이 낫다.
+            bso.FindProperty("_leaveOpenState").stringValue = "";
             bso.ApplyModifiedPropertiesWithoutUndo();
+            WireHandholds();
+            ShortenTexts();
 
             // 방에 들어선 순간 → 앉는다
             var tz = Object.FindFirstObjectByType<TeleportZone>(FindObjectsInactive.Include);
@@ -457,12 +500,12 @@ namespace IMUNROK.Common.EditorTools
                    " / 보료는 甲이 나간 뒤에 열림";
         }
 
-        /// <summary>甲이 나갈 창호 칸의 문 부품. 프리팹을 저장한 뒤라 씬 인스턴스에 들어 있다.</summary>
+        /// <summary>甲이 나갈 문 부품. 프리팹을 저장한 뒤라 씬 인스턴스에 들어 있다.</summary>
         private static DoorController FindExitDoor()
         {
             var inst = GameObject.Find("사랑채_실내");
             if (inst == null) return null;
-            var go = FindIn(inst, "사랑방문_" + ExitBay);
+            var go = FindIn(inst, ExitDoor);
             return go != null ? go.GetComponent<DoorController>() : null;
         }
 
@@ -481,6 +524,137 @@ namespace IMUNROK.Common.EditorTools
             go.transform.position = pos;
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             return go.transform;
+        }
+
+        // ── 손으로 잡아 여는 것들 ────────────────────
+
+        /// <summary>서랍이 다 빠져나오는 거리(m).</summary>
+        private const float DrawerPull = 0.80f;
+
+        /// <summary>
+        /// 증거 셋을 <b>눌러 잡아야</b> 열리게 잇는다 — 보료·문갑 서랍·아궁이 재.
+        ///
+        /// 스쳐 지나가며 한 번 누른 것으로 증거가 손에 들어오면 조사한 것이 아니라 주운
+        /// 것이 된다. 잡고 있는 동안 물건이 실제로 움직이므로 진행 막대를 따로 그릴 필요가
+        /// 없다 — 들려 올라가는 보료가 곧 진행 막대다.
+        /// </summary>
+        private static void WireHandholds()
+        {
+            var inst = GameObject.Find("사랑채_실내");
+
+            // 보료 — 남쪽 끝을 축으로 북쪽 끝이 들린다
+            var hinge = inst != null ? FindIn(inst, "보료_경첩") : null;
+            SetHold("보료_들추기", hinge != null ? hinge.transform : null,
+                    new Vector3(-30f, 0f, 0f), Vector3.zero, 1.0f);
+
+            // 접힌 귀퉁이 흉내는 이제 군더더기다 — 보료가 진짜로 들린다
+            var fold = FindInScene("접힌_귀퉁이");
+            if (fold != null && fold.activeSelf) { Undo.RecordObject(fold, "귀퉁이 끄기"); fold.SetActive(false); }
+
+            // 문갑 — 서랍이 미끄러져 나온다. 안에 든 문서도 같이 딸려 나와야 하므로
+            // 서랍 밑으로 넣는다(형제로 두면 서랍만 빠지고 문서는 허공에 남는다).
+            var drawer = FindInScene("빠진_서랍");
+            if (drawer != null)
+            {
+                var bag = drawer.transform.parent;
+                if (bag != null)
+                    for (int i = bag.childCount - 1; i >= 0; i--)
+                    {
+                        var c = bag.GetChild(i);
+                        if (c != drawer.transform) c.SetParent(drawer.transform, true);
+                    }
+
+                // 닫힌 자리 = 문갑 앞면 안쪽. 이미 닫혀 있으면 아무 일도 안 일어난다.
+                var mungap = inst != null ? FindIn(inst, "문갑") : null;
+                if (mungap != null)
+                {
+                    Bounds db = WorldBounds(drawer);
+                    float closedZ = WorldBounds(mungap).max.z - db.size.z * 0.5f;
+                    float shift = closedZ - db.center.z;
+                    if (Mathf.Abs(shift) > 0.005f) drawer.transform.position += new Vector3(0f, 0f, shift);
+                }
+
+                var parent = drawer.transform.parent;
+                Vector3 pull = parent != null ? parent.InverseTransformVector(new Vector3(0f, 0f, DrawerPull))
+                                              : new Vector3(0f, 0f, DrawerPull);
+                SetHold("문갑_서랍", drawer.transform, Vector3.zero, pull, 0.9f);
+            }
+
+            // 아궁이 — 재가 눌리며 헤집힌다. 크게 움직일 것이 없으니 눌리는 것으로 알린다.
+            var ash = FindInScene("재_덮인");
+            SetHold("아궁이", ash != null ? ash.transform : null,
+                    Vector3.zero, new Vector3(0f, -0.03f, 0f), 0.8f);
+        }
+
+        /// <summary>
+        /// 조사할 때 뜨는 글을 짧게 자른다.
+        ///
+        /// 물건을 가리킬 때마다 두 문장씩 떠오르면 읽다가 조사가 끊긴다. 헤드셋 안에서는
+        /// 더하다 — 글이 눈앞 1.3m 에 떠 있어서, 길면 방을 통째로 가린다. 본 것을 한 마디로
+        /// 적고, 자세한 사연은 수첩에 맡긴다.
+        ///
+        /// 글이 여기 있는 까닭: 씬을 다시 만들 때마다 손으로 다시 치면 반드시 어긋난다.
+        /// 문구를 고치려면 이 표를 고친다.
+        /// </summary>
+        private static void ShortenTexts()
+        {
+            SetWords("아궁이",
+                     "한여름인데 불을 땐 자리다.",
+                     "타다 만 서찰 조각이 나온다.",
+                     "(눌러 잡고 헤집기)", null,
+                     "[J13] 아궁이 재 속에 타다 만 서찰 조각.");
+
+            SetWords("문갑_서랍",
+                     "문서를 넣어 두는 궤다.",
+                     "문서 몇 장이 개켜져 있다.",
+                     "(눌러 잡고 서랍 빼기)", null,
+                     "[J08] 문갑 서랍에 사삿집 문서 여러 장.");
+
+            SetWords("보료_들추기",
+                     "주인이 앉아 있던 자리다.",
+                     "밑에 별급문기 한 장이 깔려 있다.",
+                     "(눌러 잡고 들추기)",
+                     "주인이 그 위에 앉아 있다.",
+                     "[J15] 보료 밑 별급문기. 재산을 '오래 부린 종 복동에게' 준다 — 아들이라는 말이 없다.");
+
+            // 물러가며 남기는 말도 한 마디로
+            var ch = AssetDatabase.LoadAssetAtPath<ScriptableObject>("Assets/_Project/Onggojip/Data/Gap_Interrogation.asset");
+            if (ch != null)
+            {
+                var cso = new SerializedObject(ch);
+                cso.FindProperty("closingLine").stringValue = "볼일이 있어 이만 물러가겠소.";
+                cso.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(ch);
+            }
+        }
+
+        private static void SetWords(string rakeName, string before, string after, string hint, string locked, string clue)
+        {
+            var go = FindInScene(rakeName);
+            var rake = go != null ? go.GetComponent<AshRake>() : null;
+            if (rake == null) return;
+
+            var so = new SerializedObject(rake);
+            so.FindProperty("_bodyBefore").stringValue = before;
+            so.FindProperty("_bodyAfter").stringValue = after;
+            so.FindProperty("_hint").stringValue = hint;
+            if (locked != null) so.FindProperty("_lockedBody").stringValue = locked;
+            if (clue != null) so.FindProperty("_clueText").stringValue = clue;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetHold(string rakeName, Transform hinge, Vector3 euler, Vector3 offset, float seconds)
+        {
+            var go = FindInScene(rakeName);
+            var rake = go != null ? go.GetComponent<AshRake>() : null;
+            if (rake == null) { Debug.LogWarning("[사랑채] 못 찾음: " + rakeName); return; }
+
+            var so = new SerializedObject(rake);
+            so.FindProperty("_hinge").objectReferenceValue = hinge;
+            so.FindProperty("_liftEuler").vector3Value = euler;
+            so.FindProperty("_liftOffset").vector3Value = offset;
+            so.FindProperty("_holdSeconds").floatValue = seconds;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // ── UnityEvent 잇기 ─────────────────────────

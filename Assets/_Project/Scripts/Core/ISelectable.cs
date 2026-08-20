@@ -18,4 +18,24 @@ namespace IMUNROK.Common
         /// <summary>트리거/클릭으로 실제 선택했을 때.</summary>
         void OnSelect();
     }
+
+    /// <summary>
+    /// <b>눌러 잡고 있어야</b> 되는 것. 한 번 톡 누르면 열리는 것과 다르다.
+    ///
+    /// 재를 헤집고 보료를 들추고 서랍을 빼는 일은 손에 힘이 들어가는 짓이다. 스쳐 지나가며
+    /// 한 번 누른 것으로 증거가 손에 들어오면 조사한 것이 아니라 주운 것이 된다.
+    /// 잡고 있는 동안 물건이 실제로 움직이므로, 진행 막대 같은 것을 따로 그릴 필요가 없다 —
+    /// 들려 올라가는 보료가 곧 진행 막대다.
+    ///
+    /// 이것을 구현한 대상에게는 <see cref="ISelectable.OnSelect"/> 를 부르지 않는다.
+    /// VR로 갈아 끼울 때도 같다 — 컨트롤러 트리거를 쥐고 있는 동안 <see cref="OnHoldTick"/> 를 부른다.
+    /// </summary>
+    public interface IHoldable
+    {
+        /// <summary>잡고 있는 동안 매 프레임.</summary>
+        void OnHoldTick(float deltaTime);
+
+        /// <summary>다 채우기 전에 놓았을 때. 물건은 제자리로 돌아간다.</summary>
+        void OnHoldRelease();
+    }
 }

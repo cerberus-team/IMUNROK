@@ -118,6 +118,9 @@ namespace IMUNROK.Common
         [SerializeField] private Transform[] _leaveWaypoints;
         [Tooltip("나가면서 열 문. 비우면 그냥 걸어 나간다")]
         [SerializeField] private DoorController _leaveDoor;
+        [Tooltip("나갈 때 문 여는 동작. 비워 두면 손동작 없이 그냥 지나간다 — " +
+                 "제대로 된 동작이 나오기 전까지는 어설픈 시늉을 넣는 것보다 없는 편이 낫다")]
+        [SerializeField] private string _leaveOpenState = "";
         [Tooltip("문 앞에 서고 → 문에 손대기까지 뜸")]
         [SerializeField] private float _leaveOpenDelay = 0.4f;
         [Tooltip("문을 넘어가 설 자리(툇마루 쪽). 비우면 문간에서 사라진다")]
@@ -452,7 +455,7 @@ namespace IMUNROK.Common
             // 나가는 문을 여는 동작이 끝나기를 기다린다.
             if (_phase == Phase.OpeningExit)
             {
-                if (StateDone(_openState)) DoLeaveOpened();
+                if (StateDone(_leaveOpenState)) DoLeaveOpened();
                 return;
             }
 
@@ -588,8 +591,8 @@ namespace IMUNROK.Common
         /// <summary>문에 손을 뻗는다. 전용 동작이 없으면 곧장 문짝만 연다.</summary>
         private void DoLeaveOpen()
         {
-            if (_animator == null || string.IsNullOrEmpty(_openState)) { DoLeaveOpened(); return; }
-            CrossTo(_openState);
+            if (_animator == null || string.IsNullOrEmpty(_leaveOpenState)) { DoLeaveOpened(); return; }
+            CrossTo(_leaveOpenState);
             _phase = Phase.OpeningExit;
         }
 

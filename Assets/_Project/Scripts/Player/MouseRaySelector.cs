@@ -52,15 +52,35 @@ namespace IMUNROK.Common
             // 대상이 바뀌면 hover 전환
             if (!ReferenceEquals(hit, _current))
             {
+                ReleaseHold();
                 _current?.OnHoverExit();
                 _current = hit;
                 _current?.OnHoverEnter();
             }
 
+            // 눌러 잡고 있어야 되는 것 — 잡은 대상에서 손이 벗어나면 놓은 것으로 친다.
+            var holdable = _current as IHoldable;
+            if (holdable != null && mouse.leftButton.isPressed)
+            {
+                _holding = holdable;
+                holdable.OnHoldTick(Time.deltaTime);
+                return;                      // 잡고 있는 동안엔 클릭으로 안 친다
+            }
+            ReleaseHold();
+
             // 좌클릭 = 선택
-            if (mouse.leftButton.wasPressedThisFrame)
+            if (mouse.leftButton.wasPressedThisFrame && holdable == null)
                 _current?.OnSelect();
 #endif
+        }
+
+        private IHoldable _holding;
+
+        private void ReleaseHold()
+        {
+            if (_holding == null) return;
+            _holding.OnHoldRelease();
+            _holding = null;
         }
     }
 }
