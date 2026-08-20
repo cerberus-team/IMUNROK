@@ -107,6 +107,11 @@ namespace IMUNROK.Common
         [Tooltip("문이 열리고 → 넘어가기 시작까지 뜸")]
         [SerializeField] private float _delayAfterOpen = 0.5f;
 
+        [Tooltip("문을 넘어 마지막 자리까지 다 걸어가 선 순간 한 번 실행. " +
+                 "순간이동으로 방에 들여보내던 시절에는 도착이라는 것이 없었다 — " +
+                 "이제 손님이 뒤따라 걸어 들어오므로, 그가 보료에 가 앉는 것도 걸음의 끝이다")]
+        [SerializeField] private UnityEngine.Events.UnityEvent _onArrived;
+
         [Header("심문이 끝나면 물러가기 (비우면 앉은 채로 있는다)")]
         [Tooltip("일어서기 동작. 앉을 때 이것을 거꾸로 돌렸으니, 일어설 땐 바로 돌린다")]
         [SerializeField] private string _standUpState = "Stand_Up3";
@@ -510,6 +515,7 @@ namespace IMUNROK.Common
                     transform.rotation = _throughDoorSpot.rotation;
                     HoldStand();
                     _phase = Phase.Arrived;
+                    _onArrived?.Invoke();
                 }
                 return;
             }
