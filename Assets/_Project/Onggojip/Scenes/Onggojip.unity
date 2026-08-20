@@ -5278,12 +5278,16 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -2826752239632088601, guid: b65d0b202192dc045b2b367d29b15b01, type: 3}
+      propertyPath: m_UpdateWhenOffscreen
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -2826752239632088601, guid: b65d0b202192dc045b2b367d29b15b01, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: cee3fa1b1530f3e4e8ac2e58ae42a02f, type: 2}
     - target: {fileID: 919132149155446097, guid: b65d0b202192dc045b2b367d29b15b01, type: 3}
       propertyPath: m_Name
-      value: Idle
+      value: "\uC639\uB355\uAD6C"
       objectReference: {fileID: 0}
     - target: {fileID: 5866666021909216657, guid: b65d0b202192dc045b2b367d29b15b01, type: 3}
       propertyPath: m_CullingMode
@@ -5331,12 +5335,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.HoldPose
   _animator: {fileID: 271194031}
   _state: Idle
-  _atSeconds: 0.67
+  _atSeconds: 0
   _loop: 1
   _swaySeconds: 0
   _swayPeriod: 6
-  _gestureStates: []
-  _gestureEvery: {x: 7, y: 14}
+  _gestureStates:
+  - Yelling
+  _gestureEvery: {x: 4, y: 8}
 --- !u!1 &271638676
 GameObject:
   m_ObjectHideFlags: 0
@@ -11067,6 +11072,11 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: abc00000000015862996917485121608, type: 3}
+--- !u!4 &612635838 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2916570863362053800, guid: b65d0b202192dc045b2b367d29b15b01, type: 3}
+  m_PrefabInstance: {fileID: 271194027}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &618923803 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1030989630, guid: abc00000000008468038601994449242, type: 3}
@@ -13170,7 +13180,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.GroundFeet
   _model: {fileID: 271194028}
-  _footBones: []
+  _footBones:
+  - {fileID: 825500328}
+  - {fileID: 1966992963}
+  - {fileID: 871472445}
+  - {fileID: 612635838}
   _groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -14982,6 +14996,11 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: abc00000000014624163767668595149, type: 3}
+--- !u!4 &825500328 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -6874584590210671055, guid: b65d0b202192dc045b2b367d29b15b01, type: 3}
+  m_PrefabInstance: {fileID: 271194027}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &833492090 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1030988512, guid: abc00000000015745197605870767562, type: 3}
@@ -15909,6 +15928,11 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: abc00000000003654058052303995607, type: 3}
+--- !u!4 &871472445 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 608321761475470972, guid: b65d0b202192dc045b2b367d29b15b01, type: 3}
+  m_PrefabInstance: {fileID: 271194027}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &872337373 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1030989314, guid: abc00000000007887135651817575279, type: 3}
@@ -185339,6 +185363,11 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: abc00000000017443694282995845502, type: 3}
+--- !u!4 &1966992963 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2770666803903516498, guid: b65d0b202192dc045b2b367d29b15b01, type: 3}
+  m_PrefabInstance: {fileID: 271194027}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1969458465
 GameObject:
   m_ObjectHideFlags: 0
