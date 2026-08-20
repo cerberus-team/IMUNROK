@@ -94,9 +94,20 @@ namespace IMUNROK.Common
         {
             if (i == _openAtLine && _door != null)
             {
-                if (_mareum != null) _mareum.OpenDoorThenStepAside();   // 마름: 문 여는 동작 + 물러나 서기
-                _door.Unlock();
-                _door.Open();
+                if (_mareum != null)
+                {
+                    // 문은 <b>마름이</b> 연다. 여기서 같이 열면 안 된다 —
+                    // 마름은 대꾸를 하고, 안에 여쭈러 갔다 오고, 문 여는 동작의 손이
+                    // 문에 닿는 프레임에 가서야 문짝을 민다. 그런데 이 줄에서 곧바로
+                    // 열어 버리니, 마름이 아직 돌아서지도 않았는데 문이 저절로 열렸다.
+                    // 두 곳에서 같은 문을 열고 있었던 것이 '타이밍이 안 맞던' 까닭이다.
+                    _mareum.OpenDoorThenStepAside();
+                }
+                else
+                {
+                    _door.Unlock();     // 마름이 없으면 이 줄에서 그냥 열린다
+                    _door.Open();
+                }
             }
             if (i == _bokdongLeadAtLine && _bokdong != null)
                 _bokdong.LeadInside();                                  // 복동: 사랑방으로 앞장서 걷기
