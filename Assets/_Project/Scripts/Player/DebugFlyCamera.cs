@@ -46,13 +46,29 @@ namespace IMUNROK.Common
         private float _pitch;
         private float _walkY;
         private GUIStyle _hud;
+        private Quaternion _applied;      // 우리가 마지막으로 쓴 회전
 
         private void Start()
         {
+            SyncAngles();
+            _walkY = transform.position.y;
+        }
+
+        /// <summary>
+        /// 지금 보고 있는 방향을 각도로 다시 읽는다.
+        ///
+        /// 왜 필요한가: 이 부품은 yaw·pitch 를 <b>제가 들고</b> 그것으로 회전을 만든다.
+        /// 그래서 바깥에서 시점을 돌려 놓아도(순간이동으로 사랑방에 들어서며 복동 쪽을
+        /// 보게 한다든지) 들고 있는 각도는 옛것 그대로다. 도착한 순간에는 제대로 보고 있다가,
+        /// 둘러보려고 마우스를 누르는 순간 옛 각도로 홱 돌아가 버린다 — 방에 들어서면
+        /// 엉뚱한 쪽을 보고 있다는 것이 이것이었다.
+        /// </summary>
+        public void SyncAngles()
+        {
             Vector3 e = transform.eulerAngles;
             _yaw = e.y;
-            _pitch = e.x;
-            _walkY = transform.position.y;
+            _pitch = e.x > 180f ? e.x - 360f : e.x;    // 350도는 -10도다
+            _applied = transform.rotation;
         }
 
         private void Update()
@@ -61,6 +77,10 @@ namespace IMUNROK.Common
             var kb = Keyboard.current;
             var mouse = Mouse.current;
             if (kb == null || mouse == null) return;
+
+            // 남이 시점을 돌려 놨으면 그것을 받아들인다. 매 프레임 견주므로
+            // 부르는 쪽이 따로 알려 줄 필요가 없다.
+            if (Quaternion.Angle(transform.rotation, _applied) > 0.05f) SyncAngles();
 
             // Tab: 비행 ↔ 걷기 (현재 높이를 눈높이로 고정)
             if (kb.tabKey.wasPressedThisFrame)
@@ -88,6 +108,7 @@ namespace IMUNROK.Common
             _pitch -= delta.y * _lookSpeed;
             _pitch = Mathf.Clamp(_pitch, -89f, 89f);
             transform.rotation = Quaternion.Euler(_pitch, _yaw, 0f);
+            _applied = transform.rotation;
 
             float speed = _moveSpeed * (kb.leftShiftKey.isPressed ? _sprintMultiplier : 1f);
 
