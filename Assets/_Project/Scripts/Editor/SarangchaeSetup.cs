@@ -162,22 +162,29 @@ namespace IMUNROK.Common.EditorTools
         /// </summary>
         private static int BuildDoors(GameObject root)
         {
+            // 문이 어느 쪽으로 열려야 하는지는 방 한가운데를 기준으로 잰다(아래 참고).
+            var floor = FindIn(root, "장판바닥");
+            Vector3 hall = floor != null ? WorldBounds(floor).center : WorldBounds(root).center;
+
             int bays = 0;
             var doorGroup = FindIn(root, "문");
             if (doorGroup != null)
+            {
                 for (int bay = 0; bay <= 8; bay++)
-                    if (BuildBay(doorGroup.transform, "사랑방문_" + bay, "문_" + bay + "_")) bays++;
+                    if (BuildBay(doorGroup.transform, "사랑방문_" + bay, "문_" + bay + "_", hall)) bays++;
+                if (BuildBay(doorGroup.transform, "서쪽문", "쪽문_서", hall)) bays++;
+            }
 
             var partition = FindIn(root, "칸막이");
             if (partition != null)
                 for (int bay = 0; bay <= 4; bay++)
-                    if (BuildBay(partition.transform, "칸막이여닫이_" + bay, "칸막이문" + bay + "_")) bays++;
+                    if (BuildBay(partition.transform, "칸막이여닫이_" + bay, "칸막이문" + bay + "_", hall)) bays++;
 
             return bays;
         }
 
         /// <summary>한 칸을 여닫이로. 이미 짜여 있으면 도로 풀고 다시 짠다(여러 번 눌러도 같게).</summary>
-        private static bool BuildBay(Transform group, string holderName, string leafPrefix)
+        private static bool BuildBay(Transform group, string holderName, string leafPrefix, Vector3 hall)
         {
             var old = group.Find(holderName);
             if (old != null)
@@ -199,6 +206,16 @@ namespace IMUNROK.Common.EditorTools
             bool alongX = span.size.x >= span.size.z;
 
             leaves.Sort((a, b) => (alongX ? a.position.x : a.position.z).CompareTo(alongX ? b.position.x : b.position.z));
+
+            // 어느 쪽으로 열릴 것인가 — 방 한가운데의 반대쪽, 곧 바깥이다.
+            //
+            // 부호를 아무렇게나 주면 문짝이 방 안으로 쓸고 들어온다. 甲은 나가려고 문 앞
+            // 65cm 에 서 있으므로, 안으로 열리는 문은 그의 몸을 뚫고 지나간다. 한옥 창호도
+            // 원래 밖으로 연다. 방 한가운데에서 이 칸이 어느 쪽에 붙어 있는지를 재면
+            // 바깥이 어느 쪽인지 저절로 나온다 — 칸마다 손으로 적어 넣지 않아도 된다.
+            float outward = alongX ? Mathf.Sign(span.center.z - hall.z) : Mathf.Sign(span.center.x - hall.x);
+            if (outward == 0f) outward = 1f;
+            float swing = 85f * outward;
 
             var holder = new GameObject(holderName);
             holder.transform.SetParent(group, false);
@@ -233,7 +250,8 @@ namespace IMUNROK.Common.EditorTools
                 leaf.SetParent(hinge.transform, true);
 
                 hinges.Add(hinge.transform);
-                angles.Add(firstHalf ? -85f : 85f);
+                // 경첩이 어느 모서리에 섰느냐에 따라 같은 바깥쪽이 반대 부호가 된다.
+                angles.Add(firstHalf == alongX ? -swing : swing);
             }
 
             var dc = holder.AddComponent<DoorController>();
@@ -281,7 +299,14 @@ namespace IMUNROK.Common.EditorTools
 
         // ── ② 씬 세간 ────────────────────────────────
 
-        /// <summary>씬에 그냥 놓여 있는 것(아궁이). 마당 바닥을 재서 그 위에 앉힌다.</summary>
+        /// <summary>
+        /// 씬에 그냥 놓여 있는 것(아궁이). 마당 바닥을 재서 그 위에 앉힌다.
+        ///
+        /// 여기서는 광선을 쓴다 — 실내와 반대다. 마당에 있는 것들은 늘 켜져 있어서 광선에
+        /// 잡히고, 크기로 찾으면 오히려 틀린다: 고택 기단의 네모난 크기 상자가 부엌 쪽까지
+        /// 덮고 있어서, 마당(-1.67)에 있어야 할 아궁이가 기단 윗면(-1.26)으로 41cm 솟았다.
+        /// 돌계단은 네모가 아닌데 네모로 재니 그렇다.
+        /// </summary>
         private static int SitSceneProps()
         {
             int n = 0;
@@ -293,16 +318,16 @@ namespace IMUNROK.Common.EditorTools
                 Bounds b = WorldBounds(go);
                 if (b.size == Vector3.zero) continue;
 
+                // 한 점만 재면 안 된다. 아궁이는 기단 모서리에 <b>걸터앉아</b> 있어서,
+                // 한가운데에서 재면 돌 윗면(-1.31)이 잡히고 그러면 마당 쪽 절반이 36cm
+                // 공중에 뜬다. 발자국의 네 귀와 한가운데를 재서 <b>가장 낮은 면</b>에 앉힌다 —
+                // 낮은 데를 딛고 서서 옆구리를 돌계단에 붙인 모양이 실제 아궁이다.
                 float top = float.MinValue;
-                foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                foreach (var p in FootprintSamples(b))
                 {
-                    if (r.transform.IsChildOf(go.transform)) continue;
-                    var rb = r.bounds;
-                    if (rb.size.x < 4f || rb.size.z < 4f) continue;          // 마당만큼 넓은 면
-                    if (b.center.x < rb.min.x || b.center.x > rb.max.x) continue;
-                    if (b.center.z < rb.min.z || b.center.z > rb.max.z) continue;
-                    if (rb.max.y > b.max.y - 0.02f) continue;
-                    if (rb.max.y > top) top = rb.max.y;
+                    float y;
+                    if (!NearestSurface(go, p, b.max.y, out y)) continue;
+                    if (top == float.MinValue || y < top) top = y;
                 }
                 if (top == float.MinValue) { Debug.LogWarning("[사랑채] 앉을 면을 못 찾음: " + name); continue; }
 
@@ -313,6 +338,34 @@ namespace IMUNROK.Common.EditorTools
                 n++;
             }
             return n;
+        }
+
+        /// <summary>발자국의 한가운데와 네 귀(조금 안쪽으로). 모서리에 걸친 것을 알아보려면 여러 점을 재야 한다.</summary>
+        private static IEnumerable<Vector3> FootprintSamples(Bounds b)
+        {
+            float ix = b.extents.x * 0.8f, iz = b.extents.z * 0.8f;
+            yield return b.center;
+            yield return b.center + new Vector3(+ix, 0f, +iz);
+            yield return b.center + new Vector3(+ix, 0f, -iz);
+            yield return b.center + new Vector3(-ix, 0f, +iz);
+            yield return b.center + new Vector3(-ix, 0f, -iz);
+        }
+
+        /// <summary>이 자리 바로 밑에 있는 면. 자기 자신과 물건보다 위에 있는 것은 세지 않는다.</summary>
+        private static bool NearestSurface(GameObject self, Vector3 at, float objectTop, out float y)
+        {
+            y = 0f;
+            var hits = Physics.RaycastAll(new Vector3(at.x, objectTop + 2f, at.z),
+                                          Vector3.down, 16f, ~0, QueryTriggerInteraction.Ignore);
+            float nearest = float.MaxValue;
+            bool found = false;
+            foreach (var h in hits)
+            {
+                if (h.collider.transform.IsChildOf(self.transform)) continue;
+                if (h.point.y > objectTop - 0.02f) continue;
+                if (h.distance < nearest) { nearest = h.distance; y = h.point.y; found = true; }
+            }
+            return found;
         }
 
         // ── ③ 마주 앉기와 물러가기 ───────────────────
