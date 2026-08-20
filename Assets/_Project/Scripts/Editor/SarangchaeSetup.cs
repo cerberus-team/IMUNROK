@@ -199,6 +199,24 @@ namespace IMUNROK.Common.EditorTools
                 if (c.name.StartsWith(leafPrefix)) leaves.Add(c);
             if (leaves.Count == 0) return false;
 
+            // 이미 제대로 짜인 문은 건드리지 않는다.
+            //
+            // 쪽문_서 는 처음부터 [문 ▸ 경첩 ▸ 문짝] 으로 짜여 있고 제 부품도 달고 있었다.
+            // 그것을 모르고 한 겹 더 씌웠더니 문 하나에 부품이 둘이 되어, 누르면 문짝이
+            // 두 번 돌아간다. 게다가 문짝이 아니라 묶음에 콜라이더를 붙여 놓아,
+            // 눈에 안 보이는 1m 상자가 문간을 막고 서 있었다.
+            foreach (var leaf in leaves)
+                if (leaf.GetComponentInChildren<DoorController>(true) != null)
+                {
+                    foreach (var l in leaves)
+                    {
+                        if (l.GetComponent<Renderer>() != null) continue;      // 진짜 문짝은 그대로 둔다
+                        var stray = l.GetComponent<BoxCollider>();
+                        if (stray != null) Object.DestroyImmediate(stray);     // 내가 잘못 붙인 상자를 뗀다
+                    }
+                    return false;
+                }
+
             // 문짝이 어느 축으로 늘어서 있는지는 재서 안다. 사랑방 창호는 X 로 늘어서고,
             // 칸막이문은 Z 로 늘어선다 — 한쪽만 맞춰 두면 다른 쪽이 실처럼 서 버린다.
             Bounds span = RendererBounds(leaves[0]);
@@ -228,7 +246,8 @@ namespace IMUNROK.Common.EditorTools
                 var lb = RendererBounds(leaf);
                 float w = alongX ? lb.size.x : lb.size.z;
 
-                if (leaf.GetComponent<Collider>() == null)
+                // 콜라이더는 <b>보이는 문짝</b>에만 붙인다. 렌더러가 없는 것은 묶음이지 문짝이 아니다.
+                if (leaf.GetComponent<Renderer>() != null && leaf.GetComponent<Collider>() == null)
                 {
                     // 종잇장이라 두께가 5cm 다. 그대로면 겨냥이 어려워 얇은 축으로만 조금 두껍게.
                     var bc = leaf.gameObject.AddComponent<BoxCollider>();
@@ -414,13 +433,17 @@ namespace IMUNROK.Common.EditorTools
             var tz = Object.FindFirstObjectByType<TeleportZone>(FindObjectsInactive.Include);
             if (tz != null) SetCall(tz, "_onTeleported", seat, new UnityAction(seat.Sit));
 
-            // 심문을 닫는 순간 → 일어서서 나간다. 보료 들추기는 여기서 떼어 낸다 —
+            // '이만 마치겠소'를 누른 순간 → 일어서서 나간다.
+            //
+            // 그냥 창을 닫는 것(_onClosed)에 걸면 안 된다. 잠깐 창을 치우려고 누른 한 번에
+            // 그가 자리를 떠 버리고, 다시 물을 길이 없다. 보료 들추기도 여기서 떼어 냈다 —
             // 그가 아직 그 위에 앉아 있는데 보료를 들출 수는 없다.
             var ic = 甲.GetComponent<InterrogationController>();
             if (ic != null)
             {
                 ClearCalls(ic, "_onClosed");
-                SetCall(ic, "_onClosed", bok, new UnityAction(bok.LeaveRoom));
+                ClearCalls(ic, "_onFinished");
+                SetCall(ic, "_onFinished", bok, new UnityAction(bok.LeaveRoom));
             }
 
             // 다 나간 순간 → 일어서고, 보료가 열린다

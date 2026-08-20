@@ -58,9 +58,12 @@ namespace IMUNROK.Common
         [Tooltip("대사에 쓸 한글 폰트(조선궁서체 등). 월드 UI가 공용으로 가져다 쓴다")]
         [SerializeField] private Font _font;
 
-        [Tooltip("심문을 닫는 순간 한 번 실행. 이 인물과의 볼일이 끝나야 열리는 것을 여기에 건다 — " +
-                 "甲이 자리를 뜬 뒤에야 그가 깔고 앉았던 보료를 들출 수 있는 것처럼")]
+        [Tooltip("심문창을 닫을 때마다 실행. 잠시 멈춘 것일 수도 있으니 되돌릴 수 없는 일은 걸지 말 것")]
         [SerializeField] private UnityEngine.Events.UnityEvent _onClosed;
+
+        [Tooltip("'이만 마치겠소'를 눌러 심문을 끝낸 순간 한 번만 실행. 되돌릴 수 없는 일은 여기에 건다 — " +
+                 "甲이 일어서서 방을 나가고, 그가 깔고 앉았던 보료가 열리는 것처럼")]
+        [SerializeField] private UnityEngine.Events.UnityEvent _onFinished;
 
         private bool _active;
         private bool _locked;
@@ -495,8 +498,28 @@ namespace IMUNROK.Common
         /// <summary>월드 패널의 추천 질문 버튼이 호출.</summary>
         public void AskTopicFromUi(TopicQuestion t) => AskTopic(t);
 
-        /// <summary>월드 패널의 닫기 버튼이 호출.</summary>
+        /// <summary>월드 패널의 '잠시 멈추다' 버튼이 호출. 다시 말을 걸면 이어진다.</summary>
         public void CloseFromUi() => ClosePanel();
+
+        /// <summary>
+        /// 월드 패널의 '이만 마치겠소' 버튼이 호출 — 이 인물과의 볼일을 끝낸다.
+        ///
+        /// 잠시 창을 치우는 것과 자리를 파하는 것은 다른 일이다. 한 버튼으로 묶어 두면
+        /// 손이 미끄러진 한 번에 심문이 영영 끝나 버린다. 끝낸 뒤에는 다시 잠가 둔다 —
+        /// 물러가는 사람을 붙잡고 처음부터 다시 물을 수는 없다.
+        /// </summary>
+        public void FinishFromUi()
+        {
+            if (_finished) return;
+            _finished = true;
+            ClosePanel();
+            _locked = true;
+            _onFinished?.Invoke();
+        }
+
+        /// <summary>이미 볼일이 끝났나. 끝난 뒤에는 다시 말을 걸 수 없다.</summary>
+        public bool Finished => _finished;
+        private bool _finished;
 
     }
 }
