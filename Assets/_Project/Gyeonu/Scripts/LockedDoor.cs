@@ -13,7 +13,7 @@ namespace IMUNROK.Gyeonu
     ///
     /// 회전 방식은 HingeDoor와 같다 (부모 로컬 경첩점 기준 자전).
     /// </summary>
-    public class LockedDoor : Interactable
+    public class LockedDoor : Interactable, IOpenable
     {
         [Tooltip("잠금 상태 — 나중에 퍼즐·열쇠가 Unlock()으로 푼다")]
         public bool locked = true;
@@ -28,6 +28,14 @@ namespace IMUNROK.Gyeonu
         public float openAngle = 95f;
         public float duration = 1.1f;
 
+        [Header("상태 유지 (비우면 씬 저장값만 씀)")]
+        [Tooltip("잠금 해제 여부를 기억할 GyeonuWorld 키")]
+        public string unlockedKey = "";
+        [Tooltip("열린 상태를 기억할 키 — 서고에 다녀와도 열린 채로 남는다")]
+        public string openKey = "";
+        [Tooltip("첫 개방 안내를 이미 봤는지 기억할 키 — 다시 뜨지 않게")]
+        public string announcedKey = "";
+
         Vector3 closedLocalPos;
         Quaternion closedLocalRot;
         float t;
@@ -35,16 +43,30 @@ namespace IMUNROK.Gyeonu
 
         public override string Prompt => locked ? "살펴보기" : (open ? "닫기" : "열기");
 
+        /// <summary>열림 지시 상태 (씬 전환 등 바깥에서 읽는다). 잠긴 동안은 항상 false.</summary>
+        public bool IsOpen => open;
+
         void Awake()
         {
             closedLocalPos = transform.localPosition;   // 씬은 닫힌 상태로 저장된다
             closedLocalRot = transform.localRotation;
+
+            // 세션에 기억된 상태 복원 — 서고에 다녀와도 잠금·열림·안내 여부가 그대로다.
+            if (GyeonuWorld.Has(unlockedKey)) locked = false;
+            if (GyeonuWorld.Has(announcedKey)) announced = true;
+            if (GyeonuWorld.Has(openKey))
+            {
+                open = true;
+                t = 1f;
+                ApplyHinge(1f);   // 애니메이션 없이 곧바로 열린 자세로
+            }
         }
 
         /// <summary>퍼즐·열쇠 쪽에서 부르는 해제 진입점.</summary>
         public void Unlock()
         {
             locked = false;
+            GyeonuWorld.Set(unlockedKey);
         }
 
         public override void Interact(GameObject actor)
@@ -56,9 +78,12 @@ namespace IMUNROK.Gyeonu
             }
 
             open = !open;
+            GyeonuWorld.Set(openKey, open);
+
             if (open && !announced)
             {
                 announced = true;
+                GyeonuWorld.Set(announcedKey);
                 DebugToast.ShowPinned(firstOpenMessage);
             }
         }
@@ -68,7 +93,11 @@ namespace IMUNROK.Gyeonu
             float target = open ? 1f : 0f;
             if (Mathf.Approximately(t, target)) return;
             t = Mathf.MoveTowards(t, target, Time.deltaTime / Mathf.Max(0.05f, duration));
-            float s = t * t * (3f - 2f * t);
+            ApplyHinge(t * t * (3f - 2f * t));
+        }
+
+        void ApplyHinge(float s)
+        {
             var q = Quaternion.AngleAxis(openAngle * s, Vector3.up);
             transform.localPosition = pivotInParent + q * (closedLocalPos - pivotInParent);
             transform.localRotation = q * closedLocalRot;

@@ -55,6 +55,11 @@ namespace IMUNROK.Gyeonu
         [Tooltip("높이차를 무시하고 평면 거리로만 진행도를 잰다 — 경사·계단에서 안정적")]
         public bool flatten = true;
 
+        [Tooltip("끄면 진행도가 **위치만 따라간다** — 되돌아 내려가면 안개가 다시 짙어진다.\n" +
+                 "언덕이 양방향 통로일 때 쓴다: 올라오면 걷히고 내려가면 다시 자욱해져,\n" +
+                 "아래가 마을인지 숲인지 모르는 상태가 유지된다. 이 모드에서는 스스로 끝나지 않는다.")]
+        public bool monotonic = true;
+
         [Header("시작(짙은) 안개 — 끝 상태는 씬의 현재 설정을 그대로 쓴다")]
         public float startFogStart = 3f;
         public float startFogEnd = 26f;
@@ -136,14 +141,29 @@ namespace IMUNROK.Gyeonu
 
             _active = true;
             _progress = _shown = 0f;
-            ApplyFog(0f);   // 첫 프레임부터 짙게 — 한 프레임이라도 맑게 보이면 연출이 깨진다
+
+            // 비단조 모드는 첫 프레임 값을 **플레이어 위치**에서 얻어야 한다.
+            // 0으로 시작하면 언덕 위(집무실에서 나온 자리)에 서 있는데도 한 번 자욱해졌다가
+            // 걷히는 헛연출이 보인다. 위치를 아직 모르면 Start에서 다시 잡는다.
+            if (!monotonic)
+            {
+                if (player == null && Camera.main != null) player = Camera.main.transform;
+                if (player != null) _progress = _shown = RawProgress();
+            }
+
+            ApplyFog(curve.Evaluate(_shown));   // 첫 프레임부터 제 값으로
         }
 
         void OnEnable() { if (_active && !_done) ApplyFog(curve.Evaluate(_shown)); }
 
         void Start()
         {
+            bool hadPlayer = player != null;
             if (player == null && Camera.main != null) player = Camera.main.transform;
+
+            // Awake 때 플레이어를 못 찾았으면 여기서 위치 기준을 다시 잡는다 (비단조 모드)
+            if (!monotonic && !hadPlayer && player != null) _progress = _shown = RawProgress();
+
             if (_active && !_done) ApplyFog(curve.Evaluate(_shown));
         }
 
@@ -156,11 +176,13 @@ namespace IMUNROK.Gyeonu
                 player = Camera.main.transform;
             }
 
-            _progress = Mathf.Max(_progress, RawProgress());   // 단조 증가 — 되돌아가도 안 짙어진다
+            float raw = RawProgress();
+            _progress = monotonic ? Mathf.Max(_progress, raw) : raw;   // 단조 모드만 되돌아가도 안 짙어진다
             _shown = Mathf.MoveTowards(_shown, _progress, maxClearSpeed * Time.deltaTime);
             ApplyFog(curve.Evaluate(_shown));
 
-            if (_shown >= 0.9995f) Finish();
+            // 비단조 모드는 끝내지 않는다 — 끝내 버리면 내려갈 때 다시 짙어질 수 없다.
+            if (monotonic && _shown >= 0.9995f) Finish();
         }
 
         float RawProgress()

@@ -1222,6 +1222,87 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3915738783716229310, guid: 8e6f5bc1d33955e45ab1d7c2933ec212, type: 3}
   m_PrefabInstance: {fileID: 52507177}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &57904812
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 57904813}
+  - component: {fileID: 57904815}
+  - component: {fileID: 57904814}
+  m_Layer: 0
+  m_Name: "\uCD9C\uAD6C_\uB9C8\uC744"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &57904813
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 57904812}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: -5.5045967, z: -77}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1354736146}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &57904814
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 57904812}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 615a69a3f25a71d46990018370b7c4e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.SceneExit
+  displayName: "\uCD9C\uAD6C_\uB9C8\uC744"
+  targetScene: Gyeonu
+  targetSpawn: SpawnPoint_FromGwana
+  mode: 0
+  promptText: "\uB4E4\uC5B4\uAC00\uAE30"
+  locked: 0
+  lockedMessage: "\uC9C0\uAE08\uC740 \uAC08 \uC218 \uC5C6\uB2E4."
+  requiredFlags: []
+  blockedMessage: '{0}'
+  debugIgnoreConditions: 0
+  armFogRevealKey: 
+  fadeOut: 0.45
+  fadeIn: 0.55
+  armDelay: 1.2
+  requireExitFirst: 1
+--- !u!65 &57904815
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 57904812}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 16, y: 6, z: 3}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &60027032
 GameObject:
   m_ObjectHideFlags: 0
@@ -40636,9 +40717,10 @@ MonoBehaviour:
   fromPoint: {x: 0, y: 0, z: -74}
   toPoint: {x: 0, y: 0, z: -58}
   flatten: 1
-  startFogStart: 23.5
-  startFogEnd: 104
-  startFogDensity: 0.09
+  monotonic: 0
+  startFogStart: 0.5
+  startFogEnd: 7
+  startFogDensity: 0.38
   overrideStartColor: 0
   startFogColor: {r: 0.82, g: 0.85, b: 0.88, a: 1}
   curve:
@@ -40672,9 +40754,9 @@ MonoBehaviour:
   - {fileID: 1245373952}
   - {fileID: 968242301}
   - {fileID: 1054924116}
-  particleStartAlpha: 0.204
+  particleStartAlpha: 0.6
   skyVeil: {fileID: 812415477}
-  skyVeilStartAlpha: 0.6
+  skyVeilStartAlpha: 0.95
 --- !u!1001 &1233157538
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -47162,6 +47244,61 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1963835514266682409, guid: aefc9728e8964d34c8022e0ac0bd3749, type: 3}
   m_PrefabInstance: {fileID: 1330084555}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1333277357
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1333277359}
+  - component: {fileID: 1333277358}
+  m_Layer: 0
+  m_Name: "\uC52C\uC804\uD658_\uC2DC\uAC04\uB300"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1333277358
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1333277357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 304426e668baec644be105caf962965f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.WorldTimeSync
+  kind: 0
+  isReference: 0
+  forceClear: 0
+  sun: {fileID: 0}
+  "\uB0AE_\uB9D1\uC74C": {fileID: 11400000, guid: a81640dbe767694448c36a822baf6219, type: 2}
+  "\uB0AE_\uBE44": {fileID: 11400000, guid: 1bdeca3cf3bce8c4c8f54568f12a0962, type: 2}
+  "\uBC24_\uB9D1\uC74C": {fileID: 11400000, guid: 5a015d711a870a645941c63cc61c9897, type: 2}
+  "\uBC24_\uBE44": {fileID: 11400000, guid: 60ae22177ad046e4589f775e5e63dd21, type: 2}
+  sceneNight: 0
+  sceneRain: 0
+  indoor: {fileID: 0}
+--- !u!4 &1333277359
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1333277357}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1336055224
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -47535,6 +47672,40 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.30093375, y: 1.880836, z: 0.30093375}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &1354736145
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1354736146}
+  m_Layer: 0
+  m_Name: "\uC52C\uC804\uD658"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1354736146
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354736145}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 57904813}
+  - {fileID: 1766204035}
+  - {fileID: 1424915829}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1356721899
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -48473,6 +48644,37 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.3, y: 3.4, z: 1.3}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &1424915828
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1424915829}
+  m_Layer: 0
+  m_Name: SpawnPoint_FromGwanaOffice
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1424915829
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1424915828}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: -3.4, y: 4, z: 14.25}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1354736146}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1427551937
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -54682,6 +54884,87 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3915738783716229310, guid: 8e6f5bc1d33955e45ab1d7c2933ec212, type: 3}
   m_PrefabInstance: {fileID: 1765610279}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1766204034
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1766204035}
+  - component: {fileID: 1766204037}
+  - component: {fileID: 1766204036}
+  m_Layer: 0
+  m_Name: "\uCD9C\uAD6C_\uC9D1\uBB34\uC2E4"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1766204035
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766204034}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -4.55, y: 4.94, z: 14.25}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1354736146}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1766204036
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766204034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 615a69a3f25a71d46990018370b7c4e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.SceneExit
+  displayName: "\uC628\uB3CC\uBC29"
+  targetScene: Gyeonu_GwanaOffice
+  targetSpawn: SpawnPoint_FromGwana
+  mode: 1
+  promptText: "\uB4E4\uC5B4\uAC00\uAE30"
+  locked: 0
+  lockedMessage: "\uC9C0\uAE08\uC740 \uAC08 \uC218 \uC5C6\uB2E4."
+  requiredFlags: []
+  blockedMessage: '{0}'
+  debugIgnoreConditions: 0
+  armFogRevealKey: 
+  fadeOut: 0.45
+  fadeIn: 0.55
+  armDelay: 1.2
+  requireExitFirst: 1
+--- !u!65 &1766204037
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766204034}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.5, y: 1.86, z: 2.45}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &1769378906
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -62733,3 +63016,5 @@ SceneRoots:
   - {fileID: 1102900395}
   - {fileID: 762631090}
   - {fileID: 2041565149}
+  - {fileID: 1333277359}
+  - {fileID: 1354736146}

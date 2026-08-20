@@ -37,9 +37,9 @@ namespace IMUNROK.Gyeonu.Editor
 
             Vector3 spawn = new Vector3(43.01f, 0f, 40.9f);
             float yaw = 180f;
-            var marker = GameObject.Find("SpawnPoint_FromGwana");
+            var marker = GameObject.Find("SpawnPoint_FromGwanaOffice");
             if (marker != null) { spawn = marker.transform.position; yaw = marker.transform.eulerAngles.y; }
-            else Debug.LogWarning("[서고 보행] SpawnPoint_FromGwana 없음 — 통로 입구 기본값 사용");
+            else Debug.LogWarning("[서고 보행] SpawnPoint_FromGwanaOffice 없음 — 통로 입구 기본값 사용");
 
             var go = new GameObject("디버그_워커");
             go.transform.position = spawn + Vector3.up * 0.1f;
@@ -128,7 +128,7 @@ namespace IMUNROK.Gyeonu.Editor
             var w = GameObject.Find("디버그_워커");
             if (w == null) { InstallWalker(); return; }
             var eun = GameObject.Find("SpawnPoint_FromEunhaDam");
-            var gwa = GameObject.Find("SpawnPoint_FromGwana");
+            var gwa = GameObject.Find("SpawnPoint_FromGwanaOffice");
             if (eun == null || gwa == null)
             {
                 Debug.LogError("[워커 스폰] 마커가 없습니다 — [관측실 생성]과 [서고 생성]을 먼저 실행하세요");

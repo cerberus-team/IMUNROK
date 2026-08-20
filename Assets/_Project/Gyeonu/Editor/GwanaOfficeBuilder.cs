@@ -37,6 +37,10 @@ namespace IMUNROK.Gyeonu.Editor
         const string KMTex = "Assets/KimMyeonggwanHouse/Texture/";
 
         const float Sink = 0.006f;   // 목부재를 회벽 속으로 살짝 묻어 동일평면 z-파이팅을 막는다
+        // 문선이 개구부 안쪽으로 물리는 깊이. 0이면 문선 안쪽면(x=±개구부 반폭, 인방 밑면)이
+        // 벽 개구부의 반턱면과 **정확히 같은 평면**이 되어 문설주·상인방을 따라 색이 번갈아 뜬다
+        // (2026-08-20 실측: 간격 0.00mm). 6mm 물려 두면 문선이 확실히 이기고 문턱처럼 읽힌다.
+        const float Lip = 0.006f;
 
         internal static Material MatMaru, MatHoebyeok, MatMokjae, MatMunmok, MatHanji,
                                  MatPan, MatSecret, MatStone, MatDark,
@@ -52,6 +56,7 @@ namespace IMUNROK.Gyeonu.Editor
         {
             var scene = EnsureScene();
             LoadMaterials();
+            RemoveLegacyGroups();
             BuildShell();
             BuildCeiling();
             BuildOpenings();
@@ -103,6 +108,28 @@ namespace IMUNROK.Gyeonu.Editor
             var old = FindRoot(name);
             if (old != null) Object.DestroyImmediate(old);
             return new GameObject(name);
+        }
+
+        /// <summary>
+        /// 옛 설계에서 이름이 바뀌며 버려진 그룹을 지운다.
+        ///
+        /// ⚠️ **`RecreateGroup`은 같은 이름만 지운다.** 비밀 통로 1·2차 설계는 그룹 이름이
+        ///    `집무실_비밀계단`(돌계단 12단, 0.205×0.29)이었는데, 3차에 통로를 새로 쓰면서
+        ///    이름을 `집무실_비밀통로`로 바꿨다. 그 뒤로 몇 번을 재생성해도 **옛 그룹은
+        ///    씬에 그대로 남아 있었다** (2026-08-20 발견 — 어느 스크립트도 만들지 않는 유령 216 tri).
+        ///    새 통로와 정확히 같은 평면을 공유해서(층계참 윗면 y=0 / 앞면 z=2.44 / 천장 y=2.30,
+        ///    전부 간격 0.00mm) 비밀문을 열면 문 너머 바닥이 시점에 따라 두 색으로 번갈아 떴다.
+        ///    이름을 바꿀 땐 옛 이름을 여기에 남겨 둘 것.
+        /// </summary>
+        static void RemoveLegacyGroups()
+        {
+            foreach (var name in new[] { "집무실_비밀계단" })
+            {
+                var old = FindRoot(name);
+                if (old == null) continue;
+                Object.DestroyImmediate(old);
+                Debug.Log("[집무실] 옛 그룹 제거 — " + name + " (비밀 통로 1·2차 설계의 잔재)");
+            }
         }
 
         // ══════════════════════════════════════════════════════
@@ -342,8 +369,14 @@ namespace IMUNROK.Gyeonu.Editor
             // ── 회벽 밭 (개구부를 피해 네 조각) ──
             B(plaster, a0, oa0, FloorY, top, back, facePos);              // 개구부 앞쪽
             B(plaster, oa1, a1, FloorY, top, back, facePos);              // 개구부 뒤쪽
-            B(plaster, oa0, oa1, FloorY, oy0, back, facePos);             // 개구부 아래 (문이면 두께 0)
-            B(plaster, oa0, oa1, oy1, top, back, facePos);                // 개구부 위 (인방 위 소벽)
+            // ⚠️ **높이가 0인 조각은 만들지 않는다.** 문은 개구부가 바닥(FloorY)에서 시작하므로
+            //    "개구부 아래" 조각의 높이가 0이 되는데, BoxMinMax는 그래도 상자를 만들어
+            //    **y=0에 윗면 하나를 남긴다.** 그 면이 바닥_마루 윗면(역시 y=0)과 정확히 같은
+            //    평면에 놓여, 문지방(z 2.20~2.44)에서 회벽 색과 마루 색이 시점에 따라 번갈아
+            //    나타났다 (2026-08-20 실측: 간격 0.00mm, 겹침 1.10×0.24m).
+            //    같은 이유로 개구부 위 조각도 높이 0이면 건너뛴다.
+            if (oy0 > FloorY + 1e-4f) B(plaster, oa0, oa1, FloorY, oy0, back, facePos);   // 개구부 아래 (창이면 하방 밑)
+            if (top > oy1 + 1e-4f) B(plaster, oa0, oa1, oy1, top, back, facePos);         // 개구부 위 (인방 위 소벽)
 
             // ── 하방 / 중방 / 창방 ──
             // ⚠️ **개구부와 높이가 겹치는 켜는 잘라 낸다.** 통짜로 두면 중방(1.13~1.30)이
@@ -461,9 +494,9 @@ namespace IMUNROK.Gyeonu.Editor
             // ── 남벽 분합문 2짝 (들어온 문 — 닫혀 있다) ──
             {
                 var frame = new GwanaMeshKit(GwanaMeshKit.MpuWood);
-                frame.BoxMinMax(-DoorHalfX - 0.07f, -DoorHalfX, FloorY, DoorTopY + 0.07f, ZS - 0.02f, ZS + 0.08f);
-                frame.BoxMinMax(DoorHalfX, DoorHalfX + 0.07f, FloorY, DoorTopY + 0.07f, ZS - 0.02f, ZS + 0.08f);
-                frame.BoxMinMax(-DoorHalfX - 0.07f, DoorHalfX + 0.07f, DoorTopY, DoorTopY + 0.07f, ZS - 0.02f, ZS + 0.08f);
+                frame.BoxMinMax(-DoorHalfX - 0.07f, -DoorHalfX + Lip, FloorY, DoorTopY + 0.07f, ZS - 0.02f, ZS + 0.08f);
+                frame.BoxMinMax(DoorHalfX - Lip, DoorHalfX + 0.07f, FloorY, DoorTopY + 0.07f, ZS - 0.02f, ZS + 0.08f);
+                frame.BoxMinMax(-DoorHalfX - 0.07f, DoorHalfX + 0.07f, DoorTopY - Lip, DoorTopY + 0.07f, ZS - 0.02f, ZS + 0.08f);
                 Piece(group.transform, "남문_문선", frame, MatMunmok);
 
                 var leafW = new GwanaMeshKit(GwanaMeshKit.MpuWood);
@@ -480,9 +513,9 @@ namespace IMUNROK.Gyeonu.Editor
             // ── 북벽 비밀문 (잠김) ──
             {
                 var frame = new GwanaMeshKit(GwanaMeshKit.MpuWood);
-                frame.BoxMinMax(-SecretHalfX - 0.07f, -SecretHalfX, FloorY, SecretTopY + 0.07f, ZN - 0.08f, ZN + 0.02f);
-                frame.BoxMinMax(SecretHalfX, SecretHalfX + 0.07f, FloorY, SecretTopY + 0.07f, ZN - 0.08f, ZN + 0.02f);
-                frame.BoxMinMax(-SecretHalfX - 0.07f, SecretHalfX + 0.07f, SecretTopY, SecretTopY + 0.07f, ZN - 0.08f, ZN + 0.02f);
+                frame.BoxMinMax(-SecretHalfX - 0.07f, -SecretHalfX + Lip, FloorY, SecretTopY + 0.07f, ZN - 0.08f, ZN + 0.02f);
+                frame.BoxMinMax(SecretHalfX - Lip, SecretHalfX + 0.07f, FloorY, SecretTopY + 0.07f, ZN - 0.08f, ZN + 0.02f);
+                frame.BoxMinMax(-SecretHalfX - 0.07f, SecretHalfX + 0.07f, SecretTopY - Lip, SecretTopY + 0.07f, ZN - 0.08f, ZN + 0.02f);
                 Piece(group.transform, "비밀문_문선", frame, MatMunmok);
 
                 // 문짝 — 별 GO (LockedDoor가 경첩 회전시킨다)

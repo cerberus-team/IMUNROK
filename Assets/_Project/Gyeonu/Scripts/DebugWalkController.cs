@@ -41,6 +41,14 @@ namespace IMUNROK.Gyeonu
             Application.runInBackground = true;   // 에디터 포커스 없어도 게임 루프 유지 (원격 검증용이기도)
             spawnPos = transform.position;         // R키 탈출용 (끼임 대비)
             spawnRot = transform.rotation;
+
+            // ⚠️ 조준점·안내 텍스트가 통째로 안 나오는 사고 방지 (2026-08-20)
+            //   워커는 씬마다 다른 설치 메뉴가 만드는데, 어떤 씬(은하담)에는 눈에
+            //   DebugInteractor가 빠져 있었다. 그러면 어떤 오브젝트도 조준되지 않아
+            //   "이 씬만 상호작용이 안 된다"로 보인다 — 원인 찾기 어려운 종류의 결함이다.
+            //   워커가 있으면 조준 입력도 반드시 있게 여기서 보강한다.
+            if (eye != null && eye.GetComponent<DebugInteractor>() == null)
+                eye.gameObject.AddComponent<DebugInteractor>();
         }
 
         void OnEnable() => SetCursorLock(true);

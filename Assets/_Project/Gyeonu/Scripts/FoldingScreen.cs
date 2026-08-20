@@ -30,6 +30,10 @@ namespace IMUNROK.Gyeonu
         [Tooltip("씬에 저장된 상태 — 펼쳐 둔다")]
         public bool folded;
 
+        [Tooltip("비우지 않으면 접힘 상태를 GyeonuWorld에 기억한다 — 씬을 나갔다 들어와도 유지된다. " +
+                 "(씬 파일에 저장된 folded 값은 '처음 들어왔을 때'의 상태로만 쓰인다)")]
+        public string persistKey = "";
+
         [Header("차단 박스 (로컬)")]
         public BoxCollider blocker;
         public Vector3 spreadBoxCenter, spreadBoxSize;
@@ -41,6 +45,9 @@ namespace IMUNROK.Gyeonu
 
         void Awake()
         {
+            // 세션에 기억된 상태가 있으면 그것으로 시작한다 (서고에 다녀와도 치워진 채로).
+            if (!string.IsNullOrEmpty(persistKey)) folded = GyeonuWorld.Has(persistKey);
+
             k = folded ? 1f : 0f;
             Apply(k);
         }
@@ -48,6 +55,7 @@ namespace IMUNROK.Gyeonu
         public override void Interact(GameObject actor)
         {
             folded = !folded;
+            if (!string.IsNullOrEmpty(persistKey)) GyeonuWorld.Set(persistKey, folded);
         }
 
         void Update()

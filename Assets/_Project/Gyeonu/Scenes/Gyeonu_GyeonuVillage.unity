@@ -15,18 +15,18 @@ RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 10
   m_Fog: 1
-  m_FogColor: {r: 0.1, g: 0.15, b: 0.21, a: 1}
+  m_FogColor: {r: 0.75, g: 0.8, b: 0.84, a: 1}
   m_FogMode: 1
   m_FogDensity: 0.01
-  m_LinearFogStart: 35
-  m_LinearFogEnd: 170
-  m_AmbientSkyColor: {r: 0.08, g: 0.1, b: 0.18, a: 1}
-  m_AmbientEquatorColor: {r: 0.05, g: 0.06, b: 0.1, a: 1}
-  m_AmbientGroundColor: {r: 0.02, g: 0.02, b: 0.04, a: 1}
+  m_LinearFogStart: 60
+  m_LinearFogEnd: 220
+  m_AmbientSkyColor: {r: 0.55, g: 0.62, b: 0.72, a: 1}
+  m_AmbientEquatorColor: {r: 0.45, g: 0.45, b: 0.42, a: 1}
+  m_AmbientGroundColor: {r: 0.25, g: 0.23, b: 0.2, a: 1}
   m_AmbientIntensity: 1
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 2100000, guid: 87197262efeb7d5438de73732215c8f5, type: 2}
+  m_SkyboxMaterial: {fileID: 2100000, guid: c051fe5a20f72814f9643eb10ebbd2fc, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -36,7 +36,7 @@ RenderSettings:
   m_DefaultReflectionResolution: 128
   m_ReflectionBounces: 1
   m_ReflectionIntensity: 1
-  m_CustomReflection: {fileID: 8900000, guid: fe6a360571a4f454a82359759e77df3e, type: 2}
+  m_CustomReflection: {fileID: 8900000, guid: 84e9977d5a44500448831e9e6c71b62d, type: 2}
   m_Sun: {fileID: 1866054259}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
@@ -28578,6 +28578,39 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5378790310502685991, guid: 162b98dd287a4e24cb5f1bdcd530f008, type: 3}
   m_PrefabInstance: {fileID: 1187656933}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1192843266
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1192843267}
+  m_Layer: 0
+  m_Name: "\uC52C\uC804\uD658"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1192843267
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1192843266}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1866724295}
+  - {fileID: 1436114714}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1193475468
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -32752,6 +32785,61 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5463183593869099343, guid: 0e3132ad19e7a1c41a7478690e54e569, type: 3}
   m_PrefabInstance: {fileID: 1330371375}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1330579335
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1330579337}
+  - component: {fileID: 1330579336}
+  m_Layer: 0
+  m_Name: "\uC52C\uC804\uD658_\uC2DC\uAC04\uB300"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1330579336
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1330579335}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 304426e668baec644be105caf962965f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.WorldTimeSync
+  kind: 0
+  isReference: 0
+  forceClear: 1
+  sun: {fileID: 0}
+  "\uB0AE_\uB9D1\uC74C": {fileID: 11400000, guid: a81640dbe767694448c36a822baf6219, type: 2}
+  "\uB0AE_\uBE44": {fileID: 11400000, guid: 1bdeca3cf3bce8c4c8f54568f12a0962, type: 2}
+  "\uBC24_\uB9D1\uC74C": {fileID: 11400000, guid: 5a015d711a870a645941c63cc61c9897, type: 2}
+  "\uBC24_\uBE44": {fileID: 11400000, guid: 60ae22177ad046e4589f775e5e63dd21, type: 2}
+  sceneNight: 0
+  sceneRain: 0
+  indoor: {fileID: 0}
+--- !u!4 &1330579337
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1330579335}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1331875278
 GameObject:
   m_ObjectHideFlags: 0
@@ -35310,6 +35398,37 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.5999999, y: 0.27788407, z: 1.5}
   m_Center: {x: -0.0104025155, y: 0.13894197, z: 0.013261944}
+--- !u!1 &1436114713
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1436114714}
+  m_Layer: 0
+  m_Name: SpawnPoint_FromEunhaDam
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1436114714
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1436114713}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.07845911, z: -0, w: 0.99691737}
+  m_LocalPosition: {x: 2, y: 2.546421, z: -46}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1192843267}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1439546388
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -46620,8 +46739,8 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 1
-  m_Color: {r: 0.55, g: 0.65, b: 0.9, a: 1}
-  m_Intensity: 0.28
+  m_Color: {r: 1, g: 0.97, b: 0.9, a: 1}
+  m_Intensity: 1.1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -46630,7 +46749,7 @@ Light:
     m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
-    m_Strength: 0.55
+    m_Strength: 0.85
     m_Bias: 0.05
     m_NormalBias: 0.4
     m_NearPlane: 0.2
@@ -46683,7 +46802,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1866054258}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.19617471, y: 0.76975113, z: -0.2801665, w: -0.5389856}
+  m_LocalRotation: {x: 0.36599818, y: 0.4531539, z: -0.21130915, w: 0.7848856}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -46719,6 +46838,87 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &1866724294
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1866724295}
+  - component: {fileID: 1866724297}
+  - component: {fileID: 1866724296}
+  m_Layer: 0
+  m_Name: "\uCD9C\uAD6C_\uC740\uD558\uB2F4"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1866724295
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1866724294}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 2, y: 5.443142, z: -49.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1192843267}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1866724296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1866724294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 615a69a3f25a71d46990018370b7c4e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.SceneExit
+  displayName: "\uCD9C\uAD6C_\uC740\uD558\uB2F4"
+  targetScene: Gyeonu_EunhaDam
+  targetSpawn: SpawnPoint_FromGyeonuVillage
+  mode: 0
+  promptText: "\uB4E4\uC5B4\uAC00\uAE30"
+  locked: 0
+  lockedMessage: "\uC9C0\uAE08\uC740 \uAC08 \uC218 \uC5C6\uB2E4."
+  requiredFlags: []
+  blockedMessage: '{0}'
+  debugIgnoreConditions: 0
+  armFogRevealKey: 
+  fadeOut: 0.45
+  fadeIn: 0.55
+  armDelay: 1.2
+  requireExitFirst: 1
+--- !u!65 &1866724297
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1866724294}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 16, y: 6, z: 3}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1869453194
 GameObject:
   m_ObjectHideFlags: 0
@@ -54135,3 +54335,5 @@ SceneRoots:
   - {fileID: 1014628471}
   - {fileID: 852138483}
   - {fileID: 1246176362}
+  - {fileID: 1192843267}
+  - {fileID: 1330579337}

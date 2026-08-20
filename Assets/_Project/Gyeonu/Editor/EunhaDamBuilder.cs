@@ -1229,7 +1229,10 @@ namespace IMUNROK.Gyeonu.Editor
             spawn.transform.rotation = Quaternion.Euler(0f, 270f, 0f);   // 다리(-X)를 바라봄 — 버드나무 프레임
 
             Marker(group, "Exit_ToVillage", 136f, 0f);                   // 마을 방향 +X 끝 (씬 경계 ±140 직전)
-            Marker(group, "Exit_ToHub", 102f, -7f);                      // 조사청 복귀 (진입 지점 옆)
+            // Exit_ToHub (102, −7) — 조사청 복귀. 2026-08-20 방침으로 **놓지 않는다.**
+            //   조사청은 한양이라 사건 도중에는 돌아갈 수 없다. 엔딩에 다시 필요해지면
+            //   이 한 줄과 SceneLinkBuilder.HubReturnEnabled 를 함께 되살리면 된다.
+            //   Marker(group, "Exit_ToHub", 102f, -7f);
 
             // 관측실 입구(오작교 암문 예정지) — 다리 마루 북측 난간 앞. 암문 구조물은 추후.
             var obs = new GameObject("Exit_ToObservatory");
@@ -1238,7 +1241,7 @@ namespace IMUNROK.Gyeonu.Editor
             obs.transform.rotation = Quaternion.Euler(0f, 0f, 0f);       // 난간(+Z) 방향
 
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-            Debug.Log("[은하담] 마커 4종 배치 완료 (스폰 x102·출구 x136·허브·관측실)");
+            Debug.Log("[은하담] 마커 3종 배치 완료 (스폰 x102·출구 x136·관측실) — 허브 마커는 방침상 없음");
         }
 
         static GameObject Marker(GameObject group, string name, float x, float z)

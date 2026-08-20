@@ -427,8 +427,10 @@ namespace IMUNROK.Gyeonu.Editor
                 if (prevMarkers.TryGetValue(name, out var prev)) { m.transform.SetPositionAndRotation(prev.p, prev.r); }
                 else m.transform.SetPositionAndRotation(p, r);
             }
-            Marker("SpawnPoint_FromGwana", new Vector3(43.01f, 0f, 40.9f), Quaternion.LookRotation(Vector3.back));
-            Marker("Exit_ToGwana", new Vector3(43.01f, 0f, 41.85f), Quaternion.LookRotation(Vector3.forward));
+            // 이 통로가 통하는 곳은 관아 '외부'(Gyeonu_Gwana)가 아니라 집무실(Gyeonu_GwanaOffice)이다.
+            // 옛 이름(..._FromGwana / Exit_ToGwana)은 외부 씬과 헷갈려 2026-08-17 개명했다.
+            Marker("SpawnPoint_FromGwanaOffice", new Vector3(43.01f, 0f, 40.9f), Quaternion.LookRotation(Vector3.back));
+            Marker("Exit_ToGwanaOffice", new Vector3(43.01f, 0f, 41.85f), Quaternion.LookRotation(Vector3.forward));
             Marker("Spawn_Seona", new Vector3(14.5f, FY, 28.15f), Quaternion.LookRotation(Vector3.forward));
             Marker("Marker_은닉처", new Vector3(20.3f, FY, 32.9f), Quaternion.LookRotation(Vector3.left));
 

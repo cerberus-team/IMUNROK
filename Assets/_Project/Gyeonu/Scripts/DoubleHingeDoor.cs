@@ -9,7 +9,7 @@ namespace IMUNROK.Gyeonu
     /// 문짝·피벗은 VillageDoorRigger가 메시를 좌우로 분할해 세팅한다.
     /// 부모는 Y회전만 갖는다고 가정(담장 문 전제).
     /// </summary>
-    public class DoubleHingeDoor : Interactable
+    public class DoubleHingeDoor : Interactable, IOpenable
     {
         public Transform leftLeaf;
         public Transform rightLeaf;
@@ -28,6 +28,9 @@ namespace IMUNROK.Gyeonu
         bool open;
 
         public override string Prompt => open ? "닫기" : "열기";
+
+        /// <summary>열림 지시 상태 (씬 전환 등 바깥에서 읽는다).</summary>
+        public bool IsOpen => open;
 
         void Awake()
         {

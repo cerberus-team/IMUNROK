@@ -11,7 +11,7 @@ namespace IMUNROK.Gyeonu
     /// 문짝 스스로 피벗 기준 회전. 부모는 Y회전만 갖는다고 가정(담장 문 전제).
     /// 리깅은 VillageDoorRigger가 pivotInParent·openAngle을 계산해 넣는다.
     /// </summary>
-    public class HingeDoor : Interactable
+    public class HingeDoor : Interactable, IOpenable
     {
         [Tooltip("부모 로컬 좌표계의 경첩 위치 (리거가 계산)")]
         public Vector3 pivotInParent;
@@ -26,6 +26,9 @@ namespace IMUNROK.Gyeonu
         bool open;
 
         public override string Prompt => open ? "닫기" : "열기";
+
+        /// <summary>열림 지시 상태 (씬 전환 등 바깥에서 읽는다).</summary>
+        public bool IsOpen => open;
 
         void Awake()
         {

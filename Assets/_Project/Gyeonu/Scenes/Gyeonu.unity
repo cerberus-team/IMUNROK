@@ -15,28 +15,28 @@ RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 10
   m_Fog: 1
-  m_FogColor: {r: 0.76, g: 0.79, b: 0.81, a: 1}
+  m_FogColor: {r: 0.025, g: 0.03, b: 0.045, a: 1}
   m_FogMode: 1
   m_FogDensity: 0.01
-  m_LinearFogStart: 40
-  m_LinearFogEnd: 160
-  m_AmbientSkyColor: {r: 0.55, g: 0.62, b: 0.72, a: 1}
-  m_AmbientEquatorColor: {r: 0.46, g: 0.45, b: 0.41, a: 1}
-  m_AmbientGroundColor: {r: 0.25, g: 0.23, b: 0.2, a: 1}
+  m_LinearFogStart: 10
+  m_LinearFogEnd: 60
+  m_AmbientSkyColor: {r: 0.035, g: 0.04, b: 0.06, a: 1}
+  m_AmbientEquatorColor: {r: 0.02, g: 0.025, b: 0.04, a: 1}
+  m_AmbientGroundColor: {r: 0.01, g: 0.01, b: 0.02, a: 1}
   m_AmbientIntensity: 1
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 2100000, guid: c051fe5a20f72814f9643eb10ebbd2fc, type: 2}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 7a8675eb396637d43b4ba0a69cc715a5, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
   m_HaloTexture: {fileID: 0}
   m_SpotCookie: {fileID: 10001, guid: 0000000000000000e000000000000000, type: 0}
-  m_DefaultReflectionMode: 0
+  m_DefaultReflectionMode: 1
   m_DefaultReflectionResolution: 128
   m_ReflectionBounces: 1
   m_ReflectionIntensity: 1
-  m_CustomReflection: {fileID: 0}
+  m_CustomReflection: {fileID: 8900000, guid: c11b114da6a86f0478eff31991c47eef, type: 2}
   m_Sun: {fileID: 1266254118}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
@@ -7843,6 +7843,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4535838067618223719, guid: c52ba825f2b0bd145802080594177b93, type: 3}
   m_PrefabInstance: {fileID: 247904528}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &249702498
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 249702499}
+  m_Layer: 0
+  m_Name: SpawnPoint_FromEunhaDam
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &249702499
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 249702498}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: -0.7071068}
+  m_LocalPosition: {x: 82, y: 0, z: 11}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 311001330}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &253547167
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8323,6 +8354,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 708862115833978149, guid: 4016c4f3267163549b497e5306454070, type: 3}
   m_PrefabInstance: {fileID: 276569307}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &282354778
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 282354779}
+  m_Layer: 0
+  m_Name: SpawnPoint_FromSeonaHouse
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &282354779
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 282354778}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 1, z: -0, w: -0.00000004371139}
+  m_LocalPosition: {x: -44.97, y: 0.96999997, z: 58.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 311001330}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &285250912
 GameObject:
   m_ObjectHideFlags: 0
@@ -9540,6 +9602,43 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.7, y: 2.2810163, z: 2.2331543}
   m_Center: {x: -0.23254395, y: 1.1398723, z: 1.0725098}
+--- !u!1 &311001329
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 311001330}
+  m_Layer: 0
+  m_Name: "\uC52C\uC804\uD658"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &311001330
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 311001329}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1956966530}
+  - {fileID: 249702499}
+  - {fileID: 1034382649}
+  - {fileID: 1668802480}
+  - {fileID: 1863493067}
+  - {fileID: 282354779}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &311028739 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2368098860782093321, guid: 9782c127df31e2944bb64cba7804f7a8, type: 3}
@@ -31481,6 +31580,87 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 3088538823772653120, guid: 741b1ec20a84a6d4b9011c8ee67aede0, type: 3}
   m_PrefabInstance: {fileID: 1687588005}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1034382648
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1034382649}
+  - component: {fileID: 1034382651}
+  - component: {fileID: 1034382650}
+  m_Layer: 0
+  m_Name: "\uCD9C\uAD6C_\uAD00\uC544"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1034382649
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1034382648}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -15.9, y: 11.38979, z: 91}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 311001330}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1034382650
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1034382648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 615a69a3f25a71d46990018370b7c4e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.SceneExit
+  displayName: "\uCD9C\uAD6C_\uAD00\uC544"
+  targetScene: Gyeonu_Gwana
+  targetSpawn: SpawnPoint_FromVillage
+  mode: 0
+  promptText: "\uB4E4\uC5B4\uAC00\uAE30"
+  locked: 0
+  lockedMessage: "\uC9C0\uAE08\uC740 \uAC08 \uC218 \uC5C6\uB2E4."
+  requiredFlags: []
+  blockedMessage: '{0}'
+  debugIgnoreConditions: 0
+  armFogRevealKey: 
+  fadeOut: 0.45
+  fadeIn: 0.55
+  armDelay: 1.2
+  requireExitFirst: 1
+--- !u!65 &1034382651
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1034382648}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 12, y: 6, z: 3}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1038479752
 GameObject:
   m_ObjectHideFlags: 0
@@ -40503,8 +40683,8 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 1
-  m_Color: {r: 1, g: 0.94, b: 0.82, a: 1}
-  m_Intensity: 1.2
+  m_Color: {r: 0.2, g: 0.23, b: 0.3, a: 1}
+  m_Intensity: 0.14
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -40513,7 +40693,7 @@ Light:
     m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
-    m_Strength: 0.85
+    m_Strength: 0
     m_Bias: 0.05
     m_NormalBias: 0.4
     m_NearPlane: 0.2
@@ -40566,7 +40746,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1266254116}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.2604189, y: 0.4768585, z: -0.15035291, w: 0.8259431}
+  m_LocalRotation: {x: -0.19617471, y: 0.76975113, z: -0.2801665, w: -0.5389856}
   m_LocalPosition: {x: 0, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -53846,6 +54026,61 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1741143622827647696, guid: ee30dff1ac463be46b7f3592f6fa6318, type: 3}
   m_PrefabInstance: {fileID: 1628618223}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1631612764
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1631612766}
+  - component: {fileID: 1631612765}
+  m_Layer: 0
+  m_Name: "\uC52C\uC804\uD658_\uC2DC\uAC04\uB300"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1631612765
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1631612764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 304426e668baec644be105caf962965f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.WorldTimeSync
+  kind: 0
+  isReference: 1
+  forceClear: 0
+  sun: {fileID: 0}
+  "\uB0AE_\uB9D1\uC74C": {fileID: 11400000, guid: a81640dbe767694448c36a822baf6219, type: 2}
+  "\uB0AE_\uBE44": {fileID: 11400000, guid: 1bdeca3cf3bce8c4c8f54568f12a0962, type: 2}
+  "\uBC24_\uB9D1\uC74C": {fileID: 11400000, guid: 5a015d711a870a645941c63cc61c9897, type: 2}
+  "\uBC24_\uBE44": {fileID: 11400000, guid: 60ae22177ad046e4589f775e5e63dd21, type: 2}
+  sceneNight: 0
+  sceneRain: 0
+  indoor: {fileID: 0}
+--- !u!4 &1631612766
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1631612764}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1633643242 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2030332862715842332, guid: 96cba8c80f2380b4cac7610cd1052e51, type: 3}
@@ -54953,6 +55188,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8693071455660152618, guid: bf1997084b3ba8d459577f692c38614a, type: 3}
   m_PrefabInstance: {fileID: 1667983410}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1668802479
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1668802480}
+  m_Layer: 0
+  m_Name: SpawnPoint_FromGwana
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1668802480
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1668802479}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 1, z: -0, w: -0.00000004371139}
+  m_LocalPosition: {x: -15.9, y: 7.548997, z: 88.3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 311001330}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1671172542
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -62873,6 +63139,87 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 89147233677875944, guid: 219c54fe06c16714294021756fff961a, type: 3}
   m_PrefabInstance: {fileID: 1861499255}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1863493066
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1863493067}
+  - component: {fileID: 1863493069}
+  - component: {fileID: 1863493068}
+  m_Layer: 0
+  m_Name: "\uCD9C\uAD6C_\uC120\uC544\uC9D1"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1863493067
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1863493066}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -44.97, y: 1.95, z: 60.55}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 311001330}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1863493068
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1863493066}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 615a69a3f25a71d46990018370b7c4e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.SceneExit
+  displayName: "\uC120\uC544 \uC9D1"
+  targetScene: Gyeonu_SeonaHouse
+  targetSpawn: SpawnPoint_FromVillage
+  mode: 1
+  promptText: "\uB4E4\uC5B4\uAC00\uAE30"
+  locked: 0
+  lockedMessage: "\uC9C0\uAE08\uC740 \uAC08 \uC218 \uC5C6\uB2E4."
+  requiredFlags: []
+  blockedMessage: '{0}'
+  debugIgnoreConditions: 0
+  armFogRevealKey: 
+  fadeOut: 0.45
+  fadeIn: 0.55
+  armDelay: 1.2
+  requireExitFirst: 1
+--- !u!65 &1863493069
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1863493066}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.8, y: 2, z: 0.6}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &1865298013
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -66098,6 +66445,87 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.7, y: 2.2810163, z: 2.2331543}
   m_Center: {x: -0.23239136, y: 1.1398723, z: 1.0726318}
+--- !u!1 &1956966529
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1956966530}
+  - component: {fileID: 1956966532}
+  - component: {fileID: 1956966531}
+  m_Layer: 0
+  m_Name: "\uCD9C\uAD6C_\uC740\uD558\uB2F4"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1956966530
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1956966529}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 86, y: 4.743271, z: 11}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 311001330}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1956966531
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1956966529}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 615a69a3f25a71d46990018370b7c4e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.SceneExit
+  displayName: "\uCD9C\uAD6C_\uC740\uD558\uB2F4"
+  targetScene: Gyeonu_EunhaDam
+  targetSpawn: SpawnPoint_FromVillage
+  mode: 0
+  promptText: "\uB4E4\uC5B4\uAC00\uAE30"
+  locked: 0
+  lockedMessage: "\uC9C0\uAE08\uC740 \uAC08 \uC218 \uC5C6\uB2E4."
+  requiredFlags: []
+  blockedMessage: '{0}'
+  debugIgnoreConditions: 0
+  armFogRevealKey: 
+  fadeOut: 0.45
+  fadeIn: 0.55
+  armDelay: 1.2
+  requireExitFirst: 1
+--- !u!65 &1956966532
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1956966529}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 4, y: 6, z: 20}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1957960012 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5407188679199921725, guid: 96cba8c80f2380b4cac7610cd1052e51, type: 3}
@@ -72186,3 +72614,5 @@ SceneRoots:
   - {fileID: 435454366}
   - {fileID: 393965580}
   - {fileID: 203960968}
+  - {fileID: 1631612766}
+  - {fileID: 311001330}
