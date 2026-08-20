@@ -36,8 +36,13 @@ namespace IMUNROK.Common
         [SerializeField] private Texture2D _document;
 
         [Header("집어 보기")]
-        [Tooltip("눈에서 이만큼 앞에 들어 올린다(m)")]
+        [Tooltip("눈에서 이만큼 앞에 들어 올린다(m). 이보다 가까이는 들지 않는다 — " +
+                 "종이가 화면에 다 안 들어오면 들어올 때까지 저절로 물러난다")]
         [SerializeField] private float _readDistance = 0.62f;
+
+        [Tooltip("펼친 종이가 화면 세로를 차지할 몫. 1이면 딱 맞아 가장자리가 아슬아슬하다")]
+        [Range(0.6f, 1f)]
+        [SerializeField] private float _readFill = 0.92f;
         [Tooltip("눈높이에서 이만큼 내려 잡는다(m)")]
         [SerializeField] private float _readDrop = 0.06f;
         [Tooltip("떠오르는 데 걸리는 시간(초)")]
@@ -58,7 +63,8 @@ namespace IMUNROK.Common
                  "두루마리는 아랫축이 앞으로 튀어나와 있어, 조금 빼는 정도로는 " +
                  "글자가 그 축에 걸쳐 파묻힌다. 아예 그보다 앞에 세운다")]
         [SerializeField] private float _readLabelDistance = 0.34f;
-        [SerializeField] private int _labelFontSize = 40;
+        [Tooltip("이름표 글씨 크기. 보이는 크기는 거리에 상관없이 늘 같다")]
+        [SerializeField] private int _labelFontSize = 56;
         [SerializeField] private Color _labelColor = new Color(1f, 0.92f, 0.72f);
 
         [SerializeField] private Color _paperColor = new Color(0.85f, 0.80f, 0.68f); // 종이/한지 색
@@ -270,7 +276,7 @@ namespace IMUNROK.Common
 
             _putBack = new GameObject("물리기판");
             _putBack.transform.SetParent(cam.transform, false);
-            _putBack.transform.localPosition = new Vector3(0f, 0f, _readDistance + 0.35f);
+            _putBack.transform.localPosition = new Vector3(0f, 0f, ReadDistance(cam) + 0.35f);
             var col = _putBack.AddComponent<BoxCollider>();
             col.size = new Vector3(6f, 6f, 0.02f);
             _putBack.AddComponent<DocumentPutBack>().Bind(this);
@@ -293,15 +299,47 @@ namespace IMUNROK.Common
         private float PaperHalf()
         {
             if (_scroll == null) return 0.2f;
-            return _scroll.TopGap + _scroll.FullHeight * 0.5f;
+            return (_scroll.TopGap + _scroll.FullHeight * 0.5f) * ScrollScale();
+        }
+
+        /// <summary>축에서 종이 끝까지의 거리(m). 이름표를 그 밑에 붙일 때 쓴다.</summary>
+        private float PaperRun()
+        {
+            if (_scroll == null) return 0.4f;
+            return (_scroll.TopGap + _scroll.FullHeight) * ScrollScale();
+        }
+
+        /// <summary>
+        /// 두루마리가 제 배율을 갖고 있다(씬에서 1.05배로 놓았다). 스크립트가 돌려주는
+        /// 길이는 두루마리 안쪽 자로 잰 것이므로, 세계에 대고 쓰려면 그 배율을 곱해야 한다.
+        /// 이것을 빠뜨리면 잰 길이가 실제보다 짧아 종이가 화면 아래로 밀려 잘린다.
+        /// </summary>
+        private float ScrollScale()
+        {
+            return _scroll == null ? 1f : Mathf.Abs(_scroll.transform.lossyScale.y);
         }
 
         private Vector3 ReadPosition(Camera cam, float half)
         {
             Vector3 center = cam.transform.position
-                             + cam.transform.forward * _readDistance
+                             + cam.transform.forward * ReadDistance(cam)
                              - cam.transform.up * _readDrop;
             return center + cam.transform.up * half;
+        }
+
+        /// <summary>
+        /// 펼친 종이를 들어 올릴 거리. 못 박으면 안 된다 — 얼마나 멀리 들어야 다 보이는지는
+        /// <b>보는 이의 시야각</b>이 정한다. 모니터는 세로 60도라 종이 한 장도 빠듯해
+        /// 멀찍이 들어야 하고, 헤드셋은 그 갑절이라 같은 종이를 코앞에 들어도 다 들어온다.
+        /// 시야각에서 뽑아 쓰면 리그를 갈아 끼워도 다시 맞출 일이 없다.
+        /// </summary>
+        private float ReadDistance(Camera cam)
+        {
+            // 종이 + 그 아래 이름표 자리까지가 화면 세로에 들어와야 한다.
+            float span = PaperRun() + _bottomRodRoom + _readLabelGap + 0.06f;
+            float halfTan = Mathf.Tan(Mathf.Max(1f, cam.fieldOfView) * 0.5f * Mathf.Deg2Rad);
+            float need = span / (2f * halfTan * Mathf.Clamp(_readFill, 0.3f, 1f));
+            return Mathf.Max(_readDistance, need);
         }
 
         /// <summary>
@@ -481,7 +519,11 @@ namespace IMUNROK.Common
             }
             // 발치에 놓인 동안엔 물건 위에, 얼굴 앞에 펼친 동안엔 종이 아래에 붙인다.
             // 펼친 종이는 화면을 거의 채우므로 그 위에 두면 이름표가 화면 밖으로 밀려난다.
-            const float LabelScale = 0.0006f;
+            // 이름표는 <b>눈에 보이는 크기</b>가 늘 같아야 한다. 세계 크기를 못 박아 두면
+            // 발치에 놓였을 땐 좁쌀만 하고 눈앞에 들면 커진다. 거리에 비례해 키운다.
+            const float LabelPerMeter = 0.0006f;
+            // 화면 아래로 빠지지 않게 붙들어 두는 자리(뷰포트 0~1).
+            const float MinLabelViewportY = 0.06f;
 
             if (_phase == Phase.읽는중)
             {
@@ -491,28 +533,33 @@ namespace IMUNROK.Common
                 // 두루마리의 아래는 세계의 아래가 아니라 <b>보는 사람의 아래</b>다.
                 // 세계 기준 경계상자의 세로로 재면 종이가 시선 쪽으로 세워져 있는 만큼
                 // 어긋나, 이름표가 종이 위에 얹힌다. 축에서 종이 끝까지를 직접 센다.
-                float lossy = Mathf.Abs(transform.lossyScale.y);
-                float paperRun = _scroll == null ? 0.4f : (_scroll.TopGap + _scroll.FullHeight);
-                float toBottom = paperRun * lossy + _bottomRodRoom + _readLabelGap;
+                float toBottom = PaperRun() + _bottomRodRoom + _readLabelGap;
                 Vector3 want = transform.position - cam.transform.up * toBottom;
-                Vector3 dir = (want - cam.transform.position).normalized;
-                Vector3 at = cam.transform.position + dir * _readLabelDistance;
+
+                // 펼친 종이가 화면을 거의 채우면 <b>그 아래는 이미 화면 밖</b>이다. 각도로만
+                // 재어 눈앞으로 당기면 밖에 있는 것을 가까이 옮긴 것일 뿐, 여전히 안 보인다.
+                // 화면 안 좌표로 옮겨 붙인다 — 자리가 남으면 종이 밑에, 모자라면 화면
+                // 아래 가장자리에. 안내가 소리 없이 사라지던 것이 이것이었다.
+                Vector3 vp = cam.WorldToViewportPoint(want);
+                if (vp.z <= 0f) { HideLabel(); return; }
+                vp.y = Mathf.Max(vp.y, MinLabelViewportY);
+                vp.z = _readLabelDistance;
+                Vector3 at = cam.ViewportToWorldPoint(vp);
 
                 _labelGo.transform.position = at;
                 // 캔버스는 <b>앞면이 뒤를 보게</b> 세워야 글자가 바로 읽힌다.
                 // 카메라 쪽(-forward)을 보게 하면 뒷면을 보는 셈이라 글씨가 뒤집힌다.
                 _labelGo.transform.rotation = Quaternion.LookRotation(cam.transform.forward, cam.transform.up);
-                // 눈앞으로 당겨 세운 만큼 작게 그린다. 0.62 는 예전에 두던 거리이고,
-                // 거기에 한 번 더 줄여 화면 폭의 절반쯤에 들어오게 한다 —
-                // 이름표가 종이만큼 커지면 읽을 것이 둘이 된다.
-                _labelGo.transform.localScale = Vector3.one * (LabelScale * (_readLabelDistance / 0.62f) * 0.62f);
+                // 눈앞으로 당겨 세운 만큼 작게 그린다 — 보이는 크기는 그대로다.
+                _labelGo.transform.localScale = Vector3.one * (LabelPerMeter * _readLabelDistance);
                 return;
             }
 
             Vector3 pos = new Vector3(b.center.x, b.max.y + _labelHeight, b.center.z);
             _labelGo.transform.position = pos;
             _labelGo.transform.rotation = Quaternion.LookRotation(pos - cam.transform.position, Vector3.up);
-            _labelGo.transform.localScale = Vector3.one * LabelScale;
+            _labelGo.transform.localScale =
+                Vector3.one * (LabelPerMeter * Vector3.Distance(pos, cam.transform.position));
         }
 
         private void OnDestroy()
