@@ -83,6 +83,24 @@ namespace IMUNROK.Common
         /// <summary>이전 도구로. VR 버튼의 UnityEvent에 연결 가능.</summary>
         public void Prev() => Select(_index - 1);
 
+        /// <summary>이 도구를 이미 들고 있는가.</summary>
+        public bool Has(ToolDef def) => def != null && _tools.Contains(def);
+
+        /// <summary>
+        /// 도구를 벨트에 넣는다(조사청에서 지급받는 길). 이미 있으면 아무 일도 없다.
+        ///
+        /// 벨트 목록을 인스펙터에서만 채우게 두면 "조사청에서 도구를 받는다"는 흐름을
+        /// 만들 수가 없다 — 처음부터 다 들고 있거나, 아예 못 들거나 둘 중 하나가 된다.
+        /// </summary>
+        /// <returns>이번에 새로 들어갔으면 true.</returns>
+        public bool Grant(ToolDef def)
+        {
+            if (def == null || _tools.Contains(def)) return false;
+            _tools.Add(def);
+            OnChanged?.Invoke();
+            return true;
+        }
+
         /// <summary>슬롯을 직접 고른다(0 = 맨손). 범위를 벗어나면 순환한다.</summary>
         public void Select(int slot)
         {
