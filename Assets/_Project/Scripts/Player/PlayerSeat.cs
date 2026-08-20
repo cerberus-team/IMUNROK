@@ -138,6 +138,13 @@ namespace IMUNROK.Common
             _phase = Phase.StandingUp;
         }
 
+        /// <summary>앉을 자리와 마주 볼 것을 밖에서 물려 준다(실내가 다른 씬일 때).</summary>
+        public void BindSeat(Transform spot, Transform lookAt)
+        {
+            if (spot != null) _seatSpot = spot;
+            if (lookAt != null) _lookAt = lookAt;
+        }
+
         /// <summary>연출 없이 곧장 앉힌다(씬을 켜자마자 앉아 있어야 할 때).</summary>
         public void SitNow()
         {

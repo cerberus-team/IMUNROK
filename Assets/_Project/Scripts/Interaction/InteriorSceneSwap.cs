@@ -6,9 +6,9 @@ namespace IMUNROK.Common
     /// <summary>
     /// 사랑채를 <b>두 채로 갈아 끼운다</b> — 밖에서는 받아온 원본, 안에서는 상자로 지은 실내.
     ///
-    /// 왜 두 채인가: 받아온 사랑채 한 채가 <b>1,320만 삼각형</b>이다. 방 안에 앉아 있는 동안
-    /// 그것을 그리고 있을 수는 없다. 상자로 지은 실내는 9,300 이다. 자리와 치수를 원본에서
-    /// 재서 지었으므로 이미 놓아둔 보료·문갑·경상이 그대로 맞는다.
+    /// 왜 두 채인가: 받아온 사랑채 한 채가 <b>234,735 삼각형</b>이고 상자로 지은 실내는
+    /// 9,300 이다. 스물다섯 배 차이라, 방 안에 앉아 있는 동안은 상자 쪽이 낫다.
+    /// 자리와 치수를 원본에서 재서 지었으므로 이미 놓아둔 보료·문갑·경상이 그대로 맞는다.
     ///
     /// <b>고친 것</b>: 예전에는 들어가는 일만 있었다. 한 번 들어서면 원본은 영영 꺼진 채였고,
     /// 아궁이를 보러 마당으로 되돌아 나오면 집이 상자인 채로 서 있었다 — "내부 씬이 자꾸
@@ -23,6 +23,14 @@ namespace IMUNROK.Common
     /// </summary>
     public class InteriorSceneSwap : MonoBehaviour
     {
+        [Header("실내를 다른 씬에 두었을 때")]
+        [Tooltip("실내가 들어 있는 씬 이름. 채우면 시작할 때 얹어 올린다. " +
+                 "비우면 이 씬 안의 _showWhileInside 를 켜고 끈다(옛 방식)")]
+        [SerializeField] private string _sceneName = "";
+
+        [Tooltip("실내 씬의 뿌리 오브젝트 이름. 그 밑에서 구조·소품·방바닥을 찾는다")]
+        [SerializeField] private string _interiorRootName = "사랑채_실내";
+
         [Header("두 채")]
         [Tooltip("실내에 들어설 때 켤 것 — 상자로 지은 사랑채 실내(구조)")]
         [SerializeField] private GameObject _showWhileInside;
@@ -63,8 +71,49 @@ namespace IMUNROK.Common
 
         private void Start()
         {
+            if (!string.IsNullOrEmpty(_sceneName)) LoadInterior();
             Measure();
             Apply();          // 씬을 켠 자리(마당)에 맞춰 시작한다
+        }
+
+        /// <summary>
+        /// 실내 씬을 얹어 올린다.
+        ///
+        /// 왜 시작할 때 미리 올리나: 불러오는 데 걸리는 틈이 <b>중문을 넘는 순간</b>에 오면
+        /// 집이 눈앞에서 뒤늦게 나타난다. 실내는 9,300 삼각형뿐이라 처음부터 들고 있어도
+        /// 부담이 없고, 어차피 마당에 있는 동안은 꺼 두므로 그려지지도 않는다.
+        /// 씬을 나눈 값은 <b>파일을 따로 여닫는 것</b>에 있지 불러오는 시점에 있지 않다.
+        /// </summary>
+        private void LoadInterior()
+        {
+            if (UnityEngine.SceneManagement.SceneManager.GetSceneByName(_sceneName).isLoaded) return;
+            if (!Application.CanStreamedLevelBeLoaded(_sceneName))
+            {
+                Debug.LogWarning($"[{name}] 실내 씬 '{_sceneName}' 을 빌드 설정에서 못 찾았습니다.", this);
+                return;
+            }
+            UnityEngine.SceneManagement.SceneManager.LoadScene(_sceneName, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+        }
+
+        /// <summary>
+        /// 올라온 실내 씬에서 켜고 끌 것을 이름으로 찾아 문다.
+        /// 씬을 건너뛰는 참조는 저장되지 않으므로 인스펙터로는 못 잇는다.
+        /// </summary>
+        public void BindInterior(UnityEngine.SceneManagement.Scene interior)
+        {
+            foreach (var root in interior.GetRootGameObjects())
+            {
+                if (root.name != _interiorRootName) continue;
+                foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                {
+                    if (t.name == "구조" && t.parent == root.transform) _showWhileInside = t.gameObject;
+                    else if (t.name == "소품" && t.parent == root.transform) _propsWhileInside = t.gameObject;
+                    else if (t.name == "장판바닥") _floor = t;
+                }
+            }
+            _measured = false;
+            Measure();
+            Apply();
         }
 
         private void Update()
@@ -73,7 +122,7 @@ namespace IMUNROK.Common
             if (cam == null || !_measured) return;
 
             // 들어설 때와 나설 때의 선이 다르다. 문지방 위에서 왔다 갔다 하면
-            // 1,320만 짜리 집이 매 프레임 켜졌다 꺼진다.
+            // 집 한 채가 매 프레임 켜졌다 꺼진다.
             float margin = _inside ? _leaveMargin : _enterMargin;
             var box = _room;
             box.Expand(new Vector3(margin * 2f, 0f, margin * 2f));

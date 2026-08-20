@@ -290,6 +290,17 @@ namespace IMUNROK.Common
             Delay(_delayBeforeLeave, DoStandUp);
         }
 
+        /// <summary>나갈 문과 그 앞뒤 자리를 밖에서 물려 준다(실내가 다른 씬일 때).</summary>
+        public void BindLeaveDoor(DoorController door, Transform front, Transform through)
+        {
+            if (door != null) _leaveDoor = door;
+            if (front != null) _leaveDoorSpot = front;
+            if (through != null) _leaveThroughSpot = through;
+        }
+
+        /// <summary>앉을 자리를 밖에서 물려 준다.</summary>
+        public void BindSitSpot(Transform spot) { if (spot != null) _sitSpot = spot; }
+
         /// <summary>지금 이 방을 떠났나(보료를 들출 수 있는가).</summary>
         public bool HasLeft => _phase == Phase.Gone;
 

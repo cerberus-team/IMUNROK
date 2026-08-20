@@ -132,6 +132,25 @@ namespace IMUNROK.Common
 
         public void OnHoldRelease() { _holdingNow = false; }
 
+        /// <summary>
+        /// 움직일 것을 밖에서 물려 준다. 씬을 나눠 놓으면 인스펙터로는 못 잇는다 —
+        /// 유니티는 씬을 건너뛰는 참조를 저장하지 못하므로, 실내 씬이 올라온 뒤에
+        /// 이름으로 찾아 여기로 넣어 준다.
+        /// </summary>
+        public void BindHinge(Transform hinge)
+        {
+            _hinge = hinge;
+            if (_hinge != null) { _restPos = _hinge.localPosition; _restRot = _hinge.localRotation; }
+            ApplyLift();
+        }
+
+        /// <summary>헤집은 뒤에 드러날 것을 밖에서 물려 준다.</summary>
+        public void BindAfter(GameObject after)
+        {
+            _after = after;
+            ShowState();
+        }
+
         /// <summary>지금 잡고 있는 만큼을 물건에 반영한다.</summary>
         private void ApplyLift()
         {
