@@ -54,10 +54,11 @@ namespace IMUNROK.Common
         [Tooltip("그림이 없을 때 쓸 세로÷가로 비율")]
         [SerializeField] private float _fallbackAspect = 1.6f;
 
-        [Tooltip("종이를 축보다 이만큼 내려 단다(m). 축 반지름(0.0575)보다 살짝 작게 잡아 " +
-                 "종이 윗머리가 축 밑으로 아주 조금 물리게 한다. 0이면 축이 문서 제목을 " +
-                 "덮어 잘려 보이고, 반지름보다 크면 축과 종이 사이가 벌어져 비어 보인다")]
-        [SerializeField] private float _topGap = 0.052f;
+        [Tooltip("종이를 축 반지름의 몇 배만큼 내려 다는가. 1이면 축 바로 밑에서 시작하고, " +
+                 "그보다 작으면 종이 윗머리가 축 밑으로 조금 물린다. " +
+                 "고정 거리로 박으면 안 된다 — 축은 풀릴수록 가늘어지므로 그 사이가 벌어진다")]
+        [Range(0.3f, 1.2f)]
+        [SerializeField] private float _topGapRatio = 0.85f;
 
         [Tooltip("다 풀렸을 때 뭉치가 남는 굵기(1이면 그대로, 0.5면 절반)")]
         [Range(0.2f, 1f)]
@@ -89,12 +90,13 @@ namespace IMUNROK.Common
         private float _shown;          // 0 = 말림, 1 = 다 풀림
         private bool _rodBaseCached;
         private Vector3 _rodBase;
+        private float _gapNow;      // 지금 축 굵기에 맞춘 틈
 
         /// <summary>지금 다 풀려 있는가.</summary>
         public bool IsOpen => _shown >= 0.999f;
 
         /// <summary>종이가 축보다 얼마나 내려 달렸는가(m). 종이 한가운데를 계산할 때 쓴다.</summary>
-        public float TopGap => _topGap;
+        public float TopGap => _gapNow;
 
         /// <summary>이 두루마리의 종이가 다 풀렸을 때의 세로 길이(m).</summary>
         public float FullHeight
@@ -200,6 +202,14 @@ namespace IMUNROK.Common
             float full = FullHeight;
             float h = full * _shown;
 
+            // 종이를 내려 다는 틈은 <b>지금 이 순간의 축 굵기</b>에서 나와야 한다.
+            // 축은 풀릴수록 가늘어지므로(_rodShrink), 고정 거리로 박아 두면 다 풀렸을 때
+            // 축과 종이 사이가 그 차이만큼 벌어져 텅 비어 보인다.
+            CacheRod();
+            float thin = Mathf.Lerp(1f, _rodShrink, _shown);
+            float rodRadius = _rodBase.x * thin * 0.5f;      // 원기둥은 배율이 곧 지름이다
+            _gapNow = rodRadius * _topGapRatio;
+
             if (_paper != null)
             {
                 // 판은 가운데가 중심이므로, 위쪽 끝을 원점에 붙이려면 절반만큼 내려 놓는다.
@@ -207,7 +217,7 @@ namespace IMUNROK.Common
                 // 제목(訴狀·牒報 같은 한자)이 바로 거기 있어서 잘려 보였다.
                 // 축 굵기만큼 내려 달아 종이가 축 밑에서 시작하게 한다.
                 _paper.localScale = new Vector3(_width, Mathf.Max(0.0001f, h), 1f);
-                _paper.localPosition = new Vector3(0f, -_topGap - h * 0.5f, 0f);
+                _paper.localPosition = new Vector3(0f, -_gapNow - h * 0.5f, 0f);
 
                 var r = _paperRenderer;
                 if (r != null)
@@ -238,7 +248,7 @@ namespace IMUNROK.Common
 
             if (_bottomRod != null)
             {
-                _bottomRod.localPosition = new Vector3(0f, -_topGap - h, 0f);
+                _bottomRod.localPosition = new Vector3(0f, -_gapNow - h, 0f);
                 var br = _bottomRod.GetComponent<Renderer>();
                 if (br != null) br.enabled = h > 0.001f;
             }
