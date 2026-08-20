@@ -172,7 +172,7 @@ namespace IMUNROK.Common.EditorTools
                 Box(g, "문위_인방", new Vector3(0f, top - lintel * 0.5f, 0f),
                     new Vector3(Bay - PillarW, lintel, 0.28f), _wall, false, null, 0.5f);
 
-            Roof(g, "지붕", 0f, top, w, GateDepth, 1.0f, 1.5f);
+            BuildSolstRoof(g, top, w);
         }
 
         // ── 담장 ─────────────────────────────────────
@@ -234,6 +234,87 @@ namespace IMUNROK.Common.EditorTools
             for (int s = -1; s <= 1; s += 2)
                 BuildFence(g, new Vector3(s * (open * 0.5f + PillarW + MidWallRun * 0.5f), 0f, 0f),
                            MidWallRun, 0f, s < 0 ? "담장_서" : "담장_동");
+        }
+
+        // ── 솟을대문 지붕 ────────────────────────────
+
+        /// <summary>가운데 칸이 좌우보다 이만큼 솟는다(m). 솟을대문의 이름이 여기서 나온다.</summary>
+        private const float SolstRise = 0.95f;
+
+        /// <summary>
+        /// 지붕을 한 채로 덮지 않고 <b>세 채</b>로 나눠 인다 — 좌우 행랑 지붕은 낮게,
+        /// 가운데 문칸 지붕은 한 단 솟게.
+        ///
+        /// 이것이 솟을대문이다. 말 탄 사람이 내리지 않고 드나들도록 가운데만 높인 문이고,
+        /// 그 집이 어떤 집인지를 길에서부터 말해 주는 자리다. 세 칸을 평평하게 덮으면
+        /// 아무리 잘 지어도 그냥 담에 난 문이 된다 — 처음 지은 것이 그랬다.
+        ///
+        /// 곡선은 여기서 안 만든다. 기와가 처마 끝에서 살짝 들리는 그 휨은 상자로는
+        /// 흉내가 안 나므로, 손으로 뜬 메시가 폴더에 있으면 그것을 쓰고 없으면 상자로 인다
+        /// (<see cref="RoofPiece"/>).
+        /// </summary>
+        private static void BuildSolstRoof(Transform g, float top, float w)
+        {
+            var r = Group(g, "지붕");
+
+            // 좌우 행랑 — 낮은 지붕 두 채
+            for (int s = -1; s <= 1; s += 2)
+                RoofPiece(r, s < 0 ? "지붕_서" : "지붕_동", "기와지붕_칸",
+                          new Vector3(s * Bay, top, 0f), Bay + 0.14f, GateDepth, 0.95f, 1.25f);
+
+            // 가운데 문칸 — 동자주를 세워 한 단 올린다
+            float ctop = top + SolstRise;
+            for (int i = -1; i <= 1; i += 2)
+                for (int s = -1; s <= 1; s += 2)
+                    Box(r, $"동자주_{i}_{s}", new Vector3(i * Bay * 0.5f, top + SolstRise * 0.5f, s * GateDepth * 0.5f),
+                        new Vector3(0.22f, SolstRise, 0.22f), _wood, false, null, 0.6f);
+            // 솟은 칸의 창방
+            for (int s = -1; s <= 1; s += 2)
+                Box(r, s < 0 ? "솟을창방_앞" : "솟을창방_뒤",
+                    new Vector3(0f, ctop - BeamThick * 0.5f, s * GateDepth * 0.5f),
+                    new Vector3(Bay + 0.3f, BeamThick, 0.22f), _beam, false, null, 0.6f);
+
+            RoofPiece(r, "지붕_솟을", "기와지붕_솟을",
+                      new Vector3(0f, ctop, 0f), Bay + 0.4f, GateDepth, 1.05f, 1.35f);
+        }
+
+        /// <summary>
+        /// 지붕 한 채. 손으로 뜬 기와 메시가 있으면 그것을 앉히고, 없으면 상자로 인다.
+        ///
+        /// 찾는 이름: 기와지붕_솟을 · 기와지붕_칸 (프리팹). 없어도 작업이 막히지 않게
+        /// 상자 쪽을 그대로 남겨 둔다.
+        /// </summary>
+        private static void RoofPiece(Transform parent, string name, string meshPrefab,
+                                      Vector3 eaveCenter, float width, float depth,
+                                      float overhang, float rise)
+        {
+            var src = FindRoofPrefab(meshPrefab);
+            if (src != null)
+            {
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(src);
+                go.name = name;
+                go.transform.SetParent(parent, false);
+                var b = PrefabBounds(src);
+                // 폭을 맞춘다 — 처마 밑면이 원점이라는 약속이므로 y 는 그대로 앉힌다.
+                float k = b.size.x > 0.001f ? width / b.size.x : 1f;
+                go.transform.localScale = Vector3.one * k;
+                go.transform.localPosition = eaveCenter - new Vector3(b.center.x * k, 0f, b.center.z * k);
+                foreach (var rr in go.GetComponentsInChildren<Renderer>(true))
+                    if (rr.sharedMaterial == null || rr.sharedMaterial.name.Contains("Default")) rr.sharedMaterial = _giwa;
+                return;
+            }
+            Roof(parent, name, eaveCenter.x, eaveCenter.y, width, depth, overhang, rise);
+        }
+
+        private static GameObject FindRoofPrefab(string name)
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:Prefab " + name))
+            {
+                var p = AssetDatabase.GUIDToAssetPath(guid);
+                if (System.IO.Path.GetFileNameWithoutExtension(p) != name) continue;
+                return AssetDatabase.LoadAssetAtPath<GameObject>(p);
+            }
+            return null;
         }
 
         // ── 문간방(행랑) ─────────────────────────────
@@ -457,8 +538,11 @@ namespace IMUNROK.Common.EditorTools
 
                     // 막새 — 기와가 끝나는 자리의 동그란 얼굴
                     Disc(g, $"막새_{s}_{i}", new Vector3(x, eaveY + 0.02f, z), 0.15f, 0.10f, _giwa, s);
-                    // 서까래 마구리 — 그 아래, 조금 작고 나무다
-                    Disc(g, $"마구리_{s}_{i}", new Vector3(x, eaveY - 0.20f, z - s * 0.05f), 0.11f, 0.16f, _rafter, s);
+                    // 부연 — 처마를 한 겹 더 내미는 짧은 서까래. 네모난 끝이다.
+                    Box(g, $"부연_{s}_{i}", new Vector3(x, eaveY - 0.15f, z - s * 0.06f),
+                        new Vector3(0.09f, 0.09f, 0.22f), _rafter, false, null, 1f);
+                    // 서까래 마구리 — 그 아래, 둥근 끝
+                    Disc(g, $"마구리_{s}_{i}", new Vector3(x, eaveY - 0.30f, z - s * 0.16f), 0.11f, 0.16f, _rafter, s);
                 }
             }
         }
