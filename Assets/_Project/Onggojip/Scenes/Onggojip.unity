@@ -2329,6 +2329,11 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0.835, z: 0.5000001}
+--- !u!4 &421355425 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3791497224923748609, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+  m_PrefabInstance: {fileID: 8546719454161316330}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &447405167
 GameObject:
   m_ObjectHideFlags: 0
@@ -6057,6 +6062,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1030998594, guid: abc00000000015874203272899986700, type: 3}
   m_PrefabInstance: {fileID: 1031000816}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1033764184 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9178675913169870638, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+  m_PrefabInstance: {fileID: 8546719454161316330}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1038847437
 GameObject:
   m_ObjectHideFlags: 0
@@ -6921,10 +6931,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.InteriorSceneSwap
   _showWhileInside: {fileID: 1906960406}
   _hideWhileInside: {fileID: 646277491}
-  _propsWhileInside: {fileID: 0}
-  _floor: {fileID: 0}
-  _enterMargin: 0.3
-  _leaveMargin: 1.2
+  _propsWhileInside: {fileID: 1033764184}
+  _floor: {fileID: 421355425}
+  _enterMargin: 0.15
+  _leaveMargin: 0.55
   _height: 3.2
   _onEntered:
     m_PersistentCalls:
@@ -27198,6 +27208,10 @@ PrefabInstance:
       propertyPath: m_Mesh
       value: 
       objectReference: {fileID: 4300000, guid: 14b508f8ecf486043aaf27e982f2a3f3, type: 2}
+    - target: {fileID: 9178675913169870638, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
