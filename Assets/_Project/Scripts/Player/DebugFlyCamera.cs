@@ -42,6 +42,15 @@ namespace IMUNROK.Common
         [Tooltip("턱을 오르내리는 속도(m/s). 즉시 붙으면 화면이 튄다")]
         [SerializeField] private float _stepSpeed = 4f;
 
+        /// <summary>
+        /// 참이면 걸음만 막힌다 — 둘러보기는 그대로다.
+        ///
+        /// 앉아 있는 동안 쓴다(<see cref="PlayerSeat"/>). 부품을 통째로 끄지 않는 까닭:
+        /// 그러면 시점 회전까지 죽어 방 안을 볼 수 없고, 다시 켤 때 각도를 잃는다.
+        /// 앉은 사람은 못 걸을 뿐 고개는 돌린다.
+        /// </summary>
+        [System.NonSerialized] public bool MoveLocked;
+
         private float _yaw;
         private float _pitch;
         private float _walkY;
@@ -83,14 +92,14 @@ namespace IMUNROK.Common
             if (Quaternion.Angle(transform.rotation, _applied) > 0.05f) SyncAngles();
 
             // Tab: 비행 ↔ 걷기 (현재 높이를 눈높이로 고정)
-            if (kb.tabKey.wasPressedThisFrame)
+            if (!MoveLocked && kb.tabKey.wasPressedThisFrame)
             {
                 _walkMode = !_walkMode;
                 _walkY = transform.position.y;
             }
 
             // G: 바로 아래 바닥으로 내려서서 그 높이를 걷는 눈높이로
-            if (kb.gKey.wasPressedThisFrame)
+            if (!MoveLocked && kb.gKey.wasPressedThisFrame)
             {
                 if (Physics.Raycast(transform.position + Vector3.up * 0.2f, Vector3.down, out var hit, 200f))
                 {
@@ -109,6 +118,8 @@ namespace IMUNROK.Common
             _pitch = Mathf.Clamp(_pitch, -89f, 89f);
             transform.rotation = Quaternion.Euler(_pitch, _yaw, 0f);
             _applied = transform.rotation;
+
+            if (MoveLocked) return;      // 앉아 있다 — 여기까지만. 고개는 이미 돌렸다
 
             float speed = _moveSpeed * (kb.leftShiftKey.isPressed ? _sprintMultiplier : 1f);
 
@@ -164,9 +175,11 @@ namespace IMUNROK.Common
         {
             if (_hud == null)
                 _hud = new GUIStyle(GUI.skin.label) { fontSize = 13, richText = true };
-            string mode = _walkMode ? "<color=#8f8>걷기</color>" : "<color=#8cf>비행</color>";
+            string mode = MoveLocked ? "<color=#fc8>앉음</color>"
+                        : _walkMode ? "<color=#8f8>걷기</color>" : "<color=#8cf>비행</color>";
+            string keys = MoveLocked ? "(앉아 있는 동안은 둘러보기만)" : "(Tab 전환 · G 바닥내려서기)";
             GUI.Label(new Rect(12, Screen.height - 46, 520, 22),
-                $"카메라: {mode}  (Tab 전환 · G 바닥내려서기)  y={transform.position.y:0.0}", _hud);
+                $"카메라: {mode}  {keys}  y={transform.position.y:0.0}", _hud);
         }
     }
 }

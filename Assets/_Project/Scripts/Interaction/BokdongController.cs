@@ -107,7 +107,36 @@ namespace IMUNROK.Common
         [Tooltip("문이 열리고 → 넘어가기 시작까지 뜸")]
         [SerializeField] private float _delayAfterOpen = 0.5f;
 
-        private enum Phase { Idle, Greeting, Leading, Opening, GoingThrough, Arrived, SittingDown, Seated }
+        [Header("심문이 끝나면 물러가기 (비우면 앉은 채로 있는다)")]
+        [Tooltip("일어서기 동작. 앉을 때 이것을 거꾸로 돌렸으니, 일어설 땐 바로 돌린다")]
+        [SerializeField] private string _standUpState = "Stand_Up3";
+        [Tooltip("심문창이 닫히고 → 일어서기까지 뜸. 마지막 한 마디를 듣고 나서 일어서야 한다")]
+        [SerializeField] private float _delayBeforeLeave = 1.2f;
+        [Tooltip("나가려고 서는 자리(문 앞). 이 오브젝트의 정면 = 문을 향한 방향")]
+        [SerializeField] private Transform _leaveDoorSpot;
+        [Tooltip("나가는 길에 지날 길목. 비우면 직선")]
+        [SerializeField] private Transform[] _leaveWaypoints;
+        [Tooltip("나가면서 열 문. 비우면 그냥 걸어 나간다")]
+        [SerializeField] private DoorController _leaveDoor;
+        [Tooltip("문 앞에 서고 → 문에 손대기까지 뜸")]
+        [SerializeField] private float _leaveOpenDelay = 0.4f;
+        [Tooltip("문을 넘어가 설 자리(툇마루 쪽). 비우면 문간에서 사라진다")]
+        [SerializeField] private Transform _leaveThroughSpot;
+        [Tooltip("넘어가 서고 → 문을 도로 닫기까지 뜸. 열어 둔 채 가면 방이 열린 채로 남는다")]
+        [SerializeField] private float _leaveCloseDelay = 0.6f;
+        [Tooltip("문이 닫히고 → 몸을 치우기까지(초). 문짝 뒤로 가려진 다음에 없애야 한다")]
+        [SerializeField] private float _hideDelay = 1.4f;
+        [Tooltip("다 나간 뒤 몸을 끌지. 끄면 문 밖에 그대로 서 있는다")]
+        [SerializeField] private bool _hideWhenGone = true;
+        [Tooltip("다 나간 순간 한 번 실행. 그가 없어야 열리는 것을 여기에 건다 — " +
+                 "보료 들추기, 플레이어 일어서기")]
+        [SerializeField] private UnityEngine.Events.UnityEvent _onLeft;
+
+        private enum Phase
+        {
+            Idle, Greeting, Leading, Opening, GoingThrough, Arrived, SittingDown, Seated,
+            StandingUp, Leaving, OpeningExit, GoingOut, Gone
+        }
         private Phase _phase;
         private int _wpIndex;
         private float _wait;
@@ -233,6 +262,28 @@ namespace IMUNROK.Common
             _standBlendLeft = 0f;
             _phase = Phase.SittingDown;
         }
+
+        /// <summary>
+        /// 심문이 끝났다 — 일어서서 문을 열고 나간다.
+        ///
+        /// 앉은 사람이 대사만 남기고 그 자리에 계속 앉아 있으면, 플레이어는 그가 보는
+        /// 앞에서 방을 뒤지게 된다. 그래서 <b>몸이 실제로 나가야</b> 한다 — 일어서고,
+        /// 문 앞까지 걸어가고, 문을 열고, 넘어가고, 문을 닫는다. 그가 문을 닫는 소리가
+        /// 조사를 시작해도 좋다는 신호다.
+        ///
+        /// 심문창의 '닫는 순간' 이벤트에 걸면 된다. 나가는 길과 문은 인스펙터에서 준다.
+        /// </summary>
+        public void LeaveRoom()
+        {
+            if (_phase == Phase.Gone || _phase == Phase.StandingUp || _phase == Phase.Leaving ||
+                _phase == Phase.OpeningExit || _phase == Phase.GoingOut) return;
+
+            _wait = 0f; _then = null;
+            Delay(_delayBeforeLeave, DoStandUp);
+        }
+
+        /// <summary>지금 이 방을 떠났나(보료를 들출 수 있는가).</summary>
+        public bool HasLeft => _phase == Phase.Gone;
 
         /// <summary>
         /// 다 앉은 뒤 한 번만 — 몸이 자리(보료 또는 마루)에 닿게 높이를 맞춘다.
@@ -371,6 +422,53 @@ namespace IMUNROK.Common
             }
 
             if (_phase == Phase.Seated) return;                  // 앉아 있는 동안은 가만히
+            if (_phase == Phase.Gone) return;                    // 이미 나갔다
+
+            // 일어서는 중 — 앉을 때 거꾸로 돌린 클립을 이번엔 바로 돌린다.
+            if (_phase == Phase.StandingUp)
+            {
+                if (StateDone(_standUpState)) DoLeaveWalk();
+                return;
+            }
+
+            // 문 앞까지 걸어간다.
+            if (_phase == Phase.Leaving)
+            {
+                KeepWalking();
+                if (_leaveWaypoints != null && _wpIndex < _leaveWaypoints.Length && _leaveWaypoints[_wpIndex] != null)
+                {
+                    if (MoveTo(_leaveWaypoints[_wpIndex].position, transform.rotation)) _wpIndex++;
+                }
+                else if (_leaveDoorSpot == null || MoveTo(_leaveDoorSpot.position, _leaveDoorSpot.rotation))
+                {
+                    if (_leaveDoorSpot != null) transform.rotation = _leaveDoorSpot.rotation;
+                    HoldStand();
+                    if (_leaveDoor != null) Delay(_leaveOpenDelay, DoLeaveOpen);
+                    else DoLeaveThrough();
+                }
+                return;
+            }
+
+            // 나가는 문을 여는 동작이 끝나기를 기다린다.
+            if (_phase == Phase.OpeningExit)
+            {
+                if (StateDone(_openState)) DoLeaveOpened();
+                return;
+            }
+
+            // 문간을 넘어 툇마루 쪽으로.
+            if (_phase == Phase.GoingOut)
+            {
+                KeepWalking();
+                if (MoveTo(_leaveThroughSpot.position, _leaveThroughSpot.rotation))
+                {
+                    transform.rotation = _leaveThroughSpot.rotation;
+                    HoldStand();
+                    Delay(_leaveCloseDelay, DoLeaveClose);
+                }
+                return;
+            }
+
 
             // 중문 쪽에서 안마당으로 걸어나오는 중.
             if (_phase == Phase.Greeting)
@@ -457,6 +555,72 @@ namespace IMUNROK.Common
             _mvHasTarget = false;
             CrossTo(_walkState);
             _phase = Phase.GoingThrough;
+        }
+
+        // ───────── 물러가기 ─────────
+
+        /// <summary>일어선다. 일어서기 클립이 없으면 그냥 선 자세로 돌아간다.</summary>
+        private void DoStandUp()
+        {
+            // 앉힐 때 꺼 둔 발 붙이기를 되돌린다. 이걸 안 켜면 서서 걷는 내내
+            // 앉은 자세로 잡아 둔 높이를 그대로 끌고 다녀 마루 위에 떠 보인다.
+            var feet = GetComponent<GroundFeet>();
+            if (feet != null) feet.PinHeight = true;
+
+            _phase = Phase.StandingUp;
+            if (_animator == null || string.IsNullOrEmpty(_standUpState)) { DoLeaveWalk(); return; }
+            _animator.speed = Mathf.Max(0.1f, _sitSpeed);
+            CrossTo(_standUpState);
+            _animator.speed = Mathf.Max(0.1f, _sitSpeed);   // CrossTo 가 1로 되돌려 놓는다
+        }
+
+        private void DoLeaveWalk()
+        {
+            if (_animator != null) _animator.speed = 1f;
+            _wpIndex = 0;
+            _mvHasTarget = false;
+            _groundInit = false;
+            if (_leaveDoorSpot == null && _leaveThroughSpot == null) { DoLeaveGone(); return; }
+            CrossTo(_walkState);
+            _phase = Phase.Leaving;
+        }
+
+        /// <summary>문에 손을 뻗는다. 전용 동작이 없으면 곧장 문짝만 연다.</summary>
+        private void DoLeaveOpen()
+        {
+            if (_animator == null || string.IsNullOrEmpty(_openState)) { DoLeaveOpened(); return; }
+            CrossTo(_openState);
+            _phase = Phase.OpeningExit;
+        }
+
+        private void DoLeaveOpened()
+        {
+            if (_leaveDoor != null) _leaveDoor.Open();
+            HoldStand();
+            _phase = Phase.Arrived;
+            Delay(_delayAfterOpen, DoLeaveThrough);
+        }
+
+        private void DoLeaveThrough()
+        {
+            if (_leaveThroughSpot == null) { DoLeaveClose(); return; }
+            _mvHasTarget = false;
+            CrossTo(_walkState);
+            _phase = Phase.GoingOut;
+        }
+
+        /// <summary>넘어간 뒤 문을 도로 닫는다. 이 소리가 조사를 시작해도 좋다는 신호다.</summary>
+        private void DoLeaveClose()
+        {
+            if (_leaveDoor != null) _leaveDoor.Close();
+            Delay(_hideDelay, DoLeaveGone);
+        }
+
+        private void DoLeaveGone()
+        {
+            _phase = Phase.Gone;
+            _onLeft?.Invoke();
+            if (_hideWhenGone) gameObject.SetActive(false);
         }
 
         private bool StateDone(string state)
