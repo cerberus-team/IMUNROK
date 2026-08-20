@@ -54,9 +54,10 @@ namespace IMUNROK.Common
         [Tooltip("그림이 없을 때 쓸 세로÷가로 비율")]
         [SerializeField] private float _fallbackAspect = 1.6f;
 
-        [Tooltip("종이를 축보다 이만큼 내려 단다(m). 축 굵기의 절반쯤이면 된다. " +
-                 "0이면 축이 종이 윗머리를 덮어 문서 제목이 잘려 보인다")]
-        [SerializeField] private float _topGap = 0.075f;
+        [Tooltip("종이를 축보다 이만큼 내려 단다(m). 축 반지름(0.0575)보다 살짝 작게 잡아 " +
+                 "종이 윗머리가 축 밑으로 아주 조금 물리게 한다. 0이면 축이 문서 제목을 " +
+                 "덮어 잘려 보이고, 반지름보다 크면 축과 종이 사이가 벌어져 비어 보인다")]
+        [SerializeField] private float _topGap = 0.052f;
 
         [Tooltip("다 풀렸을 때 뭉치가 남는 굵기(1이면 그대로, 0.5면 절반)")]
         [Range(0.2f, 1f)]

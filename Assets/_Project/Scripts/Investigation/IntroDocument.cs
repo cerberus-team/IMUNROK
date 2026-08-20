@@ -52,6 +52,8 @@ namespace IMUNROK.Common
         [SerializeField] private float _labelHeight = 0.20f;
         [Tooltip("펼쳐 든 동안 종이 아래에 붙는 틈(m). 크게 잡으면 화면 밖으로 밀려난다")]
         [SerializeField] private float _readLabelGap = 0.045f;
+        [Tooltip("종이 끝을 누르는 아랫축이 차지하는 자리(m). 이만큼 더 내려가야 축을 지난다")]
+        [SerializeField] private float _bottomRodRoom = 0.035f;
         [Tooltip("펼쳐 든 동안 이름표를 눈에서 이만큼 떨어진 곳에 못 박는다(m). " +
                  "두루마리는 아랫축이 앞으로 튀어나와 있어, 조금 빼는 정도로는 " +
                  "글자가 그 축에 걸쳐 파묻힌다. 아예 그보다 앞에 세운다")]
@@ -486,7 +488,13 @@ namespace IMUNROK.Common
                 // 종이 아래에 두되, 눈에서 정해진 거리에 못 박는다. 두루마리보다 앞이라야
                 // 아랫축에 걸려 글자가 파묻히지 않는다. 가까워진 만큼 작게 그려
                 // 보기에는 늘 같은 크기가 되게 한다.
-                Vector3 want = b.center - cam.transform.up * (b.size.y * 0.5f + _readLabelGap);
+                // 두루마리의 아래는 세계의 아래가 아니라 <b>보는 사람의 아래</b>다.
+                // 세계 기준 경계상자의 세로로 재면 종이가 시선 쪽으로 세워져 있는 만큼
+                // 어긋나, 이름표가 종이 위에 얹힌다. 축에서 종이 끝까지를 직접 센다.
+                float lossy = Mathf.Abs(transform.lossyScale.y);
+                float paperRun = _scroll == null ? 0.4f : (_scroll.TopGap + _scroll.FullHeight);
+                float toBottom = paperRun * lossy + _bottomRodRoom + _readLabelGap;
+                Vector3 want = transform.position - cam.transform.up * toBottom;
                 Vector3 dir = (want - cam.transform.position).normalized;
                 Vector3 at = cam.transform.position + dir * _readLabelDistance;
 
