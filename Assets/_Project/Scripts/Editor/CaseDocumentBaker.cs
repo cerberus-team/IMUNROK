@@ -37,9 +37,9 @@ namespace IMUNROK.Common.Editor
         private static readonly (string name, bool needsAlpha, string folder)[] Textures =
         {
             // 조사청 사건판 — 세 사건 공용이라 공통 소품에 둔다
-            ("T_Doc_Case1_Onggojip", false, SharedFolder),   // 제일사건 · 옹고집전 — 소장(訴狀)
-            ("T_Doc_Case2_Seocheon", false, SharedFolder),   // 제이사건 · 서천꽃밭 — 첩보(牒報)
-            ("T_Doc_Case3_Gyeonu",   false, SharedFolder),   // 제삼사건 · 견우직녀 — 전령(傳令)
+            ("T_Doc_Case1_Onggojip", false, SharedFolder),   // 제1사건 · 옹고집전 — 소장(訴狀)
+            ("T_Doc_Case2_Seocheon", false, SharedFolder),   // 제2사건 · 서천꽃밭 — 첩보(牒報)
+            ("T_Doc_Case3_Gyeonu",   false, SharedFolder),   // 제3사건 · 견우직녀 — 전령(傳令)
 
             // 제1사건 잠행 단서 — 옹고집 전용
             ("T_Doc_J09_Jangbu",   false, OnggojipFolder),   // J09 전조기 — 최근 두 줄만 필적이 다르다

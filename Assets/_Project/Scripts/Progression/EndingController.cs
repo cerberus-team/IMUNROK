@@ -247,9 +247,9 @@ namespace IMUNROK.Common
         {
             return id switch
             {
-                CaseId.Case1_Onggojip => "제일사건 · 옹고집전 — 누가 진짜인가",
-                CaseId.Case2_Seocheon => "제이사건 · 서천꽃밭 — 네 번째 환생자",
-                CaseId.Case3_Gyeonu   => "제삼사건 · 견우직녀 — 칠석 실종 사건",
+                CaseId.Case1_Onggojip => "제1사건 · 옹고집전 — 누가 진짜인가",
+                CaseId.Case2_Seocheon => "제2사건 · 서천꽃밭 — 네 번째 환생자",
+                CaseId.Case3_Gyeonu   => "제3사건 · 견우직녀 — 칠석 실종 사건",
                 _ => id.ToString(),
             };
         }
