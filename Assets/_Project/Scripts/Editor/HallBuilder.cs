@@ -65,7 +65,7 @@ namespace IMUNROK.Common.EditorTools
         private const float WestX0 = -4.54f, WestX1 = -1.54f;
         private const float MidX0 = -1.54f, MidX1 = 1.46f;
 
-        private static Material _wood, _wall, _floor, _gidan, _stone, _paper, _roof;
+        private static Material _wood, _beam, _rafter, _wall, _ceil, _floor, _gidan, _stone, _paper, _roof;
         private static readonly int BaseMapSt = Shader.PropertyToID("_BaseMap_ST");
         private static readonly int MainTexSt = Shader.PropertyToID("_MainTex_ST");
 
@@ -171,68 +171,56 @@ namespace IMUNROK.Common.EditorTools
             return null;
         }
 
-        private const string MatDir = "Assets/_Project/_Common/Materials";
+        private const string HouseDir = "Assets/_Project/Onggojip/Art/KimMyeonggwanHouse/Material/";
+        private const string RoomDir = "Assets/_Project/Onggojip/Art/사랑채실내/";
 
         /// <summary>
-        /// 부재에 쓸 재질을 갖춘다. 소쇄원 재질을 <b>그대로 쓰지 않고</b> 같은 그림으로
-        /// 새로 만든다.
+        /// 재질은 <b>사랑채 실내가 쓰는 것을 그대로</b> 쓴다.
         ///
-        /// 왜: 소쇄원 재질은 언리얼에서 옮겨 온 셰이더(Unreal/PBR_Shader)라 그림 슬롯이
-        /// Material_Texture2D_0..4 라는 이름이다. 유니티가 아는 _BaseMap 이 없으니
-        /// 되풀이 값(_BaseMap_ST)을 아무리 줘도 씹힌다. 첫 판에 지붕이 거울처럼 번들거린
-        /// 것이 그 탓이었다 — 거칠기 그림이 11m 짜리 한 장으로 늘어나 매끈한 쪽만 남았다.
-        /// 같은 그림을 URP Lit 에 물려 두면 되풀이도 먹고 번들거림도 우리가 정한다.
+        /// 처음엔 소쇄원(광풍각) 재질로 지었다. 그런데 그 팩은 언리얼에서 옮겨 온
+        /// 셰이더라 그림 슬롯 이름이 Material_Texture2D_0..4 다 — 유니티가 아는
+        /// _BaseMap 이 없으니 되풀이 값이 씹히고, 거칠기 그림이 통째로 늘어나 지붕이
+        /// 거울처럼 번들거렸다. 같은 그림으로 URP 재질을 새로 만들어 막긴 했지만
+        /// 결이 겉돌았다.
+        ///
+        /// 고택 팩은 처음부터 URP Lit 이고 부재마다 제 재질이 갖춰져 있다 —
+        /// 기와·서까래·마루·기단까지. 사랑채가 그것으로 지어졌으니 조사청도 같은 것을
+        /// 쓰면 두 방이 한 집처럼 보인다.
+        ///
+        /// 사건 폴더의 아트를 공통 씬이 참조하게 되는 것은 아는 값이다. 조사청과
+        /// 사랑채가 같은 조선 집이어야 한다는 쪽을 택했다.
         /// </summary>
         private static bool LoadMaterials()
         {
-            const string dir = "Assets/Soswaewon/Materials/Buildings/";
-            if (!AssetDatabase.IsValidFolder(MatDir))
-                AssetDatabase.CreateFolder("Assets/_Project/_Common", "Materials");
-
-            _wood  = Ensure("M_조사청_나무", dir + "MI_Wood.mat", 0.12f);
-            _wall  = Ensure("M_조사청_벽",   dir + "MI_Wall.mat", 0.06f);
-            _floor = Ensure("M_조사청_마루", dir + "MI_GPG_Floor01a.mat", 0.18f);
-            _gidan = Ensure("M_조사청_기단", dir + "MI_Gidan01b.mat", 0.08f);
-            _stone = Ensure("M_조사청_돌",   dir + "MI_Cornerstone.mat", 0.08f);
-            _paper = Ensure("M_조사청_한지", dir + "MI_GPG_Door01a.mat", 0.05f);
-            _roof  = Ensure("M_조사청_기와", dir + "MI_Roof.mat", 0.10f);
+            _wood   = Load(HouseDir + "MI_Wood01A.mat");        // 기둥
+            _beam   = Load(HouseDir + "MI_Wood02A.mat");        // 도리·보·문틀
+            _rafter = Load(HouseDir + "MI_RafterA.mat");        // 서까래
+            _floor  = Load(HouseDir + "MI_Floor01A.mat");       // 마루
+            _wall   = Load(HouseDir + "MI_WhiteWall01A.mat");   // 회벽
+            _gidan  = Load(HouseDir + "MI_GidanStone01A.mat");  // 기단
+            _stone  = Load(HouseDir + "MI_Stone02A.mat");       // 주춧돌·댓돌
+            _roof   = Load(HouseDir + "MI_Giwa.mat");           // 기와
+            _paper  = Load(RoomDir + "MI_사랑방_한지.mat");       // 문에 바른 한지
+            _ceil   = Load(RoomDir + "MI_사랑방_반자.mat");       // 반자 천장
 
             if (_wood == null || _wall == null || _floor == null || _gidan == null || _stone == null)
             {
-                Debug.LogError("[조사청] 재질을 만들지 못했습니다. 소쇄원 재질을 찾을 수 없습니다: " + dir);
+                Debug.LogError("[조사청] 고택 재질을 못 찾았습니다: " + HouseDir);
                 return false;
             }
-            if (_paper == null) _paper = _wall;
+            if (_beam == null) _beam = _wood;
+            if (_rafter == null) _rafter = _beam;
             if (_roof == null) _roof = _gidan;
-            AssetDatabase.SaveAssets();
+            if (_paper == null) _paper = _wall;
+            if (_ceil == null) _ceil = _wall;
             return true;
         }
 
-        /// <summary>소쇄원 재질에서 그림만 빌려 URP Lit 재질을 만든다(이미 있으면 그것을 쓴다).</summary>
-        private static Material Ensure(string name, string sourcePath, float smoothness)
+        private static Material Load(string path)
         {
-            string path = $"{MatDir}/{name}.mat";
-            var mine = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (mine != null) return mine;
-
-            var src = AssetDatabase.LoadAssetAtPath<Material>(sourcePath);
-            if (src == null) return null;
-
-            var shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (shader == null) { Debug.LogError("[조사청] URP Lit 셰이더가 없습니다."); return null; }
-
-            mine = new Material(shader) { name = name };
-            // 언리얼 쪽 슬롯: 0=법선(NM), 1=바탕색(BC), 3=거칠기(RN)
-            var bc = src.HasProperty("Material_Texture2D_1") ? src.GetTexture("Material_Texture2D_1") : null;
-            var nm = src.HasProperty("Material_Texture2D_0") ? src.GetTexture("Material_Texture2D_0") : null;
-            if (bc != null) mine.SetTexture("_BaseMap", bc);
-            if (nm != null) { mine.SetTexture("_BumpMap", nm); mine.EnableKeyword("_NORMALMAP"); }
-            mine.SetFloat("_Smoothness", smoothness);
-            mine.SetFloat("_Metallic", 0f);
-
-            AssetDatabase.CreateAsset(mine, path);
-            Debug.Log($"[조사청] 재질을 만들었습니다: {path}");
-            return mine;
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (m == null) Debug.LogWarning("[조사청] 재질 없음: " + path);
+            return m;
         }
 
         // ── 부재 하나 ────────────────────────────────
@@ -342,11 +330,11 @@ namespace IMUNROK.Common.EditorTools
 
             for (int j = 0; j < nz; j++)   // 도리 — 정면과 나란히
                 Box(g, $"도리_z{j}", new Vector3(cx, y, ZMin + Bay * j),
-                    new Vector3(XMax - XMin + PillarW, BeamThick, 0.20f), _wood, false, null, 0.6f);
+                    new Vector3(XMax - XMin + PillarW, BeamThick, 0.20f), _beam, false, null, 0.6f);
 
             for (int i = 0; i < nx; i++)   // 보 — 앞뒤로 건너지른다
                 Box(g, $"보_x{i}", new Vector3(XMin + Bay * i, y, cz),
-                    new Vector3(0.20f, BeamThick, ZMax - ZMin), _wood, false, null, 0.6f);
+                    new Vector3(0.20f, BeamThick, ZMax - ZMin), _beam, false, null, 0.6f);
         }
 
         private static void BuildRafters(Transform g)
@@ -357,16 +345,16 @@ namespace IMUNROK.Common.EditorTools
             int n = Mathf.FloorToInt((XMax - XMin) / RafterStep);
             for (int i = 0; i <= n; i++)
                 Box(g, $"서까래_{i}", new Vector3(XMin + RafterStep * i, RafterY, cz),
-                    new Vector3(0.11f, 0.11f, len), _wood, false, null, 0.6f);
+                    new Vector3(0.11f, 0.11f, len), _rafter, false, null, 0.6f);
         }
 
         private static void BuildCeiling(Transform g)
         {
             // 반자는 방 위에만 있다. 열린 마루 위는 서까래가 그대로 보이는 자리다(연등천장).
             Box(g, "반자_서", Mid(WestX0, WestX1, CeilY, RoomZMin, RoomZMax),
-                new Vector3(WestX1 - WestX0, 0.08f, RoomZMax - RoomZMin), _wall, false, null, 0.5f);
+                new Vector3(WestX1 - WestX0, 0.08f, RoomZMax - RoomZMin), _ceil, false, null, 0.5f);
             Box(g, "반자_중", Mid(MidX0, MidX1, CeilY, RoomZMin, RoomZMax),
-                new Vector3(MidX1 - MidX0, 0.08f, RoomZMax - RoomZMin), _wall, false, null, 0.5f);
+                new Vector3(MidX1 - MidX0, 0.08f, RoomZMax - RoomZMin), _ceil, false, null, 0.5f);
         }
 
         private static Vector3 Mid(float x0, float x1, float y, float z0, float z1)
@@ -430,11 +418,11 @@ namespace IMUNROK.Common.EditorTools
                 // 문틀 — 짝과 짝 사이 세로대. 이것이 없으면 종이 한 장이 된다.
                 var sPos = alongX ? new Vector3(a0 + w * i, y, fixedCoord) : new Vector3(fixedCoord, y, a0 + w * i);
                 var sSize = alongX ? new Vector3(0.07f, h, 0.09f) : new Vector3(0.09f, h, 0.07f);
-                Box(group, $"{name}_틀{i}", sPos, sSize, _wood, false, null, 0.6f);
+                Box(group, $"{name}_틀{i}", sPos, sSize, _beam, false, null, 0.6f);
             }
             var endPos = alongX ? new Vector3(a1, y, fixedCoord) : new Vector3(fixedCoord, y, a1);
             var endSize = alongX ? new Vector3(0.07f, h, 0.09f) : new Vector3(0.09f, h, 0.07f);
-            Box(group, $"{name}_틀끝", endPos, endSize, _wood, false, null, 0.6f);
+            Box(group, $"{name}_틀끝", endPos, endSize, _beam, false, null, 0.6f);
         }
 
         private static void BuildRoof(Transform g)

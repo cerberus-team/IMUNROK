@@ -388,16 +388,31 @@ namespace IMUNROK.Common.EditorTools
             return go;
         }
 
-        /// <summary>폴더에서 첫 모델(fbx)을 찾아 놓는다. 파일 이름이 길고 자주 바뀌어 폴더로 찾는다.</summary>
+        /// <summary>
+        /// 폴더에서 첫 모델(fbx)을 찾아 놓고, 같은 폴더의 재질을 물린다.
+        ///
+        /// fbx 에 딸려 오는 재질(Material.001)은 그림이 하나도 안 걸려 있어 허연 덩어리로
+        /// 나온다 — 등불도 돋보기도 그 꼴이었다. 만든 사람이 옆에 재질을 따로 놓아 두었으니
+        /// 그것을 쓴다.
+        /// </summary>
         private static GameObject LoadModel(string folder)
         {
+            GameObject made = null;
             foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { folder }))
             {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                if (asset != null) return (GameObject)PrefabUtility.InstantiatePrefab(asset);
+                var asset = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid));
+                if (asset != null) { made = (GameObject)PrefabUtility.InstantiatePrefab(asset); break; }
             }
-            return null;
+            if (made == null) return null;
+
+            foreach (var guid in AssetDatabase.FindAssets("t:Material", new[] { folder }))
+            {
+                var mat = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(guid));
+                if (mat == null) continue;
+                foreach (var r in made.GetComponentsInChildren<Renderer>(true)) r.sharedMaterial = mat;
+                break;
+            }
+            return made;
         }
 
         /// <summary>가장 긴 변이 이만큼(m) 되게 줄인다. 받아온 모델은 크기가 제각각이다.</summary>
