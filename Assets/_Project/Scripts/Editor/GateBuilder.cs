@@ -56,6 +56,10 @@ namespace IMUNROK.Common.EditorTools
         private const float MidYaw = 99f;
 
         private static Material _wood, _beam, _wall, _door, _giwa, _gidan, _stone, _wallStone, _ground;
+        private static Material _plank, _hanji, _metal, _rafter;
+
+        /// <summary>처마 끝 막새·마구리를 붙일지. 동그라미 한 줄이 원기둥 서른 개라 무겁다.</summary>
+        private const bool EaveDetail = true;
 
         [MenuItem("이문록/옹고집 대문 짓기")]
         public static void Build()
@@ -156,9 +160,9 @@ namespace IMUNROK.Common.EditorTools
             float sill = GidanH;
             Box(g, "문지방", new Vector3(0f, sill + 0.06f, 0f), new Vector3(Bay, 0.12f, 0.34f), _beam, false, null, 1f);
             for (int s = -1; s <= 1; s += 2)
-                Box(g, s < 0 ? "대문짝_서" : "대문짝_동",
-                    new Vector3(s * GateLeaf * 0.5f, sill + 0.12f + GateDoorH * 0.5f, 0f),
-                    new Vector3(GateLeaf - 0.02f, GateDoorH, 0.10f), _door, true, null, 1f);
+                DoorLeaf(g, s < 0 ? "대문짝_서" : "대문짝_동",
+                         new Vector3(s * GateLeaf * 0.5f, sill + 0.12f + GateDoorH * 0.5f, 0f),
+                         GateLeaf - 0.02f, GateDoorH, 0.10f, _plank, 5, 3, s);
             // 문 위 인방 — 문짝이 처마까지 닿으면 문이 아니라 벽이 된다
             float lintel = top - (sill + 0.12f + GateDoorH);
             if (lintel > 0.05f)
@@ -211,9 +215,9 @@ namespace IMUNROK.Common.EditorTools
             }
             Box(g, "문지방", new Vector3(0f, 0.06f, 0f), new Vector3(open, 0.12f, 0.3f), _beam, false, null, 1f);
             for (int s = -1; s <= 1; s += 2)
-                Box(g, s < 0 ? "중문짝_서" : "중문짝_동",
-                    new Vector3(s * MidLeaf * 0.5f, 0.12f + MidDoorH * 0.5f, 0f),
-                    new Vector3(MidLeaf - 0.02f, MidDoorH, 0.08f), _door, true, null, 1f);
+                DoorLeaf(g, s < 0 ? "중문짝_서" : "중문짝_동",
+                         new Vector3(s * MidLeaf * 0.5f, 0.12f + MidDoorH * 0.5f, 0f),
+                         MidLeaf - 0.02f, MidDoorH, 0.08f, _hanji, 3, 6, s);
             Box(g, "인방", new Vector3(0f, top - 0.14f, 0f), new Vector3(open + PillarW, 0.28f, 0.26f), _beam, false, null, 0.6f);
 
             Roof(g, "지붕", 0f, top, open + PillarW * 2f, 1.2f, 0.6f, 0.8f);
@@ -222,6 +226,79 @@ namespace IMUNROK.Common.EditorTools
             for (int s = -1; s <= 1; s += 2)
                 BuildFence(g, new Vector3(s * (open * 0.5f + PillarW + MidWallRun * 0.5f), 0f, 0f),
                            MidWallRun, 0f, s < 0 ? "담장_서" : "담장_동");
+        }
+
+        // ── 문짝 한 짝 ───────────────────────────────
+
+        /// <summary>
+        /// 문짝을 통짜 판때기로 세우지 않고 <b>짜 맞춘다</b> — 테를 두르고, 그 안에 살대를
+        /// 걸고, 뒤에 판(또는 한지)을 댄다.
+        ///
+        /// 왜: 상자 하나에 문 그림을 붙이면 그림이 상자 크기대로 늘어나 살대 간격이
+        /// 제멋대로가 된다. 처음에 대문이 이상해 보인 까닭이 그것이었다. 살대를 실제로
+        /// 세워 두면 어느 크기로 짜도 간격이 살아 있고, 문이 두께를 가진 물건이 된다.
+        ///
+        /// cols·rows 는 살대 수다. 대문은 성글게(판문에 띠장), 중문은 촘촘하게(창호).
+        /// side 는 -1/+1 — 문고리가 맞물리는 쪽에 붙게 한다.
+        /// </summary>
+        private static void DoorLeaf(Transform parent, string name, Vector3 center,
+                                     float w, float h, float t, Material panel,
+                                     int cols, int rows, int side)
+        {
+            var g = Group(parent, name);
+            g.localPosition = center;
+
+            const float FrameW = 0.075f;      // 테 굵기
+            const float barW = 0.055f;        // 살대 굵기 — 얇으면 밝은 판에 묻혀 안 보인다
+            const float barOut = 0.42f;       // 판보다 이만큼(두께 배수) 앞으로 나온다
+
+            // 뒤판 — 대문은 널판, 중문은 한지
+            Box(g, "판", Vector3.zero, new Vector3(w - FrameW, h - FrameW, t * 0.45f), panel, true, null, 1.4f);
+
+            // 테 넷
+            Box(g, "테_위", new Vector3(0f, (h - FrameW) * 0.5f, 0f), new Vector3(w, FrameW, t), _beam, false, null, 1f);
+            Box(g, "테_아래", new Vector3(0f, -(h - FrameW) * 0.5f, 0f), new Vector3(w, FrameW, t), _beam, false, null, 1f);
+            Box(g, "테_왼", new Vector3(-(w - FrameW) * 0.5f, 0f, 0f), new Vector3(FrameW, h, t), _beam, false, null, 1f);
+            Box(g, "테_오른", new Vector3((w - FrameW) * 0.5f, 0f, 0f), new Vector3(FrameW, h, t), _beam, false, null, 1f);
+
+            // 살대 — 세로
+            for (int i = 1; i <= cols; i++)
+            {
+                float x = -w * 0.5f + w * i / (cols + 1f);
+                Box(g, $"살_세로{i}", new Vector3(x, 0f, -t * barOut),
+                    new Vector3(barW, h - FrameW * 2f, t * 0.55f), _beam, false, null, 1f);
+            }
+            // 살대 — 가로(대문에서는 띠장 노릇을 한다)
+            for (int i = 1; i <= rows; i++)
+            {
+                float y = -h * 0.5f + h * i / (rows + 1f);
+                Box(g, $"살_가로{i}", new Vector3(0f, y, -t * barOut),
+                    new Vector3(w - FrameW * 2f, barW * 1.3f, t * 0.6f), _beam, false, null, 1f);
+            }
+
+            // 문고리 — 맞물리는 쪽에
+            if (_metal != null)
+            {
+                float hx = -side * (w * 0.5f - FrameW * 1.6f);
+                Box(g, "문고리_바탕", new Vector3(hx, 0f, -t * 0.55f), new Vector3(0.13f, 0.13f, 0.03f), _metal, false, null, 1f);
+                Ring(g, "문고리", new Vector3(hx, -0.07f, -t * 0.62f), 0.09f, 0.018f, _metal);
+            }
+        }
+
+        /// <summary>납작한 고리 하나. 원통 여덟 도막을 둥글게 돌려 세운다.</summary>
+        private static void Ring(Transform parent, string name, Vector3 center, float radius, float thick, Material mat)
+        {
+            var g = Group(parent, name);
+            g.localPosition = center;
+            const int N = 8;
+            for (int i = 0; i < N; i++)
+            {
+                float a = Mathf.PI * 2f * i / N;
+                float seg = 2f * Mathf.PI * radius / N * 1.15f;
+                Box(g, $"도막{i}", new Vector3(Mathf.Cos(a) * radius, Mathf.Sin(a) * radius, 0f),
+                    new Vector3(thick, seg, thick), mat, false,
+                    Quaternion.Euler(0f, 0f, a * Mathf.Rad2Deg + 90f), 0f);
+            }
         }
 
         // ── 축대와 계단 ──────────────────────────────
@@ -273,6 +350,8 @@ namespace IMUNROK.Common.EditorTools
                 _giwa, false, Quaternion.Euler(ang, 180f, 0f), 1.0f);
             Box(r, "용마루", new Vector3(cx, eaveY + rise + 0.09f, 0f), new Vector3(w, 0.22f, 0.45f), _giwa, false, null, 1.2f);
 
+            if (EaveDetail) { EaveEnds(r, cx, eaveY, w, runZ); }
+
             // 박공 — 옆으로 하늘이 새지 않게 층지어 깎는다
             const int Steps = 6;
             for (int s = -1; s <= 1; s += 2)
@@ -287,6 +366,52 @@ namespace IMUNROK.Common.EditorTools
                         new Vector3(0.12f, rise / Steps + 0.01f, d), _wall, false, null, 0.6f);
                 }
             }
+        }
+
+        /// <summary>
+        /// 처마 끝에 동그란 것 두 줄 — <b>막새</b>와 <b>서까래 마구리</b>다.
+        ///
+        /// 한옥 처마를 밑에서 올려다보면 동그라미가 위아래 두 줄로 늘어선다. 위는 기와가
+        /// 끝나는 자리에 물린 막새(수막새)의 얼굴이고, 아래는 그 기와를 받치는 서까래의
+        /// 잘린 끝이다. 처마를 판때기 한 장으로 끝내면 이 두 줄이 없어 지붕이 종이처럼
+        /// 얇아 보인다 — 무게가 실리는 곳이 여기다.
+        /// </summary>
+        private static void EaveEnds(Transform r, float cx, float eaveY, float w, float runZ)
+        {
+            var g = Group(r, "처마끝");
+            const float Step = 0.33f;          // 기와 한 장 폭 어림
+            int n = Mathf.Max(2, Mathf.FloorToInt(w / Step));
+            float pitch = w / n;
+
+            for (int s = -1; s <= 1; s += 2)      // 앞뒤 두 물매
+            {
+                float z = s * (runZ + 0.02f);
+                for (int i = 0; i <= n; i++)
+                {
+                    float x = cx - w * 0.5f + pitch * i;
+
+                    // 막새 — 기와가 끝나는 자리의 동그란 얼굴
+                    Disc(g, $"막새_{s}_{i}", new Vector3(x, eaveY + 0.02f, z), 0.15f, 0.10f, _giwa, s);
+                    // 서까래 마구리 — 그 아래, 조금 작고 나무다
+                    Disc(g, $"마구리_{s}_{i}", new Vector3(x, eaveY - 0.20f, z - s * 0.05f), 0.11f, 0.16f, _rafter, s);
+                }
+            }
+        }
+
+        /// <summary>동그란 면이 바깥(±z)을 보게 세운 짧은 원기둥.</summary>
+        private static void Disc(Transform parent, string name, Vector3 center, float diameter, float depth,
+                                 Material mat, int facing)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            go.name = name;
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = center;
+            // 원기둥은 길이가 y 축이다. x 로 아흔 도 눕히면 동그란 면이 z 를 본다.
+            go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            go.transform.localScale = new Vector3(diameter, depth * 0.5f, diameter);
+            var rr = go.GetComponent<Renderer>();
+            rr.sharedMaterial = mat;
+            Object.DestroyImmediate(go.GetComponent<Collider>());
         }
 
         // ── 재질과 상자 ──────────────────────────────
@@ -304,6 +429,11 @@ namespace IMUNROK.Common.EditorTools
             _stone     = Load("MI_Stone02A");       // 주춧돌·밑돌
             _wallStone = Load("MI_StoneWall02A");   // 담 몸통
             _ground    = Load("MI_Ground01A");      // 마당
+            _plank     = Load("MI_Wood01A");        // 대문 널판 — 마루판(Wood03A)은 번들거려 허옇게 난다
+            _metal     = Load("MI_Blackmetal01A");  // 문고리·못 — 진짜 대문이 쓰는 것
+            _rafter    = Load("MI_RafterA");        // 서까래
+            _hanji = AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/_Project/Onggojip/Art/사랑채실내/MI_사랑방_한지.mat");   // 중문 창호
 
             if (_wood == null || _wall == null || _giwa == null)
             {
@@ -313,6 +443,9 @@ namespace IMUNROK.Common.EditorTools
             if (_door == null) _door = _beam;
             if (_wallStone == null) _wallStone = _stone;
             if (_ground == null) _ground = _gidan;
+            if (_plank == null) _plank = _wood;
+            if (_hanji == null) _hanji = _wall;
+            if (_rafter == null) _rafter = _beam;
             return true;
         }
 
