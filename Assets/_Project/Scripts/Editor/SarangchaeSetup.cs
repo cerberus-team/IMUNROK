@@ -470,7 +470,7 @@ namespace IMUNROK.Common.EditorTools
             bso.FindProperty("_leaveOpenState").stringValue = "";
             bso.ApplyModifiedPropertiesWithoutUndo();
             WireHandholds();
-            ShortenTexts();
+            UseRealFurniture();
 
             // 방에 들어선 순간 → 앉는다
             var tz = Object.FindFirstObjectByType<TeleportZone>(FindObjectsInactive.Include);
@@ -528,8 +528,8 @@ namespace IMUNROK.Common.EditorTools
 
         // ── 손으로 잡아 여는 것들 ────────────────────
 
-        /// <summary>서랍이 다 빠져나오는 거리(m).</summary>
-        private const float DrawerPull = 0.80f;
+        /// <summary>서랍이 다 빠져나오는 거리(m). 서랍 깊이가 0.36 이라 그보다 조금 덜 뺀다.</summary>
+        private const float DrawerPull = 0.28f;
 
         /// <summary>
         /// 증거 셋을 <b>눌러 잡아야</b> 열리게 잇는다 — 보료·문갑 서랍·아궁이 재.
@@ -551,34 +551,7 @@ namespace IMUNROK.Common.EditorTools
             var fold = FindInScene("접힌_귀퉁이");
             if (fold != null && fold.activeSelf) { Undo.RecordObject(fold, "귀퉁이 끄기"); fold.SetActive(false); }
 
-            // 문갑 — 서랍이 미끄러져 나온다. 안에 든 문서도 같이 딸려 나와야 하므로
-            // 서랍 밑으로 넣는다(형제로 두면 서랍만 빠지고 문서는 허공에 남는다).
-            var drawer = FindInScene("빠진_서랍");
-            if (drawer != null)
-            {
-                var bag = drawer.transform.parent;
-                if (bag != null)
-                    for (int i = bag.childCount - 1; i >= 0; i--)
-                    {
-                        var c = bag.GetChild(i);
-                        if (c != drawer.transform) c.SetParent(drawer.transform, true);
-                    }
-
-                // 닫힌 자리 = 문갑 앞면 안쪽. 이미 닫혀 있으면 아무 일도 안 일어난다.
-                var mungap = inst != null ? FindIn(inst, "문갑") : null;
-                if (mungap != null)
-                {
-                    Bounds db = WorldBounds(drawer);
-                    float closedZ = WorldBounds(mungap).max.z - db.size.z * 0.5f;
-                    float shift = closedZ - db.center.z;
-                    if (Mathf.Abs(shift) > 0.005f) drawer.transform.position += new Vector3(0f, 0f, shift);
-                }
-
-                var parent = drawer.transform.parent;
-                Vector3 pull = parent != null ? parent.InverseTransformVector(new Vector3(0f, 0f, DrawerPull))
-                                              : new Vector3(0f, 0f, DrawerPull);
-                SetHold("문갑_서랍", drawer.transform, Vector3.zero, pull, 0.9f);
-            }
+            // 문갑은 UseRealFurniture() 가 모델의 진짜 서랍으로 잇는다.
 
             // 아궁이 — 재가 눌리며 헤집힌다. 크게 움직일 것이 없으니 눌리는 것으로 알린다.
             var ash = FindInScene("재_덮인");
@@ -587,7 +560,12 @@ namespace IMUNROK.Common.EditorTools
         }
 
         /// <summary>
-        /// 조사할 때 뜨는 글을 짧게 자른다.
+        /// 조사할 때 뜨는 글을 짧게 자른다. 메뉴: [이문록 ▸ 사랑채 글귀 되돌리기]
+        ///
+        /// <b>왜 따로 떼어 놓았나</b>: 이건 인스펙터에 손으로 적어 넣은 문구를 덮어쓴다.
+        /// 실내 정리와 한 몸으로 두면, 문이나 세간을 다시 앉히려고 메뉴를 누를 때마다
+        /// 애써 고쳐 놓은 대사가 도로 원래 값으로 돌아간다. 문구를 여기 표에서 고칠
+        /// 생각이 아니라면 이 메뉴는 누르지 않으면 된다.
         ///
         /// 물건을 가리킬 때마다 두 문장씩 떠오르면 읽다가 조사가 끊긴다. 헤드셋 안에서는
         /// 더하다 — 글이 눈앞 1.3m 에 떠 있어서, 길면 방을 통째로 가린다. 본 것을 한 마디로
@@ -596,8 +574,15 @@ namespace IMUNROK.Common.EditorTools
         /// 글이 여기 있는 까닭: 씬을 다시 만들 때마다 손으로 다시 치면 반드시 어긋난다.
         /// 문구를 고치려면 이 표를 고친다.
         /// </summary>
+        [MenuItem("이문록/사랑채 글귀 되돌리기")]
         private static void ShortenTexts()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("[사랑채] 재생 중입니다 — 재생을 끄고 다시 누르십시오.");
+                return;
+            }
+
             SetWords("아궁이",
                      "한여름인데 불을 땐 자리다.",
                      "타다 만 서찰 조각이 나온다.",
@@ -626,6 +611,8 @@ namespace IMUNROK.Common.EditorTools
                 cso.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(ch);
             }
+            EditorSceneManagerMarkDirty();
+            Debug.Log("[사랑채] 글귀를 표의 값으로 되돌렸습니다.");
         }
 
         private static void SetWords(string rakeName, string before, string after, string hint, string locked, string clue)
@@ -642,6 +629,94 @@ namespace IMUNROK.Common.EditorTools
             if (clue != null) so.FindProperty("_clueText").stringValue = clue;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
+
+        // ── 받아온 모델을 그대로 쓴다 ────────────────
+
+        /// <summary>
+        /// 대신 세워 둔 것을 치우고 <b>받아온 모델의 제 부재</b>를 쓴다.
+        ///
+        /// 문갑은 서랍이 든 모델이다. 그런데 서랍이 빠져나오는 자리에 회색 상자를 하나
+        /// 만들어 세워 두고 그걸 서랍이라 했다 — 모델을 가져다 놓고 쓰지 않은 것이다.
+        /// 뼈를 하나씩 밀어 보니 <c>Dummy053_00</c> 이 서랍 두 짝을,
+        /// <c>Dummy051_02</c>·<c>Dummy052_01</c> 이 좌우 여닫이문을 움직인다.
+        /// 그 뼈를 밀면 진짜 서랍이 나온다.
+        ///
+        /// 장부도 마찬가지다. 경상 위에 놓인 것이 기본 재질을 쓴 1m 짜리 흰 정육면체였다.
+        /// 펼친 책 모델(<c>_책A</c>)은 정작 마당 구석에 떨어져 있었다.
+        /// </summary>
+        private static void UseRealFurniture()
+        {
+            var inst = GameObject.Find("사랑채_실내");
+            if (inst == null) return;
+
+            // ── 문갑: 모델에 든 진짜 서랍
+            var bone = FindIn(inst, DrawerBone);
+            var box = FindInScene("빠진_서랍");
+            if (bone != null && box != null)
+            {
+                var fake = box.GetComponent<MeshRenderer>();
+                if (fake != null && fake.enabled) fake.enabled = false;   // 회색 상자를 끈다
+
+                // 문서가 서랍을 따라 나와야 하므로 서랍 뼈 밑으로 넣는다.
+                if (box.transform.parent != bone.transform) box.transform.SetParent(bone.transform, true);
+
+                // 윗서랍 안에 개켜 쌓는다. 종잇장이라 4mm 씩만 띄운다.
+                box.transform.position = DrawerInside;
+                var kids = new List<Transform>();
+                foreach (Transform c in box.transform) kids.Add(c);
+                kids.Sort((a, c) => string.CompareOrdinal(a.name, c.name));
+                for (int i = 0; i < kids.Count; i++)
+                    kids[i].position = DrawerInside + new Vector3(0f, i * 0.004f, 0f);
+
+                // 빼내는 거리는 뼈의 제 좌표로 바꿔 준다 — glTF 는 뿌리에 회전과 배율이 걸려 있다.
+                Vector3 pull = bone.transform.parent != null
+                             ? bone.transform.parent.InverseTransformVector(new Vector3(0f, 0f, DrawerPull))
+                             : new Vector3(0f, 0f, DrawerPull);
+                SetHold("문갑_서랍", bone.transform, Vector3.zero, pull, 0.9f);
+
+                var rake = FindInScene("문갑_서랍");
+                if (rake != null)
+                {
+                    var so = new SerializedObject(rake.GetComponent<AshRake>());
+                    so.FindProperty("_after").objectReferenceValue = box;   // 서랍 속 문서
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                }
+            }
+
+            // ── 장부: 흰 상자 대신 펼친 책
+            var placeholder = FindInScene("장부");
+            var book = FindInScene("_책A");
+            var desk = FindIn(inst, "경상");
+            if (book != null && desk != null)
+            {
+                Bounds db = WorldBounds(desk);
+                Bounds bb = WorldBounds(book);
+                float span = Mathf.Max(bb.size.x, bb.size.z);
+                // 지금 크기를 재서 목표 크기로 맞춘다 — 곱해 나가지 않으므로 여러 번 눌러도 같다.
+                if (span > 0.001f)
+                {
+                    book.transform.localScale *= BookSpan / span;
+                    bb = WorldBounds(book);
+                }
+                book.transform.position += new Vector3(db.center.x - bb.center.x,
+                                                       db.max.y - bb.min.y,
+                                                       db.center.z - bb.center.z);
+            }
+            if (placeholder != null && placeholder.activeSelf)
+            {
+                Undo.RecordObject(placeholder, "흰 상자 끄기");
+                placeholder.SetActive(false);       // 같은 단서(J09)가 둘이 되지 않게
+            }
+        }
+
+        /// <summary>서랍 두 짝을 움직이는 뼈. 뼈를 하나씩 밀어 보고 찾았다.</summary>
+        private const string DrawerBone = "Dummy053_00";
+
+        /// <summary>윗서랍 안. 문서를 여기에 개켜 쌓는다.</summary>
+        private static readonly Vector3 DrawerInside = new Vector3(15.61f, -0.40f, -14.09f);
+
+        /// <summary>경상 위에 놓을 장부의 길이(m).</summary>
+        private const float BookSpan = 0.34f;
 
         private static void SetHold(string rakeName, Transform hinge, Vector3 euler, Vector3 offset, float seconds)
         {
