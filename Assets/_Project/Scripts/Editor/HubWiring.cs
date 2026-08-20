@@ -28,6 +28,32 @@ namespace IMUNROK.Common.EditorTools
         private const string OldName = "_옛프로토타입";
         private const string ToolDataDir = "Assets/_Project/Data/Tools";
 
+        /// <summary>
+        /// 물건을 놓을 <b>기준</b>. 세간(문갑·사건판)은 원본 광풍각 안에 있으므로 기준도
+        /// 그쪽이다. 지어 둔 방은 마음에 들 때까지 옆에 빼두는 미리보기라, 그걸 기준으로
+        /// 놓으면 방을 옮길 때 봉서함까지 딸려가 조사청이 텅 빈다.
+        /// 원본이 없으면 지은 방으로 물러선다.
+        /// </summary>
+        private static Transform Reference()
+        {
+            foreach (var root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
+            {
+                if (root.name != "소쇄원_정원") continue;
+                foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                    if (t.name == "Gwangpunggak_Pavilion") return t;
+            }
+            var room = GameObject.Find(RoomName);
+            return room != null ? room.transform : null;
+        }
+
+        /// <summary>세간이 모여 있는 묶음. 새로 놓는 물건도 여기로 넣는다.</summary>
+        private static Transform PropRoot()
+        {
+            foreach (var root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
+                if (root.name == "조사청_소품") return root.transform;
+            return null;
+        }
+
         [MenuItem("이문록/조사청 배선 잇기")]
         public static void Wire()
         {
@@ -45,7 +71,7 @@ namespace IMUNROK.Common.EditorTools
             done += WireBongseoBox(room.transform) ? 1 : 0;
             done += WireWorldState(room.transform) ? 1 : 0;
             done += WireJournalFont() ? 1 : 0;
-            done += BuildToolShelf(room.transform) ? 1 : 0;
+            done += PlaceToolsOnChest() ? 1 : 0;
             done += MoveTutorialNote(room.transform) ? 1 : 0;
             ParkOldPrototype();
 
@@ -143,14 +169,18 @@ namespace IMUNROK.Common.EditorTools
             var box = Object.FindFirstObjectByType<BongseoBox>(FindObjectsInactive.Include);
             if (box == null) return false;
 
+            var basis = Reference();
+            if (basis == null) return false;
+
             Undo.RecordObject(box.transform, "봉서함 자리");
-            // <b>먼저 방 밑으로 옮긴다.</b> 봉서함은 옛 프로토타입(Zone_BongseoBox)의 자식이라,
-            // 자리만 옮겨 두면 뒤에서 프로토타입을 끌 때 같이 꺼져 버린다. 한 번 그렇게 되어
-            // 방 안에 봉서함이 없었다.
-            Undo.SetTransformParent(box.transform, room, "봉서함을 방으로");
+            // <b>먼저 세간 묶음으로 옮긴다.</b> 봉서함은 옛 프로토타입(Zone_BongseoBox)의
+            // 자식이라, 자리만 옮겨 두면 뒤에서 프로토타입을 끌 때 같이 꺼져 버린다.
+            // 한 번 그렇게 되어 방 안에 봉서함이 없었다.
+            var props = PropRoot();
+            Undo.SetTransformParent(box.transform, props != null ? props : basis, "봉서함을 세간으로");
             // 가운데 방, 사건판 옆. 왕의 명이 닿는 자리이니 사건판과 한 눈에 들어와야 한다.
-            box.transform.position = room.TransformPoint(new Vector3(1.05f, 0.71f + 0.25f, 1.05f));
-            box.transform.rotation = room.rotation;
+            box.transform.position = basis.TransformPoint(new Vector3(1.05f, 0.71f + 0.25f, 1.05f));
+            box.transform.rotation = basis.rotation;
             box.transform.localScale = new Vector3(0.5f, 0.5f, 0.35f);
             box.name = "봉서함";
             box.gameObject.SetActive(true);
@@ -185,7 +215,8 @@ namespace IMUNROK.Common.EditorTools
                 l.intensity = 0f;      // 닫힘 상태에서 시작. WorldState 가 올린다.
             }
             // 문 바깥에 두어야 빛이 창호를 통해 들어오는 것처럼 보인다.
-            lightGo.transform.position = room.TransformPoint(new Vector3(0f, 2.0f, -2.6f));
+            var basis = Reference() ?? room;
+            lightGo.transform.position = basis.TransformPoint(new Vector3(0f, 2.0f, -2.6f));
 
             var so = new SerializedObject(ws);
             if (sun != null) so.FindProperty("_sun").objectReferenceValue = sun.GetComponent<Light>();
@@ -211,13 +242,17 @@ namespace IMUNROK.Common.EditorTools
             return true;
         }
 
-        // ── ③ 도구 선반 ───────────────────────────────
+        // ── ③ 도구 익히기 ────────────────────────────
 
         /// <summary>
-        /// 동쪽 열린 마루에 도구 선반을 놓고 도구를 얹는다. 집으면 벨트로 들어간다.
-        /// 벨트(ToolbeltHud)가 씬에 없으면 같이 만든다 — 없으면 집어도 갈 데가 없다.
+        /// 문갑 위에 도구를 실제 모양으로 올려 둔다. 누르면 <see cref="ToolTutorial"/> 이
+        /// 눈앞으로 들어 올려 쓰는 법을 짚어 준다.
+        ///
+        /// 회색 상자를 선반에 얹어 두었던 것을 걷어낸다 — 무엇인지 알아볼 수 없는 물건은
+        /// 집고 싶지도 않고, 집어 봐야 무엇에 쓰는지도 모른다.
+        /// 벨트(ToolbeltHud)가 씬에 없으면 같이 만든다.
         /// </summary>
-        private static bool BuildToolShelf(Transform room)
+        private static bool PlaceToolsOnChest()
         {
             var belt = Object.FindFirstObjectByType<ToolbeltHud>(FindObjectsInactive.Include);
             if (belt == null)
@@ -227,60 +262,160 @@ namespace IMUNROK.Common.EditorTools
                 belt = go.AddComponent<ToolbeltHud>();
             }
 
-            var old = room.Find("도구선반");
-            if (old != null) Undo.DestroyObjectImmediate(old.gameObject);
+            var chest = GameObject.Find("문갑");
+            if (chest == null) { Debug.LogWarning("[조사청] '문갑'을 못 찾았습니다."); return false; }
 
-            var shelf = new GameObject("도구선반");
-            Undo.RegisterCreatedObjectUndo(shelf, "도구선반");
-            shelf.transform.SetParent(room, false);
-            shelf.transform.localPosition = Vector3.zero;
+            // 도구 넷을 얹으려면 문갑이 좁다. 원래 세간이라 크기를 바꿔도 되는 물건이다.
+            Undo.RecordObject(chest.transform, "문갑 키우기");
+            chest.transform.localScale = Vector3.one * 1.5f;
 
-            var wood = AssetDatabase.LoadAssetAtPath<Material>(
-                "Assets/_Project/_Common/Materials/M_조사청_나무.mat");
-
-            // 상판과 다리 — 동쪽 마루 끝, 문을 등지고 선다.
-            const float X = 3.55f, Y = 0.71f, Top = 0.78f;
-            Plank(shelf.transform, "선반_상판", new Vector3(X, Y + Top, 0f), new Vector3(0.5f, 0.06f, 2.4f), wood);
-            Plank(shelf.transform, "선반_중판", new Vector3(X, Y + Top * 0.55f, 0f), new Vector3(0.5f, 0.05f, 2.4f), wood);
-            for (int s = -1; s <= 1; s += 2)
-                Plank(shelf.transform, $"선반_다리{s}", new Vector3(X, Y + Top * 0.5f, s * 1.1f),
-                      new Vector3(0.45f, Top, 0.08f), wood);
-
-            // 도구 넷 — 데이터는 Assets/_Project/Data/Tools 에 이미 있다.
-            (string file, string label, float z)[] tools =
+            // 앞서 지은 선반은 걷어낸다.
+            var room = GameObject.Find(RoomName);
+            if (room != null)
             {
-                ("Tool_journal.asset", "수첩",  -0.85f),
-                ("Tool_map.asset",     "지도",  -0.28f),
-                ("Tool_lantern.asset", "등불",   0.28f),
-                ("Tool_magnify.asset", "돋보기", 0.85f),
+                var shelf = room.transform.Find("도구선반");
+                if (shelf != null) Undo.DestroyObjectImmediate(shelf.gameObject);
+            }
+
+            var holder = chest.transform.Find("도구");
+            if (holder != null) Undo.DestroyObjectImmediate(holder.gameObject);
+            var group = new GameObject("도구");
+            Undo.RegisterCreatedObjectUndo(group, "도구 놓기");
+            group.transform.SetParent(chest.transform, false);
+
+            // 문갑 윗면을 잰다. 물건 원점은 대개 바닥이라 그대로 얹으면 파묻힌다.
+            var b = WorldBounds(chest);
+
+            (string tool, string model, float size, string[] steps)[] set =
+            {
+                ("Tool_journal.asset", "서책", 0.20f, new[]{
+                    "수첩이다. 찾은 단서가 여기에 저절로 적힌다.",
+                    "손에 들고 누르면 펼쳐진다. 심문 중에는 적힌 단서를 골라 들이밀 수도 있다.",
+                }),
+                ("Tool_map.asset", "두루마리", 0.30f, new[]{
+                    "지도다. 지금 선 자리와 가야 할 곳이 그려져 있다.",
+                    "손에 들고 누르면 펼쳐지고, 다시 누르면 말린다.",
+                }),
+                ("Tool_lantern.asset", "등불", 0.28f, new[]{
+                    "등불이다. 든 사람의 앞만 밝힌다.",
+                    "빛이 닿아야 드러나는 것이 있다 — 재에 남은 자국 같은 것.",
+                }),
+                ("Tool_magnify.asset", "돋보기", 0.24f, new[]{
+                    "돋보기다. 작은 것을 크게 본다.",
+                    "물건에 가까이 대고 들여다보면, 맨눈으로는 못 읽던 글자가 드러난다.",
+                }),
             };
 
-            foreach (var (file, label, z) in tools)
+            int n = set.Length;
+            for (int i = 0; i < n; i++)
             {
-                var def = AssetDatabase.LoadAssetAtPath<ToolDef>($"{ToolDataDir}/{file}");
-                if (def == null) { Debug.LogWarning($"[조사청] 도구 정의 없음: {file}"); continue; }
+                var (toolFile, modelName, size, steps) = set[i];
+                var def = AssetDatabase.LoadAssetAtPath<ToolDef>($"{ToolDataDir}/{toolFile}");
+                if (def == null) { Debug.LogWarning($"[조사청] 도구 정의 없음: {toolFile}"); continue; }
 
-                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                go.name = "도구_" + label;
-                go.transform.SetParent(shelf.transform, false);
-                go.transform.localPosition = new Vector3(X, Y + Top + 0.10f, z);
-                go.transform.localScale = new Vector3(0.22f, 0.14f, 0.30f);
-                if (wood != null) go.GetComponent<Renderer>().sharedMaterial = wood;
+                var go = MakeToolModel(modelName, def.displayName);
+                if (go == null) continue;
+                Undo.RegisterCreatedObjectUndo(go, "도구 모형");
+                go.transform.SetParent(group.transform, true);
 
-                var pick = go.AddComponent<ToolPickup>();
-                pick.Tool = def;
+                FitTo(go, size);
+
+                // 문갑 윗면에 한 줄로. 긴 쪽을 따라 고르게 벌린다.
+                float t = (n == 1) ? 0.5f : i / (float)(n - 1);
+                Vector3 along = chest.transform.right * (b.size.x > b.size.z ? 1f : 0f)
+                              + chest.transform.forward * (b.size.z >= b.size.x ? 1f : 0f);
+                float span = Mathf.Max(b.size.x, b.size.z) * 0.72f;
+                Vector3 center = new Vector3(b.center.x, b.max.y, b.center.z);
+                go.transform.position = center + along * ((t - 0.5f) * span) + Vector3.up * size * 0.35f;
+                go.transform.rotation = chest.transform.rotation;
+
+                var col = go.GetComponent<BoxCollider>();
+                if (col == null) col = go.AddComponent<BoxCollider>();
+                var gb = WorldBounds(go);
+                col.center = go.transform.InverseTransformPoint(gb.center);
+                col.size = new Vector3(gb.size.x / Mathf.Max(0.001f, go.transform.lossyScale.x),
+                                       gb.size.y / Mathf.Max(0.001f, go.transform.lossyScale.y),
+                                       gb.size.z / Mathf.Max(0.001f, go.transform.lossyScale.z));
+
+                var tut = go.GetComponent<ToolTutorial>();
+                if (tut == null) tut = go.AddComponent<ToolTutorial>();
+                tut.Tool = def;
+                tut.Steps = steps;
             }
             return true;
         }
 
-        private static void Plank(Transform parent, string name, Vector3 pos, Vector3 size, Material mat)
+        /// <summary>
+        /// 도구 모양 하나를 마련한다. 셋은 이미 있는 것을 쓴다 —
+        /// 수첩은 방에 놓인 서책을, 지도는 말린 두루마리를 그대로 쓴다.
+        /// 등불·돋보기는 제 모델이 따로 있다(Art/Tools).
+        /// </summary>
+        private static GameObject MakeToolModel(string kind, string label)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            go.name = name;
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = pos;
-            go.transform.localScale = size;
-            if (mat != null) go.GetComponent<Renderer>().sharedMaterial = mat;
+            GameObject go = null;
+            switch (kind)
+            {
+                case "서책":
+                {
+                    var src = GameObject.Find("서책");
+                    if (src != null) go = Object.Instantiate(src);
+                    break;
+                }
+                case "두루마리":
+                {
+                    var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                        "Assets/_Project/_Common/Prefabs/두루마리.prefab");
+                    if (prefab != null)
+                    {
+                        go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                        // 말린 채로 놓는다. 펼친 종이가 문갑 아래로 흘러내리면 안 된다.
+                        var roll = go.GetComponentInChildren<ScrollUnroll>(true);
+                        if (roll != null) roll.SetInstant(0f);
+                    }
+                    break;
+                }
+                case "등불":
+                    go = LoadModel("Assets/_Project/Art/Tools/Lantern");
+                    break;
+                case "돋보기":
+                    go = LoadModel("Assets/_Project/Art/Tools/Magnifier");
+                    break;
+            }
+
+            if (go == null) { Debug.LogWarning($"[조사청] 도구 모양을 못 만들었습니다: {kind}"); return null; }
+            go.name = "도구_" + label;
+            go.SetActive(true);
+            return go;
+        }
+
+        /// <summary>폴더에서 첫 모델(fbx)을 찾아 놓는다. 파일 이름이 길고 자주 바뀌어 폴더로 찾는다.</summary>
+        private static GameObject LoadModel(string folder)
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { folder }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (asset != null) return (GameObject)PrefabUtility.InstantiatePrefab(asset);
+            }
+            return null;
+        }
+
+        /// <summary>가장 긴 변이 이만큼(m) 되게 줄인다. 받아온 모델은 크기가 제각각이다.</summary>
+        private static void FitTo(GameObject go, float longest)
+        {
+            var b = WorldBounds(go);
+            float now = Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
+            if (now <= 0.0001f) return;
+            go.transform.localScale *= longest / now;
+        }
+
+        private static Bounds WorldBounds(GameObject go)
+        {
+            var rends = go.GetComponentsInChildren<Renderer>(true);
+            if (rends.Length == 0) return new Bounds(go.transform.position, Vector3.one * 0.1f);
+            var b = rends[0].bounds;
+            foreach (var r in rends) b.Encapsulate(r.bounds);
+            return b;
         }
 
         /// <summary>도구 연습 쪽지도 방 안으로. 선반 곁에 붙여야 도구를 쥔 김에 눌러 본다.</summary>
@@ -288,9 +423,11 @@ namespace IMUNROK.Common.EditorTools
         {
             var note = Object.FindFirstObjectByType<InspectableNote>(FindObjectsInactive.Include);
             if (note == null) return false;
+            var basis = Reference();
+            if (basis == null) return false;
             Undo.RecordObject(note.transform, "쪽지 자리");
-            note.transform.position = room.TransformPoint(new Vector3(2.9f, 1.55f, 1.35f));
-            note.transform.rotation = room.rotation;
+            note.transform.position = basis.TransformPoint(new Vector3(2.9f, 1.55f, 1.35f));
+            note.transform.rotation = basis.rotation;
             note.gameObject.SetActive(true);
             return true;
         }

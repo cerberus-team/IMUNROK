@@ -37,6 +37,10 @@ namespace IMUNROK.Common
         private WorldHudAnchor _anchor;
         private Text _nameText, _lineText, _hintText;
         private RectTransform _nameplate;
+        private NoticeCloseTab _closeTab;
+
+        /// <summary>자막이 닫힐 때 알린다. 도구 익히기처럼 자막에 얹혀 도는 것이 참고한다.</summary>
+        public static event System.Action OnClosed;
 
         /// <summary>없으면 만들어서 돌려준다. 씬에 미리 배치해 뒀으면 그걸 쓴다.</summary>
         public static SubtitleView Instance
@@ -128,8 +132,24 @@ namespace IMUNROK.Common
         private void SetVisible(bool on)
         {
             if (_group == null) return;
+            bool was = _group.alpha > 0.5f;
             _group.alpha = on ? 1f : 0f;
             _group.blocksRaycasts = on;
+            // 안 보이는 동안에는 닫기 표의 콜라이더도 꺼야 한다. 켜 둔 채로 두면
+            // 눈앞에 보이지 않는 판이 남아 뒤쪽 물건으로 가는 레이를 가로챈다.
+            if (_closeTab != null) _closeTab.SetActive(on);
+            if (was && !on) OnClosed?.Invoke();
+        }
+
+        /// <summary>
+        /// 눈앞의 말을 치운다. 헤드셋에는 Esc 가 없으니 <b>보이는 표</b>가 본길이고,
+        /// 키는 모니터로 시험할 때 쓰는 곁길이다.
+        /// </summary>
+        private void Update()
+        {
+            if (_group == null || _group.alpha < 0.5f) return;
+            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Backspace))
+                SetVisible(false);
         }
 
         private void Build()
@@ -155,6 +175,21 @@ namespace IMUNROK.Common
 
             _hintText = NewText("힌트", "", new Vector2(0f, -h * 0.5f + 40f), new Vector2(w - 140f, 44f),
                                 panel, _hintFontSize, _hintColor);
+
+            BuildCloseTab(panel, w, h);
+        }
+
+        /// <summary>바탕 오른쪽 위 귀퉁이에 걸치는 작은 닫기 표.</summary>
+        private void BuildCloseTab(RectTransform panel, float w, float h)
+        {
+            var size = new Vector2(150f, 68f);
+            var rt = NewRect("닫기", new Vector2(w * 0.5f - size.x * 0.5f, h * 0.5f), size, panel);
+            rt.gameObject.AddComponent<Image>().color = new Color(0.18f, 0.17f, 0.16f, 0.95f);
+            NewText("글", "닫기 ✕", Vector2.zero, size, rt, _hintFontSize, _hintColor);
+
+            _closeTab = rt.gameObject.AddComponent<NoticeCloseTab>();
+            _closeTab.Bind(() => SetVisible(false), new Vector3(size.x, size.y, 8f));
+            _closeTab.SetActive(false);
         }
 
         // ── UI 만들기 헬퍼 ──

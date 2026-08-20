@@ -113,6 +113,64 @@ namespace IMUNROK.Common.EditorTools
             Debug.Log($"[조사청] 실내를 지었습니다 — 오브젝트 {root.GetComponentsInChildren<Transform>().Length}개, {tris} 삼각형.");
         }
 
+        /// <summary>옆에 빼둘 때 원본에서 이만큼 떨어뜨린다(m).</summary>
+        private const float AsideDistance = 24f;
+
+        // ── 옆에 빼두기 ──────────────────────────────
+        //
+        // 새로 지은 방을 원본 광풍각 자리에 그대로 겹쳐 두면 둘 중 하나는 꺼야 하고,
+        // 끄면 견줄 수가 없다. 마음에 들 때까지는 옆에 나란히 세워 두고 오간다.
+
+        [MenuItem("이문록/조사청 실내 옆으로 빼두기")]
+        public static void ParkAside()
+        {
+            var room = GameObject.Find(RootName);
+            if (room == null) { Debug.LogWarning("[조사청] 지은 방이 없습니다."); return; }
+
+            var pav = FindPavilion();
+            if (pav == null) { Debug.LogWarning("[조사청] 광풍각을 못 찾았습니다."); return; }
+
+            Undo.RecordObject(room.transform, "조사청 실내 옆으로");
+            room.transform.position = pav.transform.position + pav.transform.right * AsideDistance;
+            room.transform.rotation = pav.transform.rotation;
+
+            // 원본을 도로 켠다 — 세간은 원본 안에 있으므로 그쪽이 다시 조사청이 된다.
+            Undo.RecordObject(pav, "광풍각 켜기");
+            pav.SetActive(true);
+            Selection.activeGameObject = room;
+            Debug.Log("[조사청] 지은 방을 옆으로 빼두고 원본 광풍각을 켰습니다.");
+        }
+
+        [MenuItem("이문록/조사청 실내 제자리에 앉히기")]
+        public static void PutBack()
+        {
+            var room = GameObject.Find(RootName);
+            if (room == null) { Debug.LogWarning("[조사청] 지은 방이 없습니다."); return; }
+
+            var pav = FindPavilion();
+            if (pav == null) { Debug.LogWarning("[조사청] 광풍각을 못 찾았습니다."); return; }
+
+            Undo.RecordObject(room.transform, "조사청 실내 제자리");
+            room.transform.SetPositionAndRotation(pav.transform.position, pav.transform.rotation);
+
+            // 겹치면 z 싸움이 난다. 앉히는 순간 원본은 꺼야 한다.
+            Undo.RecordObject(pav, "광풍각 끄기");
+            pav.SetActive(false);
+            Debug.Log("[조사청] 지은 방을 제자리에 앉히고 원본 광풍각을 껐습니다.");
+        }
+
+        /// <summary>꺼져 있어도 찾는다 — GameObject.Find 는 꺼진 것을 못 본다.</summary>
+        private static GameObject FindPavilion()
+        {
+            foreach (var root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
+            {
+                if (root.name != "소쇄원_정원") continue;
+                foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                    if (t.name == "Gwangpunggak_Pavilion") return t.gameObject;
+            }
+            return null;
+        }
+
         private const string MatDir = "Assets/_Project/_Common/Materials";
 
         /// <summary>
