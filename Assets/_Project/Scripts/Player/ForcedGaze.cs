@@ -64,6 +64,15 @@ namespace IMUNROK.Common
         [Tooltip("연출이 끝나고 이만큼 뒤에 거둔다(사라지는 걸 보게 두지 않으려면 조금 길게)")]
         [SerializeField] private float _hideDelay = 1.2f;
 
+        [Header("보고 나서 시선 되돌리기 (비우면 그 자리를 계속 본다)")]
+        [Tooltip("다 보고 나면 이쪽으로 고개를 되돌린다. 말을 꺼낸 사람을 연결한다 — " +
+                 "그가 일러 준 것을 보고 나서 그를 등진 채 끝나면 대화가 끊긴 것처럼 보인다")]
+        [SerializeField] private Transform _lookBackAt;
+        [Tooltip("되돌아보는 데 걸리는 시간(초)")]
+        [SerializeField] private float _lookBackSeconds = 0.9f;
+        [Tooltip("되돌아보기 전에 그 자리를 더 보는 시간(초)")]
+        [SerializeField] private float _lookBackDelay = 0.4f;
+
         [Header("연출 중 잠글 것")]
         [Tooltip("연출 동안 꺼둘 컴포넌트(시점 조작 등). 비우면 카메라의 DebugFlyCamera 를 자동으로 찾는다")]
         [SerializeField] private Behaviour[] _disableWhilePlaying;
@@ -144,6 +153,27 @@ namespace IMUNROK.Common
                 yield return null;
             }
             cam.fieldOfView = startFov;
+
+            // 일러 준 사람에게 고개를 되돌린다.
+            //
+            // 여기 오기까지 심문은 이미 끝난 상태다 — 이 연출은 헤어지며 던진 한 마디를
+            // 듣고 나서 벌어진다. 그러니 되돌아본다고 다시 말이 걸리지는 않는다.
+            // 다만 그를 등지고 끝나면 "듣다 말았다"로 보이므로, 눈만 돌려 준다.
+            if (_lookBackAt != null)
+            {
+                if (_lookBackDelay > 0f) yield return new WaitForSeconds(_lookBackDelay);
+
+                Quaternion from = cam.transform.rotation;
+                Quaternion back = Quaternion.LookRotation(_lookBackAt.position - cam.transform.position);
+                for (float t = 0f; t < _lookBackSeconds; t += Time.deltaTime)
+                {
+                    float k = Smooth(t / _lookBackSeconds);
+                    if (rigIsCamera) cam.transform.rotation = Quaternion.Slerp(from, back, k);
+                    else YawRigToward(rig, cam.transform, _lookBackAt.position, k);
+                    yield return null;
+                }
+                if (rigIsCamera) cam.transform.rotation = back;
+            }
 
             foreach (var b in locked) if (b != null) b.enabled = true;
 

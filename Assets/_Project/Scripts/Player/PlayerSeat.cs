@@ -46,6 +46,8 @@ namespace IMUNROK.Common
         [SerializeField] private Transform _rig;
 
         [Header("이벤트")]
+        [Tooltip("자리를 권한 순간(화면에서만). 주인이 '이리 앉으시오' 하는 자리")]
+        [SerializeField] private UnityEvent _onOffered;
         [SerializeField] private UnityEvent _onSeated;
         [SerializeField] private UnityEvent _onStood;
 
@@ -76,6 +78,32 @@ namespace IMUNROK.Common
 
         /// <summary>인스펙터에 걸어 둔 자리에 앉는다.</summary>
         public void Sit() { SitAt(_seatSpot); }
+
+        /// <summary>
+        /// 자리를 <b>권한다</b> — 앉히지는 않는다.
+        ///
+        /// 화면(리그가 곧 카메라)에서는 방석을 눌러야 앉는다. 방에 들어서자마자 시야가
+        /// 스르르 내려가면 앉은 것이 아니라 가라앉은 것이 된다. 주인이 권하고 내가 골라
+        /// 앉아야 마주 앉은 것이 된다.
+        ///
+        /// 헤드셋에서는 <b>몸이 실제로 앉는다</b>. 방석을 눌러 앉으라고 하면 서 있는 채로
+        /// 눈만 내려앉아 멀미가 난다. 그래서 VR이면 권하는 절차 없이 눈높이만 내려 준다.
+        /// </summary>
+        public void OfferSeat()
+        {
+            if (Rig != transform)        // 리그가 따로 있다 = 헤드셋
+            {
+                SitAt(_seatSpot);
+                return;
+            }
+
+            var cushion = _seatSpot != null ? _seatSpot.GetComponentInChildren<SeatCushion>() : null;
+            if (cushion == null) cushion = Object.FindFirstObjectByType<SeatCushion>();
+            if (cushion == null) { SitAt(_seatSpot); return; }   // 방석이 없으면 그냥 앉힌다
+
+            cushion.Offer();
+            _onOffered?.Invoke();
+        }
 
         /// <summary>이 자리에 앉는다. 비워 보내면 선 자리에 그대로 앉는다.</summary>
         public void SitAt(Transform spot)
