@@ -79,6 +79,7 @@ namespace IMUNROK.Common.EditorTools
                 SitOnFloor(root, "장롱");
                 PutCushionAtSeat(root);
                 BuildBojaHinge(root);
+                BuildMungapDoors(root);
                 bays = BuildDoors(root);
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             }
@@ -186,6 +187,76 @@ namespace IMUNROK.Common.EditorTools
             hinge.transform.rotation = Quaternion.identity;      // 세계의 X 축으로 젖히게
             hinge.transform.position = new Vector3(bb.center.x, bb.min.y, bb.min.z);
             boja.transform.SetParent(hinge.transform, true);
+        }
+
+        /// <summary>
+        /// 문갑 좌우 여닫이문을 <b>모델의 제 뼈</b>로 여닫는다.
+        ///
+        /// 서랍과 마찬가지로 문짝도 모델에 들어 있다. 뼈를 하나씩 밀어 보고 찾았다 —
+        /// <c>Dummy051_02</c> 가 왼쪽, <c>Dummy052_01</c> 이 오른쪽 문짝을 움직인다.
+        /// 두 뼈는 마침 경첩 쇠붙이가 박힌 자리(x 15.07 · 16.16)에 그대로 서 있고
+        /// 국소 Y축이 수직이라, 따로 경첩을 세울 것 없이 그 자리에서 돌리면 된다.
+        ///
+        /// 문짝은 방 쪽(+Z)으로 열린다. 경첩이 바깥 모서리에 있으므로 좌우가 반대 부호다.
+        /// 겨냥할 콜라이더는 뼈에 달아 문과 함께 돌게 한다 — 문이 열렸는데 손대는 자리만
+        /// 제자리에 남아 있으면 열린 문을 통과해 허공을 누르게 된다.
+        /// </summary>
+        private static void BuildMungapDoors(GameObject root)
+        {
+            var mungap = FindIn(root, "문갑");
+            if (mungap == null) return;
+
+            Transform left = null, right = null;
+            foreach (var t in mungap.GetComponentsInChildren<Transform>(true))
+            {
+                if (t.name == "Dummy051_02") left = t;
+                if (t.name == "Dummy052_01") right = t;
+            }
+            if (left == null || right == null) { Debug.LogWarning("[사랑채] 문갑 문짝 뼈를 못 찾음"); return; }
+
+            FitDoorCollider(left, +1f);
+            FitDoorCollider(right, -1f);
+
+            var dc = mungap.GetComponent<DoorController>();
+            if (dc == null) dc = mungap.AddComponent<DoorController>();
+            var so = new SerializedObject(dc);
+            so.FindProperty("_motion").enumValueIndex = 0;          // 여닫이
+            var arr = so.FindProperty("_leaves");
+            arr.arraySize = 2;
+            SetLeaf(arr.GetArrayElementAtIndex(0), left, -85f);     // 왼쪽은 음수라야 방 쪽으로 열린다
+            SetLeaf(arr.GetArrayElementAtIndex(1), right, +85f);
+            so.FindProperty("_openDuration").floatValue = 0.8f;
+            so.FindProperty("_playerCanToggle").boolValue = true;
+            so.FindProperty("_maxTouchDistance").floatValue = 2f;
+            so.FindProperty("_locked").boolValue = false;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetLeaf(SerializedProperty el, Transform pivot, float angle)
+        {
+            el.FindPropertyRelative("pivot").objectReferenceValue = pivot;
+            el.FindPropertyRelative("swingAngle").floatValue = angle;
+            el.FindPropertyRelative("slideOffset").vector3Value = Vector3.zero;
+        }
+
+        /// <summary>
+        /// 문짝 판에 맞춘 콜라이더를 경첩 뼈에 단다.
+        ///
+        /// 크기를 뼈의 제 자로 나눠 주어야 한다 — glTF 는 뿌리에 1/100 짜리 배율이 걸려 있어,
+        /// 25cm 라고 적으면 2.5mm 짜리가 달린다.
+        /// </summary>
+        private static void FitDoorCollider(Transform bone, float side)
+        {
+            var bc = bone.GetComponent<BoxCollider>();
+            if (bc == null) bc = bone.gameObject.AddComponent<BoxCollider>();
+
+            // 경첩에서 문짝 한가운데까지 — 재서 얻은 값이다(문짝 폭 0.25, 경첩은 바깥 모서리).
+            Vector3 panel = bone.position + new Vector3(side * 0.126f, 0.162f, -0.017f);
+            Vector3 ls = bone.lossyScale;
+            bc.center = bone.InverseTransformPoint(panel);
+            bc.size = new Vector3(0.26f / Mathf.Max(0.0001f, Mathf.Abs(ls.x)),
+                                  0.34f / Mathf.Max(0.0001f, Mathf.Abs(ls.y)),
+                                  0.05f / Mathf.Max(0.0001f, Mathf.Abs(ls.z)));
         }
 
         // ── ① 창호를 여닫이로 ────────────────────────
@@ -680,6 +751,19 @@ namespace IMUNROK.Common.EditorTools
                     var so = new SerializedObject(rake.GetComponent<AshRake>());
                     so.FindProperty("_after").objectReferenceValue = box;   // 서랍 속 문서
                     so.ApplyModifiedPropertiesWithoutUndo();
+
+                    // 손대는 자리를 서랍 앞面으로 당겨 온다. 옛 회색 상자가 80cm 나 빠져
+                    // 나오던 시절의 자리라, 문갑에서 한 뼘 떨어진 허공에 떠 있었다.
+                    // 좌우 문짝 자리까지 덮으면 문을 눌러도 서랍이 열린다 —
+                    // 가운데 서랍 칸만 덮게 좁힌다.
+                    Undo.RecordObject(rake.transform, "서랍 손잡이 자리");
+                    rake.transform.position = new Vector3(15.61f, -0.52f, -13.86f);
+                    var rc = rake.GetComponent<BoxCollider>();
+                    if (rc != null)
+                    {
+                        rc.center = Vector3.zero;
+                        rc.size = new Vector3(0.50f, 0.30f, 0.14f);
+                    }
                 }
             }
 
