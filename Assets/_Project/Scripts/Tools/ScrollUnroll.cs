@@ -54,6 +54,10 @@ namespace IMUNROK.Common
         [Tooltip("그림이 없을 때 쓸 세로÷가로 비율")]
         [SerializeField] private float _fallbackAspect = 1.6f;
 
+        [Tooltip("종이를 축보다 이만큼 내려 단다(m). 축 굵기의 절반쯤이면 된다. " +
+                 "0이면 축이 종이 윗머리를 덮어 문서 제목이 잘려 보인다")]
+        [SerializeField] private float _topGap = 0.075f;
+
         [Tooltip("다 풀렸을 때 뭉치가 남는 굵기(1이면 그대로, 0.5면 절반)")]
         [Range(0.2f, 1f)]
         [SerializeField] private float _rodShrink = 0.55f;
@@ -87,6 +91,9 @@ namespace IMUNROK.Common
 
         /// <summary>지금 다 풀려 있는가.</summary>
         public bool IsOpen => _shown >= 0.999f;
+
+        /// <summary>종이가 축보다 얼마나 내려 달렸는가(m). 종이 한가운데를 계산할 때 쓴다.</summary>
+        public float TopGap => _topGap;
 
         /// <summary>이 두루마리의 종이가 다 풀렸을 때의 세로 길이(m).</summary>
         public float FullHeight
@@ -195,8 +202,11 @@ namespace IMUNROK.Common
             if (_paper != null)
             {
                 // 판은 가운데가 중심이므로, 위쪽 끝을 원점에 붙이려면 절반만큼 내려 놓는다.
+                // 원점에 딱 붙이면 그 자리에 걸린 축이 종이 윗머리를 덮는다 — 문서의
+                // 제목(訴狀·牒報 같은 한자)이 바로 거기 있어서 잘려 보였다.
+                // 축 굵기만큼 내려 달아 종이가 축 밑에서 시작하게 한다.
                 _paper.localScale = new Vector3(_width, Mathf.Max(0.0001f, h), 1f);
-                _paper.localPosition = new Vector3(0f, -h * 0.5f, 0f);
+                _paper.localPosition = new Vector3(0f, -_topGap - h * 0.5f, 0f);
 
                 var r = _paperRenderer;
                 if (r != null)
@@ -227,7 +237,7 @@ namespace IMUNROK.Common
 
             if (_bottomRod != null)
             {
-                _bottomRod.localPosition = new Vector3(0f, -h, 0f);
+                _bottomRod.localPosition = new Vector3(0f, -_topGap - h, 0f);
                 var br = _bottomRod.GetComponent<Renderer>();
                 if (br != null) br.enabled = h > 0.001f;
             }

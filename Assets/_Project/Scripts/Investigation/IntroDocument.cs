@@ -196,7 +196,7 @@ namespace IMUNROK.Common
 
             // 종이는 축에 매달려 아래로 자란다. 그대로 눈높이에 두면 글이 죄 아래에 걸리므로
             // 다 폈을 때의 절반만큼 올려 달아 한가운데가 눈에 오게 한다.
-            float half = _scroll != null ? _scroll.FullHeight * 0.5f : 0.2f;
+            float half = PaperHalf();
             Vector3 toPos = ReadPosition(cam, half);
             Quaternion toRot = ReadRotation(cam);
 
@@ -283,6 +283,17 @@ namespace IMUNROK.Common
         /// 읽을 때 종이가 놓일 자리. 종이는 축에 매달려 아래로 자라므로, 축을 종이
         /// 절반만큼 위에 달아야 <b>종이 한가운데가</b> 시선 위에 온다.
         /// </summary>
+        /// <summary>
+        /// 축에서 종이 한가운데까지의 거리. 종이는 축 바로 아래가 아니라 축 굵기만큼
+        /// 내려 달려 있으므로(그래야 제목 한자가 축에 안 가린다) 그 틈까지 세어야
+        /// 종이 한가운데가 시선 위에 온다.
+        /// </summary>
+        private float PaperHalf()
+        {
+            if (_scroll == null) return 0.2f;
+            return _scroll.TopGap + _scroll.FullHeight * 0.5f;
+        }
+
         private Vector3 ReadPosition(Camera cam, float half)
         {
             Vector3 center = cam.transform.position
@@ -451,7 +462,7 @@ namespace IMUNROK.Common
             // 곧 비스듬해진다. 손에 든 것을 눈앞에 고쳐 드는 것과 같다.
             if (_phase == Phase.읽는중 && _scroll != null)
             {
-                float half = _scroll.FullHeight * 0.5f;
+                float half = PaperHalf();
                 float t = 1f - Mathf.Exp(-_readFollow * Time.deltaTime);   // 프레임률에 안 흔들리는 감쇠
                 transform.position = Vector3.Lerp(transform.position, ReadPosition(cam, half), t);
                 transform.rotation = Quaternion.Slerp(transform.rotation, ReadRotation(cam), t);
@@ -480,7 +491,9 @@ namespace IMUNROK.Common
                 Vector3 at = cam.transform.position + dir * _readLabelDistance;
 
                 _labelGo.transform.position = at;
-                _labelGo.transform.rotation = Quaternion.LookRotation(-cam.transform.forward, cam.transform.up);
+                // 캔버스는 <b>앞면이 뒤를 보게</b> 세워야 글자가 바로 읽힌다.
+                // 카메라 쪽(-forward)을 보게 하면 뒷면을 보는 셈이라 글씨가 뒤집힌다.
+                _labelGo.transform.rotation = Quaternion.LookRotation(cam.transform.forward, cam.transform.up);
                 // 눈앞으로 당겨 세운 만큼 작게 그린다. 0.62 는 예전에 두던 거리이고,
                 // 거기에 한 번 더 줄여 화면 폭의 절반쯤에 들어오게 한다 —
                 // 이름표가 종이만큼 커지면 읽을 것이 둘이 된다.
