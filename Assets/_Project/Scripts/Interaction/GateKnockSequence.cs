@@ -31,7 +31,9 @@ namespace IMUNROK.Common
         [SerializeField] private DoorController _door;
         [Tooltip("문을 열어주는 마름(비우면 캐릭터 연출 없이 대사·문만 진행)")]
         [SerializeField] private MareumController _mareum;
-        [Tooltip("맞이하고 사랑방으로 앞장서는 복동(甲). 비우면 복동 연출 없음")]
+        [Tooltip("맞이하고 사랑방으로 앞장서는 복동(甲). 비워 두는 것이 보통이다. 앞장서는 신호는 마름이 준다 — 손님이 문간을 넘는 " +
+                 "것을 보고 나서(MareumController ▸ On Player Passed → LeadInside). " +
+                 "여기에 걸면 대사 순번에서, 곧 손님이 아직 문 밖에 선 채로 앞장서 버린다")]
         [SerializeField] private BokdongController _bokdong;
         [SerializeField] private Line[] _lines;
         [Tooltip("이 순번 대사에서 문이 열림(0부터)")]

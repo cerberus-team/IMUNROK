@@ -54,12 +54,15 @@ namespace IMUNROK.Common
         public string GetInspectTitle() => _title;
         public string GetInspectBody() => _body;
 
-        public void OnInspected()
-        {
-            // 가리키기만 해서 적히는 단서는 '돋보기로만 읽히는' 것이 아니어야 한다.
-            if (_clueNeedsMagnifier) return;
-            Record();
-        }
+        /// <summary>
+        /// 가리키는 것만으로는 <b>아무 일도 없다</b>.
+        ///
+        /// 예전에는 여기서 단서를 적었다. 마우스가 스치기만 해도 수첩에 오른다는 뜻이라,
+        /// 방에 들어서서 고개 한 번 돌리면 증거가 저절로 쌓였다 — 닫힌 장 속의 수표까지
+        /// 그렇게 올라와 있었다. 조사는 <b>손을 대는 일</b>이지 눈이 스치는 일이 아니다.
+        /// 그래서 적는 것은 누를 때(OnSelect)와 돋보기로 들여다볼 때(OnMagnifiedGaze)뿐이다.
+        /// </summary>
+        public void OnInspected() { }
 
         private void Record()
         {

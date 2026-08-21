@@ -232,6 +232,21 @@ MonoBehaviour:
     \uB9C8\uC2DC\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+--- !u!114 &89610835
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 89610830}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f674140ae4598c145bcb5ce45fac3f8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.ShutBlocksSight
+  _size: {x: 0, y: 0, z: 0}
+  _center: {x: 0, y: 0, z: 0}
+  _shrink: 0.04
 --- !u!1 &113341376 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3762035054037107139, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
@@ -1032,6 +1047,21 @@ MonoBehaviour:
   _line: "\uAC70\uAE34 \uB0B4\uAC00 \uC190\uC218 \uC7A0\uADF8\uB294 \uACF3\uC774\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+--- !u!114 &1259042995
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1259042990}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f674140ae4598c145bcb5ce45fac3f8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.ShutBlocksSight
+  _size: {x: 0, y: 0, z: 0}
+  _center: {x: 0, y: 0, z: 0}
+  _shrink: 0.04
 --- !u!1 &1430125034 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 9143543124095007661, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
@@ -1497,6 +1527,21 @@ MonoBehaviour:
     \uD568\uBD80\uB85C \uC5EC\uB294 \uBC95\uC774 \uC5B4\uB514 \uC788\uC18C."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+--- !u!114 &2126368294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2126368289}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f674140ae4598c145bcb5ce45fac3f8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.ShutBlocksSight
+  _size: {x: 0, y: 0, z: 0}
+  _center: {x: 0, y: 0, z: 0}
+  _shrink: 0.04
 --- !u!1 &2137530050 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8016749783923276216, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
@@ -2682,6 +2727,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3131718524543446723, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: -1
       addedObject: {fileID: 89610832}
+    - targetCorrespondingSourceObject: {fileID: 3131718524543446723, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 89610835}
     - targetCorrespondingSourceObject: {fileID: 7573916896255949850, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1903499612}
@@ -2691,6 +2739,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1012546555593800258, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1259042994}
+    - targetCorrespondingSourceObject: {fileID: 1012546555593800258, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1259042995}
     - targetCorrespondingSourceObject: {fileID: 1518978542047137045, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: -1
       addedObject: {fileID: 26385130}
@@ -2700,6 +2751,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8381991783560270064, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2126368293}
+    - targetCorrespondingSourceObject: {fileID: 8381991783560270064, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2126368294}
     - targetCorrespondingSourceObject: {fileID: 3386226735337464925, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: -1
       addedObject: {fileID: 77155696}

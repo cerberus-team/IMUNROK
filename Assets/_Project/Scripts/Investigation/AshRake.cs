@@ -86,6 +86,9 @@ namespace IMUNROK.Common
         [SerializeField] private Texture2D _clueImage;
         [Tooltip("밑에서 나온 것이 종이라면 그 종이 면. 넣어 두면 수첩에서 다시 펼쳐 볼 수 있다")]
         [SerializeField] private Texture2D _cluePage;
+        [Tooltip("수첩 카드에 적힐 이름. 비우면 이 장치의 제목을 쓰는데, 그러면 '아궁이'처럼 " +
+                 "<b>나온 자리</b>가 물건 이름 자리에 앉는다 — 찾은 것은 아궁이가 아니라 서찰이다")]
+        [SerializeField] private string _clueName = "";
         [TextArea(2, 4)]
         [Tooltip("그 종이의 잔글씨 — 돋보기를 대야 읽힌다")]
         [SerializeField] private string _clueFine = "";
@@ -296,7 +299,8 @@ namespace IMUNROK.Common
                 Journal.Instance.AddClue(_clueCase, _clueKey, _clueText, _clueImage);
                 // 밑에서 나온 것이 종이라면 수첩에서 다시 펼쳐 볼 수 있게 함께 적어 둔다
                 if (_cluePage != null)
-                    Journal.Instance.AttachDocument(_clueCase, _clueKey, _cluePage, _title, _bodyAfter, _clueFine);
+                    Journal.Instance.AttachDocument(_clueCase, _clueKey, _cluePage,
+                        string.IsNullOrEmpty(_clueName) ? _title : _clueName, _bodyAfter, _clueFine);
             }
 
             _onRaked?.Invoke();
