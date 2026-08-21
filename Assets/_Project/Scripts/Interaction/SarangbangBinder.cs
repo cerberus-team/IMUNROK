@@ -9,8 +9,13 @@ namespace IMUNROK.Common
     /// 왜 필요한가: 유니티는 씬을 건너뛰는 참조를 저장하지 못한다. 인스펙터에서 끌어다
     /// 놓아도 저장하는 순간 비워진다. 그래서 실내 씬이 올라온 뒤에 이름으로 찾아 물려 준다.
     ///
-    /// 끊기는 자리는 다섯이다 — 甲이 나갈 문, 보료 경첩, 문갑 서랍 뼈와 그 속 문서,
-    /// 그리고 내가 앉을 방석. 전부 마당 쪽 부품이 실내 쪽 물건을 가리키는 방향이다.
+    /// 끊기는 자리는 둘뿐이다 — 甲이 나갈 문과 내가 앉을 방석. 둘 다 마당 쪽 부품이
+    /// 실내 쪽 물건을 가리키는 방향이다.
+    ///
+    /// <b>줄인 내력</b>: 예전에는 보료 경첩과 문갑 서랍도 여기서 이었다. 들추는 손잡이가
+    /// 마당 씬에 남아 있었기 때문인데, 그것들은 방에 들어가야만 쓰는 물건이다.
+    /// 손잡이째 실내 씬으로 옮겨 놓으니 같은 씬 안에서 곧바로 물리게 되어 이 손이 필요 없어졌다.
+    /// <b>이름으로 잇는 자리는 적을수록 좋다</b> — 하나 줄일 때마다 조용히 끊길 곳이 하나 준다.
     ///
     /// <b>이름으로 잇는 것이 위험하지 않은가</b>: 위험하다. 이름을 바꾸면 조용히 끊긴다.
     /// 그래서 못 찾은 것은 남김없이 경고로 찍는다 — 조용히 실패하지 않는 것이 여기서는
@@ -23,16 +28,11 @@ namespace IMUNROK.Common
 
         [Header("마당 쪽 부품 — 실내 물건을 가리켜야 하는 것들")]
         [SerializeField] private BokdongController _gap;
-        [SerializeField] private AshRake _bojaLift;
-        [SerializeField] private AshRake _mungapDrawer;
         [SerializeField] private PlayerSeat _seat;
         [SerializeField] private InteriorSceneSwap _swap;
 
         [Header("찾을 이름")]
         [SerializeField] private string _exitDoorName = "쪽문_서";
-        [SerializeField] private string _bojaHingeName = "보료_경첩";
-        [SerializeField] private string _drawerBoneName = "Dummy053_00";
-        [SerializeField] private string _drawerBoxName = "빠진_서랍";
         [SerializeField] private string _cushionName = "방석";
         [SerializeField] private string _sitSpotName = "甲_보료자리";
 
@@ -77,21 +77,10 @@ namespace IMUNROK.Common
             };
 
             var exitDoor = get(_exitDoorName);
-            var bojaHinge = get(_bojaHingeName);
-            var drawerBone = get(_drawerBoneName);
-            var drawerBox = get(_drawerBoxName);
             var cushion = get(_cushionName);
 
             if (_gap != null && exitDoor != null)
                 _gap.BindLeaveDoor(exitDoor.GetComponent<DoorController>(), null, null);
-
-            if (_bojaLift != null && bojaHinge != null) _bojaLift.BindHinge(bojaHinge);
-
-            if (_mungapDrawer != null)
-            {
-                if (drawerBone != null) _mungapDrawer.BindHinge(drawerBone);
-                if (drawerBox != null) _mungapDrawer.BindAfter(drawerBox.gameObject);
-            }
 
             // 앉을 자리는 방석이고, 마주 볼 것은 甲의 보료 자리다. 보료 자리는 마당 쪽에
             // 있으므로 여기서 찾지 않는다 — 실내에서 찾을 것은 방석뿐이다.

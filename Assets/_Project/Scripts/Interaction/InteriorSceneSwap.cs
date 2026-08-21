@@ -42,6 +42,18 @@ namespace IMUNROK.Common
                  "세간만 40만 삼각형이라 마당에 서 있는 동안은 끄는 편이 낫다")]
         [SerializeField] private GameObject _propsWhileInside;
 
+        [Header("방에 앉은 동안 접어 둘 바깥채")]
+        [Tooltip("고택 전체(김명관고택). 방 안에 있는 동안 이 밑에서 먼 덩이를 접는다")]
+        [SerializeField] private GameObject _foldWhileInside;
+
+        [Tooltip("방바닥보다 낮은 것(땅·박석·기단)은 접지 않는다. 문을 열었을 때 " +
+                 "발밑이 하늘이면 안 되기 때문이다. 이것만으로 대개 충분하다")]
+        [SerializeField] private bool _keepGround = true;
+
+        [Tooltip("그 위에 더, 방 겉면에서 이 거리(m) 안이면 솟은 것도 남긴다. " +
+                 "0 이면 남기지 않는다 — 방 곁의 기둥·벽만 해도 85만 삼각형이라 대개 0 이 낫다")]
+        [SerializeField] private float _keepWithin = 0f;
+
         [Header("안팎을 가르는 선")]
         [Tooltip("방바닥. 이 넓이가 곧 '안'이다. 비우면 _showWhileInside 전체를 쓴다")]
         [SerializeField] private Transform _floor;
@@ -65,6 +77,8 @@ namespace IMUNROK.Common
         private bool _inside;
         private Bounds _room;
         private bool _measured;
+        private GameObject[] _folded;
+        private float _floorTop;
 
         /// <summary>지금 실내에 있나.</summary>
         public bool Inside => _inside;
@@ -146,6 +160,7 @@ namespace IMUNROK.Common
 
             var b = rs[0].bounds;
             foreach (var r in rs) b.Encapsulate(r.bounds);
+            _floorTop = b.max.y;                       // 접을 것을 가르는 높이 — 늘리기 전에 챙겨 둔다
             b.size = new Vector3(b.size.x, _height, b.size.z);
             _room = b;
             _measured = true;
@@ -161,6 +176,67 @@ namespace IMUNROK.Common
 
             if (_propsWhileInside != null && _propsWhileInside.activeSelf != _inside)
                 _propsWhileInside.SetActive(_inside);
+
+            Fold(_inside);
+        }
+
+        /// <summary>
+        /// 닫힌 방에 앉아 있는 동안, 벽 너머의 바깥채를 접는다.
+        ///
+        /// 왜 필요한가: 사랑채 한 채를 상자로 갈아 끼워도 <b>나머지 고택이 그대로 그려진다</b>.
+        /// 방 안에서 잰 값이 삼각형 135만인데 그중 100만이 벽 바깥이었다. 벽이 가리고 있는데도
+        /// 그려지는 것은, 이 규모에서는 가림 계산(Occlusion)이 남쪽 창호를 뚫고 지나가기
+        /// 때문이다 — 창호는 여닫혀야 하므로 가림벽으로 칠 수 없다.
+        ///
+        /// 그래서 <b>높이로</b> 자른다. 땅에 깔린 것(마당 박석·기단·장독대, 다 합쳐 17만)은
+        /// 놔두고, <b>솟아 있는 것</b>(291만)을 접는다. 벽·지붕은 어차피 벽 너머라 안 보이고,
+        /// 문을 열었을 때 필요한 것은 발밑이지 남의 집 지붕이 아니다.
+        ///
+        /// 거리로 자르는 것도 해 보았으나 소용이 없었다. 방 곁 3m 만 남겨도 그 안에 든
+        /// 기단·기둥·창방이 <b>85만 삼각형</b>이었다 — 가까운 것이 곧 가벼운 것은 아니다.
+        ///
+        /// 접는 것은 덩이째 끄는 것이다 — LOD 가 걸린 덩이는
+        /// 렌더러만 꺼 두면 LOD 가 다음 프레임에 도로 켜 버린다.
+        ///
+        /// 문지방을 넘는 순간에만 한 번 도는 일이라, 매 프레임 값은 들지 않는다.
+        /// </summary>
+        private void Fold(bool fold)
+        {
+            if (_foldWhileInside == null) return;
+
+            if (_folded == null)
+            {
+                // 방을 아직 못 쟀으면 무엇이 '먼 것'인지 알 수 없다. 마당에서는 접을 일도
+                // 없으므로 그냥 물러난다 — 실내 씬이 올라와 Measure 가 된 뒤에 다시 온다.
+                if (!_measured) return;
+
+                var room = _room;
+                var list = new System.Collections.Generic.List<GameObject>();
+                foreach (Transform t in _foldWhileInside.transform)
+                {
+                    // 갈아 끼우는 원본은 이미 _hideWhileInside 가 맡는다. 두 번 만지지 않는다.
+                    if (_hideWhileInside != null && t.gameObject == _hideWhileInside) continue;
+
+                    var rs = t.GetComponentsInChildren<Renderer>(true);
+                    if (rs.Length == 0) continue;
+                    var b = rs[0].bounds;
+                    for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+
+                    // 땅에 깔린 것은 놔둔다 — 마당 박석, 기단, 장독대. 다 합쳐 17만이고,
+                    // 문을 열었을 때 발밑이 있어야 한다.
+                    if (_keepGround && b.max.y <= _floorTop) continue;
+
+                    if (_keepWithin > 0f && room.SqrDistance(b.ClosestPoint(room.center)) <= _keepWithin * _keepWithin)
+                        continue;
+
+                    list.Add(t.gameObject);
+                }
+                _folded = list.ToArray();
+            }
+
+            for (int i = 0; i < _folded.Length; i++)
+                if (_folded[i] != null && _folded[i].activeSelf == fold)
+                    _folded[i].SetActive(!fold);
         }
 
         // ── 밖에서 부르는 신호(옛 배선과 호환) ──
