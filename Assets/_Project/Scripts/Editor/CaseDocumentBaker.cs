@@ -50,7 +50,7 @@ namespace IMUNROK.Common.Editor
             ("T_Doc_J13_Seochal",  true,  OnggojipFolder),   // J13 타다 만 서찰 조각 — 가장자리가 뚫려 있다
             ("T_Doc_J16_Hojeok",   false, OnggojipFolder),   // J16 호적대장 — 관리의 손. 복동이 살아 있다
             ("T_Doc_J17_Hogu",     false, OnggojipFolder),   // J17 호구단자 — 집안 사람의 손. 복동이 죽었다
-            ("T_Doc_J18_Jaguk",    false, OnggojipFolder),   // J18 눌린 자국 — 빈 종이. 돋보기로만 읽힌다
+            ("T_Doc_J09_Yeonseup", false, OnggojipFolder),   // J09 보강 — 위조를 연습한 눌린 자국. 돋보기로만 보인다
         };
 
         /// <summary>

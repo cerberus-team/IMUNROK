@@ -35,9 +35,11 @@ namespace IMUNROK.Common
         [Header("읽고 나면 수첩에")]
         [SerializeField] private bool _recordClue = true;
         [SerializeField] private CaseId _clueCase = CaseId.Case1_Onggojip;
-        [SerializeField] private string _clueKey = "J18";
+        [Tooltip("어느 단서를 굳히는가. 이미 적힌 단서면 그 줄을 고쳐 적고, 없으면 새로 적는다")]
+        [SerializeField] private string _clueKey = "J09";
         [TextArea(2, 4)]
-        [SerializeField] private string _clueText = "[J18] 빈 종이에 눌린 자국이 남아 있다.";
+        [Tooltip("고쳐 적을 문구. 같은 이야기를 두 줄로 늘리지 않기 위한 것이다")]
+        [SerializeField] private string _clueText = "";
         [Tooltip("수첩에서 다시 볼 종이(자국이 그려진 면)")]
         [SerializeField] private Texture2D _cluePage;
 
@@ -82,7 +84,10 @@ namespace IMUNROK.Common
 
             if (_recordClue && !string.IsNullOrEmpty(_clueKey) && Journal.Instance != null)
             {
-                Journal.Instance.AddClue(_clueCase, _clueKey, _clueText);
+                // 이미 그 단서가 있으면 <b>줄을 늘리지 않고 고쳐 적는다</b>.
+                // 필적이 다르다는 것과 그 두 줄을 연습한 자국이 있다는 것은 한 가지 일이다.
+                if (!Journal.Instance.UpgradeClue(_clueCase, _clueKey, _clueText))
+                    Journal.Instance.AddClue(_clueCase, _clueKey, _clueText);
                 if (_cluePage != null)
                     Journal.Instance.AttachDocument(_clueCase, _clueKey, _cluePage, _title, _clueText, _readOut);
             }

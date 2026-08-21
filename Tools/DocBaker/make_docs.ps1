@@ -394,8 +394,11 @@ function Draw-Doc($g, $doc, $w, $h, $fontName, $rng) {
 # light rakes across them - which is exactly what the magnifying glass does.
 function Draw-Pressed($g, $doc, $w, $h, $fontName, $rng) {
     # Neither is ink. Both are the paper itself, lit from the upper left.
-    $shade = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(96, 96, 84, 66))
-    $glint = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(120, 255, 250, 236))
+    # Deeper than a real impression would be. It costs nothing: the naked eye never sees
+    # this sheet at all (it lives on a layer only the lens camera renders), so the only
+    # question is whether it reads through the glass - and it must.
+    $shade = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(152, 84, 72, 56))
+    $glint = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(165, 255, 252, 242))
 
     $startY = 150
     $startX = $w - 150

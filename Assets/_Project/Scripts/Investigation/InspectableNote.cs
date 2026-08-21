@@ -125,8 +125,12 @@ namespace IMUNROK.Common
         /// </summary>
         public void OnMagnifiedGaze(float progress)
         {
-            if (progress < 1f) return;
-            if (_recorded) return;
+            if (progress < 1f || _recorded) return;
+
+            // 적을 것이 없는 물건은 들여다봐도 아무 말도 하지 않는다. 빈 종이에 대고
+            // "수첩에 적어 두었다" 하면, 적힌 것도 없는데 다 본 줄로 알고 지나간다.
+            if (!_recordClue) return;
+
             Record();
             WorldNote.Show(transform, _title + "  —  수첩에 적어 두었다");
         }

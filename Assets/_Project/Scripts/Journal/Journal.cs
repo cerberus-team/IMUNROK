@@ -103,6 +103,25 @@ namespace IMUNROK.Common
             return true;
         }
 
+        /// <summary>
+        /// 이미 적힌 단서를 <b>고쳐 적는다</b> — 같은 것을 더 알게 되었을 때.
+        ///
+        /// 새로 안 것을 죄다 새 줄로 적으면 수첩이 금세 스무 줄이 되고, 그중 어느 둘이
+        /// 같은 이야기인지 알 수 없게 된다. 장부의 필적이 다르다는 것과 그 두 줄을 미리
+        /// 연습한 자국이 있다는 것은 <b>한 가지 일</b>이다 — 뒤엣것은 앞엣것을 굳힐 뿐이다.
+        /// 그러니 줄을 늘리지 않고 그 줄을 고쳐 적는다.
+        /// </summary>
+        /// <returns>고쳐 적었으면 true. 그런 단서가 아직 없으면 false(그때는 새로 적을 것).</returns>
+        public bool UpgradeClue(CaseId caseId, string key, string text)
+        {
+            var e = _clues.Find(c => c.caseId == caseId && c.key == key);
+            if (e == null || string.IsNullOrEmpty(text) || e.text == text) return false;
+            e.text = text;
+            Debug.Log($"[Journal] 단서를 고쳐 적음: [{caseId}] {text}");
+            JournalPanel.Refresh();
+            return true;
+        }
+
         /// <summary>key 없이 기록(문구 자체를 key로).</summary>
         public bool AddClue(CaseId caseId, string text) => AddClue(caseId, text, text);
 
