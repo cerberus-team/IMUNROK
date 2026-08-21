@@ -84,6 +84,12 @@ namespace IMUNROK.Common
         [Range(0f, 1f)] [SerializeField] private float _openLeafAt = 0.35f;
         [Tooltip("문짝 속도를 미는 동작에 맞춘다. 끄면 문의 '여는 시간'을 그대로 쓴다")]
         [SerializeField] private bool _syncDoorToPush = true;
+        [Tooltip("한 짝만 민다. 손이 닿는 쪽만 열린다 — 손님 하나 들이는 데 대문을 양쪽 다 열지 않는다")]
+        [SerializeField] private bool _pushOneLeaf = true;
+        [Tooltip("어느 짝을 미는가. -1이면 서 있는 자리에서 가까운 쪽. " +
+                 "문 한가운데 서 있으면 가까운 쪽이 반반이라 엉뚱한 짝이 열릴 수 있으니, " +
+                 "동작에서 손이 가는 쪽을 보고 0 또는 1로 박아 두는 편이 낫다")]
+        [SerializeField] private int _pushLeafIndex = -1;
         [Tooltip("1보다 작으면 팔이 다 펴지기 조금 전에 문이 다 열린다. " +
                  "문이 팔보다 늦게 도착하면 미는 게 아니라 끌려가는 것으로 보인다")]
         [Range(0.5f, 1.2f)] [SerializeField] private float _doorLead = 0.9f;
@@ -301,7 +307,16 @@ namespace IMUNROK.Common
                             // 문짝은 미는 팔이 다 펴질 때 다 열려야 한다. 남은 동작 시간을
                             // 재서 문에 넘긴다 — 손으로 적어 둔 2초와 어긋나던 것이 이것이다.
                             if (_syncDoorToPush) _door.SetOpenDuration(PushSecondsLeft(st) * _doorLead);
-                            _door.Unlock(); _door.Open(); _leafOpened = true;
+                            _door.Unlock();
+
+                            // 미는 것은 <b>한 짝</b>이다. 손은 한쪽 문짝에 대는데 두 짝이 함께
+                            // 활짝 열리면 미는 것이 아니라 문이 저 알아서 열리는 꼴이 된다.
+                            // 어느 짝을 미는지는 서 있는 자리가 정한다 — 가까운 쪽에 손이 간다.
+                            if (_pushOneLeaf)
+                                _door.OpenOnly(_pushLeafIndex >= 0 ? _pushLeafIndex
+                                                                   : _door.NearestLeaf(transform.position));
+                            else _door.Open();
+                            _leafOpened = true;
                         }
                     }
                     if (StateDone(_openState))

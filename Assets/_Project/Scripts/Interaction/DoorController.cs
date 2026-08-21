@@ -57,6 +57,7 @@ namespace IMUNROK.Common
         public UnityEvent OnOpened;
 
         private bool _open;
+        private int _onlyLeaf = -1;    // -1 = 다 여닫는다. 0 이상이면 그 짝 하나만
         private float _t;              // 0 = 닫힘, 1 = 열림
         private int _dir;              // +1 열리는 중, -1 닫히는 중, 0 정지
         private Quaternion[] _closedRot;
@@ -107,10 +108,13 @@ namespace IMUNROK.Common
                 var leaf = _leaves[i];
                 if (leaf.pivot == null) continue;
 
+                // 한 짝만 밀기로 했으면 나머지는 닫힌 채로 둔다
+                float k = (_onlyLeaf >= 0 && i != _onlyLeaf) ? 0f : e;
+
                 if (_motion == Motion.Swing)
-                    leaf.pivot.localRotation = _closedRot[i] * Quaternion.Euler(0f, leaf.swingAngle * e, 0f);
+                    leaf.pivot.localRotation = _closedRot[i] * Quaternion.Euler(0f, leaf.swingAngle * k, 0f);
                 else
-                    leaf.pivot.localPosition = _closedPos[i] + leaf.slideOffset * e;
+                    leaf.pivot.localPosition = _closedPos[i] + leaf.slideOffset * k;
             }
         }
 
@@ -119,8 +123,41 @@ namespace IMUNROK.Common
 
         public void Open()
         {
+            _onlyLeaf = -1;
             if (_open) return;
             _open = true; _dir = +1; _firedOpened = false;
+        }
+
+        /// <summary>
+        /// <b>한 짝만</b> 연다. 나머지는 닫힌 채로 둔다.
+        ///
+        /// 사람이 미는 문은 민 쪽만 열린다. 마름이 한쪽 문짝에 손을 대는데 두 짝이 함께
+        /// 활짝 열리면, 미는 것이 아니라 문이 알아서 열리고 그 앞에서 손짓을 하는 꼴이 된다.
+        /// 손님 하나 들이는 데 대문을 양쪽 다 여는 법도 없다 — 그건 가마가 들어올 때 일이다.
+        /// </summary>
+        public void OpenOnly(int leafIndex)
+        {
+            _onlyLeaf = (_leaves != null && leafIndex >= 0 && leafIndex < _leaves.Length) ? leafIndex : -1;
+            if (_open) return;
+            _open = true; _dir = +1; _firedOpened = false;
+        }
+
+        /// <summary>이 자리에서 가장 가까운 문짝. 미는 사람이 어느 짝을 밀지 고를 때 쓴다.</summary>
+        public int NearestLeaf(Vector3 worldPos)
+        {
+            if (_leaves == null || _leaves.Length == 0) return -1;
+            int best = 0;
+            float bestD = float.MaxValue;
+            for (int i = 0; i < _leaves.Length; i++)
+            {
+                var p = _leaves[i].pivot;
+                if (p == null) continue;
+                var r = p.GetComponentInChildren<Renderer>();
+                Vector3 at = r != null ? r.bounds.center : p.position;
+                float d = (at - worldPos).sqrMagnitude;
+                if (d < bestD) { bestD = d; best = i; }
+            }
+            return best;
         }
 
         public void Close()
