@@ -12,10 +12,11 @@ namespace IMUNROK.Common
     /// 둘레로 그대로 보인다. 고개를 돌리면 종이도 따라 돌지만 조금 늦게 따라온다 —
     /// 손이 몸에 매달려 있기 때문이다.
     ///
-    /// <b>잔글씨</b>는 종이에 진짜로 작게 적힌다. 맨눈으로는 획이 뭉개져 무슨 글자인지
-    /// 모르고, <see cref="MagnifierLens"/>를 눈에 대고 들여다보면 그제야 읽힌다.
-    /// "돋보기를 들었으니 글줄을 하나 더 보여준다"가 아니라, 정말로 작아서 안 보이는
-    /// 것을 유리로 키워 보는 것이다. 단서도 그때 적힌다.
+    /// <b>종이에는 아무것도 덧그리지 않는다.</b> 읽어야 할 잔글씨는 이미 문서에 그려져
+    /// 있다 — 스무 해와 다른 두 줄의 필적, 마지막 두 줄에만 눌린 수결, '辛未年 死亡'.
+    /// 한자로 적힌 문서 위에 한글 한 줄을 얹으면 그 순간 문서가 아니라 자막이 된다.
+    /// 그래서 <see cref="MagnifierLens"/>로 들여다보아 다 읽고 나면, 읽어낸 바는
+    /// 종이 <b>밖</b>(아래)에 적힌다. 단서도 그때 수첩에 오른다.
     ///
     /// 씬에 미리 둘 필요 없다 — 처음 부를 때 스스로 만든다.
     /// </summary>
@@ -30,11 +31,8 @@ namespace IMUNROK.Common
         [SerializeField] private float _holdDistance = 0.6f;
         [Tooltip("눈높이보다 이만큼 아래(m). 종이는 내려다보는 것이다")]
         [SerializeField] private float _holdDrop = -0.06f;
-        [Tooltip("잔글씨 크기(본문 대비). 작을수록 돋보기가 있어야 읽힌다")]
-        [Range(0.2f, 0.8f)] [SerializeField] private float _fineScale = 0.26f;
         [SerializeField] private Color _paper = Color.white;
         [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
-        [SerializeField] private Color _inkColor = new Color(0.13f, 0.09f, 0.06f);
         [SerializeField] private Color _tabColor = new Color(0.28f, 0.10f, 0.09f, 0.9f);
 
         private static DocumentView _instance;
@@ -51,6 +49,7 @@ namespace IMUNROK.Common
         private Text _hint;
 
         private System.Action _onRead;
+        private string _finePrint = "";
         private bool _readDone;
         private float _readProgress;
         private float _sinceRead;
@@ -65,8 +64,8 @@ namespace IMUNROK.Common
         /// <param name="page">종이 면(문서 텍스처)</param>
         /// <param name="title">무슨 문서인가</param>
         /// <param name="body">맨눈으로도 아는 것</param>
-        /// <param name="finePrint">종이에 작게 적히는 것 — 돋보기로만 읽힌다. 없으면 비운다</param>
-        /// <param name="onRead">잔글씨를 다 읽었을 때 한 번</param>
+        /// <param name="finePrint">돋보기로 들여다봐야 알아지는 것. 다 읽으면 종이 아래에 뜬다</param>
+        /// <param name="onRead">다 읽었을 때 한 번</param>
         public static void Show(Texture page, string title, string body,
                                 string finePrint = null, System.Action onRead = null)
         {
@@ -120,6 +119,11 @@ namespace IMUNROK.Common
             if (progress < 1f || _instance._readDone) return;
 
             _instance._readDone = true;
+            if (!string.IsNullOrEmpty(_instance._finePrint))
+            {
+                _instance._fine.text = _instance._finePrint;
+                _instance._fine.gameObject.SetActive(true);
+            }
             var cb = _instance._onRead;
             if (cb != null) cb();
         }
@@ -165,11 +169,9 @@ namespace IMUNROK.Common
             _body.text = body;
 
             bool hasFine = !string.IsNullOrEmpty(finePrint);
-            _fine.text = hasFine ? finePrint : "";
-            _fine.gameObject.SetActive(hasFine);
-            // 잔글씨는 종이 아래쪽 여백에 적힌다 — 본문 위에 겹쳐 놓으면 얼룩으로 보인다
-            _fine.rectTransform.sizeDelta = new Vector2(_pageRt.sizeDelta.x * 0.82f, _pageRt.sizeDelta.y * 0.3f);
-            _fine.rectTransform.anchoredPosition = new Vector2(0f, -_pageRt.sizeDelta.y * 0.36f);
+            _finePrint = hasFine ? finePrint : "";
+            _fine.text = "";
+            _fine.gameObject.SetActive(false);
 
             _onRead = onRead;
             _readDone = false;
@@ -178,7 +180,7 @@ namespace IMUNROK.Common
             _tilt = Vector2.zero;
 
             _hint.text = hasFine
-                ? "잔글씨가 있다. 돋보기를 들고 오른쪽 단추로 눈에 대어 본다"
+                ? "글씨가 잘아 획까지는 안 보인다. 돋보기를 들고 오른쪽 단추로 눈에 대어 본다"
                 : "(Esc — 내려놓기)";
 
             SetVisible(true);
@@ -255,18 +257,23 @@ namespace IMUNROK.Common
             _page.color = _paper;
             _page.raycastTarget = false;
 
-            // 잔글씨는 종이 위에 진짜로 작게 적힌다 — 돋보기로만 읽힌다
-            _fine = NewText("잔글씨", "", Vector2.zero, new Vector2(_pageSpan * 0.86f, _pageSpan * 0.4f),
-                            _pageRt, Mathf.Max(4, Mathf.RoundToInt(_fontSize * _fineScale)));
-            // 흐린 먹으로 작게 — 맨눈에는 획이 뭉개져야 한다
-            _fine.color = new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.86f);
-            _fine.alignment = TextAnchor.UpperCenter;
+            // 읽어낸 것 — 종이 <b>아래</b>에 뜬다. 종이 위에는 아무것도 덧그리지 않는다.
+            //
+            // 한때 이 글을 종이 면에 작게 얹었다. 잔글씨를 진짜로 작게 만들자는 뜻이었으나,
+            // 한자로 적힌 문서 위에 한글 한 줄이 찍히는 꼴이 되었다 — 없던 글자가 종이에
+            // 생겨난 것이다. 읽을 잔글씨는 이미 종이에 그려져 있다(다른 필적·수결·死亡).
+            // 돋보기가 하는 일은 글자를 <b>보태는</b> 것이 아니라 그것을 <b>알아보는</b>
+            // 것이므로, 읽어낸 바는 종이 밖에 적는다.
+            _fine = NewText("읽어낸것", "", new Vector2(0f, -_pageSpan * 0.62f - 64f),
+                            new Vector2(780f, 78f), transform, _fontSize - 6);
+            _fine.color = new Color(1f, 0.93f, 0.74f);
+            _fine.gameObject.SetActive(false);
 
             _title = NewText("제목", "", new Vector2(0f, _pageSpan * 0.60f), new Vector2(700f, 42f),
                              transform, _fontSize - 2);
             _body = NewText("본문", "", new Vector2(0f, -_pageSpan * 0.62f), new Vector2(700f, 76f),
                             transform, _fontSize - 4);
-            _hint = NewText("안내", "", new Vector2(0f, -_pageSpan * 0.62f - 62f), new Vector2(700f, 38f),
+            _hint = NewText("안내", "", new Vector2(0f, -_pageSpan * 0.62f - 148f), new Vector2(700f, 38f),
                             transform, _fontSize - 8);
             _hint.color = new Color(_textColor.r, _textColor.g, _textColor.b, 0.7f);
 

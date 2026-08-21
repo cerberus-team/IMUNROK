@@ -36,7 +36,19 @@ namespace IMUNROK.Common
         [Tooltip("VR 패널에 쓸 한글 폰트. 비우면 씬의 다른 UI가 올려둔 공용 폰트를 쓴다")]
         [SerializeField] private Font _vrFont;
 
-        public static string SelectedToolId { get; private set; } = "";
+        /// <summary>
+        /// 지금 손에 든 도구 id("" = 맨손).
+        ///
+        /// 값을 따로 들고 있지 않고 <b>벨트에게 물어본다</b>. 예전에는 이 자리에 static
+        /// 값을 두고 Select 할 때마다 적어 넣었는데, 벨트가 Awake 할 때도 한 번 적으므로
+        /// 씬이 하나 더 올라오거나 벨트가 다시 깨어나면 골라 둔 것이 조용히 ""로 지워졌다.
+        /// 손에는 돋보기가 들려 있는데 아무 일도 일어나지 않는 상태가 그것이다.
+        /// </summary>
+        public static string SelectedToolId => Instance != null ? Instance.CurrentId : "";
+
+        /// <summary>이 벨트가 지금 든 도구 id.</summary>
+        private string CurrentId =>
+            (_index <= 0 || _index > _tools.Count || _tools[_index - 1] == null) ? "" : _tools[_index - 1].id;
 
         /// <summary>씬에 하나만 두는 도구벨트. 뷰가 이걸 찾아 붙는다.</summary>
         public static ToolbeltHud Instance { get; private set; }
@@ -113,7 +125,6 @@ namespace IMUNROK.Common
 
         private void Apply()
         {
-            SelectedToolId = (_index == 0 || _tools[_index - 1] == null) ? "" : _tools[_index - 1].id;
             OnChanged?.Invoke();
         }
 
