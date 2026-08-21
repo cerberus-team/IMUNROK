@@ -279,7 +279,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8111781155169087978, guid: 450985cfff3338745ae308056bad0589, type: 3}
       propertyPath: m_UpdateWhenOffscreen
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -5267,7 +5267,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8111781155169087978, guid: 7bf667f4ef24e13418f324bdf4257aff, type: 3}
       propertyPath: m_UpdateWhenOffscreen
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8111781155169087978, guid: 7bf667f4ef24e13418f324bdf4257aff, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -12847,7 +12847,7 @@ MonoBehaviour:
   _leaveThroughSpot: {fileID: 1807453816}
   _leaveCloseDelay: 0.6
   _hideDelay: 1.4
-  _hideWhenGone: 1
+  _hideWhenGone: 0
   _onLeft:
     m_PersistentCalls:
       m_Calls:
@@ -12865,6 +12865,18 @@ MonoBehaviour:
         m_CallState: 2
       - m_Target: {fileID: 910118045}
         m_TargetAssemblyTypeName: IMUNROK.Common.AshRake, IMUNROK.Common
+        m_MethodName: Unlock
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 1688468739}
+        m_TargetAssemblyTypeName: IMUNROK.Common.InterrogationController, IMUNROK.Common
         m_MethodName: Unlock
         m_Mode: 1
         m_Arguments:
@@ -23570,7 +23582,7 @@ SkinnedMeshRenderer:
   m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
-  m_UpdateWhenOffscreen: 0
+  m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
   m_Mesh: {fileID: 0}
   m_Bones: []
@@ -25773,7 +25785,7 @@ SkinnedMeshRenderer:
   m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
-  m_UpdateWhenOffscreen: 0
+  m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
   m_Mesh: {fileID: 3418341358127110565, guid: b65d0b202192dc045b2b367d29b15b01, type: 3}
   m_Bones:

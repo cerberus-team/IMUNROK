@@ -510,9 +510,18 @@ namespace IMUNROK.Common
         /// </summary>
         public void FinishFromUi()
         {
+            ClosePanel();
+
+            // 되돌릴 수 없는 일은 한 번만. 이미 마친 사람이면 창만 닫는다.
+            //
+            // 잠그는 것도 여기 안에 있어야 한다. 밖에 두었더니 두 번째로 마칠 때 잠기기만
+            // 하고 풀어 줄 신호(물러가기)는 오지 않아, 그 뒤로 영영 말을 걸 수 없었다.
             if (_finished) return;
             _finished = true;
-            ClosePanel();
+
+            // 물러가는 사람을 붙잡고 다시 물을 수는 없으니 그동안만 잠근다.
+            // 다 물러간 뒤에 도로 열린다 — 마을 사람에게 몇 번이고 다시 말을 걸 수 있듯,
+            // 이 사람도 마당에서 다시 만난다.
             _locked = true;
             _onFinished?.Invoke();
         }

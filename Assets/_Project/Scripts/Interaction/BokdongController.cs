@@ -134,8 +134,9 @@ namespace IMUNROK.Common
         [SerializeField] private float _leaveCloseDelay = 0.6f;
         [Tooltip("문이 닫히고 → 몸을 치우기까지(초). 문짝 뒤로 가려진 다음에 없애야 한다")]
         [SerializeField] private float _hideDelay = 1.4f;
-        [Tooltip("다 나간 뒤 몸을 끌지. 끄면 문 밖에 그대로 서 있는다")]
-        [SerializeField] private bool _hideWhenGone = true;
+        [Tooltip("다 나간 뒤 몸을 끌지. 꺼 두는 것이 맞다 — 몸을 치워 버리면 그 사람이 " +
+                 "세상에서 사라진다. 방을 나갔을 뿐이므로 마당에서 다시 만나 말을 걸 수 있어야 한다")]
+        [SerializeField] private bool _hideWhenGone = false;
         [Tooltip("다 나간 순간 한 번 실행. 그가 없어야 열리는 것을 여기에 건다 — " +
                  "보료 들추기, 플레이어 일어서기")]
         [SerializeField] private UnityEngine.Events.UnityEvent _onLeft;
@@ -283,7 +284,12 @@ namespace IMUNROK.Common
         /// </summary>
         public void LeaveRoom()
         {
-            if (_phase == Phase.Gone || _phase == Phase.StandingUp || _phase == Phase.Leaving ||
+            // 이미 나가 있으면 나가는 시늉을 다시 하지 않는다. 다만 신호는 다시 준다 —
+            // 그 신호가 그를 다시 붙잡을 수 있게(Unlock) 열어 주기 때문이다. 두 번째로
+            // 심문을 마쳤을 때 잠긴 채로 남지 않게 하려면 여기서 풀어 주어야 한다.
+            if (_phase == Phase.Gone) { _onLeft?.Invoke(); return; }
+
+            if (_phase == Phase.StandingUp || _phase == Phase.Leaving ||
                 _phase == Phase.OpeningExit || _phase == Phase.GoingOut) return;
 
             _wait = 0f; _then = null;
