@@ -297,8 +297,14 @@ namespace IMUNROK.Common.EditorTools
             var old = group.Find(holderName);
             if (old != null)
             {
-                foreach (Transform hinge in old)
-                    while (hinge.childCount > 0) hinge.GetChild(0).SetParent(group, true);
+                // 이미 짜여 있으면 손대지 않는다.
+                //
+                // 다시 짜면 지금 문짝이 서 있는 자세를 '닫힌 자세'로 굳혀 버린다.
+                // 문 하나가 열린 채로 저장돼 있으면 그 열린 자세가 닫힘이 되고,
+                // 다음 번에 또 열면 그만큼 더 돌아간다 — 사랑방문_0 이 그렇게
+                // 90도 자리에서 175도까지 밀려나 있었다.
+                // 다시 짜야 할 일이 있으면 [사랑방 창호 다시 짜기] 를 쓴다.
+                if (old.childCount > 0) return false;
                 Object.DestroyImmediate(old.gameObject);
             }
 
@@ -365,10 +371,17 @@ namespace IMUNROK.Common.EditorTools
                         : new Vector3(Mathf.Max(1f, 0.08f / Mathf.Max(0.001f, Mathf.Abs(ls.x))), 1f, 1f);
                 }
 
+                // 경첩은 <b>그려지는 한가운데</b>에서 재야 한다.
+                //
+                // 변환 위치로 재면 안 된다 — 이 문짝들은 원점이 제 한가운데가 아니라
+                // 한쪽으로 반 장(0.41m) 치우쳐 있다. 그래서 한쪽 무리는 바깥 모서리에
+                // 제대로 걸렸지만, 반대쪽 무리는 경첩이 <b>제 한가운데</b>에 놓여 회전문이
+                // 되었다. 열어도 자리가 그대로고 몸만 도는 것이 그것이었다.
                 bool firstHalf = i < leaves.Count / 2f;
-                Vector3 edge = leaf.position;
+                Vector3 edge = lb.center;
                 if (alongX) edge.x += firstHalf ? -w * 0.5f : w * 0.5f;
                 else edge.z += firstHalf ? -w * 0.5f : w * 0.5f;
+                edge.y = leaf.position.y;
 
                 var hinge = new GameObject("경첩_" + i);
                 hinge.transform.SetParent(holder.transform, false);

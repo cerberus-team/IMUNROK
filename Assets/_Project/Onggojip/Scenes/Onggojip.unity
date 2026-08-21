@@ -279,7 +279,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8111781155169087978, guid: 450985cfff3338745ae308056bad0589, type: 3}
       propertyPath: m_UpdateWhenOffscreen
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -988,7 +988,7 @@ PrefabInstance:
       objectReference: {fileID: 9100000, guid: e403991bfbd6eee418a5213507c5d8de, type: 2}
     - target: {fileID: 8111781155169087978, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
       propertyPath: m_UpdateWhenOffscreen
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8111781155169087978, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -5267,7 +5267,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8111781155169087978, guid: 7bf667f4ef24e13418f324bdf4257aff, type: 3}
       propertyPath: m_UpdateWhenOffscreen
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8111781155169087978, guid: 7bf667f4ef24e13418f324bdf4257aff, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -5976,7 +5976,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
+  far clip plane: 200
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -17881,6 +17881,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 1131798643}
+        m_TargetAssemblyTypeName: IMUNROK.Common.PlayerSeat, IMUNROK.Common
+        m_MethodName: Sit
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!4 &1728730181
 Transform:
   m_ObjectHideFlags: 0
@@ -17906,15 +17918,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.79628253
+      value: 0.7962822
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.79628253
+      value: 0.7962822
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.79628253
+      value: 0.7962822
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalPosition.x
@@ -17922,7 +17934,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.52089447
+      value: -0.5208946
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalPosition.z
@@ -23558,7 +23570,7 @@ SkinnedMeshRenderer:
   m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
-  m_UpdateWhenOffscreen: 1
+  m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
   m_Mesh: {fileID: 0}
   m_Bones: []
@@ -25761,7 +25773,7 @@ SkinnedMeshRenderer:
   m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
-  m_UpdateWhenOffscreen: 1
+  m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
   m_Mesh: {fileID: 3418341358127110565, guid: b65d0b202192dc045b2b367d29b15b01, type: 3}
   m_Bones:
