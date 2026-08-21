@@ -272,8 +272,10 @@ function Paint-Column($g, $text, $font, $x, $y, $step, $ink, $inkSoft, $jitter, 
         $gf = $font
         $made = $false
         if ($sloppy -eq 1) {
-            $sz = $baseSize * (0.78 + $rng.NextDouble() * 0.52)
-            $gf = New-Object System.Drawing.Font($font.FontFamily, $sz, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
+            # The forged hand is bigger, leans, and wanders more. Subtle is worthless here:
+            # the player is meant to notice from arm's length that two people wrote this.
+            $sz = $baseSize * (0.88 + $rng.NextDouble() * 0.60)
+            $gf = New-Object System.Drawing.Font($font.FontFamily, $sz, [System.Drawing.FontStyle]::Italic, [System.Drawing.GraphicsUnit]::Pixel)
             $made = $true
             $drift += ($rng.NextDouble() - 0.5) * ($jitter * 0.8)
             if ($drift -gt  $jitter * 1.6) { $drift =  $jitter * 1.6 }
@@ -294,7 +296,7 @@ function Paint-Column($g, $text, $font, $x, $y, $step, $ink, $inkSoft, $jitter, 
         $dy = $rng.Next(-$jitter, $jitter + 1)
         $px0 = $x - $cs.Width / 2 + $dx
         $g.DrawString($s, $use, $brush, $px0, ($y + $dy))
-        if ($sloppy -eq 1 -and $r -eq 1) {         # ink pooled - stamped twice
+        if ($sloppy -eq 1 -and $r -le 1) {         # ink pooled - stamped twice
             $g.DrawString($s, $use, $brush, ($px0 + 1.2), ($y + $dy + 0.9))
         }
         if ($null -ne $fb) { $fb.Dispose() }
@@ -427,7 +429,7 @@ function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontAlt, $rng) {
     # Regular, not Italic. A synthesised italic on a CJK face makes MeasureString
     # report nonsense widths, which shoved these columns clean off the sheet -
     # and Joseon documents have no such thing as an italic anyway.
-    $fontB = New-Face $fontAlt ($fontSize * 0.92) ([System.Drawing.FontStyle]::Regular)
+    $fontB = New-Face $fontAlt ($fontSize * 1.08) ([System.Drawing.FontStyle]::Italic)
 
     $markFont  = New-Face $fontName ($fontSize * 1.05) ([System.Drawing.FontStyle]::Bold)
     $markBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(200, 132, 40, 32))
@@ -437,7 +439,7 @@ function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontAlt, $rng) {
         $x = $rightX - ($ci * $colStep)
         $hand = Get-Field $e 'hand' 0
         if ($hand -eq 1) {
-            $endY = Paint-Column $g $e.text $fontB $x ($gridTop + 34) ($charStep * 1.04) $ink2 $ink2Soft 7 $rng 1
+            $endY = Paint-Column $g $e.text $fontB $x ($gridTop + 34) ($charStep * 1.10) $ink2 $ink2Soft 11 $rng 1
         } else {
             $endY = Paint-Column $g $e.text $fontA $x ($gridTop + 34) $charStep $ink $inkSoft 2 $rng
         }

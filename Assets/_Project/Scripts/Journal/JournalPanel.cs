@@ -234,8 +234,9 @@ namespace IMUNROK.Common
                 var cc = c;
                 btn.onClick.AddListener(() =>
                 {
-                    if (dd != null) DocumentView.Show(dd.page, dd.title, dd.body, dd.fine);
-                    else DocumentView.Show(shot, ShortName(null, cc), cc.text);
+                    // 수첩에서 꺼내 든 것은 어둠 위에 놓는다(dim) — 둘레가 비어야 그 하나만 보인다
+                    if (dd != null) DocumentView.Show(dd.page, dd.title, dd.body, dd.fine, null, true);
+                    else DocumentView.Show(shot, ShortName(null, cc), cc.text, null, null, true);
                     _owner?.Close();   // 수첩을 덮어야 두 손이 빈다
                 });
 

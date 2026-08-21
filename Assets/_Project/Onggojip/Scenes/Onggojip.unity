@@ -3989,6 +3989,8 @@ MonoBehaviour:
   _catchAt: 0.62
   _weight: 0.28
   _revealWhileHolding: 1
+  _canPutBack: 1
+  _putBackSeconds: 0.9
   _before: {fileID: 57506538}
   _after: {fileID: 0}
   _puff: {fileID: 0}
@@ -4310,6 +4312,8 @@ MonoBehaviour:
   _catchAt: 0.62
   _weight: 0.28
   _revealWhileHolding: 1
+  _canPutBack: 1
+  _putBackSeconds: 0.9
   _before: {fileID: 2007637631}
   _after: {fileID: 564063997}
   _puff: {fileID: 1353964249}
@@ -4739,6 +4743,8 @@ MonoBehaviour:
   _catchAt: 0.66
   _weight: 0.34
   _revealWhileHolding: 1
+  _canPutBack: 1
+  _putBackSeconds: 1.1
   _before: {fileID: 900045298}
   _after: {fileID: 844021625}
   _puff: {fileID: 0}
@@ -12468,14 +12474,14 @@ MonoBehaviour:
   _answerLine: 
   _answerSpeaker: "\uBB38 \uC548\uCABD"
   _delayBeforeAsk: 1.6
-  _askSeconds: 0.9
+  _askSeconds: 2.2
   _permitLine: 
   _permitSpeaker: "\uC548\uC5D0\uC11C"
   _openLeafAt: 0.35
   _syncDoorToPush: 1
   _pushOneLeaf: 0
   _pushLeafIndex: -1
-  _doorLead: 0.9
+  _doorLead: 1
   _delayBeforeWalk: 1
   _openSpeed: 1
   _blend: 0.2

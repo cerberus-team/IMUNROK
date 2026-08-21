@@ -45,6 +45,8 @@ namespace IMUNROK.Common
         private RawImage _page;
         private RectTransform _pageRt;
         private Image _edge;
+        private Image _backdrop;     // 수첩에서 볼 때 뒤를 덮는 어둠
+        private Image _backFace;     // 종이 뒷면 — 뒤집었을 때 글씨가 비치지 않게
         private Text _title;
         private Text _body;
         private Text _fine;
@@ -71,7 +73,7 @@ namespace IMUNROK.Common
         /// <param name="finePrint">돋보기로 들여다봐야 알아지는 것. 다 읽으면 종이 아래에 뜬다</param>
         /// <param name="onRead">다 읽었을 때 한 번</param>
         public static void Show(Texture page, string title, string body,
-                                string finePrint = null, System.Action onRead = null)
+                                string finePrint = null, System.Action onRead = null, bool dim = false)
         {
             if (_instance == null)
             {
@@ -83,7 +85,7 @@ namespace IMUNROK.Common
                     _instance = go.AddComponent<DocumentView>();
                 }
             }
-            _instance.ShowInternal(page, title, body, finePrint, onRead);
+            _instance.ShowInternal(page, title, body, finePrint, onRead, dim);
         }
 
         public static void Hide()
@@ -167,8 +169,13 @@ namespace IMUNROK.Common
         private void OnDestroy() { if (_instance == this) { _instance = null; IsOpen = false; } }
 
         private void ShowInternal(Texture page, string title, string body,
-                                  string finePrint, System.Action onRead)
+                                  string finePrint, System.Action onRead, bool dim)
         {
+            // 수첩에서 꺼내 든 것은 <b>어둠 위에</b> 놓는다. 방을 보며 조사하는 중이 아니라
+            // 앉아서 물건 하나를 뜯어보는 중이므로, 둘레가 비면 그 하나에만 눈이 간다.
+            // 방에서 곧바로 짚은 것에는 어둠을 깔지 않는다 — 그때는 방도 함께 봐야 한다.
+            if (_backdrop != null) _backdrop.enabled = dim;
+
             // 종이 비율을 지켜 편다. 가로로 긴 문서를 정사각으로 늘이면 글자가 찌그러져
             // 읽을 수 있던 것도 못 읽게 된다.
             if (page != null)
@@ -178,6 +185,7 @@ namespace IMUNROK.Common
                 float k = _pageSpan / Mathf.Max(w, h);
                 var size = new Vector2(w * k, h * k);
                 _pageRt.sizeDelta = size;
+                _backFace.rectTransform.sizeDelta = size;
                 _edge.rectTransform.sizeDelta = size + new Vector2(10f, 10f);
                 _page.enabled = true;
                 _edge.enabled = true;
@@ -244,6 +252,15 @@ namespace IMUNROK.Common
             }
 
             // 다 읽고 나면 종이가 그것을 알린다. 돋보기를 떼도 한동안 남는다.
+            // 뒤를 보고 있나 — 그동안만 뒷면으로 덮는다
+            if (_backFace != null && _pageRt != null)
+            {
+                var cam = Camera.main;
+                bool seeingBack = cam != null &&
+                    Vector3.Dot(_pageRt.forward, _pageRt.position - cam.transform.position) < 0f;
+                if (_backFace.enabled != seeingBack) _backFace.enabled = seeingBack;
+            }
+
             _sinceRead += Time.deltaTime;
             if (_readDone) _hint.text = "다 읽었다 — 수첩에 적어 두었다";
             else if (_sinceRead < 0.25f && _readProgress > 0.05f)
@@ -274,7 +291,25 @@ namespace IMUNROK.Common
 
         private void Build()
         {
-            // 뒷배경은 없다. 방이 그대로 보여야 "방에서 종이를 든 것"이 된다.
+            // 방에서 짚은 것에는 뒷배경이 없다 — 방이 그대로 보여야 "방에서 종이를 든 것"이
+            // 된다. 수첩에서 꺼내 들 때만 이 어둠을 켠다.
+            var backRt = NewRect("어둠", Vector2.zero, new Vector2(6000f, 4500f), transform);
+            _backdrop = backRt.gameObject.AddComponent<Image>();
+            _backdrop.color = new Color(0.02f, 0.02f, 0.03f, 0.99f);
+            _backdrop.raycastTarget = false;
+            _backdrop.enabled = false;
+
+            // 어둠은 <b>깊이를 따지지 않고</b> 덮는다. 그러지 않으면 눈앞의 경상이며 책이며
+            // 어둠보다 가까이 있는 것들이 그 위로 비어져 나와, 덮으려던 방이 도로 보인다.
+            // 어둠보다 앞에 그려도 되는 것은 돋보기뿐이고, 그것은 더 나중에 그려진다.
+            var ui = Shader.Find("UI/Default");
+            if (ui != null)
+            {
+                var mat = new Material(ui) { name = "문서_어둠" };
+                mat.SetInt("unity_GUIZTestMode", (int)UnityEngine.Rendering.CompareFunction.Always);
+                _backdrop.material = mat;
+            }
+
             _chrome = new GameObject("글자판", typeof(RectTransform));
             var crt = (RectTransform)_chrome.transform;
             crt.SetParent(transform, false);
@@ -294,6 +329,14 @@ namespace IMUNROK.Common
             _page = _pageRt.gameObject.AddComponent<RawImage>();
             _page.color = _paper;
             _page.raycastTarget = false;
+
+            // 종이 뒷면. UI는 앞뒤가 없어서 돌려 보면 글씨가 그대로 비쳐 보인다 —
+            // 뒤집힌 글씨가 비치는 종이는 세상에 없다. 뒤를 보는 동안만 덮는다.
+            var backFaceRt = NewRect("뒷면", Vector2.zero, new Vector2(_pageSpan, _pageSpan), _hand);
+            _backFace = backFaceRt.gameObject.AddComponent<Image>();
+            _backFace.color = new Color(0.93f, 0.90f, 0.82f);
+            _backFace.raycastTarget = false;
+            _backFace.enabled = false;
 
             // 읽어낸 것 — 종이 <b>아래</b>에 뜬다. 종이 위에는 아무것도 덧그리지 않는다.
             //

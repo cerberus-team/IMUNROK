@@ -42,6 +42,9 @@ namespace IMUNROK.Common
         [SerializeField] private float _glassRadius = 0.07f;
         [Tooltip("렌즈 그림의 해상도. 크면 또렷하나 비싸다")]
         [SerializeField] private int _texSize = 1024;
+        [Tooltip("손에 쥔 종이를 짚고 있을 때 배율을 이만큼 더 준다. 종이의 잔글씨는 " +
+                 "방 저쪽 물건보다 훨씬 잘아서, 같은 배율로는 유리를 대나 마나다")]
+        [Range(1f, 2.5f)] [SerializeField] private float _pageZoomBoost = 1.5f;
 
         [Header("드는 자세")]
         [Tooltip("평소 — 눈 아래 비껴 들고 있다. 앞이 안 가린다")]
@@ -565,7 +568,14 @@ namespace IMUNROK.Common
 
             // 유리가 가리는 반각 θ. 렌즈 카메라는 그 1/배율만 담는다 → 딱 그만큼 커 보인다
             float theta = Mathf.Atan2(_glassRadius, dist) * Mathf.Rad2Deg;
-            _lensCam.fieldOfView = Mathf.Clamp(2f * theta / Mathf.Max(1.01f, _zoom), 0.5f, 120f);
+
+            // 종이를 짚고 있으면 더 조인다. 방 저쪽 물건과 손안의 잔글씨는 잘기가 다르다
+            float zoom = _zoom;
+            if (DocumentView.IsOpen && DocumentView.RayHitsPage(
+                    new Ray(eye, (center - eye).normalized)))
+                zoom *= _pageZoomBoost;
+
+            _lensCam.fieldOfView = Mathf.Clamp(2f * theta / Mathf.Max(1.01f, zoom), 0.5f, 120f);
             _lensCam.nearClipPlane = dist + 0.06f;    // 제 유리·테·자루는 찍지 않는다
 
             // 유리는 늘 눈을 마주 본다(비스듬히 들어도 그림이 어긋나지 않게)

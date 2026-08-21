@@ -45,6 +45,10 @@ namespace IMUNROK.Common
         [Tooltip("켜면 잡고 있는 동안 이미 '헤집은 뒤' 모습이 보인다 — 서랍이 열리면서 " +
                  "안에 든 것이 같이 딸려 나와야 하기 때문이다")]
         [SerializeField] private bool _revealWhileHolding = true;
+        [Tooltip("한 번 들춘 뒤에도 눌러서 도로 내려놓을 수 있다. 들춘 채로 두면 방이 어질러진다")]
+        [SerializeField] private bool _canPutBack = true;
+        [Tooltip("도로 내려놓고 다시 드는 데 걸리는 시간(초). 손으로 가만히 놓는 만큼")]
+        [SerializeField] private float _putBackSeconds = 0.9f;
 
         [Header("두 가지 모습")]
         [Tooltip("헤집기 전 — 고르게 덮인 재")]
@@ -123,6 +127,7 @@ namespace IMUNROK.Common
         // 진행 막대를 따로 그리지 않는 까닭이 여기 있다 — 들려 올라가는 보료가 곧 진행 막대다.
 
         private float _hold;            // 0 = 덮인 채, 1 = 다 들림
+        private bool _lowered;          // 헤집은 뒤에 도로 내려놓았나
         private bool _holdingNow;
         private bool _caught;           // 걸렸다 — 손을 놓아도 안 떨어진다
         private float _fallSpeed;       // 떨어지는 빠르기(무게가 붙으면 점점 빨라진다)
@@ -172,7 +177,7 @@ namespace IMUNROK.Common
         private void ApplyLift()
         {
             if (_hinge == null) return;
-            float k = Raked ? 1f : Mathf.Max(_hold, _hovering && !_locked ? _hoverHint : 0f);
+            float k = Raked ? _hold : Mathf.Max(_hold, _hovering && !_locked ? _hoverHint : 0f);
 
             // 걸리기 전까지는 손끝이 떨린다 — 무거운 것을 들고 있다는 것은 눈으로 보인다
             if (!Raked && !_caught && _holdingNow && _hold > 0.05f)
@@ -185,6 +190,21 @@ namespace IMUNROK.Common
 
         private void Update()
         {
+            // 헤집은 뒤 — 눌러서 도로 내려놓고, 다시 눌러서 들춘다. 뚝 떨어지지 않고
+            // 손으로 가만히 놓는 만큼의 시간을 들여 오르내린다.
+            if (Raked)
+            {
+                float want = _lowered ? 0f : 1f;
+                if (!Mathf.Approximately(_hold, want))
+                {
+                    _hold = Mathf.MoveTowards(_hold, want, Time.deltaTime / Mathf.Max(0.05f, _putBackSeconds));
+                    ShowState(_hold > 0.5f);
+                    ApplyLift();
+                }
+                _holdingNow = false;
+                return;
+            }
+
             if (!Raked && _caught && !_holdingNow && _hold < 1f)
             {
                 // 한 번 걸린 뒤로는 손을 떼도 마저 넘어간다 — 문지방을 넘은 것이다
@@ -234,8 +254,20 @@ namespace IMUNROK.Common
         public void OnHoverEnter() { _hovering = true; ApplyLift(); }
         public void OnHoverExit() { _hovering = false; ApplyLift(); }
 
-        /// <summary>잡을 시간을 0으로 둔 것만 이리로 온다. 나머지는 잡고 있어야 열린다.</summary>
-        public void OnSelect() { if (_holdSeconds <= 0.01f) Rake(); }
+        /// <summary>
+        /// 눌렀을 때. 아직 안 헤집었으면 — 잡을 시간을 0으로 둔 것만 여기서 열린다.
+        /// 이미 헤집은 뒤라면 <b>도로 내려놓거나 다시 들춘다</b>.
+        ///
+        /// 한 번 들춘 것이 영영 들린 채로 있으면 방이 어질러진 채로 남는다. 보료를 들추고
+        /// 밑을 본 다음에는 도로 덮어 두는 것이 사람이 하는 일이다. 덮는다고 본 것이
+        /// 없던 일이 되지는 않으므로, 수첩에 적힌 단서는 그대로 둔다.
+        /// </summary>
+        public void OnSelect()
+        {
+            if (!Raked) { if (_holdSeconds <= 0.01f) Rake(); return; }
+            if (!_canPutBack) return;
+            _lowered = !_lowered;
+        }
 
         private void Rake()
         {
