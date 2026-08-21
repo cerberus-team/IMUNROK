@@ -133,9 +133,23 @@ namespace IMUNROK.Common
             // 트리거를 무시한다 — 안 그러면 인물 몸통이 '바닥'으로 잡혀 옆 사람이 그 위에 올라선다.
             col.isTrigger = true;
             Vector3 ls = host.lossyScale;
-            col.center = host.InverseTransformPoint(body.center);
-            col.height = body.size.y / Mathf.Max(0.0001f, Mathf.Abs(ls.y));
-            col.radius = Mathf.Max(body.size.x, body.size.z) * 0.5f / Mathf.Max(0.0001f, Mathf.Abs(ls.x));
+
+            // <b>사람 크기를 벗어나지 못하게 묶는다.</b>
+            //
+            // 몸 상자는 스킨드 메시에서 얻는데, 그 상자는 첫 자세에서 한 번 잡히고는
+            // 잘 갱신되지 않아 실제보다 몇 배로 부풀어 있는 일이 흔하다. 마름이 그랬다 —
+            // 반지름 1.7m 짜리 콜라이더가 몸에서 두 걸음 앞까지 뻗어 나와 <b>대문의 절반을
+            // 삼켰다</b>. 문을 두드리려고 오른쪽을 눌러도 짚이는 것은 문이 아니라 마름이라
+            // 아무 일도 일어나지 않았다. 사람은 3.6m 로 부풀지 않는다.
+            float wide = Mathf.Clamp(Mathf.Max(body.size.x, body.size.z) * 0.5f, 0.15f, 0.45f);
+            float tall = Mathf.Clamp(body.size.y, 1.2f, 2.2f);
+            Vector3 center = body.center;
+            center.y = Mathf.Min(body.center.y, body.min.y + tall * 0.5f);
+
+            col.direction = 1;                                  // Y축으로 선다
+            col.center = host.InverseTransformPoint(center);
+            col.height = tall / Mathf.Max(0.0001f, Mathf.Abs(ls.y));
+            col.radius = wide / Mathf.Max(0.0001f, Mathf.Abs(ls.x));
             Debug.Log($"[InterrogationController] '{name}' — 몸을 덮는 콜라이더가 없어 '{host.name}' 에 자동으로 붙였습니다.");
         }
 
