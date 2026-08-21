@@ -157,8 +157,19 @@ namespace IMUNROK.Common.Editor
             }
             if (best == null) best = Cluster(src, hi);
 
-            best.name = src.name + "_간소";
-            string path = outDir + "/" + Sanitize(src.name) + "_간소.asset";
+            // 이름만으로 파일을 짓지 않는다.
+            //
+            // glTF 로 들여온 모델은 메시 이름이 죄다 'mesh' 나 'Model_material0_0' 이다.
+            // 이름만 쓰면 안석과 보료가, 벼루·등잔대·동제등잔이 같은 파일에 구워져
+            // 나중 것이 앞엣것을 덮어쓴다. 실제로 그렇게 되어 보료 자리에 안석 모양이
+            // 서 있었다 — 자리는 그대로인데 물건이 바뀌어 있으니 찾기가 고약했다.
+            // 원본이 어느 파일에서 왔는지를 이름에 함께 적는다.
+            string owner = System.IO.Path.GetFileNameWithoutExtension(AssetDatabase.GetAssetPath(src));
+            string stem = string.IsNullOrEmpty(owner) || owner == src.name
+                        ? Sanitize(src.name)
+                        : Sanitize(owner) + "_" + Sanitize(src.name);
+            best.name = stem + "_간소";
+            string path = outDir + "/" + stem + "_간소.asset";
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if (existing != null)
             {

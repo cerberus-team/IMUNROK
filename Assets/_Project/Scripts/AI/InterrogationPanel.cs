@@ -23,8 +23,10 @@ namespace IMUNROK.Common
         [SerializeField] private Color _micColor = new Color(0.20f, 0.35f, 0.28f, 0.9f);
         [SerializeField] private Color _micOnColor = new Color(0.72f, 0.20f, 0.16f, 0.95f);
         [SerializeField] private Color _closeColor = new Color(0.28f, 0.10f, 0.09f, 0.9f);
-        [Tooltip("되돌릴 수 없는 '마치기' 버튼. 잠시 멈추기와 눈에 띄게 달라야 한다")]
+        [Tooltip("되돌릴 수 없는 '마치기' 버튼")]
         [SerializeField] private Color _endColor = new Color(0.42f, 0.30f, 0.10f, 0.95f);
+        [Tooltip("되물을 때의 색. 한 번 더 눌러야 끝난다는 것이 색으로도 보여야 한다")]
+        [SerializeField] private Color _confirmColor = new Color(0.62f, 0.16f, 0.12f, 0.97f);
         [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
 
         private static InterrogationPanel _instance;
@@ -36,6 +38,37 @@ namespace IMUNROK.Common
         private Text _micLabel;
         private readonly List<GameObject> _chips = new List<GameObject>();
         private RectTransform _chipRow;
+        private RectTransform _endRt;
+        private Image _endBg;
+        private Text _endLabel;
+        private float _confirmLeft;      // 되물은 뒤 남은 시간
+
+        private const string EndWord = "이만 마치겠소";
+        private const string AskWord = "정말 마치겠소?";
+
+        /// <summary>되묻고 이만큼(초) 안에 다시 눌러야 끝난다. 지나면 원래대로 돌아간다.</summary>
+        private const float ConfirmSeconds = 3f;
+
+        /// <summary>
+        /// 한 번 누르면 되묻고, 그 사이에 다시 누르면 끝낸다.
+        ///
+        /// 버튼을 둘로 나누는 대신 이 버튼이 두 번 묻는다. 되돌릴 수 없는 일을 막는 데는
+        /// 이편이 낫다 — 곁에 둔 버튼은 무슨 일을 하는지 따로 배워야 하지만, 되묻는 말은
+        /// 그 자리에서 읽힌다.
+        /// </summary>
+        private void OnEndPressed()
+        {
+            if (_confirmLeft > 0f) { _confirmLeft = 0f; ResetEndLook(); _owner?.FinishFromUi(); return; }
+            _confirmLeft = ConfirmSeconds;
+            if (_endLabel != null) _endLabel.text = AskWord;
+            if (_endBg != null) _endBg.color = _confirmColor;
+        }
+
+        private void ResetEndLook()
+        {
+            if (_endLabel != null) _endLabel.text = EndWord;
+            if (_endBg != null) _endBg.color = _endColor;
+        }
         private RawImage _evidence;
         private float _evidenceTimer;
 
@@ -98,6 +131,8 @@ namespace IMUNROK.Common
         private void OpenInternal(InterrogationController owner)
         {
             _owner = owner;
+            _confirmLeft = 0f;
+            ResetEndLook();
             RebuildChips(owner != null ? owner.Topics : null);
             SetVisible(true);
             if (_anchor != null) _anchor.Recenter();
@@ -119,6 +154,12 @@ namespace IMUNROK.Common
             if (_micBg != null) _micBg.color = listening ? _micOnColor : _micColor;
             if (_micLabel != null) _micLabel.text = listening ? "● 듣는 중 (다시 눌러 끝내기)" : "🎤 눌러서 말하기";
 
+            if (_confirmLeft > 0f)
+            {
+                _confirmLeft -= Time.deltaTime;
+                if (_confirmLeft <= 0f) ResetEndLook();
+            }
+
             if (_evidence != null)
             {
                 bool show = _evidenceTimer > 0f;
@@ -133,35 +174,27 @@ namespace IMUNROK.Common
         private void BuildFixedParts()
         {
             // 마이크 — 가장 크게. VR에서 주된 입력 수단이다.
-            var micRt = NewRect("마이크", new Vector2(-330f, 60f), new Vector2(460f, 96f), transform);
+            var micRt = NewRect("마이크", new Vector2(-250f, 60f), new Vector2(560f, 96f), transform);
             _micBg = micRt.gameObject.AddComponent<Image>();
             _micBg.color = _micColor;
             var micBtn = micRt.gameObject.AddComponent<Button>();
             micBtn.targetGraphic = _micBg;
             micBtn.onClick.AddListener(() => MicInput.Instance?.Toggle());
-            _micLabel = NewText("라벨", "🎤 눌러서 말하기", Vector2.zero, new Vector2(460f, 96f), micRt, _fontSize - 2);
-
-            // 잠시 멈추기 — 창만 닫는다. 다시 말을 걸면 이어진다.
-            var closeRt = NewRect("닫기", new Vector2(90f, 60f), new Vector2(260f, 96f), transform);
-            var closeBg = closeRt.gameObject.AddComponent<Image>();
-            closeBg.color = _closeColor;
-            var closeBtn = closeRt.gameObject.AddComponent<Button>();
-            closeBtn.targetGraphic = closeBg;
-            closeBtn.onClick.AddListener(() => _owner?.CloseFromUi());
-            NewText("라벨", "✕ 잠시 멈추다", Vector2.zero, new Vector2(260f, 96f), closeRt, _fontSize - 4);
+            _micLabel = NewText("라벨", "🎤 눌러서 말하기", Vector2.zero, new Vector2(560f, 96f), micRt, _fontSize);
 
             // 마치기 — 이건 되돌릴 수 없다. 상대가 자리를 뜬다.
             //
-            // 예전엔 버튼이 하나였다. 잠깐 창을 치우려고 누른 것과 "볼일이 끝났소" 하고
-            // 일어서는 것이 같은 버튼이면, 손이 미끄러진 한 번으로 심문이 영영 끝난다.
-            // 되돌릴 수 없는 것은 따로 떼어 놓고, 색도 달리 한다.
-            var endRt = NewRect("마치기", new Vector2(400f, 60f), new Vector2(300f, 96f), transform);
-            var endBg = endRt.gameObject.AddComponent<Image>();
-            endBg.color = _endColor;
-            var endBtn = endRt.gameObject.AddComponent<Button>();
-            endBtn.targetGraphic = endBg;
-            endBtn.onClick.AddListener(() => _owner?.FinishFromUi());
-            NewText("라벨", "이만 마치겠소", Vector2.zero, new Vector2(300f, 96f), endRt, _fontSize - 4);
+            // 한때 '잠시 멈추다' 를 곁에 두었다. 손이 미끄러진 한 번에 심문이 영영 끝나는
+            // 것을 막으려던 것인데, 마주 앉아 있는 자리에서 <b>대화를 잠시 치운다</b>는 것이
+            // 무슨 뜻인지 애매했다 — 치워 놓고 할 일이 없다. 안전은 버튼을 하나 더 두어
+            // 얻을 것이 아니라 <b>이 버튼 자신이</b> 두 번 물어 얻는 것이다.
+            _endRt = NewRect("마치기", new Vector2(300f, 60f), new Vector2(340f, 96f), transform);
+            _endBg = _endRt.gameObject.AddComponent<Image>();
+            _endBg.color = _endColor;
+            var endBtn = _endRt.gameObject.AddComponent<Button>();
+            endBtn.targetGraphic = _endBg;
+            endBtn.onClick.AddListener(OnEndPressed);
+            _endLabel = NewText("라벨", EndWord, Vector2.zero, new Vector2(340f, 96f), _endRt, _fontSize - 4);
 
             // 추천 질문이 들어갈 줄
             _chipRow = NewRect("질문줄", new Vector2(0f, -60f), new Vector2(1200f, 90f), transform);
