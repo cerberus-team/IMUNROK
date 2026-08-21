@@ -1313,6 +1313,7 @@ GameObject:
   - component: {fileID: 218465255}
   - component: {fileID: 218465254}
   - component: {fileID: 218465257}
+  - component: {fileID: 218465258}
   m_Layer: 0
   m_Name: "\uB9C8\uB984"
   m_TagString: Untagged
@@ -1450,6 +1451,24 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _autoFitCollider: 1
+--- !u!114 &218465258
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 218465252}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6311cdae2f93c06468f708a1821980ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.FaceThePlayer
+  _turn: {fileID: 115340906}
+  _turnSpeed: 160
+  _holdSeconds: 8
+  _returnAfter: 1
+  _deadZone: 8
+  _moveTolerance: 0.004
 --- !u!1 &226237178
 GameObject:
   m_ObjectHideFlags: 0
@@ -2803,6 +2822,7 @@ GameObject:
   - component: {fileID: 647629104}
   - component: {fileID: 647629103}
   - component: {fileID: 647629106}
+  - component: {fileID: 647629107}
   m_Layer: 0
   m_Name: "\uB299\uC740\uD558\uC778"
   m_TagString: Untagged
@@ -2935,6 +2955,24 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _autoFitCollider: 1
+--- !u!114 &647629107
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 647629101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6311cdae2f93c06468f708a1821980ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.FaceThePlayer
+  _turn: {fileID: 0}
+  _turnSpeed: 160
+  _holdSeconds: 8
+  _returnAfter: 1
+  _deadZone: 8
+  _moveTolerance: 0.004
 --- !u!1 &685582637
 GameObject:
   m_ObjectHideFlags: 0
@@ -3296,6 +3334,7 @@ GameObject:
   - component: {fileID: 714605674}
   - component: {fileID: 714605677}
   - component: {fileID: 714605678}
+  - component: {fileID: 714605679}
   m_Layer: 0
   m_Name: "\u4E59_\uC9C4\uC9DC\uC639\uB355\uAD6C"
   m_TagString: Untagged
@@ -3470,6 +3509,24 @@ MonoBehaviour:
   _bodyBone: {fileID: 5465940246788640980}
   _followSpeed: 1.5
   _maxStepUp: 0.5
+--- !u!114 &714605679
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 714605672}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6311cdae2f93c06468f708a1821980ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.FaceThePlayer
+  _turn: {fileID: 543450653429035072}
+  _turnSpeed: 160
+  _holdSeconds: 8
+  _returnAfter: 1
+  _deadZone: 8
+  _moveTolerance: 0.004
 --- !u!1 &742859724
 GameObject:
   m_ObjectHideFlags: 0
@@ -11655,6 +11712,7 @@ GameObject:
   - component: {fileID: 1366552802}
   - component: {fileID: 1366552803}
   - component: {fileID: 1366552804}
+  - component: {fileID: 1366552805}
   m_Layer: 0
   m_Name: "\uB9C8\uC744\uC0AC\uB78C"
   m_TagString: Untagged
@@ -11794,6 +11852,24 @@ MonoBehaviour:
   _bodyBone: {fileID: 0}
   _followSpeed: 1.5
   _maxStepUp: 0.5
+--- !u!114 &1366552805
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1366552797}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6311cdae2f93c06468f708a1821980ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.FaceThePlayer
+  _turn: {fileID: 1923326937}
+  _turnSpeed: 160
+  _holdSeconds: 8
+  _returnAfter: 1
+  _deadZone: 8
+  _moveTolerance: 0.004
 --- !u!1 &1379753155
 GameObject:
   m_ObjectHideFlags: 0
@@ -12800,6 +12876,7 @@ GameObject:
   - component: {fileID: 1688468740}
   - component: {fileID: 1688468741}
   - component: {fileID: 1688468742}
+  - component: {fileID: 1688468743}
   m_Layer: 0
   m_Name: "\u7532_\uAC00\uC9DC"
   m_TagString: Untagged
@@ -13096,6 +13173,24 @@ MonoBehaviour:
   _target: {fileID: 2064993465}
   _matchFacing: 1
   _once: 1
+--- !u!114 &1688468743
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1688468734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6311cdae2f93c06468f708a1821980ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.FaceThePlayer
+  _turn: {fileID: 1029669642}
+  _turnSpeed: 160
+  _holdSeconds: 8
+  _returnAfter: 1
+  _deadZone: 8
+  _moveTolerance: 0.004
 --- !u!1 &1720484529
 GameObject:
   m_ObjectHideFlags: 0

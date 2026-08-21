@@ -59,6 +59,7 @@ namespace IMUNROK.Common.EditorTools
                     if (!IsSwingBay(dc)) continue;
                     if (FixBay(dc, roomCenter, log)) done++;
                 }
+                if (RigWardrobe(root.transform, log)) done++;
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
                 log.Insert(0, $"칸 {done}개를 바로잡았습니다.\n");
             }
@@ -76,6 +77,133 @@ namespace IMUNROK.Common.EditorTools
         private static bool IsSwingBay(DoorController dc)
         {
             return dc.name.StartsWith("사랑방문") || dc.name.StartsWith("칸막이") || dc.name.StartsWith("쪽문");
+        }
+
+        /// <summary>
+        /// 장롱에 여닫이를 단다.
+        ///
+        /// 장롱은 문짝 메시가 따로 있는데(doorL·doorR) 경첩도 콜라이더도 달려 있지 않아
+        /// <b>짚을 수조차 없었다</b>. 열어도 옷가지뿐이지만, 그래서 다는 것이다 —
+        /// 열리는 것이 죄다 증거를 물고 있으면 여는 일이 조사가 아니라 답 맞히기가 된다.
+        /// 헛걸음이 있어야 뒤지는 보람이 생긴다.
+        ///
+        /// 여는 쪽은 방 한가운데가 아니라 <b>제 몸통</b>에서 잰다. 장롱은 벽이 아니라
+        /// 세간이라, 몸통에서 문짝 쪽으로가 곧 앞이다.
+        /// </summary>
+        private static bool RigWardrobe(Transform root, System.Text.StringBuilder log)
+        {
+            Transform wardrobe = null;
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                if (t.name == "장롱" && t.parent != null && t.parent.name == "소품") wardrobe = t;
+            if (wardrobe == null) return false;
+
+            Renderer body = null, left = null, right = null;
+            foreach (var r in wardrobe.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r.name.Contains("doorL")) left = r;
+                else if (r.name.Contains("doorR")) right = r;
+                else if (body == null || Size(r).magnitude > Size(body).magnitude) body = r;
+            }
+            if (left == null || right == null || body == null) { log.Append("  장롱: 문짝을 못 찾음").Append(NL); return false; }
+
+            // 문짝을 경첩 밑으로 <b>옮기지 않는다</b>. 이 모델은 받아온 FBX 프리팹이라
+            // 그 안에서는 부모를 바꿀 수 없고(유니티가 막는다), 무엇보다 그럴 까닭이 없다 —
+            // 만든 사람이 이미 문짝 마디를 <b>경첩 자리에</b> 세워 두었다.
+            // doorL 마디는 문짝의 +z 모서리, doorR 마디는 −z 모서리에 그대로 앉아 있다.
+            Transform lp = HingeNode(left.transform, "doorL");
+            Transform rp = HingeNode(right.transform, "doorR");
+            if (lp == null || rp == null) { log.Append("  장롱: 문짝 마디를 못 찾음").Append(NL); return false; }
+
+            // 앞서 잘못 만들어 둔 빈 경첩이 있으면 치운다
+            for (int i = wardrobe.childCount - 1; i >= 0; i--)
+            {
+                var c = wardrobe.GetChild(i);
+                if (c.name.StartsWith("장롱_경첩") && c.childCount == 0) Object.DestroyImmediate(c.gameObject);
+            }
+
+            Bounds lb = MeshWorldBounds(left.transform), rb = MeshWorldBounds(right.transform);
+            Bounds bb = MeshWorldBounds(body.transform);
+
+            // 세간의 앞 — 몸통 한가운데에서 문짝 쪽으로. 벽이 아니므로 방 한가운데로 재면 안 된다
+            Vector3 outward = lb.center - bb.center;
+            outward.y = 0f;
+            outward = Mathf.Abs(outward.x) >= Mathf.Abs(outward.z)
+                    ? new Vector3(Mathf.Sign(outward.x), 0f, 0f)
+                    : new Vector3(0f, 0f, Mathf.Sign(outward.z));
+
+            var dc = wardrobe.GetComponent<DoorController>();
+            if (dc == null) dc = wardrobe.gameObject.AddComponent<DoorController>();
+            var so = new SerializedObject(dc);
+            so.FindProperty("_motion").enumValueIndex = 0;
+            var arr = so.FindProperty("_leaves");
+            arr.arraySize = 2;
+
+            var pivots = new Transform[] { lp, rp };
+            var pairB = new Bounds[] { lb, rb };
+            var leaves = new Renderer[] { left, right };
+            for (int i = 0; i < 2; i++)
+            {
+                var pivot = pivots[i];
+                var b = pairB[i];
+
+                var bc = leaves[i].GetComponent<BoxCollider>();
+                if (bc == null) bc = leaves[i].gameObject.AddComponent<BoxCollider>();
+                var mf = leaves[i].GetComponent<MeshFilter>();
+                if (mf != null && mf.sharedMesh != null)
+                {
+                    bc.center = mf.sharedMesh.bounds.center;
+                    var ms = mf.sharedMesh.bounds.size;
+                    bc.size = new Vector3(Mathf.Max(ms.x, 0.02f), ms.y, Mathf.Max(ms.z, 0.02f));
+                }
+                ClearStatic(pivot.gameObject);
+
+                Vector3 arm = b.center - pivot.position;
+                arm.y = 0f;
+                float sign = Mathf.Sign(arm.z * outward.x - arm.x * outward.z);
+                if (Mathf.Approximately(sign, 0f)) sign = 1f;
+
+                var el = arr.GetArrayElementAtIndex(i);
+                el.FindPropertyRelative("pivot").objectReferenceValue = pivot;
+                el.FindPropertyRelative("swingAngle").floatValue = Swing * sign;
+                el.FindPropertyRelative("slideOffset").vector3Value = Vector3.zero;
+
+                log.Append("  장롱 ").Append(pivot.name).Append(" 경첩 ").Append(pivot.position.ToString("F2"))
+                   .Append(" 각 ").Append((Swing * sign).ToString("F0")).Append(NL);
+            }
+            so.FindProperty("_openDuration").floatValue = 1f;
+            so.FindProperty("_playerCanToggle").boolValue = true;
+            so.FindProperty("_maxTouchDistance").floatValue = 2.5f;
+            so.FindProperty("_locked").boolValue = false;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            ClearStatic(wardrobe.gameObject);
+
+            // 열어 보면 옷가지뿐이라는 것을 알려 준다 — 헛걸음도 조사의 일부다
+            var say = wardrobe.gameObject.GetComponent<SayWhenOpened>();
+            if (say == null) say = wardrobe.gameObject.AddComponent<SayWhenOpened>();
+            var sso = new SerializedObject(say);
+            sso.FindProperty("_line").stringValue = "개어 둔 옷가지뿐이다. 안사람 것이라던 말은 맞다.";
+            sso.ApplyModifiedPropertiesWithoutUndo();
+
+            log.Append("  장롱에 여닫이를 달았다").Append(NL);
+            return true;
+        }
+
+        /// <summary>문짝 메시에서 위로 올라가 <b>그 문짝의 마디</b>를 찾는다(경첩 자리에 서 있다).</summary>
+        private static Transform HingeNode(Transform leaf, string key)
+        {
+            var t = leaf.parent;
+            while (t != null)
+            {
+                if (t.name.Contains(key)) return t;
+                t = t.parent;
+            }
+            return null;
+        }
+
+        private static Vector3 Size(Renderer r)
+        {
+            var mf = r.GetComponent<MeshFilter>();
+            return mf != null && mf.sharedMesh != null ? mf.sharedMesh.bounds.size : Vector3.zero;
         }
 
         /// <summary>이 칸은 미닫이인가 — 방과 방 사이는 옆으로 민다.</summary>

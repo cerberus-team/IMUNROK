@@ -74,6 +74,8 @@ namespace IMUNROK.Common
             if (mouse.leftButton.wasPressedThisFrame && holdable == null)
             {
                 if (TouchRefusal.Blocks(_current as Component)) return;
+                // 사람을 눌렀으면 먼저 이쪽을 돌아본다 — 벽을 보고 대답하는 사람은 없다
+                FaceThePlayer.Notify(_current as Component);
                 _current?.OnSelect();
             }
 #endif

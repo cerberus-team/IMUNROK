@@ -78,6 +78,9 @@ namespace IMUNROK.Common
         // 지금 열려 있는 심문(수첩에서 증거를 들이밀 대상)
         public static InterrogationController Active { get; private set; }
 
+        /// <summary>이 사람과 지금 마주 이야기하는 중인가. 돌아보기(FaceThePlayer)가 참고한다.</summary>
+        public bool IsOpen => _active;
+
         private INpcResponder _responder;
         private readonly List<string> _transcript = new List<string>();
         private readonly List<string> _unlockedFacts = new List<string>();
