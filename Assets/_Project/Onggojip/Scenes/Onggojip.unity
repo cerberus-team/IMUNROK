@@ -567,7 +567,6 @@ MonoBehaviour:
   _maxTouchDistance: 3
   _fineText: 
   _clueNeedsMagnifier: 0
-  _magnifierToolId: magnify
   _title: "\uC7AC \uC548\uCABD"
   _body: "\uC7AC \uC548\uCABD\uC744 \uB354 \uD5E4\uC9D1\uC790 \uC885\uC774 \uC7AC\uAC00
     \uD55C \uBB49\uCE58 \uB354 \uB098\uC628\uB2E4. \uD0DC\uC6B4 \uAC83\uC774 \uD55C
@@ -2550,12 +2549,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b8e8c95a8470bf4eb8d40d4c9e925c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.InspectableNote
-  _page: {fileID: 0}
+  _page: {fileID: 2800000, guid: 6e5e3982a13a6c04cb4fb5440bfbff4a, type: 3}
   _canOpen: 1
   _maxTouchDistance: 3
-  _fineText: 
-  _clueNeedsMagnifier: 0
-  _magnifierToolId: magnify
+  _fineText: "\uB9C8\uC9C0\uB9C9 \uB450 \uC904\uC5D0\uB9CC \uC218\uACB0(\u624B\u6C7A)\uC774
+    \uB20C\uB824 \uC788\uB2E4. \uC55E\uC758 \uAC83\uC5D0\uB294 \uC5C6\uB2E4."
+  _clueNeedsMagnifier: 1
   _title: "\uBB3C\uBAA9 \uC7A5\uBD80"
   _body: "\uC2A4\uBB34 \uD574\uCE58\uC5D0\uB294 \uC218\uACB0(\u62BC)\uC774 \uC5C6\uB294\uB370,
     \uCD5C\uADFC \uD55C \uB2EC\uCE58\uC5D0\uB9CC \uCC0D\uD600 \uC788\uB2E4."
@@ -2929,6 +2928,8 @@ GameObject:
   - component: {fileID: 685582638}
   - component: {fileID: 685582640}
   - component: {fileID: 685582639}
+  - component: {fileID: 685582642}
+  - component: {fileID: 685582641}
   m_Layer: 0
   m_Name: "\uC11C\uCC30\uC870\uAC01_J13"
   m_TagString: Untagged
@@ -3008,6 +3009,55 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 685582637}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &685582641
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 685582637}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b8e8c95a8470bf4eb8d40d4c9e925c2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.InspectableNote
+  _page: {fileID: 2800000, guid: ae4f9fa2ed316514a894d2a0db078e55, type: 3}
+  _canOpen: 1
+  _maxTouchDistance: 3
+  _fineText: "\uB0A8\uC740 \uD68D\uC73C\uB85C '\u2026\uB3CC\uC544\uC624\uC9C0 \uBABB\uD558\uAC8C\u2026'
+    \uC640 '\u2026\uC2A4\uBB34 \uB0E5\u2026' \uC774 \uC77D\uD78C\uB2E4."
+  _clueNeedsMagnifier: 0
+  _title: "\uD0C0\uB2E4 \uB9CC \uC11C\uCC30 \uC870\uAC01"
+  _body: "\uC544\uAD81\uC774 \uC7AC \uC18D\uC5D0\uC11C \uB098\uC628 \uC885\uC774\uB2E4.
+    \uAC00\uC7A5\uC790\uB9AC\uAC00 \uAC80\uAC8C \uC624\uADF8\uB77C\uB4E4\uC5C8\uB2E4."
+  _requiresMagnifier: 0
+  _recordClue: 1
+  _clueCase: 0
+  _clueKey: J13
+  _clueText: "[J13] \uC544\uAD81\uC774 \uC7AC \uC18D\uC5D0\uC11C \uB098\uC628 \uC885\uC774\uB2E4.
+    \uAC00\uC7A5\uC790\uB9AC\uAC00 \uAC80\uAC8C \uC624\uADF8\uB77C\uB4E4\uC5C8\uB2E4."
+  _clueImage: {fileID: 0}
+--- !u!65 &685582642
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 685582637}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 0.05}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &686935864
 GameObject:
   m_ObjectHideFlags: 0
@@ -3859,6 +3909,8 @@ MonoBehaviour:
   _holdSeconds: 0.9
   _hoverHint: 0.06
   _fallBackSpeed: 2.5
+  _catchAt: 0.62
+  _weight: 0.28
   _revealWhileHolding: 1
   _before: {fileID: 57506538}
   _after: {fileID: 0}
@@ -3877,6 +3929,8 @@ MonoBehaviour:
   _clueText: "[J08] \uBB38\uAC11 \uC11C\uB78D\uC5D0 \uC0AC\uC0BF\uC9D1 \uBB38\uC11C
     \uC5EC\uB7EC \uC7A5."
   _clueImage: {fileID: 0}
+  _cluePage: {fileID: 0}
+  _clueFine: 
   _onRaked:
     m_PersistentCalls:
       m_Calls: []
@@ -4159,6 +4213,8 @@ MonoBehaviour:
   _holdSeconds: 0.8
   _hoverHint: 0.06
   _fallBackSpeed: 2.5
+  _catchAt: 0.62
+  _weight: 0.28
   _revealWhileHolding: 1
   _before: {fileID: 2007637631}
   _after: {fileID: 564063997}
@@ -4178,6 +4234,9 @@ MonoBehaviour:
   _clueText: "[J13] \uC544\uAD81\uC774 \uC7AC \uC18D\uC5D0 \uD0C0\uB2E4 \uB9CC \uC11C\uCC30
     \uC870\uAC01."
   _clueImage: {fileID: 0}
+  _cluePage: {fileID: 2800000, guid: ae4f9fa2ed316514a894d2a0db078e55, type: 3}
+  _clueFine: "\uB0A8\uC740 \uD68D\uC73C\uB85C '\u2026\uB3CC\uC544\uC624\uC9C0 \uBABB\uD558\uAC8C\u2026'
+    \uC640 '\u2026\uC2A4\uBB34 \uB0E5\u2026' \uC774 \uC77D\uD78C\uB2E4."
   _onRaked:
     m_PersistentCalls:
       m_Calls:
@@ -4581,6 +4640,8 @@ MonoBehaviour:
   _holdSeconds: 1
   _hoverHint: 0.06
   _fallBackSpeed: 2.5
+  _catchAt: 0.66
+  _weight: 0.34
   _revealWhileHolding: 1
   _before: {fileID: 900045298}
   _after: {fileID: 844021625}
@@ -4601,6 +4662,9 @@ MonoBehaviour:
     '\uC624\uB798 \uBD80\uB9B0 \uC885 \uBCF5\uB3D9\uC5D0\uAC8C' \uC900\uB2E4 \u2014
     \uC544\uB4E4\uC774\uB77C\uB294 \uB9D0\uC774 \uC5C6\uB2E4."
   _clueImage: {fileID: 0}
+  _cluePage: {fileID: 2800000, guid: 026958a115f7a0d4a97fc756841adada, type: 3}
+  _clueFine: "\uC7AC\uC0B0\uC744 '\uC624\uB798 \uBD80\uB9B0 \uC885 \uBCF5\uB3D9\uC5D0\uAC8C'
+    \uC900\uB2E4 \u2014 \uC544\uB4E4\uC774\uB77C \uC801\uC9C0 \uC54A\uC558\uB2E4."
   _onRaked:
     m_PersistentCalls:
       m_Calls: []
@@ -5791,7 +5855,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1106456854
 Transform:
   m_ObjectHideFlags: 0
@@ -5819,12 +5883,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b8e8c95a8470bf4eb8d40d4c9e925c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.InspectableNote
-  _page: {fileID: 0}
+  _page: {fileID: 2800000, guid: 206fbec17bf1a9b48afc30a1eb992528, type: 3}
   _canOpen: 1
   _maxTouchDistance: 3
-  _fineText: 
+  _fineText: "\uBC1B\uC744 \uACF3\uC774 \uC774 \uACE0\uC744\uC774 \uC544\uB2C8\uB2E4.
+    \uAC1A\uC740 \uC790\uCDE8\uB3C4 \uC801\uD600 \uC788\uC9C0 \uC54A\uB2E4."
   _clueNeedsMagnifier: 0
-  _magnifierToolId: magnify
   _title: "\uC218\uD45C(\u624B\u6A19)"
   _body: "\uBB34\uC7A5\uD604 \uBC15\uAC00\uC5D0\uAC8C \uC77C\uBC31 \uB0E5. \uC0BC
     \uB144\uC774 \uC9C0\uB098\uB3C4\uB85D \uB4E4\uC5B4\uC624\uC9C0 \uC54A\uC544 \uAD00\uC5D0
@@ -6423,12 +6487,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b8e8c95a8470bf4eb8d40d4c9e925c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.InspectableNote
-  _page: {fileID: 0}
+  _page: {fileID: 2800000, guid: 1cc41d64a2ca5e842b7f459b07ab6b6d, type: 3}
   _canOpen: 1
   _maxTouchDistance: 3
-  _fineText: 
+  _fineText: "\uBCF8\uC804 \uC5F4 \uB0E5\uC5D0 \uC774\uC790 \uC5F4 \uB0E5 \u2014
+    \uD55C \uD574 \uAC11\uB9AC(\u7532\u5229)\uB2E4. \uB098\uB77C\uAC00 \uAE08\uD55C
+    \uC774\uC790\uB2E4."
   _clueNeedsMagnifier: 0
-  _magnifierToolId: magnify
   _title: "\uCC28\uC6A9\uC99D"
   _body: "\uC774\uC790\uAC00 \uAC11\uB9AC(\u7532\u5229) \u2014 \uD55C \uD574\uC5D0
     \uC5F4 \uC12C\uC744 \uAFBC \uB9CC\uD07C \uB354 \uAC1A\uC73C\uB77C \uC801\uD600
@@ -12090,7 +12155,6 @@ MonoBehaviour:
   _maxTouchDistance: 3
   _fineText: 
   _clueNeedsMagnifier: 0
-  _magnifierToolId: magnify
   _title: "\uC7A5\uBD80"
   _body: "\uC2A4\uBB34 \uD574\uCE58\uAC00 \uD55C \uC190\uC73C\uB85C \uC801\uD788\uB2E4\uAC00,
     \uCD5C\uADFC \uB450 \uC904\uB9CC \uBD93\uC774 \uB2E4\uB974\uB2E4. \uAE00\uC790\uB97C
@@ -17980,6 +18044,20 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5260064872674817566, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
+      propertyPath: _page
+      value: 
+      objectReference: {fileID: 2800000, guid: 976316d300456484099e0477c95dccd9, type: 3}
+    - target: {fileID: 5260064872674817566, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
+      propertyPath: _fineText
+      value: "\u58EC\u620C\u5E74 \uC774\uD6C4 \uB450 \uC904\uB9CC \uBD93\uB05D\uC774
+        \uB2E4\uB974\uB2E4. \uD68D\uC758 \uCCAB\uBA38\uB9AC\uAC00 \uBB34\uB514\uACE0
+        \uC090\uCE68\uC774 \uC9E7\uB2E4 \u2014 \uAC19\uC740 \uC190\uC774 \uC544\uB2C8\uB2E4."
+      objectReference: {fileID: 0}
+    - target: {fileID: 5260064872674817566, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
+      propertyPath: _clueNeedsMagnifier
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6864834452352987828, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_Name
       value: "_\uCC45A"
@@ -23691,6 +23769,8 @@ GameObject:
   - component: {fileID: 1986024754}
   - component: {fileID: 1986024756}
   - component: {fileID: 1986024755}
+  - component: {fileID: 1986024758}
+  - component: {fileID: 1986024757}
   m_Layer: 0
   m_Name: "\uBCC4\uAE09\uBB38\uAE30_J15"
   m_TagString: Untagged
@@ -23770,6 +23850,59 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1986024753}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1986024757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1986024753}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b8e8c95a8470bf4eb8d40d4c9e925c2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.InspectableNote
+  _page: {fileID: 2800000, guid: 026958a115f7a0d4a97fc756841adada, type: 3}
+  _canOpen: 1
+  _maxTouchDistance: 3
+  _fineText: "\uC7AC\uC0B0\uC744 '\uC624\uB798 \uBD80\uB9B0 \uC885 \uBCF5\uB3D9\uC5D0\uAC8C'
+    \uC900\uB2E4 \u2014 \uC544\uB4E4\uC774\uB77C \uC801\uC9C0 \uC54A\uC558\uB2E4.
+    \uC900 \uB0A0\uC740 \uC639\uACE0\uC9D1\uC774 \uC0AC\uB77C\uC9C0\uAE30 \uC0AC\uD758
+    \uC804\uC774\uB2E4."
+  _clueNeedsMagnifier: 0
+  _title: "\uBCC4\uAE09\uBB38\uAE30(\u5225\u7D66\u6587\u8A18)"
+  _body: "\uBCF4\uB8CC \uBC11\uC5D0 \uAE54\uB824 \uC788\uB358 \uC885\uC774\uB2E4.
+    \uC7AC\uC0B0\uC744 \uB118\uAE34\uB2E4\uB294 \uBB38\uC11C\uC778\uB370, \uBC1B\uB294
+    \uC774\uC758 \uC774\uB984\uC774 \uB0AF\uC124\uB2E4."
+  _requiresMagnifier: 0
+  _recordClue: 1
+  _clueCase: 0
+  _clueKey: J15
+  _clueText: "[J15] \uBCF4\uB8CC \uBC11\uC5D0 \uAE54\uB824 \uC788\uB358 \uC885\uC774\uB2E4.
+    \uC7AC\uC0B0\uC744 \uB118\uAE34\uB2E4\uB294 \uBB38\uC11C\uC778\uB370, \uBC1B\uB294
+    \uC774\uC758 \uC774\uB984\uC774 \uB0AF\uC124\uB2E4."
+  _clueImage: {fileID: 0}
+--- !u!65 &1986024758
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1986024753}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 0.05}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1994009600
 GameObject:
   m_ObjectHideFlags: 0

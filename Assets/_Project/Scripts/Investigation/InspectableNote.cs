@@ -10,29 +10,31 @@ namespace IMUNROK.Common
     ///   Title  : "옹고집의 점"
     ///   Body   : "왼뺨에 점이 없다. 진짜에게는 있었다."
     ///   Record Clue 체크 → Clue Case/Key/Text 입력 시, 살펴보면 수첩에 자동 기록.
+    ///
+    /// 문서라면 <b>종이 면(_page)</b>을 걸어 둔다. 누르면 그 종이를 손에 쥐고
+    /// (<see cref="DocumentView"/>), 잔글씨(_fineText)는 종이에 <b>진짜로 작게</b> 적힌다.
+    /// 맨눈으로는 못 읽고 돋보기를 눈에 대야 읽힌다 — 읽고 나서야 단서가 적힌다.
     /// </summary>
-    public class InspectableNote : MonoBehaviour, IInspectable, ISelectable
+    public class InspectableNote : MonoBehaviour, IInspectable, ISelectable, IMagnifiable
     {
-        [Header("눌러서 크게 보기")]
-        [Tooltip("눈앞에 펼쳐 보여줄 종이 면. 비우면 이 물건의 재질에서 알아서 찾는다")]
+        [Header("눌러서 손에 쥐기")]
+        [Tooltip("손에 쥐고 볼 종이 면. 비우면 이 물건의 재질에서 알아서 찾는다")]
         [SerializeField] private Texture2D _page;
-        [Tooltip("끄면 눌러도 안 펼쳐진다(펼쳐 볼 것이 없는 물건)")]
+        [Tooltip("끄면 눌러도 안 쥐어진다(쥐어 볼 것이 없는 물건)")]
         [SerializeField] private bool _canOpen = true;
-        [Tooltip("이 거리(m) 안에서만 펼쳐 볼 수 있다")]
+        [Tooltip("이 거리(m) 안에서만 쥘 수 있다")]
         [SerializeField] private float _maxTouchDistance = 3f;
         [TextArea]
-        [Tooltip("돋보기로 들여다봐야 비로소 읽히는 것. 비우면 본문만 보인다")]
+        [Tooltip("종이에 작게 적히는 글. 돋보기를 대야 읽힌다. 비우면 본문만 보인다")]
         [SerializeField] private string _fineText = "";
-        [Tooltip("돋보기로 읽어야만 단서가 적힌다. 끄면 맨눈으로 펼쳐도 적힌다")]
+        [Tooltip("돋보기로 읽어야만 단서가 적힌다. 끄면 쥐어 보기만 해도 적힌다")]
         [SerializeField] private bool _clueNeedsMagnifier = false;
-        [Tooltip("돋보기로 취급할 도구 id")]
-        [SerializeField] private string _magnifierToolId = "magnify";
 
         [SerializeField] private string _title = "";
         [TextArea]
         [SerializeField] private string _body = "";
 
-        [Tooltip("켜면 '돋보기'를 손에 들었을 때만 보인다(손목 흉터·필적 등 세밀한 단서). 끄면 맨눈으로도 보임")]
+        [Tooltip("켜면 '돋보기'로 들여다봐야 보인다(손목 흉터·필적 등 세밀한 단서). 끄면 맨눈으로도 보임")]
         [SerializeField] private bool _requiresMagnifier = false;
         public bool RequiresMagnifier => _requiresMagnifier;
 
@@ -66,20 +68,34 @@ namespace IMUNROK.Common
             string key = string.IsNullOrEmpty(_clueKey) ? _title : _clueKey;
             string text = string.IsNullOrEmpty(_clueText) ? _body : _clueText;
             Journal.Instance.AddClue(_clueCase, key, text, _clueImage);
+            Remember(key);
             _recorded = true;
         }
 
-        // ── 눌러서 크게 보기 ────────────────────────
+        /// <summary>
+        /// 수첩에서 이 문서를 다시 펼쳐 볼 수 있게 종이를 함께 걸어 둔다.
+        ///
+        /// 물증은 한 번 보고 마는 것이 아니다. 심문 도중 "그 장부에 뭐라 적혀 있었더라"
+        /// 하고 되짚어야 하는데, 방에 두고 온 종이를 다시 보러 돌아갈 수는 없다.
+        /// </summary>
+        private void Remember(string key)
+        {
+            var page = ResolvePage();
+            if (page == null) return;
+            Journal.Instance.AttachDocument(_clueCase, key, page, _title, _body, _fineText);
+        }
+
+        // ── 눌러서 손에 쥐기 ────────────────────────
 
         public void OnHoverEnter() { }
         public void OnHoverExit() { }
 
         /// <summary>
-        /// 종이를 눈앞에 펼친다 — <b>집어 들지 않고</b>.
+        /// 종이를 손에 쥔다 — 방은 그대로 두고.
         ///
-        /// 손바닥만 한 종잇장을 마루에 놓인 채로 읽을 수는 없다. 그렇다고 집어 들게 하면
-        /// 손에 든 물건이 하나 더 늘 뿐이다. 돋보기를 들여다보는 일은 물건을 옮기는 게
-        /// 아니라 눈을 갖다 대는 것이므로, 종이는 그 자리에 두고 면만 끌어와 펼친다.
+        /// 손바닥만 한 종잇장을 마루에 놓인 채로 읽을 수는 없다. 그렇다고 화면을 까맣게
+        /// 덮으면 조사하던 방이 사라진다. 그래서 종이만 눈앞으로 들어올린다.
+        /// 잔글씨는 종이에 작게 적힌 채로 올라오므로, 읽으려면 돋보기를 대야 한다.
         /// </summary>
         public void OnSelect()
         {
@@ -90,17 +106,25 @@ namespace IMUNROK.Common
                 ModelBounds.DistanceTo(transform, cam.transform.position) > _maxTouchDistance)
                 return;
 
-            bool magnified = ToolbeltHud.SelectedToolId == _magnifierToolId;
-            string text = _body;
-            if (magnified && !string.IsNullOrEmpty(_fineText))
-                text = string.IsNullOrEmpty(_body) ? _fineText : _body + System.Environment.NewLine + _fineText;
+            DocumentView.Show(ResolvePage(), _title, _body, _fineText, Record);
 
-            DocumentView.Show(ResolvePage(), _title, text, magnified);
-
-            if (magnified || !_clueNeedsMagnifier) Record();
+            // 맨눈으로도 알 수 있는 것이면 쥔 것만으로 적힌다.
+            // 잔글씨라야 아는 것이면 돋보기로 다 읽었을 때 위 콜백이 부른다.
+            if (!_clueNeedsMagnifier) Record();
         }
 
-        /// <summary>펼쳐 보일 종이 면. 손으로 걸어 두지 않았으면 제 재질에서 찾는다.</summary>
+        // ── 돋보기로 들여다보기 ────────────────────
+
+        /// <summary>
+        /// 방에 놓인 채로 돋보기를 대고 들여다본 것. 손목 흉터처럼 쥘 수 없는 것에 쓴다.
+        /// </summary>
+        public void OnMagnifiedGaze(float progress)
+        {
+            if (progress < 1f) return;
+            Record();
+        }
+
+        /// <summary>쥐어 보일 종이 면. 손으로 걸어 두지 않았으면 제 재질에서 찾는다.</summary>
         private Texture2D ResolvePage()
         {
             if (_page != null) return _page;

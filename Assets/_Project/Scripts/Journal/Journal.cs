@@ -110,11 +110,46 @@ namespace IMUNROK.Common
         public Texture2D GetClueImage(CaseId caseId, string key)
             => _clueImages.TryGetValue(ImgKey(caseId, key), out var t) ? t : null;
 
+        // ── 물증에 딸린 문서(런타임 전용) ──
+
+        /// <summary>수첩에서 다시 펼쳐 볼 수 있는 한 장.</summary>
+        public class ClueDocument
+        {
+            public Texture2D page;
+            public string title;
+            public string body;
+            public string fine;    // 돋보기로만 읽히는 잔글씨
+        }
+
+        private readonly Dictionary<string, ClueDocument> _clueDocs = new Dictionary<string, ClueDocument>();
+
+        /// <summary>
+        /// 이 단서의 종이를 함께 적어 둔다 — 수첩에서 다시 펼쳐 볼 수 있게.
+        ///
+        /// 정황(증언·목격)은 들은 것이라 다시 볼 것이 없지만, 물증은 손에 잡히는 종이다.
+        /// 심문 도중 "그 장부에 뭐라 적혀 있었더라" 하고 되짚을 때 방으로 돌아갈 수는 없다.
+        /// </summary>
+        public void AttachDocument(CaseId caseId, string key, Texture2D page,
+                                   string title, string body, string fine = null)
+        {
+            if (page == null || string.IsNullOrEmpty(key)) return;
+            _clueDocs[ImgKey(caseId, key)] = new ClueDocument
+            { page = page, title = title, body = body, fine = fine };
+        }
+
+        /// <summary>이 단서에 딸린 문서(없으면 null).</summary>
+        public ClueDocument GetDocument(CaseId caseId, string key)
+        {
+            ClueDocument d;
+            return _clueDocs.TryGetValue(ImgKey(caseId, key), out d) ? d : null;
+        }
+
         /// <summary>모두 지움(디버그/재시작용).</summary>
         public void ClearAll()
         {
             _clues.Clear();
             _clueImages.Clear();   // 그림 참조도 같이 버린다(안 지우면 텍스처를 계속 붙들고 있음)
+            _clueDocs.Clear();
             Debug.Log("[Journal] 수첩 초기화");
         }
 

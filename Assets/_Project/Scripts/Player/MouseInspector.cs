@@ -44,8 +44,12 @@ namespace IMUNROK.Common
             if (Physics.Raycast(ray, out RaycastHit info, _maxDistance, _mask))
                 hit = info.collider.GetComponentInParent<IInspectable>();
 
-            // 이 물건이 '돋보기 필요' 표시인데 지금 돋보기를 안 들었으면 → 힌트만, 단서 기록 X
-            bool hasMag = ToolbeltHud.SelectedToolId == _magnifierToolId;
+            // 이 물건이 '돋보기 필요' 표시인데 지금 들여다보고 있지 않으면 → 힌트만, 단서 기록 X
+            //
+            // 예전에는 '돋보기를 들었는가'만 봤다. 그러면 돋보기는 주머니에 든 열쇠지
+            // 눈에 대는 유리가 아니다. 이제는 렌즈를 눈에 대고 그 물건을 짚어야 한다.
+            bool hasMag = MagnifierLens.Peering
+                          || (ToolbeltHud.SelectedToolId == _magnifierToolId && !MagnifierLens.Held);
             bool needsMag = (hit as InspectableNote)?.RequiresMagnifier ?? false;
             if (hit != null && needsMag && !hasMag)
             {
@@ -76,7 +80,9 @@ namespace IMUNROK.Common
             if (_current == null)
             {
                 if (_needMagHint)
-                    GUI.Label(new Rect(x, y, w, 24), "돋보기로 자세히 봐야 할 것 같다…", _titleStyle);
+                    GUI.Label(new Rect(x, y, w, 24),
+                              MagnifierLens.Held ? "돋보기를 눈에 대야겠다 (오른쪽 단추)"
+                                                 : "돋보기로 자세히 봐야 할 것 같다…", _titleStyle);
                 return;
             }
 

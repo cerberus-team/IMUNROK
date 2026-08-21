@@ -37,6 +37,11 @@ namespace IMUNROK.Common
         [SerializeField] private float _hoverHint = 0.06f;
         [Tooltip("놓았을 때 제자리로 돌아가는 속도 배수")]
         [SerializeField] private float _fallBackSpeed = 2.5f;
+        [Tooltip("이만큼(0~1) 넘게 들어 올려야 걸린다. 그 아래서 손을 놓으면 무게에 못 이겨 " +
+                 "도로 떨어진다. 0이면 예전처럼 들리는 대로 들린다")]
+        [Range(0f, 0.95f)] [SerializeField] private float _catchAt = 0.62f;
+        [Tooltip("걸리기 전까지 손끝에 느껴지는 무게. 들어 올리는 동안 조금씩 되끌린다")]
+        [Range(0f, 0.6f)] [SerializeField] private float _weight = 0.28f;
         [Tooltip("켜면 잡고 있는 동안 이미 '헤집은 뒤' 모습이 보인다 — 서랍이 열리면서 " +
                  "안에 든 것이 같이 딸려 나와야 하기 때문이다")]
         [SerializeField] private bool _revealWhileHolding = true;
@@ -75,6 +80,11 @@ namespace IMUNROK.Common
         [TextArea(2, 4)]
         [SerializeField] private string _clueText = "[J13] 한여름 밤인데 불을 땐 자리다. 재를 헤집으니 타다 만 서찰 조각이 나온다.";
         [SerializeField] private Texture2D _clueImage;
+        [Tooltip("밑에서 나온 것이 종이라면 그 종이 면. 넣어 두면 수첩에서 다시 펼쳐 볼 수 있다")]
+        [SerializeField] private Texture2D _cluePage;
+        [TextArea(2, 4)]
+        [Tooltip("그 종이의 잔글씨 — 돋보기를 대야 읽힌다")]
+        [SerializeField] private string _clueFine = "";
 
         [Tooltip("헤집은 순간 한 번 실행(더 안쪽을 열어주는 등)")]
         [SerializeField] private UnityEvent _onRaked;
@@ -114,6 +124,8 @@ namespace IMUNROK.Common
 
         private float _hold;            // 0 = 덮인 채, 1 = 다 들림
         private bool _holdingNow;
+        private bool _caught;           // 걸렸다 — 손을 놓아도 안 떨어진다
+        private float _fallSpeed;       // 떨어지는 빠르기(무게가 붙으면 점점 빨라진다)
         private bool _hovering;
         private Vector3 _restPos;
         private Quaternion _restRot;
@@ -124,7 +136,12 @@ namespace IMUNROK.Common
             _holdingNow = true;
             if (_holdSeconds <= 0.01f) { Rake(); return; }
 
-            _hold = Mathf.Clamp01(_hold + dt / _holdSeconds);
+            // 무게 — 걸리기 전까지는 드는 손과 끌어내리는 무게가 맞선다.
+            // 그래서 반쯤 들다 놓으면 도로 덮인다. 보료는 솜이 두툼한 요다.
+            float pull = _hold < _catchAt ? _weight : 0f;
+            _hold = Mathf.Clamp01(_hold + (1f - pull) * dt / _holdSeconds);
+            if (_hold >= _catchAt) _caught = true;
+
             if (_revealWhileHolding && _hold > 0.02f) ShowState(true);
             ApplyLift();
             if (_hold >= 1f) Rake();
@@ -156,20 +173,36 @@ namespace IMUNROK.Common
         {
             if (_hinge == null) return;
             float k = Raked ? 1f : Mathf.Max(_hold, _hovering && !_locked ? _hoverHint : 0f);
-            float e = Mathf.SmoothStep(0f, 1f, k);
+
+            // 걸리기 전까지는 손끝이 떨린다 — 무거운 것을 들고 있다는 것은 눈으로 보인다
+            if (!Raked && !_caught && _holdingNow && _hold > 0.05f)
+                k -= _weight * 0.12f * (1f - _hold) * Mathf.Abs(Mathf.Sin(Time.time * 11f));
+
+            float e = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(k));
             _hinge.localRotation = _restRot * Quaternion.Euler(_liftEuler * e);
             _hinge.localPosition = _restPos + _liftOffset * e;
         }
 
         private void Update()
         {
-            // 놓았으면 도로 내려앉는다
-            if (!Raked && !_holdingNow && _hold > 0f)
+            if (!Raked && _caught && !_holdingNow && _hold < 1f)
             {
-                _hold = Mathf.MoveTowards(_hold, 0f, _fallBackSpeed * Time.deltaTime / Mathf.Max(0.01f, _holdSeconds));
+                // 한 번 걸린 뒤로는 손을 떼도 마저 넘어간다 — 문지방을 넘은 것이다
+                _hold = Mathf.MoveTowards(_hold, 1f, Time.deltaTime / Mathf.Max(0.01f, _holdSeconds));
+                if (_revealWhileHolding) ShowState(true);
+                ApplyLift();
+                if (_hold >= 1f) Rake();
+            }
+            // 덜 들고 놓았으면 무게에 못 이겨 도로 내려앉는다(떨어질수록 빨라진다)
+            else if (!Raked && !_holdingNow && _hold > 0f)
+            {
+                _fallSpeed += 2.2f * Time.deltaTime;
+                _hold = Mathf.MoveTowards(_hold, 0f,
+                        (_fallBackSpeed + _fallSpeed) * Time.deltaTime / Mathf.Max(0.01f, _holdSeconds));
                 if (_revealWhileHolding && _hold <= 0.02f) ShowState();
                 ApplyLift();
             }
+            if (_holdingNow) _fallSpeed = 0f;
             _holdingNow = false;      // 잡고 있으면 다음 프레임에 다시 켜진다
 
             if (_boostLeft <= 0f) return;
@@ -227,7 +260,12 @@ namespace IMUNROK.Common
             }
 
             if (_recordClue && !string.IsNullOrEmpty(_clueKey) && Journal.Instance != null)
+            {
                 Journal.Instance.AddClue(_clueCase, _clueKey, _clueText, _clueImage);
+                // 밑에서 나온 것이 종이라면 수첩에서 다시 펼쳐 볼 수 있게 함께 적어 둔다
+                if (_cluePage != null)
+                    Journal.Instance.AttachDocument(_clueCase, _clueKey, _cluePage, _title, _bodyAfter, _clueFine);
+            }
 
             _onRaked?.Invoke();
         }

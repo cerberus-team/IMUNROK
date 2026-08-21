@@ -13,6 +13,9 @@ namespace IMUNROK.Common
         [SerializeField] private string _toolId = "magnify";
         [SerializeField] private GameObject _model;
 
+        /// <summary>이 소품이 대신하는 도구 id. 진짜 렌즈(<see cref="MagnifierLens"/>)가 겹치는지 볼 때 쓴다.</summary>
+        public string ToolId => _toolId;
+
         private void Start()
         {
             if (_model != null) _model.SetActive(false);

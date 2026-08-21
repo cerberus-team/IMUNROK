@@ -24,6 +24,8 @@ namespace IMUNROK.Common
         [SerializeField] private Color _inkColor = new Color(0.16f, 0.11f, 0.07f);
         [SerializeField] private Color _cardColor = new Color(1f, 1f, 1f, 0.35f);
         [SerializeField] private Color _presentColor = new Color(0.62f, 0.14f, 0.11f, 0.92f);
+        [Tooltip("물증을 다시 펼쳐 보는 단추. 들이밀기(붉은색)와 헷갈리지 않게 먹빛으로")]
+        [SerializeField] private Color _readColor = new Color(0.24f, 0.22f, 0.18f, 0.90f);
 
         private static JournalPanel _instance;
 
@@ -183,12 +185,35 @@ namespace IMUNROK.Common
                 // 심문에서 이미 밝혀진 사실("_revealed")은 다시 들이밀 수 없다.
                 // 조사종이처럼 처음부터 쥐고 있던 것도 마찬가지다 — 증거가 아니라 출발점이다.
                 bool canPresent = talking && c.presentable && !c.key.EndsWith("_revealed");
-                float btnW = canPresent ? 190f : 0f;
+
+                // 물증에 딸린 종이가 있으면 수첩에서 다시 펼쳐 본다. 정황은 들은 것이라 볼 것이 없다.
+                var doc = Journal.Instance.GetDocument(caseId, c.key);
+                bool canRead = doc != null;
+
+                float btnW = (canPresent ? 190f : 0f) + (canRead ? 150f : 0f);
 
                 var label = NewText("문구", "· " + c.text, new Vector2(-btnW * 0.5f, 0f),
                                     new Vector2(w - 32f - btnW, cardH - 12f), card, _clueFontSize, _inkColor);
                 label.alignment = TextAnchor.MiddleLeft;
                 label.horizontalOverflow = HorizontalWrapMode.Wrap;
+
+                if (canRead)
+                {
+                    float x = w * 0.5f - (canPresent ? 268f : 80f);
+                    var r = NewRect("펼쳐보기", new Vector2(x, 0f), new Vector2(136f, 56f), card);
+                    var rbg = r.gameObject.AddComponent<Image>();
+                    rbg.color = _readColor;
+                    var rbtn = r.gameObject.AddComponent<Button>();
+                    rbtn.targetGraphic = rbg;
+                    var d = doc;
+                    rbtn.onClick.AddListener(() =>
+                    {
+                        DocumentView.Show(d.page, d.title, d.body, d.fine);
+                        _owner?.Close();   // 수첩을 덮어야 종이를 손에 쥔다
+                    });
+                    NewText("라벨", "펼쳐보기", Vector2.zero, new Vector2(136f, 56f), r, _clueFontSize - 2,
+                            new Color(0.98f, 0.94f, 0.86f));
+                }
 
                 if (canPresent)
                 {
