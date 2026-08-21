@@ -62,6 +62,8 @@ namespace IMUNROK.Common
             var holdable = _current as IHoldable;
             if (holdable != null && mouse.leftButton.isPressed)
             {
+                // 마주 앉은 자리에서는 손이 먼저 제지당한다
+                if (mouse.leftButton.wasPressedThisFrame && TouchRefusal.Blocks(_current as Component)) return;
                 _holding = holdable;
                 holdable.OnHoldTick(Time.deltaTime);
                 return;                      // 잡고 있는 동안엔 클릭으로 안 친다
@@ -70,7 +72,10 @@ namespace IMUNROK.Common
 
             // 좌클릭 = 선택
             if (mouse.leftButton.wasPressedThisFrame && holdable == null)
+            {
+                if (TouchRefusal.Blocks(_current as Component)) return;
                 _current?.OnSelect();
+            }
 #endif
         }
 

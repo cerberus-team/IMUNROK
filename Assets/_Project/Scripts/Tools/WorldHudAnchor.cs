@@ -56,6 +56,25 @@ namespace IMUNROK.Common
         [Tooltip("비우면 Camera.main을 쓴다")]
         [SerializeField] private Camera _camera;
 
+        [Header("물러나기")]
+        [Tooltip("수첩처럼 더 앞서는 것이 펼쳐지면 이 창은 아래로 내려앉는다. 수첩 자신은 끈다")]
+        [SerializeField] private bool _stowable = true;
+        [Tooltip("내려앉는 깊이(m). 손에 든 것을 무릎에 내려놓는 만큼")]
+        [SerializeField] private float _stowDrop = 0.42f;
+        [Tooltip("내려앉고 일어서는 빠르기")]
+        [SerializeField] private float _stowSpeed = 4f;
+
+        /// <summary>
+        /// 지금 <b>모두 물러나야</b> 하는가. 수첩을 펼치면 참이 된다.
+        ///
+        /// 수첩은 두 손으로 펴 드는 것이라, 그 앞에 자막이며 도구벨트며 쥐고 있던 종이가
+        /// 그대로 떠 있으면 겹쳐서 읽을 수가 없다. 끄지 않고 <b>내려놓는</b> 까닭은,
+        /// 없어진 것과 잠시 무릎에 둔 것은 손에 남는 느낌이 다르기 때문이다.
+        /// </summary>
+        public static bool StowAll { get; set; }
+
+        private float _stow;   // 0 = 눈앞, 1 = 내려놓음
+
         [Header("가림 피하기")]
         [Tooltip("이 대상보다 앞에 서게 한다. 심문 중인 인물을 넣으면, 바짝 붙어도 상대 몸에 대사가 가리지 않는다")]
         [SerializeField] private Transform _keepInFrontOf;
@@ -228,6 +247,11 @@ namespace IMUNROK.Common
             // 위아래 치우침도 같은 비율로. 안 그러면 당겨온 창이 시야 아래로 내려앉는다.
             float drop = _verticalOffset * (d / Mathf.Max(0.01f, _distance));
 
+            // 수첩이 펴지면 나머지는 무릎께로 물러난다
+            float want = (_stowable && StowAll) ? 1f : 0f;
+            _stow = Mathf.MoveTowards(_stow, want, _stowSpeed * Time.deltaTime);
+            drop -= _stowDrop * Mathf.SmoothStep(0f, 1f, _stow);
+
             Vector3 dir = ViewDirection(head);
 
             // 아래로 치우치는 양은 시선 기준이라야 한다. 세계의 아래로 내리면
@@ -255,6 +279,9 @@ namespace IMUNROK.Common
                 Vector3.Lerp(transform.position, target, t),
                 Quaternion.Slerp(transform.rotation, targetRot, t));
         }
+
+        /// <summary>이 창도 물러나야 하는가. 수첩 자신처럼 앞에 서는 것은 끈다.</summary>
+        public void SetStowable(bool on) { _stowable = on; if (!on) _stow = 0f; }
 
         /// <summary>다음 프레임에 감쇠 없이 눈앞으로 다시 가져온다(패널을 열 때 호출).</summary>
         public void Recenter() => _placed = false;

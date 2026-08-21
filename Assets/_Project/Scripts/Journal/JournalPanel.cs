@@ -72,6 +72,7 @@ namespace IMUNROK.Common
             if (_anchor == null) _anchor = gameObject.AddComponent<WorldHudAnchor>();
             // 수첩은 손에 든 것처럼 가깝게, 눈높이보다 조금 아래
             _anchor.SetDistance(0.85f, -0.20f);
+            _anchor.SetStowable(false);   // 물러나는 쪽이 아니라 물러나게 하는 쪽이다
 
             _font = UiFont.Resolve(_font);
             _group = gameObject.GetComponent<CanvasGroup>();
@@ -152,8 +153,120 @@ namespace IMUNROK.Common
             var jeonghwang = new List<ClueEntry>();
             foreach (var c in clues) (c.kind == ClueKind.물증 ? muljeung : jeonghwang).Add(c);
 
-            FillColumn(_leftCol, "물증", muljeung, caseId, talking);
+            FillEvidence(_leftCol, muljeung, caseId, talking);
             FillColumn(_rightCol, "정황", jeonghwang, caseId, talking);
+        }
+
+        /// <summary>
+        /// 물증은 <b>카드</b>로 깐다 — 생김새 한 장과 이름.
+        ///
+        /// 물증은 글이 아니라 물건이다. 줄글로 늘어놓으면 "[J09] 스무 해치 기록 뒤…" 같은
+        /// 것이 열 줄 쌓이고, 그 중 어느 것이 그 낡은 장부였는지 알 수 없게 된다.
+        /// 생김새가 먼저 보여야 손이 기억한 것과 이어진다.
+        ///
+        /// 카드를 누르면 그 물건을 <b>손에 든다</b> — 끌어 돌려 앞뒤를 보고, 아래에서
+        /// 요약을 읽고, 돋보기를 대면 잔글씨까지 읽힌다.
+        /// </summary>
+        private void FillEvidence(RectTransform col, List<ClueEntry> list, CaseId caseId, bool talking)
+        {
+            float w = col.sizeDelta.x;
+            float y = col.sizeDelta.y * 0.5f - 40f;
+
+            var h = NewText("머리물증", "── 물증 ──", new Vector2(0f, y), new Vector2(w, 44f),
+                            col, _clueFontSize + 4, _inkColor);
+            _cards.Add(h.gameObject);
+            y -= 64f;
+
+            if (list.Count == 0)
+            {
+                var e = NewText("없음", "(아직 없다)", new Vector2(0f, y), new Vector2(w, 40f),
+                                col, _clueFontSize, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.5f));
+                _cards.Add(e.gameObject);
+                return;
+            }
+
+            const float cw = 320f, ch = 190f, gap = 14f;
+            int perRow = Mathf.Max(1, Mathf.FloorToInt((w + gap) / (cw + gap)));
+            float x0 = -(perRow * cw + (perRow - 1) * gap) * 0.5f + cw * 0.5f;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                var c = list[i];
+                int r = i / perRow, k = i % perRow;
+                var card = NewRect("증거카드",
+                                   new Vector2(x0 + k * (cw + gap), y - ch * 0.5f - r * (ch + gap)),
+                                   new Vector2(cw, ch), col);
+                var bg = card.gameObject.AddComponent<Image>();
+                bg.color = _cardColor;
+                _cards.Add(card.gameObject);
+
+                var doc = Journal.Instance.GetDocument(caseId, c.key);
+                Texture2D shot = doc != null ? doc.page : Journal.Instance.GetClueImage(caseId, c.key);
+
+                // 생김새
+                var shotRt = NewRect("모양", new Vector2(0f, 22f), new Vector2(cw - 40f, 108f), card);
+                if (shot != null)
+                {
+                    var raw = shotRt.gameObject.AddComponent<RawImage>();
+                    raw.texture = shot;
+                    raw.raycastTarget = false;
+                    float ar = (float)shot.width / Mathf.Max(1, shot.height);
+                    float hh = 108f, ww = Mathf.Min(cw - 40f, hh * ar);
+                    shotRt.sizeDelta = new Vector2(ww, hh);
+                }
+                else
+                {
+                    var mark = NewText("표", "?", Vector2.zero, new Vector2(cw - 40f, 108f), shotRt,
+                                       _clueFontSize + 20, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.35f));
+                    mark.raycastTarget = false;
+                }
+
+                // 이름 — 단서 문구의 첫 토막만. 나머지는 손에 들면 아래에 나온다.
+                var name = NewText("이름", ShortName(doc, c), new Vector2(0f, -66f),
+                                   new Vector2(cw - 24f, 54f), card, _clueFontSize - 4, _inkColor);
+                name.horizontalOverflow = HorizontalWrapMode.Wrap;
+                name.raycastTarget = false;
+
+                // 카드 전체가 단추다 — 누르면 손에 든다
+                var btn = card.gameObject.AddComponent<Button>();
+                btn.targetGraphic = bg;
+                var dd = doc;
+                var cc = c;
+                btn.onClick.AddListener(() =>
+                {
+                    if (dd != null) DocumentView.Show(dd.page, dd.title, dd.body, dd.fine);
+                    else DocumentView.Show(shot, ShortName(null, cc), cc.text);
+                    _owner?.Close();   // 수첩을 덮어야 두 손이 빈다
+                });
+
+                // 심문 중이면 들이밀 수 있다
+                bool canPresent = talking && c.presentable && !c.key.EndsWith("_revealed");
+                if (!canPresent) continue;
+                var b = NewRect("들이밀기", new Vector2(0f, -ch * 0.5f + 26f), new Vector2(cw - 40f, 44f), card);
+                var pbg = b.gameObject.AddComponent<Image>();
+                pbg.color = _presentColor;
+                var pbtn = b.gameObject.AddComponent<Button>();
+                pbtn.targetGraphic = pbg;
+                var captured = c;
+                pbtn.onClick.AddListener(() =>
+                {
+                    InterrogationController.Active?.PresentFromJournal(captured);
+                    _owner?.Close();
+                });
+                NewText("라벨", "들이밀기", Vector2.zero, new Vector2(cw - 40f, 44f), b, _clueFontSize - 6,
+                        new Color(0.98f, 0.94f, 0.86f));
+            }
+        }
+
+        /// <summary>카드에 적을 짧은 이름. 문서가 있으면 그 제목, 없으면 단서 문구의 앞 토막.</summary>
+        private static string ShortName(Journal.ClueDocument doc, ClueEntry c)
+        {
+            if (doc != null && !string.IsNullOrEmpty(doc.title)) return doc.title;
+            string t = c.text ?? "";
+            int close = t.IndexOf(']');
+            if (close >= 0 && close + 1 < t.Length) t = t.Substring(close + 1).Trim();
+            if (t.Length > 22) t = t.Substring(0, 22) + "…";
+            return t;
         }
 
         private void FillColumn(RectTransform col, string header, List<ClueEntry> list,

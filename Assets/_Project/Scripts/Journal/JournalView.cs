@@ -41,6 +41,10 @@ namespace IMUNROK.Common
         {
             _open = true;
             AnyOpen = true;
+            // 수첩은 두 손으로 펴 드는 것이다. 그 앞에 떠 있던 것들은 무릎께로 내려놓는다 —
+            // 자막도, 도구벨트도, 쥐고 있던 종이도. 끄지 않고 내려놓는 까닭은 없어진 것과
+            // 잠시 내려둔 것이 손에 남는 느낌이 다르기 때문이다.
+            WorldHudAnchor.StowAll = true;
             JournalPanel.Open(this);
         }
 
@@ -48,6 +52,7 @@ namespace IMUNROK.Common
         {
             _open = false;
             AnyOpen = false;
+            WorldHudAnchor.StowAll = false;
             JournalPanel.Close();
         }
 

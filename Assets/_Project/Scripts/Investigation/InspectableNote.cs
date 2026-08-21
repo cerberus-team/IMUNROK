@@ -11,9 +11,9 @@ namespace IMUNROK.Common
     ///   Body   : "왼뺨에 점이 없다. 진짜에게는 있었다."
     ///   Record Clue 체크 → Clue Case/Key/Text 입력 시, 살펴보면 수첩에 자동 기록.
     ///
-    /// 문서라면 <b>종이 면(_page)</b>을 걸어 둔다. 누르면 그 종이를 손에 쥐고
-    /// (<see cref="DocumentView"/>), 잔글씨(_fineText)는 종이에 <b>진짜로 작게</b> 적힌다.
-    /// 맨눈으로는 못 읽고 돋보기를 눈에 대야 읽힌다 — 읽고 나서야 단서가 적힌다.
+    /// 문서라면 <b>종이 면(_page)</b>을 걸어 둔다. 방에서 짚으면 물건 위에 이름 한 줄만
+    /// 뜨고(<see cref="WorldNote"/>), 손에 들고 돌려 보는 것과 요약을 읽는 것은
+    /// <b>수첩</b>에서 한다. 잔글씨(_fineText)는 돋보기로 들여다봐야 읽힌다.
     /// </summary>
     public class InspectableNote : MonoBehaviour, IInspectable, ISelectable, IMagnifiable
     {
@@ -106,10 +106,15 @@ namespace IMUNROK.Common
                 ModelBounds.DistanceTo(transform, cam.transform.position) > _maxTouchDistance)
                 return;
 
-            DocumentView.Show(ResolvePage(), _title, _body, _fineText, Record);
+            // 짚은 순간에 알 것은 <b>이것이 무엇인가</b> 뿐이다. 그 한 줄만 물건 위에 띄운다.
+            // 자세한 것 — 요약이며 잔글씨며 — 은 나중에 수첩을 펴서 손에 들고 본다.
+            // 방을 뒤지다 말고 커다란 글자판이 열리면 조사가 아니라 독서가 된다.
+            bool needsGlass = _clueNeedsMagnifier && !_recorded;
+            WorldNote.Show(transform, needsGlass ? _title + "  —  글씨가 잘다. 돋보기로 들여다볼 것"
+                                                 : _title);
 
-            // 맨눈으로도 알 수 있는 것이면 쥔 것만으로 적힌다.
-            // 잔글씨라야 아는 것이면 돋보기로 다 읽었을 때 위 콜백이 부른다.
+            // 맨눈으로도 아는 것이면 짚은 것만으로 적힌다.
+            // 잔글씨라야 아는 것이면 돋보기로 들여다봐야(OnMagnifiedGaze) 적힌다.
             if (!_clueNeedsMagnifier) Record();
         }
 
@@ -121,7 +126,9 @@ namespace IMUNROK.Common
         public void OnMagnifiedGaze(float progress)
         {
             if (progress < 1f) return;
+            if (_recorded) return;
             Record();
+            WorldNote.Show(transform, _title + "  —  수첩에 적어 두었다");
         }
 
         /// <summary>쥐어 보일 종이 면. 손으로 걸어 두지 않았으면 제 재질에서 찾는다.</summary>

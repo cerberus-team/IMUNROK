@@ -2515,6 +2515,7 @@ GameObject:
   - component: {fileID: 603466275}
   - component: {fileID: 603466277}
   - component: {fileID: 603466276}
+  - component: {fileID: 603466278}
   m_Layer: 0
   m_Name: "\uBB3C\uBAA9\uC7A5\uBD80"
   m_TagString: Untagged
@@ -2587,6 +2588,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.42, y: 0.14, z: 0.3}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &603466278
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 603466274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cffb0117b4b123248aac3f70b7c6a207, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.TouchRefusal
+  _speaker: "\uC639\uB355\uAD6C"
+  _line: "\uADF8\uAC74 \uAD00\uAC00\uC5D0 \uB0BC \uAC83\uB4E4\uC774\uC624. \uB4A4\uC801\uC774\uC9C0
+    \uB9C8\uC2DC\uC624."
+  _cooldown: 2.5
+  _onlyWhileSeated: 1
 --- !u!1 &603956458
 GameObject:
   m_ObjectHideFlags: 0
@@ -3868,6 +3886,7 @@ GameObject:
   - component: {fileID: 794536285}
   - component: {fileID: 794536287}
   - component: {fileID: 794536286}
+  - component: {fileID: 794536288}
   m_Layer: 0
   m_Name: "\uBB38\uAC11_\uC11C\uB78D"
   m_TagString: Untagged
@@ -3958,6 +3977,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.5, y: 0.3, z: 0.14}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &794536288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 794536284}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cffb0117b4b123248aac3f70b7c6a207, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.TouchRefusal
+  _speaker: "\uC639\uB355\uAD6C"
+  _line: "\uADF8\uAC74 \uB0B4 \uBB38\uAC11\uC774\uC624. \uB0A8\uC758 \uC9D1 \uBB38\uAC11\uC744
+    \uD568\uBD80\uB85C \uC5EC\uB294 \uBC95\uC774 \uC5B4\uB514 \uC788\uC18C."
+  _cooldown: 2.5
+  _onlyWhileSeated: 1
 --- !u!1 &844021625
 GameObject:
   m_ObjectHideFlags: 0
@@ -4600,6 +4636,7 @@ GameObject:
   - component: {fileID: 910118044}
   - component: {fileID: 910118046}
   - component: {fileID: 910118045}
+  - component: {fileID: 910118047}
   m_Layer: 0
   m_Name: "\uBCF4\uB8CC_\uB4E4\uCD94\uAE30"
   m_TagString: Untagged
@@ -4696,6 +4733,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.2, y: 0.3, z: 2.6}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &910118047
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910118043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cffb0117b4b123248aac3f70b7c6a207, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.TouchRefusal
+  _speaker: "\uC639\uB355\uAD6C"
+  _line: "\u2026\uB0B4\uAC00 \uC549\uC544 \uC788\uB294 \uC790\uB9AC\uC694. \uBB34\uC5BC
+    \uBCF4\uC2DC\uACA0\uB2E4\uB294 \uAC70\uC694?"
+  _cooldown: 2.5
+  _onlyWhileSeated: 1
 --- !u!1 &995650157
 GameObject:
   m_ObjectHideFlags: 0
@@ -5854,6 +5908,7 @@ GameObject:
   - component: {fileID: 1106456854}
   - component: {fileID: 1106456856}
   - component: {fileID: 1106456855}
+  - component: {fileID: 1106456857}
   m_Layer: 0
   m_Name: "\uBBF8\uD68C\uC218\uC99D\uC11C"
   m_TagString: Untagged
@@ -5928,6 +5983,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.28, y: 0.12, z: 0.34}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1106456857
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1106456853}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cffb0117b4b123248aac3f70b7c6a207, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.TouchRefusal
+  _speaker: "\uC639\uB355\uAD6C"
+  _line: "\uADF8\uAC74 \uAD00\uAC00\uC5D0 \uB0BC \uAC83\uB4E4\uC774\uC624. \uB4A4\uC801\uC774\uC9C0
+    \uB9C8\uC2DC\uC624."
+  _cooldown: 2.5
+  _onlyWhileSeated: 1
 --- !u!1 &1131798635
 GameObject:
   m_ObjectHideFlags: 0
@@ -6462,6 +6534,7 @@ GameObject:
   - component: {fileID: 1253046795}
   - component: {fileID: 1253046797}
   - component: {fileID: 1253046796}
+  - component: {fileID: 1253046798}
   m_Layer: 0
   m_Name: "\uCC28\uC6A9\uC99D"
   m_TagString: Untagged
@@ -6536,6 +6609,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.3, y: 0.12, z: 0.36}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1253046798
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1253046794}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cffb0117b4b123248aac3f70b7c6a207, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.TouchRefusal
+  _speaker: "\uC639\uB355\uAD6C"
+  _line: "\uADF8\uAC74 \uAD00\uAC00\uC5D0 \uB0BC \uAC83\uB4E4\uC774\uC624. \uB4A4\uC801\uC774\uC9C0
+    \uB9C8\uC2DC\uC624."
+  _cooldown: 2.5
+  _onlyWhileSeated: 1
 --- !u!1 &1263496989
 GameObject:
   m_ObjectHideFlags: 0
@@ -18083,7 +18173,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6864834452352987828, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1968098680}
   m_SourcePrefab: {fileID: 100100000, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
 --- !u!1 &1754870481
 GameObject:
@@ -23729,6 +23822,28 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 6873f8f2cfac45c40920dc37d75e5e5f, type: 3}
   m_PrefabInstance: {fileID: 775922019}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1968098676 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6864834452352987828, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
+  m_PrefabInstance: {fileID: 1748312476}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1968098680
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1968098676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cffb0117b4b123248aac3f70b7c6a207, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.TouchRefusal
+  _speaker: "\uC639\uB355\uAD6C"
+  _line: "\uC7A5\uBD80\uB294 \uB0B4\uAC00 \uC190\uC218 \uC801\uC740 \uAC83\uC774\uC624.
+    \uC2A4\uBB34 \uD574\uB97C \uADF8\uB9AC \uD588\uC18C."
+  _cooldown: 2.5
+  _onlyWhileSeated: 1
 --- !u!1 &1969458465
 GameObject:
   m_ObjectHideFlags: 0

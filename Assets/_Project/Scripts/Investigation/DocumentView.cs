@@ -37,6 +37,8 @@ namespace IMUNROK.Common
 
         private static DocumentView _instance;
 
+        private Canvas _canvas;
+        private GameObject _chrome;       // 종이 아닌 것들(제목·요약·안내·내려놓기)
         private CanvasGroup _group;
         private WorldHudAnchor _anchor;
         private RectTransform _hand;      // 종이를 쥔 손 — 여기가 흔들린다
@@ -54,6 +56,8 @@ namespace IMUNROK.Common
         private float _readProgress;
         private float _sinceRead;
         private Vector2 _tilt;            // 손목으로 종이를 기울인 정도
+        private Vector2 _spin;            // 끌어서 돌린 정도(가로·세로)
+        private bool _dragging;
 
         /// <summary>지금 문서를 쥐고 있나. 다른 UI가 참고한다(도구벨트 숨김 등).</summary>
         public static bool IsOpen { get; private set; }
@@ -110,6 +114,20 @@ namespace IMUNROK.Common
             return Mathf.Abs(local.x) <= half.x && Mathf.Abs(local.y) <= half.y;
         }
 
+        /// <summary>이 캔버스가 '쥐고 있는 종이'인가. 돋보기가 찍을 때 이것만 남긴다.</summary>
+        public static bool IsPageCanvas(Canvas c)
+            => _instance != null && c != null && c == _instance._canvas;
+
+        /// <summary>
+        /// 종이 둘레의 글자판을 잠깐 감춘다 — 돋보기가 찍는 그 한 프레임 동안.
+        /// 돋보기는 종이를 크게 보라고 든 것이지 제목을 크게 보라고 든 것이 아니다.
+        /// </summary>
+        public static void SetChromeVisible(bool on)
+        {
+            if (_instance == null || _instance._chrome == null) return;
+            if (_instance._chrome.activeSelf != on) _instance._chrome.SetActive(on);
+        }
+
         /// <summary>돋보기가 종이를 들여다보는 중. 진행도가 1을 넘으면 다 읽은 것이다.</summary>
         public static void Reading(float progress)
         {
@@ -137,6 +155,7 @@ namespace IMUNROK.Common
             if (_anchor == null) _anchor = gameObject.AddComponent<WorldHudAnchor>();
             _anchor.SetDistance(_holdDistance, _holdDrop);   // 팔 길이 — 손에 든 거리다
 
+            _canvas = GetComponent<Canvas>();
             _font = UiFont.Resolve(_font);
             _group = GetComponent<CanvasGroup>();
             if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
@@ -178,10 +197,12 @@ namespace IMUNROK.Common
             _readProgress = 0f;
             _sinceRead = 99f;
             _tilt = Vector2.zero;
+            _spin = Vector2.zero;
+            _dragging = false;
 
             _hint.text = hasFine
-                ? "글씨가 잘아 획까지는 안 보인다. 돋보기를 들고 오른쪽 단추로 눈에 대어 본다"
-                : "(Esc — 내려놓기)";
+                ? "끌어서 돌려 볼 수 있다 · 잔글씨는 돋보기를 눈에 대고(오른쪽 단추)"
+                : "끌어서 돌려 볼 수 있다 · (Esc — 내려놓기)";
 
             SetVisible(true);
             IsOpen = true;
@@ -204,13 +225,21 @@ namespace IMUNROK.Common
             float t = Time.time;
             float breathe = Mathf.Sin(t * 0.9f) * 0.7f + Mathf.Sin(t * 2.3f) * 0.25f;
 
-            // 마우스를 움직이면 손목을 틀어 종이를 기울인다(비춰 보는 짓)
-            Vector2 aim = LookNudge();
-            _tilt = Vector2.Lerp(_tilt, aim, 6f * Time.deltaTime);
+            // 끌면 <b>손에 쥔 채로 돌린다</b> — 앞뒤 어느 쪽이든 볼 수 있다.
+            // 놓으면 그 자세 그대로 남는다. 손에 든 물건은 놓는다고 제자리로 돌아가지 않는다.
+            Vector2 drag = DragDelta();
+            _spin.x -= drag.x;
+            _spin.y += drag.y;
+            _spin.y = Mathf.Clamp(_spin.y, -85f, 85f);
+
+            // 끌지 않는 동안에는 손목이 저 혼자 조금 흔들린다
+            _tilt = Vector2.Lerp(_tilt, Vector2.zero, 3f * Time.deltaTime);
 
             if (_hand != null)
             {
-                _hand.localRotation = Quaternion.Euler(9f + breathe + _tilt.y, _tilt.x, -2.5f + breathe * 0.4f);
+                _hand.localRotation = Quaternion.Euler(9f + breathe + _spin.y + _tilt.y,
+                                                       _spin.x,
+                                                       -2.5f + breathe * 0.4f);
                 _hand.anchoredPosition = new Vector2(_tilt.x * 1.5f, breathe * 2.2f);
             }
 
@@ -226,14 +255,16 @@ namespace IMUNROK.Common
 #endif
         }
 
-        /// <summary>마우스를 움직인 만큼 손목을 튼다. VR에서는 0(고개가 곧 손이다).</summary>
-        private static Vector2 LookNudge()
+        /// <summary>왼쪽 단추를 누른 채 움직인 만큼(도). 누르지 않았으면 0.</summary>
+        private Vector2 DragDelta()
         {
 #if ENABLE_INPUT_SYSTEM
             var mouse = UnityEngine.InputSystem.Mouse.current;
-            if (mouse == null) return Vector2.zero;
+            if (mouse == null) { _dragging = false; return Vector2.zero; }
+            if (!mouse.leftButton.isPressed) { _dragging = false; return Vector2.zero; }
             Vector2 d = mouse.delta.ReadValue();
-            return new Vector2(Mathf.Clamp(d.x * 0.35f, -7f, 7f), Mathf.Clamp(-d.y * 0.35f, -7f, 7f));
+            if (!_dragging) { _dragging = true; return Vector2.zero; }   // 누른 첫 프레임은 튀지 않게
+            return d * 0.35f;
 #else
             return Vector2.zero;
 #endif
@@ -244,6 +275,13 @@ namespace IMUNROK.Common
         private void Build()
         {
             // 뒷배경은 없다. 방이 그대로 보여야 "방에서 종이를 든 것"이 된다.
+            _chrome = new GameObject("글자판", typeof(RectTransform));
+            var crt = (RectTransform)_chrome.transform;
+            crt.SetParent(transform, false);
+            crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(0.5f, 0.5f);
+            crt.anchoredPosition = Vector2.zero;
+            crt.sizeDelta = new Vector2(900f, 900f);
+
             _hand = NewRect("손", Vector2.zero, new Vector2(_pageSpan * 1.2f, _pageSpan * 1.2f), transform);
 
             // 종이 가장자리 — 방 색에 종이가 묻히지 않게 얇게 두른다
@@ -265,20 +303,20 @@ namespace IMUNROK.Common
             // 돋보기가 하는 일은 글자를 <b>보태는</b> 것이 아니라 그것을 <b>알아보는</b>
             // 것이므로, 읽어낸 바는 종이 밖에 적는다.
             _fine = NewText("읽어낸것", "", new Vector2(0f, -_pageSpan * 0.62f - 64f),
-                            new Vector2(780f, 78f), transform, _fontSize - 6);
+                            new Vector2(780f, 78f), _chrome.transform, _fontSize - 6);
             _fine.color = new Color(1f, 0.93f, 0.74f);
             _fine.gameObject.SetActive(false);
 
             _title = NewText("제목", "", new Vector2(0f, _pageSpan * 0.60f), new Vector2(700f, 42f),
-                             transform, _fontSize - 2);
-            _body = NewText("본문", "", new Vector2(0f, -_pageSpan * 0.62f), new Vector2(700f, 76f),
-                            transform, _fontSize - 4);
+                             _chrome.transform, _fontSize - 2);
+            _body = NewText("요약", "", new Vector2(0f, -_pageSpan * 0.62f), new Vector2(700f, 76f),
+                            _chrome.transform, _fontSize - 4);
             _hint = NewText("안내", "", new Vector2(0f, -_pageSpan * 0.62f - 148f), new Vector2(700f, 38f),
-                            transform, _fontSize - 8);
+                            _chrome.transform, _fontSize - 8);
             _hint.color = new Color(_textColor.r, _textColor.g, _textColor.b, 0.7f);
 
             var closeRt = NewRect("닫기", new Vector2(_pageSpan * 0.66f, _pageSpan * 0.58f),
-                                  new Vector2(150f, 52f), transform);
+                                  new Vector2(150f, 52f), _chrome.transform);
             var closeBg = closeRt.gameObject.AddComponent<Image>();
             closeBg.color = _tabColor;
             var closeBtn = closeRt.gameObject.AddComponent<Button>();

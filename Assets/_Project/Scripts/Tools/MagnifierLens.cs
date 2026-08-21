@@ -103,6 +103,8 @@ namespace IMUNROK.Common
         private Vector3 _propNormalLocal;
         private Vector3 _propHandleLocal;
         private Transform _focus;
+        private Canvas[] _canvases = new Canvas[0];
+        private float _canvasAge;
         private IMagnifiable _reading;
         private float _dwell;
 
@@ -214,7 +216,7 @@ namespace IMUNROK.Common
             _lensCam.aspect = 1f;
             _lensCam.targetTexture = _rt;
             _lensCam.depth = -10f;         // 눈보다 먼저 찍어야 이번 프레임 그림이 유리에 오른다
-            _lensCam.enabled = false;
+            _lensCam.enabled = false;   // 손으로 찍는다(찍기 직전에 떠 있는 창을 치우려고)
         }
 
         /// <summary>
@@ -536,6 +538,7 @@ namespace IMUNROK.Common
 
             AimLensCamera();
             PlaceProp();
+            Shoot();
             Look();
         }
 
@@ -564,10 +567,46 @@ namespace IMUNROK.Common
             float theta = Mathf.Atan2(_glassRadius, dist) * Mathf.Rad2Deg;
             _lensCam.fieldOfView = Mathf.Clamp(2f * theta / Mathf.Max(1.01f, _zoom), 0.5f, 120f);
             _lensCam.nearClipPlane = dist + 0.06f;    // 제 유리·테·자루는 찍지 않는다
-            _lensCam.enabled = true;
 
             // 유리는 늘 눈을 마주 본다(비스듬히 들어도 그림이 어긋나지 않게)
             _glass.transform.rotation = Quaternion.LookRotation(center - eye, _eye.up);
+        }
+
+        /// <summary>
+        /// 렌즈 그림을 찍는다 — <b>떠 있는 창을 잠깐 치우고</b>.
+        ///
+        /// 돋보기는 <b>물건</b>을 크게 보는 것이지 글자판을 크게 보는 것이 아니다. 그냥
+        /// 찍으면 자막이며 수첩이며 눈앞에 떠 있는 창까지 함께 부풀어, 유리 안에 글자
+        /// 몇 개가 산더미처럼 들어앉는다. 그래서 찍는 그 한 순간만 창들을 꺼 둔다.
+        /// 껐다 켜는 것은 같은 프레임 안에서 끝나므로 눈에는 아무 일도 없다.
+        ///
+        /// 손에 쥔 <b>종이</b>만은 남긴다 — 그것이야말로 들여다보라고 든 것이다.
+        /// </summary>
+        private void Shoot()
+        {
+            if (_lensCam == null) return;
+
+            _canvasAge -= Time.deltaTime;
+            if (_canvasAge <= 0f)
+            {
+                _canvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+                _canvasAge = 0.5f;
+            }
+
+            var hidden = new System.Collections.Generic.List<Canvas>();
+            foreach (var c in _canvases)
+            {
+                if (c == null || !c.enabled) continue;
+                if (DocumentView.IsPageCanvas(c)) continue;   // 종이는 남긴다
+                c.enabled = false;
+                hidden.Add(c);
+            }
+            DocumentView.SetChromeVisible(false);
+
+            _lensCam.Render();
+
+            DocumentView.SetChromeVisible(true);
+            foreach (var c in hidden) if (c != null) c.enabled = true;
         }
 
         /// <summary>렌즈 한가운데가 무엇을 짚고 있나. 오래 짚으면 읽은 것으로 친다.</summary>
