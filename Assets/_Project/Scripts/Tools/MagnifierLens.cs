@@ -59,10 +59,16 @@ namespace IMUNROK.Common
         [Tooltip("렌즈로 짚을 수 있는 거리(m)")]
         [SerializeField] private float _reach = 6f;
 
-        [Header("옛 돋보기 소품")]
-        [Tooltip("같은 도구 id의 소품이 카메라에 매달려 있으면 끈다. " +
-                 "그러지 않으면 돋보기가 둘이 된다 — 하나는 보이기만 하고 하나는 보이게 하는")]
-        [SerializeField] private bool _hideOldProp = true;
+        [Header("소품")]
+        [Tooltip("씬에 있는 돋보기 소품을 그대로 쓴다. 소품의 유리 자리를 스스로 재서 " +
+                 "그 위에 렌즈 그림을 얹는다 — 테도 자루도 술도 네가 만든 것 그대로다")]
+        [SerializeField] private bool _useProp = true;
+        [Tooltip("비우면 같은 도구 id의 HeldToolModel 소품을 찾아 쓴다")]
+        [SerializeField] private Transform _prop;
+        [Tooltip("잰 유리 반지름에 곱한다. 1보다 조금 작아야 그림이 테 안쪽에 앉는다")]
+        [Range(0.5f, 1f)] [SerializeField] private float _glassInset = 0.82f;
+        [Tooltip("소품의 앞뒤가 뒤집혀 보이면 켠다(유리 법선이 반대인 모델)")]
+        [SerializeField] private bool _flipProp = false;
 
         private static MagnifierLens _instance;
 
@@ -92,6 +98,10 @@ namespace IMUNROK.Common
         private GameObject _rig;
         private bool _held;
         private float _raise;            // 0 = 비껴 듦, 1 = 눈에 댐
+        private Transform _propRoot;     // 손으로 만든 돋보기 소품
+        private Vector3 _propGlassLocal; // 그 소품에서 유리 한가운데
+        private Vector3 _propNormalLocal;
+        private Vector3 _propHandleLocal;
         private Transform _focus;
         private IMagnifiable _reading;
         private float _dwell;
@@ -142,6 +152,8 @@ namespace IMUNROK.Common
             _rig.transform.SetParent(transform, false);
             _lens = _rig.transform;
 
+            if (_useProp) FindProp();      // 소품이 있으면 그 유리 크기를 따른다
+
             // 유리 — 원판 하나. UV는 [0,1] 정사각을 그대로 덮는다(렌즈 카메라가 찍는 넓이와 같다)
             var glassGo = new GameObject("유리");
             glassGo.transform.SetParent(_lens, false);
@@ -151,6 +163,9 @@ namespace IMUNROK.Common
             _glass.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             _glass.receiveShadows = false;
             glassGo.transform.localScale = Vector3.one * _glassRadius;
+            // 소품의 유리 알보다 눈 쪽으로 조금 — 같은 자리에 겹치면 소품의 알이 이겨서
+            // 렌즈 그림이 시커멓게 가려진다
+            if (_propRoot != null) glassGo.transform.localPosition = new Vector3(0f, 0f, -0.025f);
 
             _rt = new RenderTexture(_texSize, _texSize, 24, RenderTextureFormat.DefaultHDR);
             _rt.name = "돋보기_렌즈그림";
@@ -164,22 +179,25 @@ namespace IMUNROK.Common
             DrawOnTop(glassMat);
             _glass.sharedMaterial = glassMat;
 
-            // 테와 자루 — 손에 쥔 물건이라는 느낌만 낸다. 유리와 같은 거리에 두어
-            // 렌즈 카메라의 근평면에 함께 잘려 나가게 한다(제 몸을 찍지 않게)
-            var rim = Ring("테", 0.016f, new Color(0.46f, 0.36f, 0.17f));
-            rim.localScale = new Vector3(_glassRadius * 1.20f, _glassRadius * 1.20f, 1f);
-            rim.localPosition = new Vector3(0f, 0f, -0.001f);   // 유리보다 눈 쪽 — 테가 유리를 두른다
+            // 테와 자루는 <b>소품이 없을 때만</b> 만든다. 손으로 만든 돋보기가 씬에 있는데
+            // 여기서 또 하나를 빚으면, 유리는 이쪽에 있고 테는 저쪽에 있는 물건이 된다.
+            if (_propRoot == null)
+            {
+                var rim = Ring("테", 0.016f, new Color(0.46f, 0.36f, 0.17f));
+                rim.localScale = new Vector3(_glassRadius * 1.20f, _glassRadius * 1.20f, 1f);
+                rim.localPosition = new Vector3(0f, 0f, -0.001f);
 
-            var grip = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            Destroy(grip.GetComponent<Collider>());
-            grip.name = "자루";
-            grip.transform.SetParent(_lens, false);
-            grip.transform.localPosition = new Vector3(0f, -_glassRadius * 1.75f, 0.002f);
-            grip.transform.localScale = new Vector3(0.011f, _glassRadius * 0.75f, 0.011f);
-            var wood = new Material(unlit) { name = "돋보기_자루" };
-            SetColor(wood, new Color(0.24f, 0.15f, 0.09f));
-            DrawOnTop(wood);
-            grip.GetComponent<Renderer>().sharedMaterial = wood;
+                var grip = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                Destroy(grip.GetComponent<Collider>());
+                grip.name = "자루";
+                grip.transform.SetParent(_lens, false);
+                grip.transform.localPosition = new Vector3(0f, -_glassRadius * 1.75f, 0.002f);
+                grip.transform.localScale = new Vector3(0.011f, _glassRadius * 0.75f, 0.011f);
+                var wood = new Material(unlit) { name = "돋보기_자루" };
+                SetColor(wood, new Color(0.24f, 0.15f, 0.09f));
+                DrawOnTop(wood);
+                grip.GetComponent<Renderer>().sharedMaterial = wood;
+            }
 
             // 눈 자리에 두는 렌즈 카메라. 유리가 가리는 각의 1/배율 만큼만 찍는다
             var camGo = new GameObject("돋보기_카메라");
@@ -197,21 +215,202 @@ namespace IMUNROK.Common
             _lensCam.targetTexture = _rt;
             _lensCam.depth = -10f;         // 눈보다 먼저 찍어야 이번 프레임 그림이 유리에 오른다
             _lensCam.enabled = false;
-
-            if (_hideOldProp) HideOldProp();
         }
 
-        /// <summary>같은 도구의 옛 소품을 끈다 — 돋보기가 둘이 되지 않게.</summary>
-        private void HideOldProp()
+        /// <summary>
+        /// 씬에 있는 돋보기 소품을 찾아 <b>유리가 어디에 얼마만 한가</b>를 잰다.
+        ///
+        /// 재는 방법: 돋보기는 납작한 물건이라 메시가 한 축으로 얇다(그 축이 유리의 법선).
+        /// 남은 두 축 가운데 긴 쪽이 자루-유리 방향이고, 그 절반씩을 견주면 <b>넓은 쪽이
+        /// 유리, 좁은 쪽이 자루</b>다. 유리 쪽 정점들의 한가운데가 유리 한가운데이고,
+        /// 거기서 잰 거리의 9할 되는 값이 테의 반지름이다(술이나 고리 같은 튀어나온 것에
+        /// 끌려가지 않게 가장 먼 값을 그대로 쓰지 않는다).
+        ///
+        /// 이렇게 재 두면 소품을 다른 것으로 갈아도 코드를 고칠 일이 없다.
+        /// </summary>
+        private void FindProp()
         {
-            if (_eye == null) return;
-            foreach (var h in _eye.GetComponentsInChildren<HeldToolModel>(true))
+            if (_prop == null && _eye != null)
             {
-                if (h.transform.IsChildOf(transform)) continue;
-                if (h.ToolId != _toolId) continue;
-                h.gameObject.SetActive(false);
-                Debug.Log("[돋보기] 옛 소품 " + h.name + " 을 껐다 — 이제 진짜 렌즈가 그 자리를 대신한다.");
+                foreach (var h in _eye.GetComponentsInChildren<HeldToolModel>(true))
+                {
+                    if (h.transform.IsChildOf(transform) || h.ToolId != _toolId) continue;
+                    var r0 = h.GetComponentInChildren<MeshFilter>(true);
+                    if (r0 != null) { _prop = r0.transform; break; }
+                }
             }
+            if (_prop == null) return;
+
+            var mf = _prop.GetComponent<MeshFilter>();
+            var mesh = mf != null ? mf.sharedMesh : null;
+            if (mesh == null) { _prop = null; return; }
+
+            if (!mesh.isReadable)
+            {
+                // 못 읽으면 테두리 상자만으로 어림잡는다. 정확하진 않아도 안 보이는 것보다 낫다.
+                var rr = _prop.GetComponent<Renderer>();
+                _propRoot = _prop;
+                _propGlassLocal = Vector3.zero;
+                _propNormalLocal = Vector3.forward;
+                _propHandleLocal = Vector3.up;
+                if (rr != null) _glassRadius = Mathf.Min(rr.bounds.size.x, rr.bounds.size.y) * 0.35f;
+                Debug.LogWarning("[돋보기] 소품 메시를 읽을 수 없어 유리 자리를 어림잡았다. " +
+                                 "모델 임포트 설정에서 Read/Write 를 켜면 정확히 맞춘다.", _prop);
+                return;
+            }
+
+            var v = mesh.vertices;
+            var b = mesh.bounds;
+
+            int flat = 0, lng = 0;                      // 얇은 축 · 긴 축
+            var size = new float[] { b.size.x, b.size.y, b.size.z };
+            for (int i = 1; i < 3; i++)
+            {
+                if (size[i] < size[flat]) flat = i;
+                if (size[i] > size[lng]) lng = i;
+            }
+            int mid = 3 - flat - lng;
+
+            // 긴 축을 반으로 갈라, 옆으로 더 넓게 퍼진 쪽을 유리로 본다
+            float cut = b.center[lng];
+            float loMin = 1e9f, loMax = -1e9f, hiMin = 1e9f, hiMax = -1e9f;
+            for (int i = 0; i < v.Length; i++)
+            {
+                float m = v[i][mid];
+                if (v[i][lng] < cut) { if (m < loMin) loMin = m; if (m > loMax) loMax = m; }
+                else { if (m < hiMin) hiMin = m; if (m > hiMax) hiMax = m; }
+            }
+            bool glassOnHigh = (hiMax - hiMin) >= (loMax - loMin);
+
+            // 유리 쪽 정점만 모은다
+            var gx = new System.Collections.Generic.List<float>();
+            var gy = new System.Collections.Generic.List<float>();
+            float lo = 1e9f, hi = -1e9f;
+            for (int i = 0; i < v.Length; i++)
+            {
+                bool high = v[i][lng] >= cut;
+                if (high != glassOnHigh) continue;
+                gx.Add(v[i][lng]); gy.Add(v[i][mid]);
+                if (v[i][lng] < lo) lo = v[i][lng];
+                if (v[i][lng] > hi) hi = v[i][lng];
+            }
+            int n = gx.Count;
+            if (n < 32 || hi - lo < 1e-6f) { _prop = null; return; }
+
+            // 테의 한가운데는 <b>가장 넓은 자리</b>로 찾는다.
+            //
+            // 정점을 통째로 평균 내면 자루가 붙은 목이며 술 같은 것이 한가운데를 끌어당겨,
+            // 어긋난 자리를 유리로 알고 그림을 얹게 된다(테는 왼쪽 위, 그림은 오른쪽 아래).
+            // 동그라미에서 가장 넓게 벌어지는 줄은 반드시 한가운데를 지나므로, 자루 방향으로
+            // 잘게 썰어 가장 넓은 조각을 고르면 그 자리가 곧 유리의 한가운데다.
+            const int B = 48;
+            var bMin = new float[B]; var bMax = new float[B]; var bN = new int[B];
+            for (int i = 0; i < B; i++) { bMin[i] = 1e9f; bMax[i] = -1e9f; }
+            for (int i = 0; i < n; i++)
+            {
+                int bi = Mathf.Clamp(Mathf.FloorToInt((gx[i] - lo) / (hi - lo) * B), 0, B - 1);
+                if (gy[i] < bMin[bi]) bMin[bi] = gy[i];
+                if (gy[i] > bMax[bi]) bMax[bi] = gy[i];
+                bN[bi]++;
+            }
+            // 테는 <b>끝에서부터</b> 찾는다.
+            //
+            // 통째로 가장 넓은 조각을 고르면 자루가 붙는 목(테와 자루 사이의 굵은 마디)이
+            // 뽑힌다 — 거기도 위아래로 벌어져 있기 때문이다. 그러나 돋보기의 유리는 언제나
+            // 손에서 가장 먼 끝에 있다. 그래서 끝에서 안쪽으로 걸어 들어오며 <b>처음 만나는
+            // 봉우리</b>를 테로 삼는다. 그 뒤의 것은 이미 자루 쪽이다.
+            int least = Mathf.Max(4, n / 200);          // 술 한 올처럼 성긴 조각은 세지 않는다
+            int bestB = -1; float bestSpan = 0f;
+            int fading = 0;
+            for (int c2 = 0; c2 < B; c2++)
+            {
+                int i = glassOnHigh ? (B - 1 - c2) : c2;
+                if (bN[i] < least) { if (bestB >= 0) fading++; continue; }
+                float span = bMax[i] - bMin[i];
+                if (span > bestSpan) { bestSpan = span; bestB = i; fading = 0; }
+                else if (bestB >= 0 && span < bestSpan * 0.72f) fading++;
+                else fading = 0;
+                if (fading >= 3) break;                 // 봉우리를 지났다
+            }
+            if (bestB < 0) { _prop = null; return; }
+
+            // 가장 넓은 조각은 대략의 자리를 줄 뿐이다(술 한 줌이 걸리면 그만큼 밀린다).
+            // 그 언저리의 점들만 골라 <b>동그라미를 맞춰</b> 한가운데와 반지름을 다시 잡는다.
+            float ax0 = lo + (hi - lo) * (bestB + 0.5f) / B;
+            float ay0 = (bMin[bestB] + bMax[bestB]) * 0.5f;
+            float rApprox = bestSpan * 0.5f;
+            float cx = ax0, cy = ay0, rFit = rApprox;
+            for (int pass = 0; pass < 3; pass++)
+            {
+                double Sx = 0, Sy = 0, Sxx = 0, Syy = 0, Sxy = 0, Sz = 0, Sxz = 0, Syz = 0;
+                int m2 = 0;
+                for (int i = 0; i < n; i++)
+                {
+                    float dx = gx[i] - cx, dy = gy[i] - cy;
+                    float dd = Mathf.Sqrt(dx * dx + dy * dy);
+                    if (Mathf.Abs(dd - rFit) > rFit * 0.22f) continue;      // 테 언저리만
+                    double x = dx, y = dy, z = x * x + y * y;
+                    Sx += x; Sy += y; Sxx += x * x; Syy += y * y; Sxy += x * y;
+                    Sz += z; Sxz += x * z; Syz += y * z; m2++;
+                }
+                if (m2 < 24) break;
+                double det = Sxx * (Syy * m2 - Sy * Sy) - Sxy * (Sxy * m2 - Sy * Sx) + Sx * (Sxy * Sy - Syy * Sx);
+                if (System.Math.Abs(det) < 1e-18) break;
+                double dA = Sxz * (Syy * m2 - Sy * Sy) - Sxy * (Syz * m2 - Sy * Sz) + Sx * (Syz * Sy - Syy * Sz);
+                double dB = Sxx * (Syz * m2 - Sy * Sz) - Sxz * (Sxy * m2 - Sy * Sx) + Sx * (Sxy * Sz - Syz * Sx);
+                double dC = Sxx * (Syy * Sz - Syz * Sy) - Sxy * (Sxy * Sz - Syz * Sx) + Sxz * (Sxy * Sy - Syy * Sx);
+                double A = dA / det, Bq = dB / det, C = dC / det;
+                double a = A * 0.5, bb = Bq * 0.5;
+                double rsq = C + a * a + bb * bb;
+                if (rsq <= 0) break;
+                cx += (float)a; cy += (float)bb; rFit = (float)System.Math.Sqrt(rsq);
+            }
+
+            Vector3 center = Vector3.zero;
+            center[lng] = cx;
+            center[mid] = cy;
+            center[flat] = b.center[flat];
+            float rim = rFit;
+
+            var normal = Vector3.zero; normal[flat] = 1f;
+            var handle = Vector3.zero; handle[lng] = glassOnHigh ? -1f : 1f;   // 유리에서 자루 쪽
+
+            _propRoot = _prop;
+            _propGlassLocal = center;
+            _propNormalLocal = normal;
+            _propHandleLocal = handle;
+            _glassRadius = rim * Mathf.Abs(_prop.lossyScale[lng]) * _glassInset;
+
+            PaintPropOnTop();
+
+            Debug.Log("[돋보기] 소품 " + _prop.name + " 의 유리를 쟀다 — 반지름 " +
+                      _glassRadius.ToString("F3") + "m, 한가운데 " + center.ToString("F4"), _prop);
+        }
+
+        /// <summary>
+        /// 소품도 무엇보다 앞에 그린다 — 손에 쥔 종이(월드 Canvas)가 소품을 덮지 않게.
+        /// 에셋의 재질은 건드리지 않는다. 실행 중에 뜨는 복사본에만 손댄다.
+        /// </summary>
+        private void PaintPropOnTop()
+        {
+            if (_propRoot == null) return;
+            foreach (var r in _propRoot.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.materials;                 // 복사본 — 원본 에셋은 그대로다
+                foreach (var m in mats) if (m != null) DrawOnTop(m);
+                r.materials = mats;
+            }
+        }
+
+        /// <summary>소품을 손에 쥔 자세로 옮긴다 — 유리가 렌즈 자리에 오고 자루가 아래로.</summary>
+        private void PlaceProp()
+        {
+            if (_propRoot == null) return;
+            Vector3 nrm = _flipProp ? -_propNormalLocal : _propNormalLocal;
+            Quaternion from = Quaternion.LookRotation(nrm, _propHandleLocal);
+            Quaternion to = Quaternion.LookRotation(-_lens.forward, -_lens.up);
+            _propRoot.rotation = to * Quaternion.Inverse(from);
+            _propRoot.position += _lens.position - _propRoot.TransformPoint(_propGlassLocal);
         }
 
         /// <summary>반지름 1의 원판. UV는 (-1,1) 을 (0,1) 로 편다.</summary>
@@ -296,7 +495,8 @@ namespace IMUNROK.Common
         /// </summary>
         private static void DrawOnTop(Material m)
         {
-            m.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.Always);
+            if (m.HasProperty("_ZTest"))
+                m.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.Always);
             m.renderQueue = 4000;
         }
 
@@ -312,7 +512,8 @@ namespace IMUNROK.Common
                 transform.SetParent(_eye, false);
                 transform.localPosition = Vector3.zero;
                 transform.localRotation = Quaternion.identity;
-                if (_hideOldProp) HideOldProp();
+                _prop = null; _propRoot = null;
+                if (_useProp) FindProp();
             }
 
             bool want = ToolbeltHud.SelectedToolId == _toolId
@@ -334,6 +535,7 @@ namespace IMUNROK.Common
             _lens.localRotation = Quaternion.Slerp(Quaternion.Euler(6f, -12f, 8f), Quaternion.identity, _raise);
 
             AimLensCamera();
+            PlaceProp();
             Look();
         }
 
@@ -361,7 +563,7 @@ namespace IMUNROK.Common
             // 유리가 가리는 반각 θ. 렌즈 카메라는 그 1/배율만 담는다 → 딱 그만큼 커 보인다
             float theta = Mathf.Atan2(_glassRadius, dist) * Mathf.Rad2Deg;
             _lensCam.fieldOfView = Mathf.Clamp(2f * theta / Mathf.Max(1.01f, _zoom), 0.5f, 120f);
-            _lensCam.nearClipPlane = dist + 0.02f;    // 제 유리·테·자루는 찍지 않는다
+            _lensCam.nearClipPlane = dist + 0.06f;    // 제 유리·테·자루는 찍지 않는다
             _lensCam.enabled = true;
 
             // 유리는 늘 눈을 마주 본다(비스듬히 들어도 그림이 어긋나지 않게)

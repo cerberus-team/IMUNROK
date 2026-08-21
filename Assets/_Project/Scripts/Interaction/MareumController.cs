@@ -82,6 +82,11 @@ namespace IMUNROK.Common
         [Tooltip("여는 동작의 어느 대목에서 문짝이 실제로 움직이기 시작하는가(0~1). " +
                  "0이면 손도 대기 전에 문이 열린다 — 빗장을 벗기고 미는 사이가 있어야 한다")]
         [Range(0f, 1f)] [SerializeField] private float _openLeafAt = 0.35f;
+        [Tooltip("문짝 속도를 미는 동작에 맞춘다. 끄면 문의 '여는 시간'을 그대로 쓴다")]
+        [SerializeField] private bool _syncDoorToPush = true;
+        [Tooltip("1보다 작으면 팔이 다 펴지기 조금 전에 문이 다 열린다. " +
+                 "문이 팔보다 늦게 도착하면 미는 게 아니라 끌려가는 것으로 보인다")]
+        [Range(0.5f, 1.2f)] [SerializeField] private float _doorLead = 0.9f;
         [Tooltip("문 연 뒤 → 걸어가기 시작까지 뜸(문 잡고 잠깐 서 있음)")]
         [SerializeField] private float _delayBeforeWalk = 1.0f;
 
@@ -291,7 +296,13 @@ namespace IMUNROK.Common
                     {
                         var st = _animator == null ? default(AnimatorStateInfo) : _animator.GetCurrentAnimatorStateInfo(0);
                         bool reached = _animator == null || (st.IsName(_openState) && st.normalizedTime >= _openLeafAt);
-                        if (reached) { _door.Unlock(); _door.Open(); _leafOpened = true; }
+                        if (reached)
+                        {
+                            // 문짝은 미는 팔이 다 펴질 때 다 열려야 한다. 남은 동작 시간을
+                            // 재서 문에 넘긴다 — 손으로 적어 둔 2초와 어긋나던 것이 이것이다.
+                            if (_syncDoorToPush) _door.SetOpenDuration(PushSecondsLeft(st) * _doorLead);
+                            _door.Unlock(); _door.Open(); _leafOpened = true;
+                        }
                     }
                     if (StateDone(_openState))
                     {
@@ -364,6 +375,21 @@ namespace IMUNROK.Common
             _leafOpened = false;
 
             _phase = Phase.Opening;
+        }
+
+        /// <summary>
+        /// 미는 동작이 끝날 때까지 남은 시간(초).
+        ///
+        /// 문에 손이 닿는 것은 동작의 _openLeafAt 지점이고, 거기서부터 클립이 끝날
+        /// 때까지가 실제로 <b>미는</b> 동안이다. 애니메이터 속도로 나눠 주어야 실제
+        /// 시간이 된다 — 동작을 느리게 틀면 문도 그만큼 천천히 열려야 한다.
+        /// </summary>
+        private float PushSecondsLeft(AnimatorStateInfo st)
+        {
+            float speed = Mathf.Max(0.01f, _openSpeed);
+            float len = st.length > 0.01f ? st.length : 2.5f;      // 클립 길이(속도 반영 전)
+            float left = len * Mathf.Clamp01(1f - Mathf.Max(_openLeafAt, st.normalizedTime));
+            return Mathf.Clamp(left / speed, 0.2f, 8f);
         }
 
         private void DoWalk() { _wpIndex = 0; CrossTo(_walkState); _phase = Phase.WalkToStand; }

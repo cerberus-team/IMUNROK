@@ -36,6 +36,16 @@ namespace IMUNROK.Common
         [Tooltip("일어섰을 때 바닥에서 눈까지(m). 카메라의 걷기 눈높이와 맞출 것")]
         [SerializeField] private float _standingEyeHeight = 1.60f;
 
+        [Header("헤드셋에서 앉기")]
+        [Tooltip("켜면 헤드셋에서는 <b>몸이 실제로 내려앉아야</b> 앉은 것으로 친다. " +
+                 "끄면 예전처럼 눈높이를 대신 내려 준다")]
+        [SerializeField] private bool _vrSitByHeight = true;
+        [Tooltip("선 키에서 이만큼(m) 내려앉으면 앉은 것으로 본다. " +
+                 "방바닥에 앉으면 50~60cm 내려가므로 30cm면 무릎을 굽힌 것만으로는 안 된다")]
+        [SerializeField] private float _sitDropRequired = 0.32f;
+        [Tooltip("내려앉은 자세를 이만큼(초) 지켜야 앉은 것으로 친다. 잠깐 숙인 것과 가른다")]
+        [SerializeField] private float _sitHoldSeconds = 0.4f;
+
         [Header("시간")]
         [Tooltip("앉는 데 걸리는 시간(초). 뚝 떨어지면 앉은 게 아니라 꺼진 것으로 보인다")]
         [SerializeField] private float _sitSeconds = 1.3f;
@@ -51,7 +61,7 @@ namespace IMUNROK.Common
         [SerializeField] private UnityEvent _onSeated;
         [SerializeField] private UnityEvent _onStood;
 
-        private enum Phase { Standing, SittingDown, Seated, StandingUp }
+        private enum Phase { Standing, Offered, SittingDown, Seated, StandingUp }
         private Phase _phase = Phase.Standing;
 
         private Vector3 _from, _to;
@@ -61,6 +71,13 @@ namespace IMUNROK.Common
 
         /// <summary>지금 앉아 있는가(다 앉은 뒤부터 일어서기 시작 전까지).</summary>
         public bool Seated => _phase == Phase.Seated;
+
+        /// <summary>자리를 권해 놓고 <b>기다리는</b> 중인가(방석을 누르거나 몸을 낮추기를).</summary>
+        public bool Offered => _phase == Phase.Offered;
+
+        private float _standHeadY;      // 권할 때의 머리 높이(바닥 기준)
+        private float _offerFloorY;
+        private float _lowHold;         // 내려앉은 자세를 지킨 시간
 
         private Transform Rig
         {
@@ -91,17 +108,37 @@ namespace IMUNROK.Common
         /// </summary>
         public void OfferSeat()
         {
-            if (Rig != transform)        // 리그가 따로 있다 = 헤드셋
-            {
-                SitAt(_seatSpot);
-                return;
-            }
+            if (_phase == Phase.Seated || _phase == Phase.SittingDown || _phase == Phase.Offered) return;
 
             var cushion = _seatSpot != null ? _seatSpot.GetComponentInChildren<SeatCushion>() : null;
             if (cushion == null) cushion = Object.FindFirstObjectByType<SeatCushion>();
+
+            if (Rig != transform)        // 리그가 따로 있다 = 헤드셋
+            {
+                if (!_vrSitByHeight) { SitAt(_seatSpot); return; }
+
+                // 방석 위로 몸만 옮겨 놓고, 앉는 것은 <b>사람이 한다</b>.
+                // 눈높이를 대신 내려 주면 몸은 선 채로 눈만 가라앉아 멀미가 난다.
+                if (_seatSpot != null)
+                {
+                    Vector3 d = _seatSpot.position - transform.position;
+                    d.y = 0f;
+                    Rig.position += d;
+                }
+                _offerFloorY = FloorY(transform.position, transform.position.y - _standingEyeHeight, _seatSpot);
+                _standHeadY = transform.position.y - _offerFloorY;
+                _lowHold = 0f;
+                _phase = Phase.Offered;
+                SetMoveLock(true);       // 권한 자리에서 걸어 나가지는 못한다
+                if (cushion != null) cushion.Offer();
+                _onOffered?.Invoke();
+                return;
+            }
+
             if (cushion == null) { SitAt(_seatSpot); return; }   // 방석이 없으면 그냥 앉힌다
 
             cushion.Offer();
+            _phase = Phase.Offered;
             _onOffered?.Invoke();
         }
 
@@ -109,6 +146,14 @@ namespace IMUNROK.Common
         public void SitAt(Transform spot)
         {
             if (_phase == Phase.Seated || _phase == Phase.SittingDown) return;
+
+            // 헤드셋에서 몸으로 앉기로 해 두었으면, 눈높이를 대신 내려 주지 않는다.
+            // 방석을 눌러 앉히는 길(데스크탑)이 이리로 들어오는 것도 여기서 막힌다.
+            if (Rig != transform && _vrSitByHeight)
+            {
+                if (_phase != Phase.Offered) OfferSeat();
+                return;
+            }
 
             Vector3 here = transform.position;
             Vector3 xz = spot != null ? spot.position : here;
@@ -128,6 +173,15 @@ namespace IMUNROK.Common
         public void Stand()
         {
             if (_phase == Phase.Standing || _phase == Phase.StandingUp) return;
+
+            // 헤드셋에서는 일어서는 것도 몸이 한다. 걸음만 풀어 주면 된다.
+            if (Rig != transform && _vrSitByHeight)
+            {
+                _phase = Phase.Standing;
+                SetMoveLock(false);
+                _onStood?.Invoke();
+                return;
+            }
 
             Vector3 here = transform.position;
             float floor = FloorY(here, here.y - _seatedEyeHeight);
@@ -164,6 +218,22 @@ namespace IMUNROK.Common
 
         private void Update()
         {
+            // 자리를 권해 놓고 기다리는 중 — 헤드셋이면 <b>머리가 내려오는 것</b>을 본다.
+            // 앉으라는 말을 듣고 실제로 앉는 것, 그것 말고는 진행시키지 않는다.
+            if (_phase == Phase.Offered)
+            {
+                if (Rig == transform || !_vrSitByHeight) return;   // 데스크탑은 방석을 누른다
+
+                float head = transform.position.y - _offerFloorY;
+                bool low = head <= _standHeadY - _sitDropRequired;
+                _lowHold = low ? _lowHold + Time.deltaTime : 0f;
+                if (_lowHold < _sitHoldSeconds) return;
+
+                _phase = Phase.Seated;
+                _onSeated?.Invoke();
+                return;
+            }
+
             if (_phase != Phase.SittingDown && _phase != Phase.StandingUp) return;
 
             _t += Time.deltaTime;

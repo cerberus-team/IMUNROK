@@ -133,6 +133,19 @@ namespace IMUNROK.Common
 
         public void SetLocked(bool locked) => _locked = locked;
 
+        /// <summary>
+        /// 여는 데 걸리는 시간을 밖에서 정한다.
+        ///
+        /// 사람이 미는 문은 <b>미는 팔만큼</b> 열려야 한다. 문짝의 속도를 인스펙터에
+        /// 손으로 적어 두면 동작을 조금만 손봐도 어긋나 — 팔은 다 폈는데 문은 아직
+        /// 열리는 중이거나, 문이 먼저 열리고 팔이 뒤따라간다. 그래서 미는 쪽이
+        /// 제 동작에 남은 시간을 재서 여기로 넘긴다.
+        /// </summary>
+        public void SetOpenDuration(float seconds)
+        {
+            _openDuration = Mathf.Max(0.05f, seconds);
+        }
+
         /// <summary>잠금 해제 후 즉시 열기(시퀀스 마무리용).</summary>
         public void Unlock() { _locked = false; }
 
