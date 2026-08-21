@@ -6,8 +6,14 @@ using IMUNROK.Common;
 namespace IMUNROK.Common.EditorTools
 {
     /// <summary>
-    /// 사랑방 창호와 칸막이문을 <b>대문처럼</b> 여닫이로 바로잡는다.
-    /// 메뉴: [이문록 ▸ 사랑방 문 대문처럼 열리게]
+    /// 사랑방 문을 제 노릇대로 나눈다. 메뉴: [이문록 ▸ 사랑방 문 바로잡기]
+    ///
+    /// <b>바깥 창호(사랑방문_0~3)</b> — 열지 않는다. 마당을 향한 분합문이라 밤새 닫아 둔다.
+    /// 눌러도 안 열리게 막는다. 콜라이더는 남겨 두어야 몸이 벽을 뚫고 나가지 않는다.
+    ///
+    /// <b>방과 방 사이(칸막이여닫이_0·1)</b> — <b>미닫이</b>다. 옆으로 밀고 넘어다닌다.
+    /// 두 짝이 서로 반대쪽으로 물러나 각각 옆 벽 속으로 들어가고, 그만큼 문간이 열린다.
+    /// 좁은 방에서 여닫이로 두면 문짝이 사람 쪽으로 휘둘러진다.
     ///
     /// 세 가지를 한꺼번에 고친다.
     ///
@@ -30,8 +36,9 @@ namespace IMUNROK.Common.EditorTools
     {
         private const string PrefabPath = "Assets/_Project/Onggojip/Prefabs/사랑채_실내.prefab";
         private const float Swing = 85f;
+        private const string NL = "\n";
 
-        [MenuItem("이문록/사랑방 문 대문처럼 열리게")]
+        [MenuItem("이문록/사랑방 문 바로잡기")]
         public static void Run()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
@@ -70,6 +77,12 @@ namespace IMUNROK.Common.EditorTools
         {
             return dc.name.StartsWith("사랑방문") || dc.name.StartsWith("칸막이") || dc.name.StartsWith("쪽문");
         }
+
+        /// <summary>이 칸은 미닫이인가 — 방과 방 사이는 옆으로 민다.</summary>
+        private static bool IsSliding(DoorController dc) => dc.name.StartsWith("칸막이");
+
+        /// <summary>이 칸은 닫아 둘 것인가 — 마당을 향한 바깥 창호.</summary>
+        private static bool IsShut(DoorController dc) => dc.name.StartsWith("사랑방문");
 
         private static bool FixBay(DoorController dc, Vector3 roomCenter, System.Text.StringBuilder log)
         {
@@ -114,11 +127,29 @@ namespace IMUNROK.Common.EditorTools
                 ? new Vector3(0f, 0f, Mathf.Sign(wallOffset))
                 : new Vector3(Mathf.Sign(wallOffset), 0f, 0f);
 
+            bool sliding = IsSliding(dc);
+            so.FindProperty("_motion").enumValueIndex = sliding ? 1 : 0;   // 0 여닫이 · 1 미닫이
+
             for (int i = 0; i < pivots.Count; i++)
             {
                 var pivot = pivots[i];
                 var b = bounds[i];
                 float c = alongX ? b.center.x : b.center.z;
+
+                if (sliding)
+                {
+                    // 미닫이 — 제 폭만큼 <b>바깥쪽으로</b> 물러난다. 두 짝이 서로 반대쪽으로
+                    // 밀리며 각각 옆 벽 속으로 들어가고, 그 사이가 문간이 된다.
+                    float width = alongX ? b.size.x : b.size.z;
+                    float dir = (c <= bayCenter) ? -1f : 1f;
+                    Vector3 world = (alongX ? Vector3.right : Vector3.forward) * (width * dir);
+                    var se = arr.GetArrayElementAtIndex(i);
+                    se.FindPropertyRelative("slideOffset").vector3Value = dc.transform.InverseTransformVector(world);
+                    se.FindPropertyRelative("swingAngle").floatValue = 0f;
+                    log.Append("  ").Append(dc.name).Append(" / ").Append(pivot.name)
+                       .Append(" 미닫이 ").Append(world.ToString("F2")).Append(NL);
+                    continue;
+                }
 
                 // 칸 한가운데에서 먼 쪽 모서리 = 이 짝의 바깥 모서리. 거기에 경첩을 건다.
                 float edge = (c <= bayCenter) ? (alongX ? b.min.x : b.min.z)
@@ -143,6 +174,21 @@ namespace IMUNROK.Common.EditorTools
                 log.Append("  ").Append(dc.name).Append(" / ").Append(pivot.name)
                    .Append(" 경첩→").Append(edge.ToString("F2"))
                    .Append(" 각 ").Append((Swing * sign).ToString("F0")).Append("\n");
+            }
+
+            // 바깥 창호는 잠가 둔다 — 마당을 향한 분합문이라 밤새 닫아 두는 문이다.
+            // 콜라이더는 남긴다(몸이 벽을 뚫고 나가면 안 되므로).
+            if (IsShut(dc))
+            {
+                so.FindProperty("_playerCanToggle").boolValue = false;
+                so.FindProperty("_startOpen").boolValue = false;
+                log.Append("  ").Append(dc.name).Append(" — 닫아 두고 잠금").Append(NL);
+            }
+            else if (sliding)
+            {
+                so.FindProperty("_playerCanToggle").boolValue = true;
+                so.FindProperty("_openDuration").floatValue = 0.9f;
+                so.FindProperty("_maxTouchDistance").floatValue = 2.5f;
             }
 
             so.ApplyModifiedPropertiesWithoutUndo();

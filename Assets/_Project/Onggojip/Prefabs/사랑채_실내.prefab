@@ -3304,18 +3304,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc2a187eb5d74ea46986631ba8760185, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.DoorController
-  _motion: 0
+  _motion: 1
   _leaves:
   - pivot: {fileID: 7819881000706079937}
-    swingAngle: -85
-    slideOffset: {x: 0, y: 0, z: 0}
+    swingAngle: 0
+    slideOffset: {x: 0, y: 0, z: -0.54999924}
   - pivot: {fileID: 8479230047102186445}
-    swingAngle: 85
-    slideOffset: {x: 0, y: 0, z: 0}
-  _openDuration: 1
+    swingAngle: 0
+    slideOffset: {x: 0, y: 0, z: 0.5500002}
+  _openDuration: 0.9
   _startOpen: 0
   _playerCanToggle: 1
-  _maxTouchDistance: 3
+  _maxTouchDistance: 2.5
   _locked: 0
   OnKnock:
     m_PersistentCalls:
@@ -11338,7 +11338,7 @@ MonoBehaviour:
     slideOffset: {x: 0, y: 0, z: 0}
   _openDuration: 1
   _startOpen: 0
-  _playerCanToggle: 1
+  _playerCanToggle: 0
   _maxTouchDistance: 3
   _locked: 0
   OnKnock:
@@ -14049,7 +14049,7 @@ MonoBehaviour:
     slideOffset: {x: 0, y: 0, z: 0}
   _openDuration: 1
   _startOpen: 0
-  _playerCanToggle: 1
+  _playerCanToggle: 0
   _maxTouchDistance: 3
   _locked: 0
   OnKnock:
@@ -14486,18 +14486,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc2a187eb5d74ea46986631ba8760185, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.DoorController
-  _motion: 0
+  _motion: 1
   _leaves:
   - pivot: {fileID: 4086760757311806355}
-    swingAngle: 85
-    slideOffset: {x: 0, y: 0, z: 0}
+    swingAngle: 0
+    slideOffset: {x: 0, y: 0, z: -0.5500002}
   - pivot: {fileID: 308465408262913983}
-    swingAngle: -85
-    slideOffset: {x: 0, y: 0, z: 0}
-  _openDuration: 1
+    swingAngle: 0
+    slideOffset: {x: 0, y: 0, z: 0.54999924}
+  _openDuration: 0.9
   _startOpen: 0
   _playerCanToggle: 1
-  _maxTouchDistance: 3
+  _maxTouchDistance: 2.5
   _locked: 0
   OnKnock:
     m_PersistentCalls:
@@ -14764,7 +14764,7 @@ MonoBehaviour:
     slideOffset: {x: 0, y: 0, z: 0}
   _openDuration: 1
   _startOpen: 0
-  _playerCanToggle: 1
+  _playerCanToggle: 0
   _maxTouchDistance: 3
   _locked: 0
   OnKnock:
@@ -16037,7 +16037,7 @@ MonoBehaviour:
     slideOffset: {x: 0, y: 0, z: 0}
   _openDuration: 1
   _startOpen: 0
-  _playerCanToggle: 1
+  _playerCanToggle: 0
   _maxTouchDistance: 3
   _locked: 0
   OnKnock:
