@@ -36,8 +36,12 @@ namespace IMUNROK.Common
                  "여기에 걸면 대사 순번에서, 곧 손님이 아직 문 밖에 선 채로 앞장서 버린다")]
         [SerializeField] private BokdongController _bokdong;
         [SerializeField] private Line[] _lines;
-        [Tooltip("이 순번 대사에서 문이 열림(0부터)")]
-        [SerializeField] private int _openAtLine = 3;
+        [Tooltip("이 순번 대사에서 마름이 안에 여쭈러 간다(0부터). 이 줄은 문이 " +
+                 "움직이기 시작할 때까지 걸려 있다 — 기다리는 대목이 여기다")]
+        [SerializeField] private int _askAtLine = 2;
+
+        // 문이 열리는 동안 걸리는 대사는 여쭈러 간 줄 바로 다음이다. 따로 적어 둘 값이
+        // 아니다 — 두 곳에 적으면 둘이 어긋날 수 있고, 어긋나면 말이 문을 앞지른다.
         [Tooltip("이 순번 대사에서 복동이 앞장서 걷기 시작(기본=마지막 줄)")]
         [SerializeField] private int _bokdongLeadAtLine = 4;
         [Tooltip("각 대사 자동 넘김 시간(초). Space로 즉시 넘김")]
@@ -80,13 +84,17 @@ namespace IMUNROK.Common
             if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
                 advance = true;
 #endif
-            // 문이 아직 안 열렸으면 그 다음 줄로 넘어가지 않는다.
+            // <b>여쭈러 간 줄은 시계로 넘기지 않는다.</b>
             //
-            // 문을 여는 것은 마름이고, 마름은 제 동작의 손이 문에 닿는 프레임에 가서야
-            // 문짝을 민다. 그런데 이 순번표는 3.5초마다 제멋대로 넘어가므로,
-            // 스페이스로 건너뛰면 "대문이 열렸다"가 문이 열리기도 전에 뜬다.
-            // 말이 사실을 앞지르지 않게 여기서 붙든다.
-            if (_index == _openAtLine && _door != null && !_door.IsOpen) advance = false;
+            // "잠시 기다리시오, 주인께 여쭙고 오리다" 하고 안으로 들어갔는데 3.5초가
+            // 지났다고 다음 줄로 넘어가 버리면, 주인의 대답이 문보다 한참 앞서 뜬다.
+            // 반대로 문이 먼저 열려 버리면 허락 없이 열린 꼴이 된다.
+            //
+            // 그래서 이 줄은 <b>문짝이 실제로 움직이기 시작하는 그 프레임</b>에 넘어간다.
+            // 그러면 다음 줄 — "허허, 누추하나 드시오" — 이 문이 열리는 동안 걸린다.
+            // 마름의 동작이 길어지든 짧아지든 말과 문이 어긋나지 않는다.
+            if (_index == _askAtLine && _door != null)
+                advance = _door.IsOpen || _timer >= _lineDuration * 6f;   // 뒤엣것은 만일의 빗장
 
             if (advance) Next();
         }
@@ -102,7 +110,7 @@ namespace IMUNROK.Common
 
         private void TryOpenAt(int i)
         {
-            if (i == _openAtLine && _door != null)
+            if (i == _askAtLine && _door != null)
             {
                 if (_mareum != null)
                 {
@@ -136,7 +144,7 @@ namespace IMUNROK.Common
             new Line { speaker = "마름", text = "이 야심한 밤에… 뉘시오?" },
             new Line { speaker = "과객(나)",  text = "지나던 과객이오. 하룻밤 신세 좀 집시다." },
             new Line { speaker = "마름", text = "…잠시 기다리시오. 주인께 여쭙고 오리다." },
-            new Line { speaker = "옹덕구(甲)", text = "허허, 누추하나 드시오. 사랑에 자리를 봐드리리다." },
+            new Line { speaker = "옹덕구(甲)", text = "허허, 누추하나 드시오. 사랑에 자리를 봐드리리다." },   // 이 줄이 걸린 채 문이 열린다
             new Line { speaker = "",          text = "대문이 열렸다. 甲을 따라 안으로 들어가자." },
         };
     }

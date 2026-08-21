@@ -11,9 +11,13 @@ namespace IMUNROK.Common
     ///   Body   : "왼뺨에 점이 없다. 진짜에게는 있었다."
     ///   Record Clue 체크 → Clue Case/Key/Text 입력 시, 살펴보면 수첩에 자동 기록.
     ///
-    /// 문서라면 <b>종이 면(_page)</b>을 걸어 둔다. 방에서 짚으면 물건 위에 이름 한 줄만
-    /// 뜨고(<see cref="WorldNote"/>), 손에 들고 돌려 보는 것과 요약을 읽는 것은
-    /// <b>수첩</b>에서 한다. 잔글씨(_fineText)는 돋보기로 들여다봐야 읽힌다.
+    /// 문서라면 <b>종이 면(_page)</b>을 걸어 둔다. 비워 두면 이 물건의 재질에서 알아서
+    /// 찾는다. 방에서 짚으면 그 종이를 <b>손에 쥐고</b> 끌어서 돌려 볼 수 있다
+    /// (<see cref="DocumentView"/>). 이름은 종이에 붙은 표제 쪽지로 적히고, 요약은
+    /// <b>수첩</b>에서 읽는다. 잔글씨(_fineText)는 돋보기로 들여다봐야 읽힌다.
+    ///
+    /// 종이가 없는 것 — 재 무더기 안쪽처럼 쥘 수 없는 것 — 은 그 자리에 이름 한 줄만
+    /// 뜬다(<see cref="WorldNote"/>).
     /// </summary>
     public class InspectableNote : MonoBehaviour, IInspectable, ISelectable, IMagnifiable
     {
@@ -109,15 +113,29 @@ namespace IMUNROK.Common
                 ModelBounds.DistanceTo(transform, cam.transform.position) > _maxTouchDistance)
                 return;
 
-            // 짚은 순간에 알 것은 <b>이것이 무엇인가</b> 뿐이다. 그 한 줄만 물건 위에 띄운다.
-            // 자세한 것 — 요약이며 잔글씨며 — 은 나중에 수첩을 펴서 손에 들고 본다.
-            // 방을 뒤지다 말고 커다란 글자판이 열리면 조사가 아니라 독서가 된다.
-            bool needsGlass = _clueNeedsMagnifier && !_recorded;
-            WorldNote.Show(transform, needsGlass ? _title + "  —  글씨가 잘다. 돋보기로 들여다볼 것"
-                                                 : _title);
+            // 종이는 <b>집어 든다</b>. 마루에 엎어진 채로 들여다보는 문서는 없다.
+            //
+            // 한때는 이름 한 줄만 물건 위에 띄우고 말았다. 방을 뒤지다 말고 커다란 글자판이
+            // 열리는 것을 막자는 뜻이었는데, 그러다 보니 문서를 <b>본 적이 없는데</b>
+            // 수첩에는 올라 있는 일이 생겼다. 짚었다는 것과 읽었다는 것이 같아진 것이다.
+            // 이제는 손에 쥐고, 돌려 보고, 그러고 나서 적힌다.
+            //
+            // 손에 든 것에는 종이와 표제뿐이다. 요약은 수첩에서 읽는다 — 방에서는 아직
+            // 무엇인지 알아보는 중이지 정리하는 중이 아니다.
+            var page = ResolvePage();
+            if (page != null)
+            {
+                DocumentView.Show(page, _title, "", _fineText,
+                                  _clueNeedsMagnifier ? new System.Action(Record) : null);
+            }
+            else
+            {
+                // 종이가 아닌 것 — 재 안쪽처럼 쥘 수 없는 것은 이름만 그 자리에 뜬다.
+                WorldNote.Show(transform, _title);
+            }
 
-            // 맨눈으로도 아는 것이면 짚은 것만으로 적힌다.
-            // 잔글씨라야 아는 것이면 돋보기로 들여다봐야(OnMagnifiedGaze) 적힌다.
+            // 맨눈으로도 아는 것이면 쥔 것만으로 적힌다.
+            // 잔글씨라야 아는 것이면 돋보기로 다 읽어야(위 onRead) 적힌다.
             if (!_clueNeedsMagnifier) Record();
         }
 

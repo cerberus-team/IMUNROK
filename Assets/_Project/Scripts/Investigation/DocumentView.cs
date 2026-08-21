@@ -12,11 +12,16 @@ namespace IMUNROK.Common
     /// 둘레로 그대로 보인다. 고개를 돌리면 종이도 따라 돌지만 조금 늦게 따라온다 —
     /// 손이 몸에 매달려 있기 때문이다.
     ///
-    /// <b>종이에는 아무것도 덧그리지 않는다.</b> 읽어야 할 잔글씨는 이미 문서에 그려져
-    /// 있다 — 스무 해와 다른 두 줄의 필적, 마지막 두 줄에만 눌린 수결, '辛未年 死亡'.
-    /// 한자로 적힌 문서 위에 한글 한 줄을 얹으면 그 순간 문서가 아니라 자막이 된다.
+    /// <b>종이 본문 위로는 아무것도 덧그리지 않는다.</b> 읽어야 할 잔글씨는 이미 문서에
+    /// 그려져 있다 — 스무 해와 다른 두 줄의 필적, 마지막 두 줄에만 눌린 수결, '辛未年 死亡'.
+    /// 한자로 적힌 본문 위에 한글 한 줄을 얹으면 그 순간 문서가 아니라 자막이 된다.
     /// 그래서 <see cref="MagnifierLens"/>로 들여다보아 다 읽고 나면, 읽어낸 바는
     /// 종이 <b>밖</b>(아래)에 적힌다. 단서도 그때 수첩에 오른다.
+    ///
+    /// 다만 <b>이름</b>만은 종이에 있다. 제목을 종이 위 허공에 띄워 두면 그것이
+    /// 이름표가 되어 문서가 전시물처럼 보인다. 그래서 왼쪽 위 여백에 <b>표제 쪽지</b>를
+    /// 붙인다 — 옛사람이 문서를 갈무리하며 겉에 붙여 두던 제첨(題簽)이다. 쪽지는 제
+    /// 자리만 덮으므로 본문을 가리지 않고, 종이의 자식이라 함께 돌고 함께 뒤집힌다.
     ///
     /// 씬에 미리 둘 필요 없다 — 처음 부를 때 스스로 만든다.
     /// </summary>
@@ -47,7 +52,8 @@ namespace IMUNROK.Common
         private Image _edge;
         private Image _backdrop;     // 수첩에서 볼 때 뒤를 덮는 어둠
         private Image _backFace;     // 종이 뒷면 — 뒤집었을 때 글씨가 비치지 않게
-        private Text _title;
+        private Image _slip;         // 종이에 붙은 표제 쪽지
+        private Text _slipText;      // 그 위에 세로로 적힌 이름
         private Text _body;
         private Text _fine;
         private Text _hint;
@@ -192,8 +198,12 @@ namespace IMUNROK.Common
             }
             else { _page.enabled = false; _edge.enabled = false; }
 
-            _title.text = title;
-            _body.text = body;
+            SetSlip(page != null ? title : null);
+
+            // 요약은 <b>수첩</b>에서 읽는 것이다. 방에서 종이를 짚었을 때는 종이만 보인다 —
+            // 그때는 아직 무엇인지 알아보는 중이지 정리하는 중이 아니다.
+            _body.text = string.IsNullOrEmpty(body) ? "" : body;
+            _body.gameObject.SetActive(!string.IsNullOrEmpty(body));
 
             bool hasFine = !string.IsNullOrEmpty(finePrint);
             _finePrint = hasFine ? finePrint : "";
@@ -215,6 +225,41 @@ namespace IMUNROK.Common
             SetVisible(true);
             IsOpen = true;
             if (_anchor != null) _anchor.Recenter();
+        }
+
+        /// <summary>
+        /// 표제 쪽지에 이름을 세로로 적는다.
+        ///
+        /// 괄호 안 한자는 떼어 낸다 — 제첨은 무엇인지 알아보라고 붙이는 것이지
+        /// 본문을 되풀이하라고 붙이는 것이 아니다. 띄어쓰기도 뗀다. 그러고도 너무 길면
+        /// 쪽지가 종이를 반이나 덮으므로 여덟 자에서 끊는다.
+        /// </summary>
+        private void SetSlip(string title)
+        {
+            if (_slip == null) return;
+
+            string s = title ?? "";
+            int cut = s.IndexOf('(');
+            if (cut > 0) s = s.Substring(0, cut);
+            s = s.Replace(" ", "").Trim();
+            if (s.Length > 8) s = s.Substring(0, 8);
+
+            if (s.Length == 0)
+            {
+                _slip.enabled = false;
+                _slipText.gameObject.SetActive(false);
+                return;
+            }
+
+            var v = new System.Text.StringBuilder(s.Length * 2);
+            for (int i = 0; i < s.Length; i++) { if (i > 0) v.Append('\n'); v.Append(s[i]); }
+            _slipText.text = v.ToString();
+
+            float h = 14f + s.Length * 19f;
+            _slip.rectTransform.sizeDelta = new Vector2(30f, h);
+            _slipText.rectTransform.sizeDelta = new Vector2(26f, h - 8f);
+            _slip.enabled = true;
+            _slipText.gameObject.SetActive(true);
         }
 
         private void SetVisible(bool on)
@@ -330,6 +375,24 @@ namespace IMUNROK.Common
             _page.color = _paper;
             _page.raycastTarget = false;
 
+            // 표제 쪽지 — <b>종이의 자식</b>이다. 그래야 종이를 돌리면 같이 돌고,
+            // 뒤집으면 뒷면에 함께 덮인다. 손 밑에 따로 달면 종이는 돌아가는데 이름만
+            // 제자리에 남아, 붙어 있는 것이 아니라 떠 있는 것이 된다.
+            var slipRt = NewRect("표제", Vector2.zero, new Vector2(34f, 120f), _pageRt);
+            slipRt.anchorMin = slipRt.anchorMax = new Vector2(0f, 1f);   // 종이 왼쪽 위 여백
+            slipRt.pivot = new Vector2(0f, 1f);
+            // 여백 안쪽으로 조금 들여 붙인다. 가장자리에 딱 붙이면, 타다 만 조각처럼
+            // 테두리가 뜯긴 문서에서는 쪽지가 종이 밖 허공에 붙은 꼴이 된다.
+            slipRt.anchoredPosition = new Vector2(17f, -13f);
+            slipRt.localRotation = Quaternion.Euler(0f, 0f, 0.8f);        // 손으로 붙인 것은 반듯하지 않다
+            _slip = slipRt.gameObject.AddComponent<Image>();
+            _slip.color = new Color(0.90f, 0.86f, 0.75f, 0.97f);
+            _slip.raycastTarget = false;
+            _slipText = NewText("이름", "", Vector2.zero, new Vector2(30f, 116f), slipRt, 15);
+            _slipText.color = new Color(0.13f, 0.10f, 0.08f);             // 먹
+            _slipText.alignment = TextAnchor.UpperCenter;
+            _slipText.lineSpacing = 0.86f;
+
             // 종이 뒷면. UI는 앞뒤가 없어서 돌려 보면 글씨가 그대로 비쳐 보인다 —
             // 뒤집힌 글씨가 비치는 종이는 세상에 없다. 뒤를 보는 동안만 덮는다.
             var backFaceRt = NewRect("뒷면", Vector2.zero, new Vector2(_pageSpan, _pageSpan), _hand);
@@ -350,8 +413,6 @@ namespace IMUNROK.Common
             _fine.color = new Color(1f, 0.93f, 0.74f);
             _fine.gameObject.SetActive(false);
 
-            _title = NewText("제목", "", new Vector2(0f, _pageSpan * 0.60f), new Vector2(700f, 42f),
-                             _chrome.transform, _fontSize - 2);
             _body = NewText("요약", "", new Vector2(0f, -_pageSpan * 0.62f), new Vector2(700f, 76f),
                             _chrome.transform, _fontSize - 4);
             _hint = NewText("안내", "", new Vector2(0f, -_pageSpan * 0.62f - 148f), new Vector2(700f, 38f),

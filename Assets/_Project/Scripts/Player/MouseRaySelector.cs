@@ -41,6 +41,13 @@ namespace IMUNROK.Common
             var mouse = Mouse.current;
             if (mouse == null || _camera == null) return;
 
+            // 종이를 쥐고 있는 동안에는 방을 짚지 않는다.
+            //
+            // 종이는 끌어서 돌린다. 그 끄는 손이 그대로 방을 짚으면, 문서를 돌려 보려다
+            // 등 뒤의 장을 열게 되고 쥐고 있던 종이가 다른 종이로 바뀐다.
+            // 한 손으로 두 가지를 할 수는 없다 — 먼저 내려놓아야(Esc) 방에 손이 간다.
+            if (DocumentView.IsOpen) { ReleaseHold(); _current?.OnHoverExit(); _current = null; return; }
+
             Vector2 mousePos = mouse.position.ReadValue();
             Ray ray = _camera.ScreenPointToRay(mousePos);
 

@@ -322,7 +322,8 @@ namespace IMUNROK.Common
                     var d = doc;
                     rbtn.onClick.AddListener(() =>
                     {
-                        DocumentView.Show(d.page, d.title, d.body, d.fine);
+                        // 수첩에서 꺼낸 것은 어둠 위에 놓는다 — 물증 카드와 같은 자리다
+                        DocumentView.Show(d.page, d.title, d.body, d.fine, null, true);
                         _owner?.Close();   // 수첩을 덮어야 종이를 손에 쥔다
                     });
                     NewText("라벨", "펼쳐보기", Vector2.zero, new Vector2(136f, 56f), r, _clueFontSize - 2,
