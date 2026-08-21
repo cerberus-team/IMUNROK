@@ -153,6 +153,54 @@ Transform:
   - {fileID: 320305214}
   m_Father: {fileID: 1169715104}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &14501238
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 14501240}
+  - component: {fileID: 14501239}
+  m_Layer: 0
+  m_Name: "_\uC549\uC73C\uC2DC\uC624"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &14501239
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 14501238}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da4fba72718f5fa44b1900a4f80b07bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.SpokenLine
+  _speaker: "\uC639\uB355\uAD6C"
+  _text: "\uB204\uCD94\uD558\uB098 \uC774\uB9AC \uC549\uC73C\uC2DC\uC624."
+  _hint: "(\uBC29\uC11D\uC744 \uB20C\uB7EC \uC549\uAE30)"
+  _seconds: 0
+--- !u!4 &14501240
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 14501238}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &24547587
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6029,10 +6077,46 @@ MonoBehaviour:
   _rig: {fileID: 0}
   _onOffered:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 14501239}
+        m_TargetAssemblyTypeName: IMUNROK.Common.SpokenLine, IMUNROK.Common
+        m_MethodName: Play
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   _onSeated:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1688468739}
+        m_TargetAssemblyTypeName: IMUNROK.Common.InterrogationController, IMUNROK.Common
+        m_MethodName: Unlock
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 14501239}
+        m_TargetAssemblyTypeName: IMUNROK.Common.SpokenLine, IMUNROK.Common
+        m_MethodName: Hide
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   _onStood:
     m_PersistentCalls:
       m_Calls: []
@@ -12674,7 +12758,7 @@ MonoBehaviour:
   _maxTalkDistance: 3
   _walkAwayDistance: 5
   _walkAwayGrace: 0.7
-  _lockedAtStart: 0
+  _lockedAtStart: 1
   _closingLineSeconds: 5
   _font: {fileID: 12800000, guid: dafdf968e3b186e41accd381d368dc9c, type: 3}
   _onClosed:
@@ -17787,7 +17871,7 @@ MonoBehaviour:
         m_CallState: 2
       - m_Target: {fileID: 1131798643}
         m_TargetAssemblyTypeName: IMUNROK.Common.PlayerSeat, IMUNROK.Common
-        m_MethodName: Sit
+        m_MethodName: OfferSeat
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -26190,3 +26274,4 @@ SceneRoots:
   - {fileID: 1174840587}
   - {fileID: 66531417}
   - {fileID: 2071249180}
+  - {fileID: 14501240}

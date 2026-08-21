@@ -112,7 +112,7 @@ namespace IMUNROK.Common
 
             Vector3 here = transform.position;
             Vector3 xz = spot != null ? spot.position : here;
-            float floor = FloorY(new Vector3(xz.x, here.y, xz.z), here.y - _standingEyeHeight);
+            float floor = FloorY(new Vector3(xz.x, here.y, xz.z), here.y - _standingEyeHeight, spot);
 
             _to = new Vector3(xz.x, floor + _seatedEyeHeight, xz.z);
             _toRot = FacingRotation();
@@ -223,14 +223,24 @@ namespace IMUNROK.Common
         /// <summary>
         /// 발밑 바닥 높이. 못 찾으면 지금 발 높이를 그대로 쓴다 —
         /// 바닥을 못 찾았다고 0으로 떨어뜨리면 마루 밑에 처박힌다.
+        ///
+        /// <paramref name="ignore"/> 밑의 콜라이더는 세지 않는다. 방석에 눌러 잡을
+        /// 콜라이더를 붙이고 나니 그 윗면이 바닥으로 잡혀, 앉은 눈높이가 방석 두께만큼
+        /// 올라갔다(1.05 로 앉혔는데 마루에서 1.28 이 나왔다). 앉는 높이는 <b>마루</b>에서
+        /// 재야 한다 — 방석 위에 앉는다는 것은 이미 그 값에 들어 있다.
         /// </summary>
-        private float FloorY(Vector3 near, float fallback)
+        private float FloorY(Vector3 near, float fallback, Transform ignore = null)
         {
-            RaycastHit hit;
             Vector3 from = new Vector3(near.x, near.y + 1.0f, near.z);
-            if (Physics.Raycast(from, Vector3.down, out hit, 6f, ~0, QueryTriggerInteraction.Ignore))
-                return hit.point.y;
-            return fallback;
+            var hits = Physics.RaycastAll(from, Vector3.down, 6f, ~0, QueryTriggerInteraction.Ignore);
+            float best = float.MaxValue, y = fallback;
+            bool found = false;
+            foreach (var h in hits)
+            {
+                if (ignore != null && (h.collider.transform == ignore || h.collider.transform.IsChildOf(ignore))) continue;
+                if (h.distance < best) { best = h.distance; y = h.point.y; found = true; }
+            }
+            return found ? y : fallback;
         }
 
         /// <summary>걸음을 막거나 푼다. 둘러보기는 건드리지 않는다.</summary>

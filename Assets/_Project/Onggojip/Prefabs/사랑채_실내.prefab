@@ -18148,13 +18148,63 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4506147045173030055, guid: e2aff976fc7285c4c87c28f043a3b5a8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8944597983770920552}
+    - targetCorrespondingSourceObject: {fileID: 4506147045173030055, guid: e2aff976fc7285c4c87c28f043a3b5a8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 734469510689232071}
   m_SourcePrefab: {fileID: -4161369568681901532, guid: e2aff976fc7285c4c87c28f043a3b5a8, type: 3}
 --- !u!4 &3236828575510279107 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6645783296107278276, guid: e2aff976fc7285c4c87c28f043a3b5a8, type: 3}
   m_PrefabInstance: {fileID: 8129303828226726919}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5645290849691218080 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4506147045173030055, guid: e2aff976fc7285c4c87c28f043a3b5a8, type: 3}
+  m_PrefabInstance: {fileID: 8129303828226726919}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &8944597983770920552
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5645290849691218080}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.6666665, y: 1.1333333, z: 2.6666665}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &734469510689232071
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5645290849691218080}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47b624fa3511e0a419471c8325624af7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.SeatCushion
+  _idleBody: "\uC190\uB2D8 \uC790\uB9AC\uB2E4."
+  _offeredBody: "\uC8FC\uC778\uC774 \uAD8C\uD55C \uC790\uB9AC\uB2E4."
+  _title: "\uBC29\uC11D"
+  _hint: "(\uB20C\uB7EC \uC549\uAE30)"
+  _hoverRise: 0.02
+  _maxTouchDistance: 2.5
 --- !u!1001 &8214924962310813791
 PrefabInstance:
   m_ObjectHideFlags: 0

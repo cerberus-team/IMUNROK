@@ -14,8 +14,12 @@ namespace IMUNROK.Common
     /// 내려 주고 이 부품은 물러난다(<see cref="PlayerSeat.OfferSeat"/> 가 갈라 준다).
     ///
     /// 붙이는 법: 방석에 콜라이더와 함께 붙인다. 자리를 권하기 전에는 눌러도 안 앉는다.
+    ///
+    /// <b>콜라이더를 요구하지 않는 까닭</b>: RequireComponent(typeof(Collider)) 를 걸면
+    /// 콜라이더가 없는 물건에 붙일 때 유니티가 Collider 를 대신 붙이려 하는데, 그것은
+    /// 추상이라 붙지 않는다 — 그 자리에서 AddComponent 가 조용히 null 을 돌려준다.
+    /// 어떤 콜라이더를 쓸지는 붙이는 쪽이 정하게 두고, 없으면 아래에서 일러 준다.
     /// </summary>
-    [RequireComponent(typeof(Collider))]
     public class SeatCushion : MonoBehaviour, IInspectable, ISelectable
     {
         [Tooltip("자리를 권하기 전에 가리키면 뜨는 말")]
@@ -40,7 +44,12 @@ namespace IMUNROK.Common
         private Vector3 _home;
         private bool _hovering;
 
-        private void Awake() { _home = transform.position; }
+        private void Awake()
+        {
+            _home = transform.position;
+            if (GetComponent<Collider>() == null)
+                Debug.LogWarning($"[{name}] 콜라이더가 없어 눌러도 잡히지 않습니다.", this);
+        }
 
         /// <summary>주인이 자리를 권했다. 이제부터 눌러 앉을 수 있다.</summary>
         public void Offer() { Offered = true; }
