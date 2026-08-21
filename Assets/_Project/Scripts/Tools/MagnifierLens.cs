@@ -213,7 +213,18 @@ namespace IMUNROK.Common
             _lensCam.backgroundColor = new Color(0.02f, 0.02f, 0.03f);
             if (main != null)
             {
-                _lensCam.cullingMask = main.cullingMask;
+                // 눈은 못 보고 <b>유리만 보는</b> 층을 하나 둔다. 눌린 자국처럼 있는 줄도
+                // 몰랐던 것이 여기 산다(<see cref="PressedMarks"/>). 눈의 카메라에서 빼고
+                // 렌즈 카메라에만 더하면, 숨기고 드러내는 장치가 따로 필요 없다 —
+                // 유리를 통해 보면 있고 치우면 없다. 각도를 돌려도 멀리서 보아도 그대로다.
+                int hidden = LayerMask.NameToLayer(PressedMarks.LayerName);
+                if (hidden >= 0)
+                {
+                    main.cullingMask &= ~(1 << hidden);
+                    _lensCam.cullingMask = main.cullingMask | (1 << hidden);
+                }
+                else _lensCam.cullingMask = main.cullingMask;
+
                 _lensCam.farClipPlane = main.farClipPlane;
             }
             _lensCam.aspect = 1f;

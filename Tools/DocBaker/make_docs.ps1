@@ -385,6 +385,40 @@ function Draw-Doc($g, $doc, $w, $h, $fontName, $rng) {
     $titleFont.Dispose(); $bodyFont.Dispose(); $ink.Dispose(); $inkSoft.Dispose()
 }
 
+# A sheet that was <b>under</b> another when someone wrote on it. No ink ever touched
+# this paper - only the pressure of the brush above, which pushed the fibres down.
+#
+# So it is drawn with no ink at all. Each stroke is a shallow dent: a slightly darker
+# edge where the light does not reach, and a slightly lighter one where it catches.
+# On its own the sheet reads as blank; the marks only gather into letters when the
+# light rakes across them - which is exactly what the magnifying glass does.
+function Draw-Pressed($g, $doc, $w, $h, $fontName, $rng) {
+    # Neither is ink. Both are the paper itself, lit from the upper left.
+    $shade = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(96, 96, 84, 66))
+    $glint = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(120, 255, 250, 236))
+
+    $startY = 150
+    $startX = $w - 150
+    $maxUnits = Measure-Units $doc.columns
+    $charStep = [Math]::Min(78.0, ($h - 260 - $startY) / $maxUnits)
+    $fontSize = [Math]::Max(18.0, $charStep * 0.80)
+    $colStep  = [Math]::Min(128.0, ($startX - 110) / [Math]::Max($doc.columns.Count - 1, 1))
+    Write-Host ("  {0}: pressed, {1} cols, charStep {2:N1}, font {3:N1}" -f $doc.file, $doc.columns.Count, $charStep, $fontSize)
+
+    $bodyFont = New-Face $fontName $fontSize ([System.Drawing.FontStyle]::Regular)
+    $ci = 0
+    foreach ($col in $doc.columns) {
+        $x = $startX - ($ci * $colStep)
+        # The dent is drawn twice, a hair apart. Light side first, shadow over it -
+        # a stroke pushed into paper has its lit edge above and its dark edge below.
+        Paint-Column $g $col $bodyFont ($x - 1.6) ($startY - 1.6) $charStep $glint $glint 3 $rng | Out-Null
+        Paint-Column $g $col $bodyFont ($x + 1.4) ($startY + 1.4) $charStep $shade $shade 3 $rng | Out-Null
+        $ci++
+    }
+
+    $bodyFont.Dispose(); $shade.Dispose(); $glint.Dispose()
+}
+
 # Account book. Entries run right to left, one per ruled column.
 # hand 1 is a different font, size and jitter - that difference IS the clue.
 function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontAlt, $rng) {
@@ -493,6 +527,7 @@ foreach ($doc in $docs) {
     # power-of-two square so Unity can block-compress it. The quad stretches it back.
     if ($kind -eq 'ledger') { $W = 1448; $H = 1024 }
     elseif ($kind -eq 'burnt') { $W = 1024; $H = 1024 }
+    elseif ($kind -eq 'pressed') { $W = 1024; $H = 1024 }
     else { $W = 1024; $H = 1448 }
     $OUT = 1024
 
@@ -504,6 +539,9 @@ foreach ($doc in $docs) {
 
     if ($kind -eq 'ledger') {
         Draw-Ledger $g $doc $W $H $fontName $fontAlt $rng
+    }
+    elseif ($kind -eq 'pressed') {
+        Draw-Pressed $g $doc $W $H $fontName $rng
     }
     elseif ($kind -eq 'burnt') {
         # Body only - a scrap torn out of the middle of a letter has no title block.
