@@ -78,6 +78,14 @@ namespace IMUNROK.Common
             if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
                 advance = true;
 #endif
+            // 문이 아직 안 열렸으면 그 다음 줄로 넘어가지 않는다.
+            //
+            // 문을 여는 것은 마름이고, 마름은 제 동작의 손이 문에 닿는 프레임에 가서야
+            // 문짝을 민다. 그런데 이 순번표는 3.5초마다 제멋대로 넘어가므로,
+            // 스페이스로 건너뛰면 "대문이 열렸다"가 문이 열리기도 전에 뜬다.
+            // 말이 사실을 앞지르지 않게 여기서 붙든다.
+            if (_index == _openAtLine && _door != null && !_door.IsOpen) advance = false;
+
             if (advance) Next();
         }
 

@@ -148,8 +148,15 @@ namespace IMUNROK.Common
         private void Update()
         {
             if (_group == null || _group.alpha < 0.5f) return;
-            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Backspace))
+#if ENABLE_INPUT_SYSTEM
+            // 옛 Input 클래스를 쓰면 안 된다. 이 프로젝트는 입력을 Input System 으로
+            // 넘겨 놓아서, 저것을 읽는 순간 예외가 난다 — 자막이 떠 있는 내내 매 프레임
+            // 터졌고, 그래서 Esc 로 자막을 닫는 곁길이 여태 한 번도 듣지 않았다.
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb == null) return;
+            if (kb.escapeKey.wasPressedThisFrame || kb.backspaceKey.wasPressedThisFrame)
                 SetVisible(false);
+#endif
         }
 
         private void Build()
