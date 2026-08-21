@@ -98,6 +98,9 @@ namespace IMUNROK.Common
         [SerializeField] private float _sitYOffset = 0f;
         [Tooltip("앉는 속도 배수. 일어서기 클립이 6초라 그대로 거꾸로 돌리면 느릿하다")]
         [SerializeField] private float _sitSpeed = 1.4f;
+        [Tooltip("다 앉은 뒤에 틀 '앉아 있기' 클립. 비우면 앉은 자세로 굳는다. " +
+                 "앉는 클립의 마지막 자세와 이 클립의 첫 자세가 같아야 어깨가 튀지 않는다")]
+        [SerializeField] private string _sitIdleState = "";
         [Tooltip("앉은 뒤 상체를 뒤로 기울이는 각도(도). 등 뒤 안석에 기댄 것처럼 보이게 한다. 0이면 꼿꼿이 앉는다")]
         [SerializeField] private float _leanBack = 14f;
         [Tooltip("기울일 등뼈. 비우면 이름으로 찾는다(Spine, Spine01, Spine02)")]
@@ -442,6 +445,15 @@ namespace IMUNROK.Common
                     _phase = Phase.Seated;
                     CacheLeanBones();      // 앉은 자세를 기준으로 삼는다
                     SeatOnFloor();
+
+                    // 앉은 채로 굳어 있으면 심문 내내 밀랍 인형과 마주 앉은 꼴이 된다.
+                    // 앉아 있기 클립이 걸려 있으면 그리로 넘긴다 — 앉는 클립의 마지막
+                    // 자세와 첫 자세가 같으므로 엉덩이 높이가 튀지 않는다(재어 보았다).
+                    if (_animator != null && !string.IsNullOrEmpty(_sitIdleState))
+                    {
+                        _animator.speed = 1f;
+                        CrossTo(_sitIdleState);
+                    }
                 }
                 return;
             }
