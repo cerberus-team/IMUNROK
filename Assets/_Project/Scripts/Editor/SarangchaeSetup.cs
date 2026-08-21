@@ -671,20 +671,20 @@ namespace IMUNROK.Common.EditorTools
                      "한여름인데 불을 땐 자리다.",
                      "타다 만 서찰 조각이 나온다.",
                      "(눌러 잡고 헤집기)", null,
-                     "[J13] 아궁이 재 속에 타다 만 서찰 조각.");
+                     "[J10] 아궁이 재 속에 타다 만 서찰 조각.");
 
             SetWords("문갑_서랍",
                      "문서를 넣어 두는 궤다.",
                      "문서 몇 장이 개켜져 있다.",
                      "(눌러 잡고 서랍 빼기)", null,
-                     "[J08] 문갑 서랍에 사삿집 문서 여러 장.");
+                     "문갑 서랍에 사삿집 문서 여러 장. 하나하나가 따로 단서다.");   // 서랍 자체는 단서가 아니다
 
             SetWords("보료_들추기",
                      "주인이 앉아 있던 자리다.",
                      "밑에 별급문기 한 장이 깔려 있다.",
                      "(눌러 잡고 들추기)",
                      "주인이 그 위에 앉아 있다.",
-                     "[J15] 보료 밑 별급문기. 재산을 '오래 부린 종 복동에게' 준다 — 아들이라는 말이 없다.");
+                     "[J11] 보료 밑 별급문기. 재산을 '오래 부린 종 복동에게' 준다 — 아들이라는 말이 없다.");
 
             // 물러가며 남기는 말도 한 마디로
             var ch = AssetDatabase.LoadAssetAtPath<ScriptableObject>("Assets/_Project/Onggojip/Data/Gap_Interrogation.asset");
@@ -802,7 +802,7 @@ namespace IMUNROK.Common.EditorTools
             if (placeholder != null && placeholder.activeSelf)
             {
                 Undo.RecordObject(placeholder, "흰 상자 끄기");
-                placeholder.SetActive(false);       // 같은 단서(J09)가 둘이 되지 않게
+                placeholder.SetActive(false);       // 같은 단서(J06)가 둘이 되지 않게
             }
         }
 

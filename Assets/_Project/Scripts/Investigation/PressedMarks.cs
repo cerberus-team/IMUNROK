@@ -36,7 +36,7 @@ namespace IMUNROK.Common
         [SerializeField] private bool _recordClue = true;
         [SerializeField] private CaseId _clueCase = CaseId.Case1_Onggojip;
         [Tooltip("어느 단서를 굳히는가. 이미 적힌 단서면 그 줄을 고쳐 적고, 없으면 새로 적는다")]
-        [SerializeField] private string _clueKey = "J09";
+        [SerializeField] private string _clueKey = "J06";
         [TextArea(2, 4)]
         [Tooltip("고쳐 적을 문구. 같은 이야기를 두 줄로 늘리지 않기 위한 것이다")]
         [SerializeField] private string _clueText = "";

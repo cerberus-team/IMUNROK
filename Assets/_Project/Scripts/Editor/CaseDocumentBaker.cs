@@ -42,15 +42,15 @@ namespace IMUNROK.Common.Editor
             ("T_Doc_Case3_Gyeonu",   false, SharedFolder),   // 제3사건 · 견우직녀 — 전령(傳令)
 
             // 제1사건 잠행 단서 — 옹고집 전용
-            ("T_Doc_J09_Jangbu",   false, OnggojipFolder),   // J09 전조기 — 최근 두 줄만 필적이 다르다
-            ("T_Doc_J10_Mulmok",   false, OnggojipFolder),   // J10 물목기 — 최근 두 줄에만 수결(押)
-            ("T_Doc_J11_Chayong",  false, OnggojipFolder),   // J11 차용증 — 갑리(연 10할)
-            ("T_Doc_J12_Jeungseo", false, OnggojipFolder),   // J12 수표 — 미회수, 다른 고을
-            ("T_Doc_J15_Byeolgeup",false, OnggojipFolder),   // J15 별급문기 — '오래 부린 종 복동에게'
-            ("T_Doc_J13_Seochal",  true,  OnggojipFolder),   // J13 타다 만 서찰 조각 — 가장자리가 뚫려 있다
-            ("T_Doc_J16_Hojeok",   false, OnggojipFolder),   // J16 호적대장 — 관리의 손. 복동이 살아 있다
-            ("T_Doc_J17_Hogu",     false, OnggojipFolder),   // J17 호구단자 — 집안 사람의 손. 복동이 죽었다
-            ("T_Doc_J09_Yeonseup", false, OnggojipFolder),   // J09 보강 — 위조를 연습한 눌린 자국. 돋보기로만 보인다
+            ("T_Doc_J06_Jangbu",   false, OnggojipFolder),   // J06 전조기 — 최근 두 줄만 필적이 다르다
+            ("T_Doc_J07_Mulmok",   false, OnggojipFolder),   // J07 물목기 — 최근 두 줄에만 수결(押)
+            ("T_Doc_J08_Chayong",  false, OnggojipFolder),   // J08 차용증 — 갑리(연 10할)
+            ("T_Doc_J09_Jeungseo", false, OnggojipFolder),   // J09 수표 — 미회수, 다른 고을
+            ("T_Doc_J11_Byeolgeup",false, OnggojipFolder),   // J11 별급문기 — '오래 부린 종 복동에게'
+            ("T_Doc_J10_Seochal",  true,  OnggojipFolder),   // J10 타다 만 서찰 조각 — 가장자리가 뚫려 있다
+            ("T_Doc_J12_Hojeok",   false, OnggojipFolder),   // J12 호적대장 — 관리의 손. 복동이 살아 있다
+            ("T_Doc_J13_Hogu",     false, OnggojipFolder),   // J13 호구단자 — 집안 사람의 손. 복동이 죽었다
+            ("T_Doc_J06_Yeonseup", false, OnggojipFolder),   // J06 보강 — 위조를 연습한 눌린 자국. 돋보기로만 보인다
         };
 
         /// <summary>

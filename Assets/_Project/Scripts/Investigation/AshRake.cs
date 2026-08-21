@@ -80,9 +80,9 @@ namespace IMUNROK.Common
         [Header("헤집은 뒤 수첩에 기록")]
         [SerializeField] private bool _recordClue = true;
         [SerializeField] private CaseId _clueCase = CaseId.Case1_Onggojip;
-        [SerializeField] private string _clueKey = "J13";
+        [SerializeField] private string _clueKey = "J10";
         [TextArea(2, 4)]
-        [SerializeField] private string _clueText = "[J13] 한여름 밤인데 불을 땐 자리다. 재를 헤집으니 타다 만 서찰 조각이 나온다.";
+        [SerializeField] private string _clueText = "[J10] 한여름 밤인데 불을 땐 자리다. 재를 헤집으니 타다 만 서찰 조각이 나온다.";
         [SerializeField] private Texture2D _clueImage;
         [Tooltip("밑에서 나온 것이 종이라면 그 종이 면. 넣어 두면 수첩에서 다시 펼쳐 볼 수 있다")]
         [SerializeField] private Texture2D _cluePage;

@@ -28,7 +28,7 @@ namespace IMUNROK.Common
 
     /// <summary>
     /// 추천 질문 하나(=대화 버튼). 플레이어가 고르면 어사가 이 질문을 하고, 인물이 답한다.
-    /// grantsClueKey가 있으면 이 대화로 단서가 수첩에 기록된다(예: 甲의 자랑 → J04).
+    /// grantsClueKey가 있으면 이 대화로 단서가 수첩에 기록된다(예: 甲의 자랑 → J02).
     /// </summary>
     [System.Serializable]
     public class TopicQuestion

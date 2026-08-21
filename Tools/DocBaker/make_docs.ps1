@@ -133,7 +133,7 @@ function Get-Missing($familyName, $texts) {
 # Two people wrote this ledger, and the whole clue is that you can tell.
 #
 #   hand 0 = Ong Deok-gu. Twenty years of entries in a landowner's trained brush.
-#   hand 1 = Bok-dong. He was a household slave (see the manumission deed, J15) and
+#   hand 1 = Bok-dong. He was a household slave (see the manumission deed, J11) and
 #            never had a scholar's schooling, so his brush is the looser of the two.
 #            He only starts appearing in the last two lines - that is the forgery.
 #
