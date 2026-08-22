@@ -23,17 +23,66 @@ namespace IMUNROK.Common.Editor
     /// </summary>
     public static class HeavyMeshLod
     {
-        /// <summary>이 삼각형 수를 넘는 메시에만 붙인다. 그 아래는 붙여봐야 본전이다.</summary>
-        private const int Threshold = 30000;
+        /// <summary>
+        /// 이 삼각형 수를 넘는 메시에만 붙인다. 그 아래는 붙여봐야 본전이다.
+        ///
+        /// 30,000 으로 두었더니 담장 스플라인(한 짝 1만7천~2만7천)이 죄다 빠져
+        /// 판이 일곱 덩이에만 붙었다. 담은 마당을 빙 둘러 있어 수가 많으므로
+        /// 한 짝은 작아도 합치면 크다. 15,000 으로 내린다.
+        /// </summary>
+        private const int Threshold = 15000;
 
-        /// <summary>먼거리 판에 남길 비율.</summary>
-        private const float FarRatio = 0.20f;
+        /// <summary>
+        /// <b>중간 판</b>에 남길 비율. 마당 건너 정도에서 쓰인다. 기와 골이 살아 있어 티가 안 난다.
+        /// </summary>
+        private const float MidRatio = 0.25f;
 
-        /// <summary>원본을 유지할 화면 높이 비율. 이보다 작아 보이면 먼거리 판으로 바꾼다.</summary>
-        private const float SwapAt = 1.40f;
+        /// <summary>
+        /// <b>먼거리 판</b>에 남길 비율. 8% 로 구우면 지붕 실루엣이 조각나지만,
+        /// 이게 쓰이는 거리(담 너머)에서는 실루엣만 남아 티가 안 난다.
+        /// 가까이서 이게 나오면 안 되므로 문턱을 낮게 잡는다(<see cref="FarAt"/>).
+        /// </summary>
+        private const float FarRatio = 0.08f;
+
+        /// <summary>
+        /// 원본을 유지할 화면 높이 비율. 이보다 <b>크게</b> 보일 때 원본을 쓴다.
+        ///
+        /// ★유니티는 이 값을 <b>0~1 로 잘라 넣는다</b> — 1.40 을 넣으면 1.0 이 된다.
+        /// 1.0 은 "화면 높이를 꽉 채울 때만 원본"이라는 뜻인데, 처마 밑에 들어서면
+        /// 실제로 그렇게 되므로 이 값은 이대로가 맞다. 머리 위 지붕은 원본이어야 한다.
+        /// </summary>
+        private const float SwapAt = 1.0f;
+
+        /// <summary>
+        /// 중간 판으로 내려가는 문턱. <b>상한인 1.0</b> 으로 둔다.
+        ///
+        /// 0.30 으로 두었더니 지붕 한 채(size 15m)가 44m 밖까지 원본이었다 — 고택이
+        /// 60m 남짓이니 어디에 서든 원본이라는 뜻이다. 1.0 이면 13m 안쪽에서만 원본이다.
+        ///
+        /// 더 올릴 수는 없다(유니티가 1.0 으로 자른다). 그래서 <b>지붕 두 채는 손을 못 댄다</b> —
+        /// SM_RoofE 가 30.1m, SM_RoofG 가 35.6m 짜리 한 덩이라 1.0 에서도 26~31m 안이
+        /// 원본이고, 그 안에 마당 전체가 들어온다. 저 둘을 잡으려면 채별로 쪼개야 한다.
+        /// </summary>
+        private const float MidAt = 1.0f;
+
+        /// <summary>
+        /// 먼거리 판으로 내려가는 문턱. 25% 판도 처마 밑에서 보면 서까래가 깨지므로,
+        /// 판이 나오는 거리를 넉넉히 잡는다. 0.25 면 15m 짜리 지붕이 52m 밖에서 8% 판이 된다.
+        /// </summary>
+        private const float FarAt = 0.25f;
 
         /// <summary>이보다 작아 보이면 아예 안 그린다.</summary>
         private const float CullAt = 0.006f;
+
+        /// <summary>
+        /// 품질 설정의 LOD 배율. 1보다 작으면 물체가 작아 보이는 셈이 되어 판이 일찍 나온다.
+        ///
+        /// 0.5 로 내려 봤더니 삼각형은 2,852,459 → 1,796,733 으로 잘 떨어졌으나
+        /// <b>머리 위 지붕까지 판으로 바뀌어</b> 처마 밑에서 서까래가 조각나 보였다.
+        /// 그래서 배율은 1 로 두고 대신 단을 셋으로 나눈다 — 가까이는 원본,
+        /// 마당 건너는 중간 판, 담 너머는 먼거리 판.
+        /// </summary>
+        private const float TargetLodBias = 1f;
 
         private const string ChildName = "_먼거리";
 
@@ -54,7 +103,12 @@ namespace IMUNROK.Common.Editor
                 if (m == null || !m.isReadable) continue;
                 if (m.triangles.Length / 3 <= Threshold) continue;
                 if (mf.gameObject.name == ChildName) continue;              // 내가 만든 판은 건너뛴다
-                if (mf.GetComponent<MeshRenderer>() == null) continue;
+                var rr = mf.GetComponent<MeshRenderer>();
+                if (rr == null) continue;
+                // 꺼 둔 렌더러에는 붙이지 않는다. 쪼개기(BigMeshSplitter)가 원본을 끄고
+                // 조각을 대신 세우는데, 여기서 원본에도 판을 구우면 안 쓰는 메시가
+                // 프로젝트에 쌓이고 셈까지 부풀린다.
+                if (!rr.enabled) continue;
                 work.Add(mf);
             }
 
@@ -65,7 +119,8 @@ namespace IMUNROK.Common.Editor
             }
 
             // 같은 메시를 여러 오브젝트가 쓰면 줄인 것도 하나만 굽는다
-            var baked = new Dictionary<Mesh, Mesh>();
+            var bakedMid = new Dictionary<Mesh, Mesh>();
+            var bakedFar = new Dictionary<Mesh, Mesh>();
             long before = 0, after = 0;
             int done = 0;
             var log = new System.Text.StringBuilder();
@@ -79,29 +134,38 @@ namespace IMUNROK.Common.Editor
                     EditorUtility.DisplayProgressBar("먼거리 판 붙이기",
                         src.name + " (" + (i + 1) + "/" + work.Count + ")", (float)(i + 1) / work.Count);
 
-                    Mesh far;
-                    if (!baked.TryGetValue(src, out far))
-                    {
-                        int srcTri = src.triangles.Length / 3;
-                        far = MeshDecimator.Bake(src, Mathf.Max(2000, Mathf.RoundToInt(srcTri * FarRatio)));
-                        baked[src] = far;
-                        if (far != null)
-                            log.AppendLine("   " + src.name + " : " + srcTri + " → " + (far.triangles.Length / 3));
-                    }
-                    if (far == null) continue;
+                    int srcTri = src.triangles.Length / 3;
 
-                    before += src.triangles.Length / 3;
-                    after += far.triangles.Length / 3;
-                    Attach(mf, far);
+                    Mesh mid;
+                    if (!bakedMid.TryGetValue(src, out mid))
+                    {
+                        mid = MeshDecimator.Bake(src, Mathf.Max(4000, Mathf.RoundToInt(srcTri * MidRatio)), "_중간");
+                        bakedMid[src] = mid;
+                    }
+                    Mesh far;
+                    if (!bakedFar.TryGetValue(src, out far))
+                    {
+                        far = MeshDecimator.Bake(src, Mathf.Max(1500, Mathf.RoundToInt(srcTri * FarRatio)), "_먼");
+                        bakedFar[src] = far;
+                        if (far != null && mid != null)
+                            log.AppendLine("   " + src.name + " : " + srcTri
+                                           + " → 중간 " + (mid.triangles.Length / 3)
+                                           + " → 먼 " + (far.triangles.Length / 3));
+                    }
+                    if (far == null || mid == null) continue;
+
+                    before += srcTri;
+                    after += mid.triangles.Length / 3;
+                    Attach(mf, mid, far);
                     done++;
                 }
             }
             finally { EditorUtility.ClearProgressBar(); }
 
-            if (QualitySettings.lodBias > 1.01f)
+            if (Mathf.Abs(QualitySettings.lodBias - TargetLodBias) > 0.01f)
             {
-                log.AppendLine("   LOD 배율 " + QualitySettings.lodBias + " → 1 (먼거리 판이 제때 나오게)");
-                QualitySettings.lodBias = 1f;
+                log.AppendLine("   LOD 배율 " + QualitySettings.lodBias + " → " + TargetLodBias + " (먼거리 판이 제때 나오게)");
+                QualitySettings.lodBias = TargetLodBias;
             }
 
             AssetDatabase.SaveAssets();
@@ -115,16 +179,40 @@ namespace IMUNROK.Common.Editor
             Debug.Log("[먼거리판] " + msg.Replace("\n\n", " / ") + "\n" + log);
         }
 
-        /// <summary>원본 렌더러를 LOD0, 줄인 메시를 든 자식을 LOD1 로 묶는다.</summary>
-        private static void Attach(MeshFilter mf, Mesh far)
+        /// <summary>
+        /// 원본을 LOD0, 중간 판을 LOD1, 먼거리 판을 LOD2 로 묶는다.
+        ///
+        /// 왜 두 단인가: 한 단만 두고 그것을 8% 로 깎았더니, 마당 건너에서는 멀쩡한데
+        /// 처마 밑에 들어서면 서까래가 조각나 보였다. 한 장으로 가까운 데와 먼 데를
+        /// 다 감당하려니 어느 쪽이든 틀리는 것이다.
+        /// </summary>
+        private static void Attach(MeshFilter mf, Mesh mid, Mesh far)
         {
             var go = mf.gameObject;
             var srcRenderer = mf.GetComponent<MeshRenderer>();
 
-            var child = go.transform.Find(ChildName);
+            var midR = MakeChild(go, srcRenderer, ChildName + "_중간", mid);
+            var farR = MakeChild(go, srcRenderer, ChildName, far);
+
+            var group = go.GetComponent<LODGroup>();
+            if (group == null) group = go.AddComponent<LODGroup>();
+            group.SetLODs(new[]
+            {
+                new LOD(MidAt, new Renderer[] { srcRenderer }),
+                new LOD(FarAt, new Renderer[] { midR }),
+                new LOD(CullAt, new Renderer[] { farR })
+            });
+            group.RecalculateBounds();
+            EditorUtility.SetDirty(go);
+        }
+
+        /// <summary>줄인 메시를 든 자식 하나. 원본의 재질·그림자 설정을 그대로 물려받는다.</summary>
+        private static Renderer MakeChild(GameObject go, MeshRenderer src, string name, Mesh mesh)
+        {
+            var child = go.transform.Find(name);
             if (child == null)
             {
-                var c = new GameObject(ChildName);
+                var c = new GameObject(name);
                 Undo.RegisterCreatedObjectUndo(c, "먼거리 판");
                 c.transform.SetParent(go.transform, false);
                 child = c.transform;
@@ -134,24 +222,15 @@ namespace IMUNROK.Common.Editor
 
             var cf = childGo.GetComponent<MeshFilter>();
             if (cf == null) cf = childGo.AddComponent<MeshFilter>();
-            cf.sharedMesh = far;
+            cf.sharedMesh = mesh;
 
             var cr = childGo.GetComponent<MeshRenderer>();
             if (cr == null) cr = childGo.AddComponent<MeshRenderer>();
-            cr.sharedMaterials = srcRenderer.sharedMaterials;
-            cr.shadowCastingMode = srcRenderer.shadowCastingMode;
-            cr.receiveShadows = srcRenderer.receiveShadows;
-            cr.lightProbeUsage = srcRenderer.lightProbeUsage;
-
-            var group = go.GetComponent<LODGroup>();
-            if (group == null) group = go.AddComponent<LODGroup>();
-            group.SetLODs(new[]
-            {
-                new LOD(SwapAt, new Renderer[] { srcRenderer }),
-                new LOD(CullAt, new Renderer[] { cr })
-            });
-            group.RecalculateBounds();
-            EditorUtility.SetDirty(go);
+            cr.sharedMaterials = src.sharedMaterials;
+            cr.shadowCastingMode = src.shadowCastingMode;
+            cr.receiveShadows = src.receiveShadows;
+            cr.lightProbeUsage = src.lightProbeUsage;
+            return cr;
         }
     }
 }

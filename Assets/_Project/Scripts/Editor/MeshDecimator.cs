@@ -84,7 +84,7 @@ namespace IMUNROK.Common.Editor
                     int target = TargetTriangles(src);
                     before += (long)srcTri * kv.Value.Count;
 
-                    var baked = BakeSimplified(src, target);
+                    var baked = BakeSimplified(src, target, "");
                     if (baked == null) { after += (long)srcTri * kv.Value.Count; continue; }
 
                     int newTri = baked.triangles.Length / 3;
@@ -128,10 +128,17 @@ namespace IMUNROK.Common.Editor
         /// 다른 도구가 쓰라고 열어 둔 문. 씬을 건드리지 않고 줄인 메시만 구워 돌려준다.
         /// (먼거리 판을 만드는 <see cref="HeavyMeshLod"/> 가 쓴다)
         /// </summary>
-        public static Mesh Bake(Mesh src, int targetTriangles) => BakeSimplified(src, targetTriangles);
+        public static Mesh Bake(Mesh src, int targetTriangles) => BakeSimplified(src, targetTriangles, "");
+
+        /// <summary>
+        /// 같은 원본에서 <b>여러 단</b>을 구울 때 쓴다. 접미사가 파일 이름에 붙어
+        /// 서로 덮어쓰지 않는다 — 먼거리 판을 중간·먼 두 단으로 굽느라 열었다.
+        /// </summary>
+        public static Mesh Bake(Mesh src, int targetTriangles, string suffix)
+            => BakeSimplified(src, targetTriangles, suffix);
 
         /// <summary>줄인 메시를 만들어 원본 옆 폴더에 저장한다. 이미 있으면 덮어쓴다.</summary>
-        private static Mesh BakeSimplified(Mesh src, int targetTriangles)
+        private static Mesh BakeSimplified(Mesh src, int targetTriangles, string suffix)
         {
             string srcPath = AssetDatabase.GetAssetPath(src);
             if (string.IsNullOrEmpty(srcPath)) return null;
@@ -168,8 +175,8 @@ namespace IMUNROK.Common.Editor
             string stem = string.IsNullOrEmpty(owner) || owner == src.name
                         ? Sanitize(src.name)
                         : Sanitize(owner) + "_" + Sanitize(src.name);
-            best.name = stem + "_간소";
-            string path = outDir + "/" + stem + "_간소.asset";
+            best.name = stem + "_간소" + suffix;
+            string path = outDir + "/" + stem + "_간소" + suffix + ".asset";
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if (existing != null)
             {
