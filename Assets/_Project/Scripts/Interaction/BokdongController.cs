@@ -79,6 +79,13 @@ namespace IMUNROK.Common
         [SerializeField] private string _openState = "open_door_2";
         [Tooltip("도착 → 문에 손대기까지 뜸")]
         [SerializeField] private float _delayBeforeOpen = 0.4f;
+
+        [Tooltip("문 여닫는 동작의 어느 대목에서 문짝이 실제로 움직이나(0~1). 손이 문에 닿는 때에 맞춘다")]
+        [Range(0f, 1f)] [SerializeField] private float _doorMovesAt = 0.45f;
+
+        [Tooltip("켜면 문 앞에서 뜸 들이지 않는다 — 걷다가 곧장 문 여는 동작으로, 끝나면 곧장 다시 걷는다. " +
+                 "서 있는 클립이 없는 복동에게는 그 사이 '멈춤'이 어색하게 굳어 보인다")]
+        [SerializeField] private bool _noIdleAtDoor = true;
         [Tooltip("문이 다 열린 순간 한 번 실행(순간이동 영역 열기 등)")]
         [SerializeField] private UnityEngine.Events.UnityEvent _onDoorOpened;
 
@@ -92,6 +99,10 @@ namespace IMUNROK.Common
         [SerializeField] private string _sitDownReverseState = "Stand_Up3";
         [Tooltip("앉을 자리(보료 위). 비우면 선 자리에서 그대로 앉는다")]
         [SerializeField] private Transform _sitSpot;
+
+        [Tooltip("일어설 자리. 앉을 때 몸을 방석 높이에 맞춰 들어 올리므로, 그대로 일어서면 " +
+                 "그 들어 올린 만큼 떠 있거나 어긋난다. 비우면 앉기 직전 자리로 되돌린다")]
+        [SerializeField] private Transform _standSpot;
         [Tooltip("앉는 동작 앞에 걷기→선 자세로 섞는 시간")]
         [SerializeField] private float _sitBlend = 0.2f;
         [Tooltip("앉은 높이 미세 조정(m). 몸이 자리에 파묻히면 올리고, 떠 있으면 내린다")]
@@ -135,7 +146,16 @@ namespace IMUNROK.Common
         [SerializeField] private Transform _leaveThroughSpot;
         [Tooltip("넘어가 서고 → 문을 도로 닫기까지 뜸. 열어 둔 채 가면 방이 열린 채로 남는다")]
         [SerializeField] private float _leaveCloseDelay = 0.6f;
-        [Tooltip("문이 닫히고 → 몸을 치우기까지(초). 문짝 뒤로 가려진 다음에 없애야 한다")]
+        [Tooltip("문을 넘어간 뒤 돌아서서 바라볼 곳 — 대개 그 문. 비우면 돌아서지 않고 그대로 닫는다")]
+        [SerializeField] private Transform _leaveFaceDoorSpot;
+
+        [Tooltip("닫고 나서 물러갈 자리. 방 안에서 안 보일 만큼 멀리 잡는다")]
+        [SerializeField] private Transform _leaveAwaySpot;
+
+        [Tooltip("물러가는 길에 들를 곳들")]
+        [SerializeField] private Transform[] _leaveAwayWaypoints;
+
+        [Tooltip("물러갈 자리를 안 줬을 때만 쓴다 — 문이 닫히고 몸을 치우기까지(초)")]
         [SerializeField] private float _hideDelay = 1.4f;
         [Tooltip("다 나간 뒤 몸을 끌지. 꺼 두는 것이 맞다 — 몸을 치워 버리면 그 사람이 " +
                  "세상에서 사라진다. 방을 나갔을 뿐이므로 마당에서 다시 만나 말을 걸 수 있어야 한다")]
@@ -147,7 +167,7 @@ namespace IMUNROK.Common
         private enum Phase
         {
             Idle, Greeting, Leading, Opening, GoingThrough, Arrived, SittingDown, Seated,
-            StandingUp, Leaving, OpeningExit, GoingOut, Gone
+            StandingUp, Leaving, OpeningExit, GoingOut, TurningToClose, ClosingExit, GoingAway, Gone
         }
         private Phase _phase;
         private int _wpIndex;
@@ -160,6 +180,10 @@ namespace IMUNROK.Common
         private float _standBlendLeft;   // 선 자세로 섞이는 중 남은 시간
         private float _sitTimer;         // 앉기(일어서기 역재생) 남은 시간
         private float _sitLen;           // 일어서기 클립 길이
+        private bool _doorFired;         // 이번 여닫기에서 문짝을 이미 건드렸나
+        private Vector3 _beforeSitPos;   // 앉기 직전 자리 — 일어설 때 되돌린다
+        private Quaternion _beforeSitRot;
+        private bool _beforeSitValid;
 
         private void Awake()
         {
@@ -260,6 +284,12 @@ namespace IMUNROK.Common
                 transform.rotation = _sitSpot.rotation;
                 _groundInit = false;                    // 새 자리에서 발밑을 다시 잡는다
             }
+
+            // 앉는 동안 SeatOnFloor 가 몸을 방석 높이만큼 들어 올린다. 그 상태로 그냥
+            // 일어서면 들어 올린 만큼 떠 있거나 어긋난다. 그래서 지금 자리를 적어 둔다.
+            _beforeSitPos = transform.position;
+            _beforeSitRot = transform.rotation;
+            _beforeSitValid = true;
 
             // 발 붙이기는 선 자세를 기준으로 보정한다 — 앉은 자세엔 그 보정이 안 맞아
             // 몸이 마루 밑으로 44cm 꺼진다. 앉는 동안은 꺼 두고 자리를 직접 잡는다.
@@ -470,7 +500,7 @@ namespace IMUNROK.Common
             // 일어서는 중 — 앉을 때 거꾸로 돌린 클립을 이번엔 바로 돌린다.
             if (_phase == Phase.StandingUp)
             {
-                if (StateDone(_standUpState)) DoLeaveWalk();
+                if (StateDone(_standUpState)) { SnapToStandSpot(); DoLeaveWalk(); }
                 return;
             }
 
@@ -495,6 +525,7 @@ namespace IMUNROK.Common
             // 나가는 문을 여는 동작이 끝나기를 기다린다.
             if (_phase == Phase.OpeningExit)
             {
+                TickDoor(_leaveOpenState, _leaveDoor, false);
                 if (StateDone(_leaveOpenState)) DoLeaveOpened();
                 return;
             }
@@ -506,8 +537,46 @@ namespace IMUNROK.Common
                 if (MoveTo(_leaveThroughSpot.position, _leaveThroughSpot.rotation))
                 {
                     transform.rotation = _leaveThroughSpot.rotation;
+                    DoTurnToDoor();
+                }
+                return;
+            }
+
+            // 넘어가서 문 쪽으로 돌아서는 중. 다 돌면 닫는 동작으로 넘어간다.
+            if (_phase == Phase.TurningToClose)
+            {
+                var to = _leaveFaceDoorSpot.position - transform.position; to.y = 0f;
+                if (to.sqrMagnitude > 0.0001f)
+                {
+                    var want = Quaternion.LookRotation(to.normalized, Vector3.up);
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation, want, _turnSpeed * Time.deltaTime);
+                    if (Quaternion.Angle(transform.rotation, want) > 3f) return;
+                }
+                DoCloseGesture();
+                return;
+            }
+
+            // 문을 닫는 동작. 손이 닿는 대목에서 문짝이 닫힌다.
+            if (_phase == Phase.ClosingExit)
+            {
+                TickDoor(_leaveOpenState, _leaveDoor, true);
+                if (StateDone(_leaveOpenState)) DoLeaveAway();
+                return;
+            }
+
+            // 닫고 나서 방에서 안 보일 만큼 물러간다.
+            if (_phase == Phase.GoingAway)
+            {
+                KeepWalking();
+                if (_leaveAwayWaypoints != null && _wpIndex < _leaveAwayWaypoints.Length && _leaveAwayWaypoints[_wpIndex] != null)
+                {
+                    if (MoveTo(_leaveAwayWaypoints[_wpIndex].position, transform.rotation)) _wpIndex++;
+                }
+                else if (_leaveAwaySpot == null || MoveTo(_leaveAwaySpot.position, _leaveAwaySpot.rotation))
+                {
+                    if (_leaveAwaySpot != null) transform.rotation = _leaveAwaySpot.rotation;
                     HoldStand();
-                    Delay(_leaveCloseDelay, DoLeaveClose);
+                    DoLeaveGone();
                 }
                 return;
             }
@@ -533,6 +602,7 @@ namespace IMUNROK.Common
             // 문 여는 동작이 끝나면 문짝을 열고 알린다.
             if (_phase == Phase.Opening)
             {
+                TickDoor(_openState, _door, false);
                 if (StateDone(_openState)) DoOpened();
                 return;
             }
@@ -565,7 +635,13 @@ namespace IMUNROK.Common
             else if (_arriveSpot == null || MoveTo(_arriveSpot.position, _arriveSpot.rotation))
             {
                 if (_arriveSpot != null) transform.rotation = _arriveSpot.rotation;
-                if (_door != null) { HoldStand(); Delay(_delayBeforeOpen, DoOpen); }
+                if (_door != null)
+                {
+                    // 걷다가 문 앞에 서서 뜸 들이지 않는다. 복동에게는 서 있는 클립이 없어서
+                    // 그 사이가 '멈춘 걷기'로 굳어 보인다 — 걷기에서 곧장 문열기로 넘긴다.
+                    if (_noIdleAtDoor) DoOpen();
+                    else { HoldStand(); Delay(_delayBeforeOpen, DoOpen); }
+                }
                 else { HoldStand(); _phase = Phase.Arrived; }
             }
         }
@@ -577,6 +653,7 @@ namespace IMUNROK.Common
         /// <summary>문에 손을 뻗는다. 전용 동작이 없으면 곧장 문짝만 연다.</summary>
         private void DoOpen()
         {
+            _doorFired = false;
             if (_animator == null || string.IsNullOrEmpty(_openState)) { DoOpened(); return; }
             CrossTo(_openState);
             _phase = Phase.Opening;
@@ -585,11 +662,16 @@ namespace IMUNROK.Common
         /// <summary>문짝을 열고, 이 뒤로 벌어질 일(순간이동 등)에 신호를 준다.</summary>
         private void DoOpened()
         {
-            if (_door != null) _door.Open();
+            if (_door != null && !_doorFired) { _door.Open(); _doorFired = true; }
+            _onDoorOpened?.Invoke();
+
+            if (_throughDoorSpot == null) { HoldStand(); _phase = Phase.Arrived; return; }
+
+            // 문을 다 열자마자 걷는다. 사이에 서 있는 자세를 끼우지 않는다.
+            if (_noIdleAtDoor) { DoWalkThrough(); return; }
             HoldStand();
             _phase = Phase.Arrived;
-            _onDoorOpened?.Invoke();
-            if (_throughDoorSpot != null) Delay(_delayAfterOpen, DoWalkThrough);
+            Delay(_delayAfterOpen, DoWalkThrough);
         }
 
         /// <summary>문간을 넘어 사랑채 쪽으로. 플레이어는 뒤를 따라오다 넘어가게 된다.</summary>
@@ -632,6 +714,7 @@ namespace IMUNROK.Common
         /// <summary>문에 손을 뻗는다. 전용 동작이 없으면 곧장 문짝만 연다.</summary>
         private void DoLeaveOpen()
         {
+            _doorFired = false;
             if (_animator == null || string.IsNullOrEmpty(_leaveOpenState)) { DoLeaveOpened(); return; }
             CrossTo(_leaveOpenState);
             _phase = Phase.OpeningExit;
@@ -639,7 +722,8 @@ namespace IMUNROK.Common
 
         private void DoLeaveOpened()
         {
-            if (_leaveDoor != null) _leaveDoor.Open();
+            if (_leaveDoor != null && !_doorFired) { _leaveDoor.Open(); _doorFired = true; }
+            if (_noIdleAtDoor) { DoLeaveThrough(); return; }
             HoldStand();
             _phase = Phase.Arrived;
             Delay(_delayAfterOpen, DoLeaveThrough);
@@ -653,11 +737,76 @@ namespace IMUNROK.Common
             _phase = Phase.GoingOut;
         }
 
-        /// <summary>넘어간 뒤 문을 도로 닫는다. 이 소리가 조사를 시작해도 좋다는 신호다.</summary>
+        /// <summary>
+        /// 넘어갔으면 <b>돌아선다</b>. 등을 돌린 채 문이 저 혼자 닫히면 유령이 닫는 꼴이다.
+        /// 돌아볼 곳을 안 주면 그냥 닫는다.
+        /// </summary>
+        private void DoTurnToDoor()
+        {
+            // 돌아볼 곳을 따로 안 줘도 된다 — 나가면서 연 그 문이 곧 볼 곳이다.
+            // 그 문은 실내 씬에 살아서 인스펙터로는 못 잇고 SarangbangBinder 가 물려 준다.
+            if (_leaveFaceDoorSpot == null && _leaveDoor != null) _leaveFaceDoorSpot = _leaveDoor.transform;
+            if (_leaveFaceDoorSpot == null) { DoCloseGesture(); return; }
+            HoldStand();
+            _phase = Phase.TurningToClose;
+        }
+
+        /// <summary>문에 손을 뻗어 닫는다. 문짝은 손이 닿는 대목에서 움직인다.</summary>
+        private void DoCloseGesture()
+        {
+            _doorFired = false;
+            if (_animator == null || string.IsNullOrEmpty(_leaveOpenState)) { DoLeaveClose(); return; }
+            CrossTo(_leaveOpenState);
+            _phase = Phase.ClosingExit;
+        }
+
+        /// <summary>닫는 동작이 없을 때의 갈래 — 그냥 닫고 물러간다.</summary>
         private void DoLeaveClose()
         {
-            if (_leaveDoor != null) _leaveDoor.Close();
-            Delay(_hideDelay, DoLeaveGone);
+            if (_leaveDoor != null && !_doorFired) { _leaveDoor.Close(); _doorFired = true; }
+            DoLeaveAway();
+        }
+
+        /// <summary>
+        /// 닫았으면 <b>물러간다</b>. 문 앞에 서 있으면 방 안에서 창호 너머로 그림자가 비친다 —
+        /// 조사하는 내내 누가 지켜보고 선 꼴이다. 그래서 안 보일 만큼 걸어 나간다.
+        /// </summary>
+        private void DoLeaveAway()
+        {
+            if (_leaveDoor != null && !_doorFired) { _leaveDoor.Close(); _doorFired = true; }
+
+            bool hasPath = _leaveAwaySpot != null ||
+                           (_leaveAwayWaypoints != null && _leaveAwayWaypoints.Length > 0);
+            if (!hasPath) { HoldStand(); Delay(_hideDelay, DoLeaveGone); return; }
+
+            _wpIndex = 0;
+            _mvHasTarget = false;
+            if (_animator != null) _animator.speed = 1f;
+            CrossTo(_walkState);
+            _phase = Phase.GoingAway;
+        }
+
+        /// <summary>
+        /// 일어선 자리를 바로잡는다.
+        ///
+        /// 앉을 때 <see cref="SeatOnFloor"/> 가 몸을 방석 윗면까지 들어 올린다. 그 들어 올린
+        /// 만큼을 안 되돌리면 일어서서 걷는 내내 마루 위에 떠 있다. 일어서기 동작이 끝난
+        /// 뒤에 맞춘다 — 시작할 때 맞추면 앉은 몸이 그 자리로 튄다.
+        /// </summary>
+        private void SnapToStandSpot()
+        {
+            if (_standSpot != null)
+            {
+                transform.position = _standSpot.position;
+                transform.rotation = _standSpot.rotation;
+            }
+            else if (_beforeSitValid)
+            {
+                transform.position = _beforeSitPos;
+                transform.rotation = _beforeSitRot;
+            }
+            _groundInit = false;      // 새 자리에서 발밑을 다시 잡는다
+            SnapToGround();
         }
 
         private void DoLeaveGone()
@@ -665,6 +814,22 @@ namespace IMUNROK.Common
             _phase = Phase.Gone;
             _onLeft?.Invoke();
             if (_hideWhenGone) gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// 여닫는 동작의 <see cref="_doorMovesAt"/> 대목에서 문짝을 실제로 움직인다.
+        ///
+        /// 예전에는 동작이 <b>다 끝난 뒤</b>에 문을 열었다. 그래서 손은 이미 문을 밀고
+        /// 지나갔는데 문짝은 그제야 움직였다 — 손과 문이 따로 놀았다.
+        /// </summary>
+        private void TickDoor(string state, DoorController door, bool close)
+        {
+            if (_doorFired || door == null || _animator == null) return;
+            var st = _animator.GetCurrentAnimatorStateInfo(0);
+            if (!st.IsName(state)) return;
+            if (st.normalizedTime < _doorMovesAt) return;
+            if (close) door.Close(); else door.Open();
+            _doorFired = true;
         }
 
         private bool StateDone(string state)

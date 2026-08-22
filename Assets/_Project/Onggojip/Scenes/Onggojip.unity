@@ -3372,6 +3372,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 742859724}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &765539156
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 765539157}
+  m_Layer: 0
+  m_Name: "\u7532_\uBB3C\uB7EC\uB0A8_\uC911\uAC04"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &765539157
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 765539156}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 2.4, y: -1.4, z: -15.4}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1994009601}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &775922019
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3860,6 +3891,37 @@ MonoBehaviour:
         m_CallState: 2
   _lockedAtStart: 0
   _lockedBody: "\uC9C0\uAE08\uC740 \uC190\uC744 \uB308 \uC218 \uC5C6\uB2E4."
+--- !u!1 &871417818
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 871417819}
+  m_Layer: 0
+  m_Name: "\u7532_\uBB3C\uB7EC\uB0A8"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &871417819
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 871417818}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.9848078, z: -0, w: -0.17364821}
+  m_LocalPosition: {x: -1, y: -1.54, z: -17.6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1994009601}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &901684619
 GameObject:
   m_ObjectHideFlags: 0
@@ -5188,6 +5250,7 @@ MonoBehaviour:
   _height: 3.2
   _fadeOut: 0.25
   _fadeIn: 0.35
+  _dropOcclusionInside: 1
   _groundWhileInside: {fileID: 1052266295}
   _onEntered:
     m_PersistentCalls:
@@ -11515,12 +11578,15 @@ MonoBehaviour:
   _door: {fileID: 0}
   _openState: open_door_2
   _delayBeforeOpen: 0.4
+  _doorMovesAt: 0.45
+  _noIdleAtDoor: 1
   _onDoorOpened:
     m_PersistentCalls:
       m_Calls: []
   _throughDoorSpot: {fileID: 1379753156}
   _sitDownReverseState: Stand_Up3
   _sitSpot: {fileID: 2064993465}
+  _standSpot: {fileID: 0}
   _sitBlend: 0.2
   _sitYOffset: 0
   _sitSpeed: 1.4
@@ -11538,10 +11604,14 @@ MonoBehaviour:
   _leaveDoorSpot: {fileID: 1915329676}
   _leaveWaypoints: []
   _leaveDoor: {fileID: 0}
-  _leaveOpenState: 
+  _leaveOpenState: open_door_2
   _leaveOpenDelay: 0.4
   _leaveThroughSpot: {fileID: 1807453816}
   _leaveCloseDelay: 0.6
+  _leaveFaceDoorSpot: {fileID: 0}
+  _leaveAwaySpot: {fileID: 871417819}
+  _leaveAwayWaypoints:
+  - {fileID: 765539157}
   _hideDelay: 1.4
   _hideWhenGone: 0
   _onLeft:
@@ -22339,6 +22409,8 @@ Transform:
   - {fileID: 1915329676}
   - {fileID: 1807453816}
   - {fileID: 995650158}
+  - {fileID: 871417819}
+  - {fileID: 765539157}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2007637631
