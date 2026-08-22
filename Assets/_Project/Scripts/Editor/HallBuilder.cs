@@ -60,12 +60,25 @@ namespace IMUNROK.Common.EditorTools
         private const float DoorTop = 2.75f;     // 문 위 인방 밑
         private const float RafterStep = 0.6f;
 
+        // ── 창(窓) ────────────────────────────────
+        //
+        // 옆면은 문이 아니라 창이다. 문은 드나드는 데고 창은 앉아서 내다보는 데라,
+        // 아래에 머름을 두르고 그 위에만 종이를 바른다. 보료에 앉은 눈높이가
+        // 대략 1.1m 인데 머름 윗면이 1.16 이라, 앉으면 창턱 너머로 마당이 보이고
+        // 서면 창살이 눈앞에 온다 — 앉는 방이라는 것이 자세로 드러난다.
+        private const float SillH = 0.45f;       // 머름 높이(마루 윗면에서)
+        private const float WinH = 1.40f;        // 창 높이
+        private const float FrameW = 0.075f;     // 창틀 굵기
+        private const float BarStep = 0.16f;     // 세로살 사이
+        private const float BarW = 0.032f;       // 살 굵기
+        private const int BarRows = 3;           // 가로살 줄 수(세살창)
+
         // 방 둘의 경계(원본 벽 자리에서 잰 것)
         private const float RoomZMin = -1.54f, RoomZMax = 1.46f;
         private const float WestX0 = -4.54f, WestX1 = -1.54f;
         private const float MidX0 = -1.54f, MidX1 = 1.46f;
 
-        private static Material _wood, _beam, _rafter, _wall, _ceil, _floor, _gidan, _stone, _paper, _roof;
+        private static Material _wood, _beam, _rafter, _wall, _ceil, _floor, _gidan, _stone, _paper, _roof, _jangpan, _changho;
         private static readonly int BaseMapSt = Shader.PropertyToID("_BaseMap_ST");
         private static readonly int MainTexSt = Shader.PropertyToID("_MainTex_ST");
 
@@ -102,6 +115,7 @@ namespace IMUNROK.Common.EditorTools
             BuildRafters(Group(구조, "서까래"));
             BuildCeiling(Group(구조, "반자천장"));
             BuildWalls(Group(구조, "벽"));
+            BuildWindows(Group(구조, "창"));
             BuildDoors(Group(구조, "문"));
             BuildRoof(Group(구조, "지붕"));
 
@@ -200,8 +214,15 @@ namespace IMUNROK.Common.EditorTools
             _gidan  = Load(HouseDir + "MI_GidanStone01A.mat");  // 기단
             _stone  = Load(HouseDir + "MI_Stone02A.mat");       // 주춧돌·댓돌
             _roof   = Load(HouseDir + "MI_Giwa.mat");           // 기와
-            _paper  = Load(RoomDir + "MI_사랑방_한지.mat");       // 문에 바른 한지
+            _paper  = Load(RoomDir + "MI_사랑방_한지.mat");       // 문·창에 바른 한지
             _ceil   = Load(RoomDir + "MI_사랑방_반자.mat");       // 반자 천장
+            _jangpan = Load(RoomDir + "MI_사랑방_장판.mat");      // 방바닥 장판
+
+            // 창에 바른 종이만은 <b>불투명</b>한 것을 쓴다. 문에 바른 사랑방 한지는
+            // 투명도 0.62 라, 문짝처럼 뒤에 방이 있을 때는 알맞지만 창처럼 뒤가
+            // 바깥일 때는 나뭇가지가 그대로 비쳐 유리창이 된다. 창호지는 빛만
+            // 들이고 모양은 안 들이는 물건이다.
+            _changho = Load("Assets/_Project/_Common/Materials/M_조사청_한지.mat");
 
             if (_wood == null || _wall == null || _floor == null || _gidan == null || _stone == null)
             {
@@ -213,6 +234,8 @@ namespace IMUNROK.Common.EditorTools
             if (_roof == null) _roof = _gidan;
             if (_paper == null) _paper = _wall;
             if (_ceil == null) _ceil = _wall;
+            if (_jangpan == null) _jangpan = _floor;
+            if (_changho == null) _changho = _paper;
             return true;
         }
 
@@ -316,9 +339,19 @@ namespace IMUNROK.Common.EditorTools
 
         private static void BuildFloor(Transform g)
         {
+            // 바닥은 한 장이 아니다. <b>방은 장판, 열린 마루는 널</b>이다 —
+            // 신을 벗고 앉는 자리와 신은 채로 걷는 자리가 같은 재질이면 어디까지가
+            // 방인지 알 수 없다. 사랑채 실내가 쓰는 장판을 그대로 쓴다.
             float cx = (XMin + XMax) * 0.5f, cz = (ZMin + ZMax) * 0.5f;
-            Box(g, "마루_판", new Vector3(cx, FloorTop - FloorThick * 0.5f, cz),
+            Box(g, "마루_널", new Vector3(cx, FloorTop - FloorThick * 0.5f, cz),
                 new Vector3(XMax - XMin, FloorThick, ZMax - ZMin), _floor, true, null, 0.7f);
+
+            // 장판은 널 위에 종이 한 겹으로 덮는다(방 두 칸에만).
+            float y = FloorTop + 0.004f;
+            Box(g, "장판_서방", Mid(WestX0, WestX1, y, RoomZMin, RoomZMax),
+                new Vector3(WestX1 - WestX0, 0.008f, RoomZMax - RoomZMin), _jangpan, false, null, 0.35f);
+            Box(g, "장판_중방", Mid(MidX0, MidX1, y, RoomZMin, RoomZMax),
+                new Vector3(MidX1 - MidX0, 0.008f, RoomZMax - RoomZMin), _jangpan, false, null, 0.35f);
         }
 
         private static void BuildBeams(Transform g)
@@ -382,10 +415,8 @@ namespace IMUNROK.Common.EditorTools
                 new Vector3(WestX1 - WestX0, lintel, WallThick), _wall, false, null, 0.5f);
             Box(g, "인방위_중_남", new Vector3((MidX0 + MidX1) * 0.5f, ly, RoomZMin),
                 new Vector3(MidX1 - MidX0, lintel, WallThick), _wall, false, null, 0.5f);
-            Box(g, "인방위_서_서", new Vector3(WestX0, ly, (RoomZMin + RoomZMax) * 0.5f),
-                new Vector3(WallThick, lintel, RoomZMax - RoomZMin), _wall, false, null, 0.5f);
-            Box(g, "인방위_중_동", new Vector3(MidX1, ly, (RoomZMin + RoomZMax) * 0.5f),
-                new Vector3(WallThick, lintel, RoomZMax - RoomZMin), _wall, false, null, 0.5f);
+            // 옆면(서·동)의 위쪽 벽은 창이 제 몫으로 세운다 — 창머리 높이가
+            // 문머리와 다르므로 여기서 같이 재면 어긋난다.
         }
 
         private static void BuildDoors(Transform g)
@@ -394,10 +425,81 @@ namespace IMUNROK.Common.EditorTools
             float h = DoorTop - FloorTop;
             float y = FloorTop + h * 0.5f;
 
+            // 남쪽 두 면만 문이다. 옆면은 창으로 바뀌었다(BuildWindows).
             Leaves(g, "문_서방_남", WestX0, WestX1, y, h, RoomZMin, true);
             Leaves(g, "문_중방_남", MidX0, MidX1, y, h, RoomZMin, true);
-            Leaves(g, "문_서방_서", RoomZMin, RoomZMax, y, h, WestX0, false);
-            Leaves(g, "문_중방_동", RoomZMin, RoomZMax, y, h, MidX1, false);
+        }
+
+        // ── 창 ──────────────────────────────────────
+
+        /// <summary>
+        /// 옆면 둘에 창을 단다 — 서방의 서쪽, 중방의 동쪽.
+        ///
+        /// 한 면은 다섯 켜로 쌓인다: 머름벽 · 아래틀 · 창(살+한지) · 위틀 · 창머리 위 벽.
+        /// 살은 세로로 촘촘히 세우고 가로로 세 줄 지른다(세살창). 세로살만 세우면
+        /// 발처럼 보이고, 격자로 짜면 왜식 장지문이 된다.
+        ///
+        /// 한지는 살보다 <b>바깥쪽</b>에 바른다. 조선 창호는 밖에서 바르므로 안에서
+        /// 보면 살이 도드라지고 밖에서 보면 종이만 희다 — 방 안에 앉았을 때
+        /// 창살 그림자가 지는 것이 그 때문이다.
+        /// </summary>
+        private static void BuildWindows(Transform g)
+        {
+            Window(Group(g, "창_서방_서"), WestX0, RoomZMin, RoomZMax, -1f);
+            Window(Group(g, "창_중방_동"), MidX1, RoomZMin, RoomZMax, +1f);
+        }
+
+        /// <summary>한 면. fx 는 창이 선 x, z0~z1 은 면의 길이, outward 는 바깥쪽(-1/+1).</summary>
+        private static void Window(Transform g, float fx, float z0, float z1, float outward)
+        {
+            float span = z1 - z0, cz = (z0 + z1) * 0.5f;
+            float sillTop = FloorTop + SillH;             // 머름 윗면
+            float winTop = sillTop + WinH;                // 창 윗면
+
+            // ① 머름벽 — 앉은 사람의 등 뒤를 막아 주는 낮은 벽
+            Box(g, "머름", new Vector3(fx, FloorTop + SillH * 0.5f, cz),
+                new Vector3(WallThick, SillH, span), _wall, true, null, 0.5f);
+            Box(g, "머름대", new Vector3(fx, sillTop + 0.03f, cz),
+                new Vector3(WallThick + 0.05f, 0.06f, span), _beam, false, null, 0.6f);
+
+            // ② 창머리 위 벽 — 창이 도리까지 닿으면 벽이 없는 집이 된다
+            float upper = BeamBottom - winTop;
+            if (upper > 0.02f)
+                Box(g, "창머리위벽", new Vector3(fx, winTop + upper * 0.5f, cz),
+                    new Vector3(WallThick, upper, span), _wall, false, null, 0.5f);
+
+            // ③ 창틀 — 아래·위 가로틀과 양끝·가운데 세로틀
+            Box(g, "아래틀", new Vector3(fx, sillTop + FrameW * 0.5f, cz),
+                new Vector3(WallThick, FrameW, span), _beam, false, null, 0.6f);
+            Box(g, "위틀", new Vector3(fx, winTop - FrameW * 0.5f, cz),
+                new Vector3(WallThick, FrameW, span), _beam, false, null, 0.6f);
+            for (int k = 0; k <= 2; k++)
+                Box(g, "세로틀_" + k, new Vector3(fx, (sillTop + winTop) * 0.5f, z0 + span * 0.5f * k),
+                    new Vector3(WallThick, WinH, FrameW), _beam, false, null, 0.6f);
+
+            // ④ 한지 — 살보다 바깥쪽 한 겹
+            float inner0 = sillTop + FrameW, inner1 = winTop - FrameW;
+            Box(g, "창호지", new Vector3(fx + outward * 0.035f, (inner0 + inner1) * 0.5f, cz),
+                new Vector3(0.012f, inner1 - inner0, span - FrameW), _changho, false, null, 1f);
+
+            // ⑤ 살 — 세로로 촘촘히, 가로로 세 줄
+            var 살 = Group(g, "창살");
+            float h = inner1 - inner0, ymid = (inner0 + inner1) * 0.5f;
+            int n = Mathf.Max(2, Mathf.RoundToInt(span / BarStep));
+            float step = span / n;
+            for (int i = 1; i < n; i++)
+            {
+                float z = z0 + step * i;
+                if (Mathf.Abs(z - cz) < FrameW) continue;   // 가운데 세로틀 자리
+                Box(살, "세로살_" + i, new Vector3(fx, ymid, z),
+                    new Vector3(BarW + 0.01f, h, BarW), _beam, false, null, 0f);
+            }
+            for (int r = 1; r <= BarRows; r++)
+            {
+                float y = inner0 + h * r / (BarRows + 1f);
+                Box(살, "가로살_" + r, new Vector3(fx, y, cz),
+                    new Vector3(BarW + 0.01f, BarW, span - FrameW), _beam, false, null, 0f);
+            }
         }
 
         /// <summary>한 면을 문짝으로 채운다. alongX 면 x 방향으로, 아니면 z 방향으로 늘어놓는다.</summary>
