@@ -1,0 +1,43 @@
+﻿===== [Seocheon] 5b Block Move + Face-off =====
+[2] 지형 원복(predonheon) ✓ · 기존 _Donheon/_Oisamun 제거
+[3] 마을 −X 이동 Δx=-24.06 (maxX 510.1→486) · 마을 X범위 391.5~486.0 · 회전·상대위치 불변
+[3] 외삼문 정면(Sign_OSM) 로컬dir (-2.2,+0.1)  → rotY 0° (서향)
+[3] 동헌 정면(Granite) 로컬dir (+0.1,+1.7)  → rotY 270° (서향)
+[3] ★링 여유: 동측 25.6m (링r 96.3, 동헌동끝 533.7) · 서측 18.4m (링r 89.9, 마을서끝 391.5)
+[4] 평탄화 padY 10.35m · 동헌 117텍셀 · 외삼문 66텍셀 · 광장중앙 9.97(Δ-+0.38) · 내정중앙 10.36(Δ+0.01) ✓
+[3] 외삼문 배치 (508.2,678) rotY0 Y=10.35 · 동헌 (528.0,678) rotY270 Y=11.05(pad+0.70)
+
+[6] 검증 · 씬 총 tris 3509802 (외삼문 245k 포함) · 채 28
+[6] 링 여유 4방위: E 96.3 / W 89.9 / S 107.0 / N 91.2 (r(θ)) · 링밴드 침범 없음 ✓
+[6] 밑면-지형 틈>0.15m:
+     Village_Wooden_Bench_House_02: 틈 0.86m · 파묻힘 0.12m
+     Village_Wooden_Bench_House_01: 틈 0.65m · 파묻힘 0.18m
+     Village_Tavern_House_01_Full: 틈 0.37m · 파묻힘 0.44m
+     Village_Smithy: 틈 0.23m · 파묻힘 0.26m
+     Village_Local_Personnel_Clerks_House_04: 틈 1.02m · 파묻힘 0.06m
+     Village_Local_Personnel_Clerks_House_03: 틈 0.17m · 파묻힘 0.76m
+     Village_Local_Personnel_Clerks_House_01: 틈 0.72m · 파묻힘 0.36m
+     Village_Local_Clerks_House_01: 틈 0.46m · 파묻힘 0.39m
+     Village_L_Shaped_House_02: 틈 0.43m · 파묻힘 0.08m
+     Village_L_Shaped_House_01: 틈 0.17m · 파묻힘 0.82m
+     Village_House_With_Wooden_Floored_Room_02: 틈 0.23m · 파묻힘 0.49m
+     Village_House_With_Wooden_Floored_Room_01: 틈 0.26m · 파묻힘 0.53m
+     Village_House_With_Calling_Windows_02: 틈 0.35m · 파묻힘 0.11m
+     Village_House_With_Calling_Windows_01: 틈 0.19m · 파묻힘 0.04m
+     Village_House_By_The_West_Gate_02: 틈 0.47m · 파묻힘 0.12m
+     Village_Bamboo_Rafter_House_03: 틈 0.23m · 파묻힘 0.27m
+     Village_Bamboo_Rafter_House_02: 틈 0.23m · 파묻힘 0.15m
+     Village_Ox_Mill: 틈 0.19m · 파묻힘 0.12m
+[6] 축선 정렬(Z=678):
+     다리북단 Z571 → 광장 X486~504 → 외삼문중심 X508.2 → 동헌정면 X522.3
+     구간거리: 마을끝→외삼문 18m · 외삼문깊이 8.33m · 내정 10m · 외삼문중심→동헌정면 14.2m · 외삼문↔동헌 중심간 19.8m
+
+[7] 렌더 6장 → C:\Users\User\_AssetBackup\render_layout1
+   C:\Users\User\_AssetBackup\render_layout1\Aerial_300.png
+   C:\Users\User\_AssetBackup\render_layout1\OnBridge.png
+   C:\Users\User\_AssetBackup\render_layout1\Plaza_west.png
+   C:\Users\User\_AssetBackup\render_layout1\Oisamun_front.png
+   C:\Users\User\_AssetBackup\render_layout1\Through_gate.png
+   C:\Users\User\_AssetBackup\render_layout1\Street_eye.png
+
+※ 흙 스플랫은 5c에서. 축선·마주보기 확인 후 진행.
