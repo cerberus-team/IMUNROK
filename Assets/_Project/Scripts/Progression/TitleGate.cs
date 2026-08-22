@@ -34,6 +34,14 @@ namespace IMUNROK.Common
     public class TitleGate : MonoBehaviour
     {
         [Header("제목")]
+        [Tooltip("<b>표제 그림</b>. 넣으면 글씨 대신 이것이 내려앉는다. 붓으로 쓴 제자(題字)는 " +
+                 "글꼴로 흉내 낼 수 없으므로, 이 자리는 그림을 받는 것이 맞다. 비우면 아래 글씨를 쓴다")]
+        [SerializeField] private Texture2D _titleImage;
+        [Tooltip("표제 그림의 가로 크기(캔버스 단위). 세로는 그림 비례대로 따라온다")]
+        [SerializeField] private float _titleImageWidth = 760f;
+        [Tooltip("표제 그림을 쓸 때도 아래 한자와 가는 줄을 남길지. 그림이 이미 한자면 겹치므로 끈다")]
+        [SerializeField] private bool _keepSubtitleWithImage = false;
+
         [SerializeField] private string _title = "이문록";
         [SerializeField] private string _subtitle = "異聞錄";
         [Tooltip("제목이 앉을 자리. 비우면 카메라 앞에 띄운다")]
@@ -457,21 +465,51 @@ namespace IMUNROK.Common
             var font = UiFont.Resolve(_font);
             UiFont.Publish(_font);
 
-            MakeText(rt, Spaced(_title), font, 210, _titleColor, new Vector2(0f, 62f));
+            bool byImage = _titleImage != null;
+            if (byImage) MakeTitleImage(rt);
+            else MakeText(rt, Spaced(_title), font, 210, _titleColor, new Vector2(0f, 62f));
 
-            var rule = new GameObject("가는줄", typeof(Image));
-            var rrt = rule.GetComponent<RectTransform>();
-            rrt.SetParent(rt, false);
-            rrt.anchoredPosition = new Vector2(0f, -68f);
-            rrt.sizeDelta = new Vector2(300f, 3f);
-            rule.GetComponent<Image>().color = new Color(_subtitleColor.r, _subtitleColor.g, _subtitleColor.b, 0.55f);
+            if (!byImage || _keepSubtitleWithImage)
+            {
+                var rule = new GameObject("가는줄", typeof(Image));
+                var rrt = rule.GetComponent<RectTransform>();
+                rrt.SetParent(rt, false);
+                rrt.anchoredPosition = new Vector2(0f, -68f);
+                rrt.sizeDelta = new Vector2(300f, 3f);
+                rule.GetComponent<Image>().color = new Color(_subtitleColor.r, _subtitleColor.g, _subtitleColor.b, 0.55f);
 
-            MakeText(rt, Spaced(_subtitle), font, 78, _subtitleColor, new Vector2(0f, -132f));
+                MakeText(rt, Spaced(_subtitle), font, 78, _subtitleColor, new Vector2(0f, -132f));
+            }
 
             string hint = _skipHint;
             if (SaveSystem.HasSave && !string.IsNullOrEmpty(_continueHint)) hint += "   " + _continueHint;
             _hintText = MakeText(rt, hint, font, 34,
                                  new Color(_titleColor.r, _titleColor.g, _titleColor.b, 0.45f), new Vector2(0f, -225f));
+        }
+
+        /// <summary>
+        /// 표제 그림을 얹는다.
+        ///
+        /// 글씨가 아니라 <b>그림</b>인 까닭: 붓으로 쓴 제자는 획의 갈라짐과 번짐이 곧
+        /// 그 글씨다. 글꼴로는 그 자리에 닿지 못한다.
+        ///
+        /// 세로 크기는 재지 않고 <b>그림의 비례에서 따온다</b>. 로고를 다른 것으로 갈아도
+        /// 숫자를 다시 맞출 일이 없다. 글씨와 달리 그림자는 얹지 않는다 — 이미 획 둘레에
+        /// 제 번짐을 갖고 있는 그림에 판때기 그림자를 더하면 오려 붙인 것처럼 보인다.
+        /// </summary>
+        private void MakeTitleImage(RectTransform parent)
+        {
+            var go = new GameObject("표제_제자", typeof(RawImage));
+            var img = go.GetComponent<RawImage>();
+            img.texture = _titleImage;
+            img.color = _titleColor;
+            img.raycastTarget = false;
+
+            float ar = _titleImage.height / Mathf.Max(1f, (float)_titleImage.width);
+            var irt = go.GetComponent<RectTransform>();
+            irt.SetParent(parent, false);
+            irt.anchoredPosition = new Vector2(0f, 40f);
+            irt.sizeDelta = new Vector2(_titleImageWidth, _titleImageWidth * ar);
         }
 
         /// <summary>글자 사이를 한 칸씩 벌린다. 낡은 UI 글자에는 자간이 없다.</summary>

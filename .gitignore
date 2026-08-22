@@ -93,6 +93,12 @@ gemini_api_key.txt
 # UI 아트(한지 등)·폰트 — git 제외, 공유폴더로 배포
 /Assets/_Project/Art/UI/
 /Assets/_Project/Art/Fonts/
+# UI 아트도 .meta 만은 커밋한다. 표제의 제자(題字)처럼 씬이 GUID 로 가리키는 것이
+# 있어서, .meta 가 빠지면 팀원 화면에서는 제목 자리가 통째로 비어 버린다.
+# 폰트와 같은 방식이다 — 폴더를 한 번 열고 그 안에서 다시 거른다.
+!/Assets/_Project/Art/UI/
+/Assets/_Project/Art/UI/*
+!/Assets/_Project/Art/UI/*.meta
 # 공통 아트(한지 텍스처·폰트 등) — git 제외, 공유폴더로 배포
 /Assets/_Project/_Common/Art/*
 # 폰트만은 .meta 를 커밋한다. 씬이 폰트를 GUID 로 가리키므로 .meta 가 빠지면
