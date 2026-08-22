@@ -80,7 +80,16 @@ gemini_api_key.txt
 # 캐릭터 모델도 마찬가지 — git 제외, 공유폴더로 배포
 /Assets/_Project/Onggojip/Art/Characters/
 # 공통 도구 아이콘(돋보기·지도 등 아트) — git 제외, 공유폴더로 배포
-/Assets/_Project/Art/Tools/
+# 폴더를 통으로 막으면 git 이 그 안으로 들어가지 않아 예외(!)가 안 먹는다.
+# 그래서 무거운 확장자만 막는다 — 애니메이터 컨트롤러·재질·meta 는 아트가 아니라
+# <배선>이라 커밋해야 한다. 돋보기 술이 어느 클립을 어느 상태에서 트는지가 거기
+# 적혀 있어서, 빠지면 팀원 손에서 술이 안 움직인다(Art/Props 와 같은 방식).
+/Assets/_Project/Art/Tools/**/*.fbx
+/Assets/_Project/Art/Tools/**/*.glb
+/Assets/_Project/Art/Tools/**/*.png
+/Assets/_Project/Art/Tools/**/*.jpg
+/Assets/_Project/Art/Tools/**/*.tga
+/Assets/_Project/Art/Tools/**/*.asset
 # UI 아트(한지 등)·폰트 — git 제외, 공유폴더로 배포
 /Assets/_Project/Art/UI/
 /Assets/_Project/Art/Fonts/

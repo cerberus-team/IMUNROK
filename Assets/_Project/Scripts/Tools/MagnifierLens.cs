@@ -73,6 +73,16 @@ namespace IMUNROK.Common
         [Tooltip("소품의 앞뒤가 뒤집혀 보이면 켠다(유리 법선이 반대인 모델)")]
         [SerializeField] private bool _flipProp = false;
 
+        [Header("소품 동작")]
+        [Tooltip("소품에 붙은 동작 이름. 눈에 대는 정도에 맞춰 이 클립을 <b>긁어</b> 돌린다 — " +
+                 "재생하는 것이 아니라 들어 올린 만큼의 프레임을 그때그때 보여 준다. " +
+                 "그래서 술이 손과 한 몸으로 움직이고, 중간에 멈추면 술도 그 자리에 멈춘다")]
+        [SerializeField] private string _liftState = "Tassel_Lift";
+        [Tooltip("비우면 소품에서 Animator 를 찾아 쓴다")]
+        [SerializeField] private Animator _propAnimator;
+        [Tooltip("들어 올린 정도를 클립 어디까지 쓸지. 1이면 클립 전체를 쓴다")]
+        [Range(0.2f, 1f)] [SerializeField] private float _liftClipSpan = 1f;
+
         private static MagnifierLens _instance;
 
         /// <summary>지금 돋보기를 손에 들고 있나.</summary>
@@ -244,6 +254,27 @@ namespace IMUNROK.Common
         ///
         /// 이렇게 재 두면 소품을 다른 것으로 갈아도 코드를 고칠 일이 없다.
         /// </summary>
+        /// <summary>
+        /// 소품의 메시를 꺼낸다. 뼈가 든 소품(스킨메시)은 <b>지금 자세로 구워</b> 온다 —
+        /// 뼈에 매인 정점은 원본 배열이 묶인 자세(bind pose)라, 그대로 재면 유리가
+        /// 엉뚱한 데 있는 것으로 나온다.
+        /// </summary>
+        private static Mesh MeshOf(Transform t)
+        {
+            var sk = t.GetComponent<SkinnedMeshRenderer>();
+            if (sk != null && sk.sharedMesh != null)
+            {
+                var baked = new Mesh { name = "돋보기_소품_잰것" };
+                // useScale=true 로 구워야 원본 메시와 <b>같은 단위</b>가 나온다(재어 보니
+                // 0.0038 대 0.0037). false 로 구우면 93배 커진 값이 나와, 아래에서 lossyScale 을
+                // 또 곱하는 순간 유리 반지름이 5m 가 된다 — 한 번 그렇게 겪었다.
+                sk.BakeMesh(baked, true);
+                return baked;
+            }
+            var mf = t.GetComponent<MeshFilter>();
+            return mf != null ? mf.sharedMesh : null;
+        }
+
         private void FindProp()
         {
             if (_prop == null && _eye != null)
@@ -251,14 +282,24 @@ namespace IMUNROK.Common
                 foreach (var h in _eye.GetComponentsInChildren<HeldToolModel>(true))
                 {
                     if (h.transform.IsChildOf(transform) || h.ToolId != _toolId) continue;
-                    var r0 = h.GetComponentInChildren<MeshFilter>(true);
-                    if (r0 != null) { _prop = r0.transform; break; }
+
+                    // 꺼 둔 모델은 건너뛴다. 소품을 갈아 끼우면서 옛것을 꺼서 남겨 두는 일이
+                    // 흔한데, 그것을 집으면 새 소품은 손에 들려 있고 유리는 옛것에 붙는다.
+                    // 스킨메시도 받는다 — 술을 흔들려면 뼈가 있어야 하고, 뼈가 있으면
+                    // MeshFilter 가 아니라 SkinnedMeshRenderer 다.
+                    Renderer pick = null;
+                    foreach (var r in h.GetComponentsInChildren<Renderer>(true))
+                    {
+                        if (!(r is MeshRenderer || r is SkinnedMeshRenderer)) continue;
+                        if (!r.gameObject.activeInHierarchy) continue;
+                        pick = r; break;
+                    }
+                    if (pick != null) { _prop = pick.transform; break; }
                 }
             }
             if (_prop == null) return;
 
-            var mf = _prop.GetComponent<MeshFilter>();
-            var mesh = mf != null ? mf.sharedMesh : null;
+            var mesh = MeshOf(_prop);
             if (mesh == null) { _prop = null; return; }
 
             if (!mesh.isReadable)
@@ -392,6 +433,17 @@ namespace IMUNROK.Common
             var handle = Vector3.zero; handle[lng] = glassOnHigh ? -1f : 1f;   // 유리에서 자루 쪽
 
             _propRoot = _prop;
+
+            // 소품이 동작을 들고 왔으면 그것도 같이 쥔다. 인스펙터로 따로 안 이어도 된다.
+            // 동작은 대개 소품 <b>뿌리</b>에 붙는다(메시는 그 자식이다). 위아래로 다 찾는다.
+            if (_propAnimator == null) _propAnimator = _prop.GetComponentInParent<Animator>();
+            if (_propAnimator == null) _propAnimator = _prop.GetComponentInChildren<Animator>(true);
+            if (_propAnimator != null && _propAnimator.runtimeAnimatorController == null)
+            {
+                Debug.LogWarning("[돋보기] 소품에 Animator 는 있는데 컨트롤러가 없습니다 — 술이 안 움직입니다.", _propAnimator);
+                _propAnimator = null;
+            }
+
             _propGlassLocal = center;
             _propNormalLocal = normal;
             _propHandleLocal = handle;
@@ -416,6 +468,29 @@ namespace IMUNROK.Common
                 foreach (var m in mats) if (m != null) DrawOnTop(m);
                 r.materials = mats;
             }
+        }
+
+        /// <summary>
+        /// 술을 들어 올린 만큼 움직인다.
+        ///
+        /// 클립을 <b>틀지</b> 않고 <b>긁는다</b>. 트는 쪽이 쉬우나, 그러면 눈에 대는 데
+        /// 0.1초 걸리는데 술은 1.63초짜리 클립을 처음부터 끝까지 돌리느라 손이 멈춘 뒤에도
+        /// 혼자 흔들린다 — 손과 술이 딴 몸이 된다. 들어 올린 정도(_raise)를 그대로
+        /// 클립의 어느 프레임인지로 삼으면 둘이 한 몸으로 움직이고, 중간에 멈추면
+        /// 술도 그 자리에 선다. 되돌릴 때도 저절로 거꾸로 간다.
+        /// </summary>
+        private void DriveLift()
+        {
+            if (_propAnimator == null || string.IsNullOrEmpty(_liftState)) return;
+
+            // 차례가 중요하다. 속도를 0 으로 <b>먼저</b> 두면 Update(0) 이 표본을 안 뜬다 —
+            // 뼈가 하나도 안 움직여 한참 헤맸다. 1 로 두고 찍은 뒤 0 으로 내린다
+            // (BokdongController.HoldStand 가 같은 차례를 쓴다).
+            float t = Mathf.Clamp01(Mathf.SmoothStep(0f, 1f, _raise)) * _liftClipSpan;
+            _propAnimator.speed = 1f;
+            _propAnimator.Play(_liftState, 0, t);
+            _propAnimator.Update(0f);
+            _propAnimator.speed = 0f;                       // 저 혼자 흐르지 않게
         }
 
         /// <summary>소품을 손에 쥔 자세로 옮긴다 — 유리가 렌즈 자리에 오고 자루가 아래로.</summary>
@@ -551,6 +626,7 @@ namespace IMUNROK.Common
             _lens.localRotation = Quaternion.Slerp(Quaternion.Euler(6f, -12f, 8f), Quaternion.identity, _raise);
 
             AimLensCamera();
+            DriveLift();
             PlaceProp();
             Shoot();
             Look();
