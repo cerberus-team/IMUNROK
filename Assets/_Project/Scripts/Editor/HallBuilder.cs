@@ -73,6 +73,9 @@ namespace IMUNROK.Common.EditorTools
         private const float BarT = 0.030f;       // 살이 면에서 튀어나오는 깊이
         private const float SalLeaf = 0.75f;     // 살을 짜는 한 짝의 너비
         private const int SalDepth = 1;          // 바람개비를 몇 겹 두를지(0=한 겹, 1=두 겹)
+        private const float PairW = 1.5f;        // 한 칸에 두 짝 — 기둥 줄과 같은 1.5m
+        private const float OpenAngle = 22f;     // 열어 둔 짝이 밖으로 밀린 각(도)
+        private const int OpenIdx = 1;           // 몇 번째 짝을 열어 둘지(0부터). -1이면 다 닫는다
 
         // 방 둘의 경계(원본 벽 자리에서 잰 것)
         private const float RoomZMin = -1.54f, RoomZMax = 1.46f;
@@ -223,7 +226,7 @@ namespace IMUNROK.Common.EditorTools
             // 투명도 0.62 라, 문짝처럼 뒤에 방이 있을 때는 알맞지만 창처럼 뒤가
             // 바깥일 때는 나뭇가지가 그대로 비쳐 유리창이 된다. 창호지는 빛만
             // 들이고 모양은 안 들이는 물건이다.
-            _changho = Load("Assets/_Project/_Common/Materials/M_조사청_한지.mat");
+            _changho = ChanghoPaper();
 
             if (_wood == null || _wall == null || _floor == null || _gidan == null || _stone == null)
             {
@@ -238,6 +241,35 @@ namespace IMUNROK.Common.EditorTools
             if (_jangpan == null) _jangpan = _floor;
             if (_changho == null) _changho = _paper;
             return true;
+        }
+
+        private const string ChanghoPath = "Assets/_Project/_Common/Materials/M_조사청_창호지.mat";
+
+        /// <summary>
+        /// 창에 바를 종이. 없으면 만든다.
+        ///
+        /// <b>왜 새로 만드나</b>: 처음엔 M_조사청_한지 를 물렸는데, 그것이 문 그림
+        /// <b>아틀라스</b>(T_GPG_Door01a_BC)를 쓴다. 한 장에 나뭇결·회색 바닥·종이가
+        /// 다 들어 있는 그림이라, 창호지 판 하나에 통째로 늘여 바르면 종이 자리에
+        /// 나뭇결과 회색 바닥까지 같이 찍힌다 — 창이 누더기가 된 까닭이 이것이다.
+        /// 아틀라스에서 종이 조각만 오려 쓰려면 UV 를 손으로 맞춰야 하는데, 창호지는
+        /// 본디 무늬가 없는 물건이라 그럴 값어치가 없다. 빛깔 하나로 족하다.
+        /// </summary>
+        private static Material ChanghoPaper()
+        {
+            var m = AssetDatabase.LoadAssetAtPath<Material>(ChanghoPath);
+            if (m != null) return m;
+
+            var sh = Shader.Find("Universal Render Pipeline/Lit");
+            if (sh == null) return null;
+            m = new Material(sh) { name = "M_조사청_창호지" };
+            m.SetColor("_BaseColor", new Color(0.90f, 0.86f, 0.76f));
+            if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.06f);
+            if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0f);
+            AssetDatabase.CreateAsset(m, ChanghoPath);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[조사청] 창호지 재질을 새로 만들었습니다 — " + ChanghoPath);
+            return m;
         }
 
         private static Material Load(string path)
@@ -524,42 +556,83 @@ namespace IMUNROK.Common.EditorTools
                 Box(g, "창머리위벽", new Vector3(fx, winTop + upper * 0.5f, cz),
                     new Vector3(WallThick, upper, span), _wall, false, null, 0.5f);
 
-            // ③ 창틀 — 아래·위 가로틀과 양끝·가운데 세로틀
+            // ③ 붙박이 틀 — 아래·위 가로틀과, 짝 둘씩 나누는 세로 설주
             Box(g, "아래틀", new Vector3(fx, sillTop + FrameW * 0.5f, cz),
                 new Vector3(WallThick, FrameW, span), _beam, false, null, 0.6f);
             Box(g, "위틀", new Vector3(fx, winTop - FrameW * 0.5f, cz),
                 new Vector3(WallThick, FrameW, span), _beam, false, null, 0.6f);
-            for (int k = 0; k <= 2; k++)
-                Box(g, "세로틀_" + k, new Vector3(fx, (sillTop + winTop) * 0.5f, z0 + span * 0.5f * k),
+
+            int pairs = Mathf.Max(1, Mathf.RoundToInt(span / PairW));
+            float pw = span / pairs;
+            for (int k = 0; k <= pairs; k++)
+                Box(g, "설주_" + k, new Vector3(fx, (sillTop + winTop) * 0.5f, z0 + pw * k),
                     new Vector3(WallThick, WinH, FrameW), _beam, false, null, 0.6f);
 
-            // ④ 한지 — 살보다 바깥쪽 한 겹
-            float inner0 = sillTop + FrameW, inner1 = winTop - FrameW;
-            Box(g, "창호지", new Vector3(fx + outward * 0.035f, (inner0 + inner1) * 0.5f, cz),
-                new Vector3(0.012f, inner1 - inner0, span - FrameW), _changho, false, null, 1f);
-
-            // ⑤ 살 — 숫대살
-            Sal(Group(g, "창살"), fx, z0 + FrameW * 0.5f, z1 - FrameW * 0.5f, inner0, inner1, true);
+            // ④ 짝 — 한 칸에 둘, 바깥으로 여닫는다. 하나는 조금 열어 둔다.
+            BuildLeaves(g, fx, z0, pw, pairs, sillTop, winTop, outward);
         }
 
-        // ── 숫대살 ──────────────────────────────────
-
         /// <summary>
-        /// <b>숫대살</b> — 산가지를 늘어놓은 듯 크고 작은 네모가 엇물리는 살.
+        /// 창짝을 단다. 한 칸(1.5m)에 두 짝이고, 지도리는 <b>칸의 양 끝</b>에 있어
+        /// 두 짝이 가운데서 만난다. 밖으로 밀어 여는 여닫이다.
         ///
-        /// 세살(가는 세로살에 가로 세 줄)은 방문에 쓰는 수수한 살이다. 사랑채 실내가
-        /// 그것을 쓴다(M_창살문, 세로 일곱에 가로 세 묶음). 조사청의 창은 격을 한 단
-        /// 올린다 — 왕명을 받는 마루니 살도 그만한 것이 걸려야 한다.
+        /// <b>하나는 조금 열어 둔다</b>. 창이 넉 짝 다 닫혀 있으면 종이를 바른 벽과
+        /// 다를 것이 없다 — 열리는 물건이라는 것은 열려 있는 것을 한 번 보여야 안다.
+        /// 열린 틈으로 바깥이 들어오면 방이 상자가 아니라 집 속의 한 칸이 된다.
         ///
-        /// <b>어떻게 짜나</b>: 한 짝을 <b>바람개비꼴</b>로 가른다. 네 변에 띠를 두르되
-        /// 서로 한 칸씩 밀어 붙여(위 띠는 오른쪽을 비우고, 오른 띠는 아래를 비우고…)
-        /// 돌아가게 하고, 남은 가운데를 다시 같은 식으로 가른다. 마지막에 남는 것이
-        /// 가장 큰 알이다. 이 규칙은 <b>언제나 빈틈 없이 들어맞으므로</b> 살이 허공에서
-        /// 끊기는 일이 없다 — 무늬를 손으로 하나씩 적어 넣으면 반드시 한둘이 어긋난다.
-        ///
-        /// 띠를 길이 방향으로 잘게 썰어 잔살을 만든다. 그래서 겉은 잘고 안으로 갈수록
-        /// 성기며, 한가운데는 훤한 알 하나가 남는다.
+        /// 짝은 <b>지도리 자리에 빈 오브젝트를 세우고 그 밑에</b> 짠다. 그래야 여는
+        /// 각을 회전 하나로 주고, 나중에 손으로 여닫게 할 때도 그대로 쓴다.
         /// </summary>
+        private static void BuildLeaves(Transform g, float fx, float z0, float pw, int pairs,
+                                        float sillTop, float winTop, float outward)
+        {
+            float yc = (sillTop + winTop) * 0.5f;
+            float lh = WinH - FrameW * 2f;      // 짝 높이(위아래 틀 안쪽)
+            float lw = pw * 0.5f - FrameW * 0.5f;
+
+            int idx = 0;
+            for (int p = 0; p < pairs; p++)
+                for (int side = 0; side < 2; side++, idx++)
+                {
+                    // 지도리는 칸의 양 끝. 자유단은 가운데를 향한다.
+                    float hinge = z0 + pw * p + (side == 0 ? 0f : pw);
+                    float dir = side == 0 ? 1f : -1f;
+
+                    var leaf = new GameObject("짝_" + idx);
+                    leaf.transform.SetParent(g, false);
+                    leaf.transform.localPosition = new Vector3(fx, yc, hinge);
+                    float open = (idx == OpenIdx) ? OpenAngle : 0f;
+                    leaf.transform.localRotation = Quaternion.Euler(0f, outward * dir * open, 0f);
+
+                    Leaf(leaf.transform, dir, lw, lh, outward);
+                }
+        }
+
+        /// <summary>짝 한 장 — 지도리를 원점으로 z 방향 dir 로 lw 만큼 뻗는다.</summary>
+        private static void Leaf(Transform g, float dir, float lw, float lh, float outward)
+        {
+            float mid = dir * lw * 0.5f;
+
+            // 짝틀 넷
+            Box(g, "틀_위", new Vector3(0f, lh * 0.5f - FrameW * 0.5f, mid),
+                new Vector3(BarT * 1.6f, FrameW, lw), _beam, false, null, 0.6f);
+            Box(g, "틀_아래", new Vector3(0f, -lh * 0.5f + FrameW * 0.5f, mid),
+                new Vector3(BarT * 1.6f, FrameW, lw), _beam, false, null, 0.6f);
+            Box(g, "틀_지도리", new Vector3(0f, 0f, dir * FrameW * 0.5f),
+                new Vector3(BarT * 1.6f, lh, FrameW), _beam, false, null, 0.6f);
+            Box(g, "틀_자유단", new Vector3(0f, 0f, dir * (lw - FrameW * 0.5f)),
+                new Vector3(BarT * 1.6f, lh, FrameW), _beam, false, null, 0.6f);
+
+            // 한지 — 살보다 바깥쪽 한 겹
+            Box(g, "창호지", new Vector3(outward * 0.022f, 0f, mid),
+                new Vector3(0.012f, lh - FrameW, lw - FrameW), _changho, false, null, 1f);
+
+            // 살 — 숫대살
+            float a0 = Mathf.Min(0f, dir * lw) + FrameW;
+            float a1 = Mathf.Max(0f, dir * lw) - FrameW;
+            Sal(Group(g, "살"), 0f, a0, a1, -lh * 0.5f + FrameW, lh * 0.5f - FrameW, true);
+        }
+
         private static void Sal(Transform g, float fixedCoord, float a0, float a1,
                                 float v0, float v1, bool alongZ)
         {
