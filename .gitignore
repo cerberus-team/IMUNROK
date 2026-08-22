@@ -167,3 +167,14 @@ T_Glb_*.png
 /Assets/_Project/_Common/Sets/Gwana/**/*.png
 /Assets/_Project/_Common/Sets/Gwana/**/*.fbx
 /Assets/_Project/_Common/Sets/Gwana/**/*.asset
+
+# ─────────────────────────────────────────────
+# 화성행궁(kcisa) — 관아 마당 담장만 골라 왔다
+# 원본 unitypackage 가 3.19GB 라 통째로 넣지 않고, 담장 두 낱장이 딸고 오는 것만
+# 의존 관계로 추려 24개·89MB 를 두었다. 다시 받을 곳:
+#   %APPDATA%/Unity/Asset Store-5.x/Korea Culture Information Service Agency kcisa/
+#     3D ModelsEnvironmentsHistoric/kcisa - HWASEONG HAENGGUNG - Korean Traditional Palace.unitypackage
+# 무거운 것(png 88MB · fbx)은 git 제외, .mat/.prefab/.meta 는 커밋 — 관아와 같은 방식.
+# ─────────────────────────────────────────────
+/Assets/HwaseongHaenggung/**/*.png
+/Assets/HwaseongHaenggung/**/*.fbx
