@@ -107,7 +107,8 @@ namespace IMUNROK.Common
             }},
             new ToolWord { toolId = "magnify", lines = new[]
             {
-                "돋보기요. 이걸 들고 봐야 보이는 것이 따로 있소. 글자나 자국 같은 것.",
+                "돋보기요. 이걸 들고 봐야 보이는 것이 따로 있소. 글자나 자국 같은 것. " +
+                "F 를 누르면 눈에 대고, 한 번 더 누르면 내리오.",
             }},
         };
 

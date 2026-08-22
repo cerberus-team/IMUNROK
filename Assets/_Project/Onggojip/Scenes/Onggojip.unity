@@ -2440,7 +2440,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 590613801}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0.27059805, y: 0.27059805, z: 0.6532815, w: 0.6532815}
   m_LocalPosition: {x: 0.22, y: -0.2, z: 0.32}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -2448,7 +2448,7 @@ Transform:
   - {fileID: 1945295497}
   - {fileID: 1697985671}
   m_Father: {fileID: 1131798641}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -45, y: 0, z: 90}
 --- !u!114 &590613803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4642,6 +4642,78 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1062293588
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1062293589}
+  - component: {fileID: 1062293590}
+  m_Layer: 0
+  m_Name: "_\uB3CB\uBCF4\uAE30_\uB80C\uC988"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1062293589
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1062293588}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1131798641}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1062293590
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1062293588}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6d4aa3e870d56147807b8e35c76e6dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.MagnifierLens
+  _toolId: magnify
+  _zoom: 2.8
+  _glassRadius: 0.07
+  _texSize: 1024
+  _pageZoomBoost: 1.5
+  _useAuthoredPose: 1
+  _readyPush: 0.06
+  _eyeDistance: 0.36
+  _eyeDrop: 0.03
+  _eyeStraighten: 0
+  _readyPose: {x: 0.2, y: -0.17, z: 0.42}
+  _eyePose: {x: 0.015, y: -0.03, z: 0.4}
+  _raiseSpeed: 9
+  _raiseWithButton: 1
+  _raiseToggle: 1
+  _raiseKey: 20
+  _alsoRightButton: 0
+  _readSeconds: 0.8
+  _reach: 6
+  _useProp: 1
+  _prop: {fileID: 0}
+  _glassInset: 0.82
+  _flipProp: 0
+  _liftState: Tassel_Lift
+  _propAnimator: {fileID: 0}
+  _liftClipSpan: 1
+  _playLiftOnRaise: 1
+  _liftTriggerAt: 0.15
 --- !u!1 &1083209522
 GameObject:
   m_ObjectHideFlags: 0
@@ -4974,6 +5046,7 @@ Transform:
   m_Children:
   - {fileID: 586858202}
   - {fileID: 590613802}
+  - {fileID: 1062293589}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1131798642

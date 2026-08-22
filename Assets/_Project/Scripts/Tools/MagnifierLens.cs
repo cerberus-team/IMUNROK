@@ -47,14 +47,42 @@ namespace IMUNROK.Common
         [Range(1f, 2.5f)] [SerializeField] private float _pageZoomBoost = 1.5f;
 
         [Header("드는 자세")]
+        [Tooltip("<b>씬에서 맞춰 둔 소품 자세를 그대로 쓴다.</b> 소품을 매단 자리(HeldToolModel 이 붙은 " +
+                 "오브젝트)의 위치와 기울기가 곧 '평소 드는 자세'가 된다. 끄면 아래 두 값으로 코드가 잡는다")]
+        [SerializeField] private bool _useAuthoredPose = true;
+
+        [Tooltip("평소에도 이만큼 앞으로 더 내민다(m). 0이면 씬에 맞춰 둔 자리 그대로")]
+        [Range(-0.2f, 0.4f)] [SerializeField] private float _readyPush = 0.06f;
+
+        [Tooltip("눈에 댔을 때 유리 한가운데가 눈에서 이만큼 앞에 온다(m). 크면 더 내밀고 든 꼴이 된다")]
+        [Range(0.15f, 0.7f)] [SerializeField] private float _eyeDistance = 0.36f;
+
+        [Tooltip("눈에 댔을 때 시선 한가운데에서 이만큼 아래로 비껴 둔다(m)")]
+        [Range(-0.1f, 0.15f)] [SerializeField] private float _eyeDrop = 0.03f;
+
+        [Tooltip("눈에 댈 때 맞춰 둔 기울기를 이만큼 바로 세운다. 0이면 그 각도 그대로 들여다본다")]
+        [Range(0f, 1f)] [SerializeField] private float _eyeStraighten = 0f;
+
+        [Header("드는 자세 — 맞춰 둔 자세를 안 쓸 때만")]
         [Tooltip("평소 — 눈 아래 비껴 들고 있다. 앞이 안 가린다")]
         [SerializeField] private Vector3 _readyPose = new Vector3(0.20f, -0.17f, 0.42f);
         [Tooltip("눈에 댔을 때 — 시선 한가운데. 카메라 근평면보다 멀어야 한다(안 그러면 잘려 안 보인다)")]
         [SerializeField] private Vector3 _eyePose = new Vector3(0.015f, -0.03f, 0.40f);
+
+        [Header("눈에 대기")]
         [Tooltip("자세가 바뀌는 빠르기")]
         [SerializeField] private float _raiseSpeed = 9f;
-        [Tooltip("켜면 오른쪽 단추를 누르고 있는 동안만 눈에 댄다. 끄면 늘 눈앞에 둔다")]
+        [Tooltip("끄면 손에 든 내내 눈앞에 둔다(키를 안 눌러도 된다)")]
         [SerializeField] private bool _raiseWithButton = true;
+        [Tooltip("켜면 한 번 눌러 올리고 다시 눌러 내린다. 끄면 누르고 있는 동안만 올린다")]
+        [SerializeField] private bool _raiseToggle = true;
+#if ENABLE_INPUT_SYSTEM
+        [Tooltip("이 키로 눈에 댄다. <b>우클릭과 왼쪽 Shift 는 쓰지 않는다</b> — 둘 다 이미 " +
+                 "카메라 돌리기와 달리기가 물고 있어, 돋보기를 올리려면 화면이 같이 돌아갔다")]
+        [SerializeField] private Key _raiseKey = Key.F;
+#endif
+        [Tooltip("오른쪽 단추를 누르고 있는 동안에도 올린다. 카메라 돌리기와 겹치므로 평소엔 꺼 둔다")]
+        [SerializeField] private bool _alsoRightButton = false;
 
         [Header("들여다보기")]
         [Tooltip("한곳을 이만큼(초) 들여다보면 읽은 것으로 친다")]
@@ -122,6 +150,10 @@ namespace IMUNROK.Common
         private bool _held;
         private float _raise;            // 0 = 비껴 듦, 1 = 눈에 댐
         private Transform _propRoot;     // 손으로 만든 돋보기 소품
+        private Transform _holder;       // 소품을 매단 자리(HeldToolModel). 여기 자세가 곧 드는 자세다
+        private Vector3 _holderRestPos;  // 씬에서 맞춰 둔 자리
+        private Quaternion _holderRestRot;
+        private bool _raiseLatch;
         private Vector3 _propGlassLocal; // 그 소품에서 유리 한가운데
         private Vector3 _propNormalLocal;
         private Vector3 _propHandleLocal;
@@ -304,10 +336,22 @@ namespace IMUNROK.Common
                         if (!r.gameObject.activeInHierarchy) continue;
                         pick = r; break;
                     }
-                    if (pick != null) { _prop = pick.transform; break; }
+                    if (pick != null) { _prop = pick.transform; _holder = h.transform; break; }
                 }
             }
             if (_prop == null) return;
+
+            // 소품을 매단 자리. 씬에서 맞춰 둔 그 자세가 곧 평소 드는 자세다.
+            if (_holder == null)
+            {
+                var h2 = _prop.GetComponentInParent<HeldToolModel>();
+                _holder = h2 != null ? h2.transform : null;
+            }
+            if (_holder != null)
+            {
+                _holderRestPos = _holder.localPosition;
+                _holderRestRot = _holder.localRotation;
+            }
 
             var mesh = MeshOf(_prop);
             if (mesh == null) { _prop = null; return; }
@@ -523,15 +567,71 @@ namespace IMUNROK.Common
             _propAnimator.speed = 0f;                       // 저 혼자 흐르지 않게
         }
 
-        /// <summary>소품을 손에 쥔 자세로 옮긴다 — 유리가 렌즈 자리에 오고 자루가 아래로.</summary>
+        /// <summary>
+        /// 소품을 손에 쥔 자세로 옮긴다.
+        ///
+        /// <b>맞춰 둔 자세를 쓸 때</b>(<see cref="_useAuthoredPose"/>): 소품의 기울기에는
+        /// 손도 대지 않는다. 씬에서 맞춰 둔 그대로 두고, 소품을 매단 자리를 통째로 밀어
+        /// 유리 한가운데만 시선 위로 옮긴다. 그러고 나서 <b>렌즈 자리를 소품에 맞춘다</b>.
+        ///
+        /// 여태는 거꾸로였다 — 코드가 잡은 렌즈 자리에 소품을 끌어다 붙였다. 그래서
+        /// 씬에서 아무리 각을 맞춰 두어도 플레이만 누르면 없던 일이 됐다.
+        ///
+        /// 미는 것은 피벗이 아니라 <b>유리 한가운데</b>다. 돋보기는 피벗이 자루 쪽에
+        /// 있어서, 피벗을 시선에 맞추면 유리는 화면 밖으로 나간다.
+        /// </summary>
         private void PlaceProp()
         {
             if (_propRoot == null) return;
-            Vector3 nrm = _flipProp ? -_propNormalLocal : _propNormalLocal;
-            Quaternion from = Quaternion.LookRotation(nrm, _propHandleLocal);
-            Quaternion to = Quaternion.LookRotation(-_lens.forward, -_lens.up);
-            _propRoot.rotation = to * Quaternion.Inverse(from);
-            _propRoot.position += _lens.position - _propRoot.TransformPoint(_propGlassLocal);
+
+            if (!_useAuthoredPose || _holder == null)
+            {
+                Vector3 nrm0 = _flipProp ? -_propNormalLocal : _propNormalLocal;
+                Quaternion from0 = Quaternion.LookRotation(nrm0, _propHandleLocal);
+                Quaternion to0 = Quaternion.LookRotation(-_lens.forward, -_lens.up);
+                _propRoot.rotation = to0 * Quaternion.Inverse(from0);
+                _propRoot.position += _lens.position - _propRoot.TransformPoint(_propGlassLocal);
+                return;
+            }
+
+            float t = Mathf.SmoothStep(0f, 1f, _raise);
+
+            // 1) 기울기 — 맞춰 둔 그대로. 눈에 댈 때만 시킨 만큼 바로 세운다.
+            _holder.localRotation = _holderRestRot;
+            _holder.localPosition = _holderRestPos;
+            if (_eyeStraighten > 0f && t > 0f)
+            {
+                Vector3 nrm = _flipProp ? -_propNormalLocal : _propNormalLocal;
+                Quaternion from = Quaternion.LookRotation(nrm, _propHandleLocal);
+                Vector3 toEye = _eye.position - _propRoot.TransformPoint(_propGlassLocal);
+                if (toEye.sqrMagnitude > 1e-6f)
+                {
+                    Quaternion faceEye = Quaternion.LookRotation(-toEye.normalized, _eye.up)
+                                       * Quaternion.Inverse(from);
+                    // 소품 뿌리가 아니라 매단 자리를 돌린다 — 뿌리를 돌리면 다음 프레임에 어긋난다.
+                    Quaternion delta = faceEye * Quaternion.Inverse(_propRoot.rotation);
+                    _holder.rotation = Quaternion.Slerp(_holder.rotation, delta * _holder.rotation,
+                                                        _eyeStraighten * t);
+                }
+            }
+
+            // 2) 자리 — 유리 한가운데를 옮긴다. 맞춰 둔 자리에서 지금 어디 있는지 먼저 잰다.
+            Vector3 rest = _eye.InverseTransformPoint(_propRoot.TransformPoint(_propGlassLocal));
+
+            float floor = (Camera.main != null ? Camera.main.nearClipPlane : 0.05f) + 0.06f;
+            Vector3 ready = rest + new Vector3(0f, 0f, _readyPush);
+            Vector3 peek = new Vector3(0f, -_eyeDrop, Mathf.Max(floor, _eyeDistance));
+            Vector3 want = Vector3.Lerp(ready, peek, t);
+            if (want.z < floor) want.z = floor;
+
+            // 미는 것은 월드로 옮겨 더한다. 매단 자리가 카메라 바로 밑이 아니라
+            // 한 단계 더 들어가 있어도 그대로 맞는다.
+            _holder.position += _eye.TransformVector(want - rest);
+
+            // 3) 렌즈 자리를 소품의 유리에 맞춘다. 원판은 늘 눈을 마주 보므로 자리만 맞으면 된다.
+            _lens.position = _propRoot.TransformPoint(_propGlassLocal);
+            Vector3 away = _lens.position - _eye.position;
+            if (away.sqrMagnitude > 1e-6f) _lens.rotation = Quaternion.LookRotation(away, _eye.up);
         }
 
         /// <summary>반지름 1의 원판. UV는 (-1,1) 을 (0,1) 로 편다.</summary>
@@ -646,31 +746,56 @@ namespace IMUNROK.Common
             // 눈에 대기
             float target = _raiseWithButton ? (RaiseHeld() ? 1f : 0f) : 1f;
             _raise = Mathf.MoveTowards(_raise, target, _raiseSpeed * Time.deltaTime);
-            var pose = Vector3.Lerp(_readyPose, _eyePose, Mathf.SmoothStep(0f, 1f, _raise));
 
-            // 눈의 근평면보다 가까이 들면 유리가 통째로 잘려 나가 아무것도 안 보인다.
-            // 한 번 겪고 나면 잊기 쉬운 종류의 일이라, 여기서 늘 밀어 둔다.
-            float floor = main.nearClipPlane + 0.06f;
-            if (pose.z < floor) pose *= floor / Mathf.Max(0.001f, pose.z);
-            _lens.localPosition = pose;
-            _lens.localRotation = Quaternion.Slerp(Quaternion.Euler(6f, -12f, 8f), Quaternion.identity, _raise);
+            bool authored = _useAuthoredPose && _propRoot != null && _holder != null;
+            if (!authored)
+            {
+                var pose = Vector3.Lerp(_readyPose, _eyePose, Mathf.SmoothStep(0f, 1f, _raise));
 
-            AimLensCamera();
+                // 눈의 근평면보다 가까이 들면 유리가 통째로 잘려 나가 아무것도 안 보인다.
+                // 한 번 겪고 나면 잊기 쉬운 종류의 일이라, 여기서 늘 밀어 둔다.
+                float floor = main.nearClipPlane + 0.06f;
+                if (pose.z < floor) pose *= floor / Mathf.Max(0.001f, pose.z);
+                _lens.localPosition = pose;
+                _lens.localRotation = Quaternion.Slerp(Quaternion.Euler(6f, -12f, 8f), Quaternion.identity, _raise);
+            }
+
+            // 차례가 바뀌었다. 맞춰 둔 자세를 쓰면 <b>소품이 렌즈 자리를 정하므로</b>
+            // 소품을 먼저 놓고 그 다음에 카메라를 겨눈다.
             DriveLift();
             PlaceProp();
+            AimLensCamera();
             Shoot();
             Look();
         }
 
-        private static bool RaiseHeld()
+        /// <summary>
+        /// 눈에 대라는 신호인가.
+        ///
+        /// 예전에는 <b>우클릭이나 왼쪽 Shift</b> 를 누르고 있어야 올라갔다. 그런데 그 둘은
+        /// 이미 임자가 있다 — 우클릭은 카메라 돌리기(DebugFlyCamera), Shift 는 달리기.
+        /// 돋보기를 올리려면 화면이 같이 돌아가거나 사람이 뛰었고, 그 사실을 알려 주는
+        /// 데도 없었다. 그래서 아무리 들어도 돋보기가 안 나갔다.
+        ///
+        /// 이제 제 키를 하나 준다(기본 F). 누르고 있을 필요도 없다 — 한 번 눌러 올리고
+        /// 다시 눌러 내린다. 들여다보는 것은 순간이 아니라 <b>자세</b>이기 때문이다.
+        /// </summary>
+        private bool RaiseHeld()
         {
 #if ENABLE_INPUT_SYSTEM
-            var mouse = Mouse.current;
-            if (mouse != null && mouse.rightButton.isPressed) return true;
+            if (_alsoRightButton && Mouse.current != null && Mouse.current.rightButton.isPressed) return true;
+
             var kb = Keyboard.current;
-            if (kb != null && kb.leftShiftKey.isPressed) return true;
-#endif
+            if (kb == null) return _raiseLatch;
+            var key = kb[_raiseKey];
+            if (key == null) return _raiseLatch;
+
+            if (!_raiseToggle) return key.isPressed;
+            if (key.wasPressedThisFrame) _raiseLatch = !_raiseLatch;
+            return _raiseLatch;
+#else
             return false;
+#endif
         }
 
         /// <summary>렌즈 카메라를 눈에서 유리 한가운데를 지나는 방향으로 겨눈다.</summary>
@@ -774,7 +899,7 @@ namespace IMUNROK.Common
         {
             if (_rig != null) _rig.SetActive(on);
             if (_lensCam != null) _lensCam.enabled = on;
-            if (!on) { _raise = 0f; Forget(); }
+            if (!on) { _raise = 0f; _raiseLatch = false; Forget(); }
         }
     }
 
