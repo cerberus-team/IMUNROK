@@ -156,3 +156,19 @@ T_Glb_*.png
 # 메시 줄이기 결과 — 생성물이자 아트라 커밋 안 함(공유폴더 배포).
 # 재생성: 유니티 메뉴 [이문록 ▸ 에셋: 무거운 메시 줄이기]
 *_간소.asset
+
+# ─────────────────────────────────────────────
+# 관아 세트(GwanaSet_FOR_TEAM) — 2막 외삼문·담·동헌·문지기
+# 무거운 것(png 304MB · fbx 18MB · 메시 asset 6.6MB)은 git 제외, 공유폴더로.
+# .mat/.prefab/.meta 는 일부러 커밋한다 → 아트를 다시 받아도 GUID·재질·계층이 살아난다.
+#   (Art/Props 와 같은 방식)
+# ─────────────────────────────────────────────
+/Assets/Models/**/*.png
+/Assets/Models/**/*.fbx
+/Assets/_Import/**/*.png
+/Assets/_Import/**/*.asset
+/Assets/_Project/Gate_Hwaryeongjeon/**/*.asset
+/Assets/_Project/Wall_SlitBlocker/**/*.asset
+/Assets/_Project/Seocheon/Art/**/*.png
+/Assets/_Project/Seocheon/Art/**/*.fbx
+/Assets/_Project/Seocheon/Meshes/**/*.asset
