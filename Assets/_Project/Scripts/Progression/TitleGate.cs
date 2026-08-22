@@ -39,6 +39,8 @@ namespace IMUNROK.Common
         [SerializeField] private Texture2D _titleImage;
         [Tooltip("표제 그림의 가로 크기(캔버스 단위). 세로는 그림 비례대로 따라온다")]
         [SerializeField] private float _titleImageWidth = 760f;
+        [Tooltip("표제 그림을 캔버스 한가운데에서 얼마나 옮길지. 아래 건너뛰기 안내와 안 붙게")]
+        [SerializeField] private Vector2 _titleImageOffset = new Vector2(0f, 55f);
         [Tooltip("표제 그림을 쓸 때도 아래 한자와 가는 줄을 남길지. 그림이 이미 한자면 겹치므로 끈다")]
         [SerializeField] private bool _keepSubtitleWithImage = false;
 
@@ -508,7 +510,7 @@ namespace IMUNROK.Common
             float ar = _titleImage.height / Mathf.Max(1f, (float)_titleImage.width);
             var irt = go.GetComponent<RectTransform>();
             irt.SetParent(parent, false);
-            irt.anchoredPosition = new Vector2(0f, 40f);
+            irt.anchoredPosition = _titleImageOffset;
             irt.sizeDelta = new Vector2(_titleImageWidth, _titleImageWidth * ar);
         }
 
