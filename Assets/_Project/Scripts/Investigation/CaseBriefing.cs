@@ -64,9 +64,10 @@ namespace IMUNROK.Common
                 GameState.Instance.EnterCase(_caseId);
             }
 
-            // 수첩에는 펼치기 전에 미리 넣는다. 플레이어가 종이를 안 읽고 지나가도
-            // 첫 장은 남아 있어야 한다.
-            Journal.Instance.AddClue(_caseId, "조사종이", _briefText, null, ClueKind.정황, false);
+            // 수첩 첫 장에는 펼치기 전에 미리 적어 둔다. 플레이어가 종이를 안 읽고
+            // 지나가도 개요는 남아 있어야 한다. 단서 목록에 넣지 않는 까닭은
+            // 조사종이가 주워 온 물증이 아니라 처음부터 쥐고 있던 출발점이기 때문이다.
+            Journal.Instance.SetBrief(_caseId, _briefText);
 
             if (_onStart) Present();
         }

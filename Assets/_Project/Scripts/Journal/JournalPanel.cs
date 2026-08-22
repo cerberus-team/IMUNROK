@@ -5,14 +5,20 @@ using UnityEngine.UI;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 수첩(手帖)의 월드 공간 화면 — 지금 사건의 단서를 물증/정황으로 나눠 보여주고,
-    /// 심문 중이면 각 단서에 "들이밀기" 버튼을 붙인다.
+    /// 수첩(手帖)의 월드 공간 화면 — 지금 사건에서 <b>주운 물증</b>을 카드로 깔고,
+    /// 심문 중이면 각 물증에 "들이밀기" 버튼을 붙인다.
     ///
     /// 상태(열림/닫힘)는 <see cref="JournalView"/>가 들고 있고, 여기는 그리기만 한다.
     /// 씬에 미리 둘 필요 없다 — 수첩을 처음 펼칠 때 스스로 만들어진다.
     ///
-    /// 카드가 많아지면 스크롤이 필요하지만, 지금은 사건당 단서가 20개 남짓이라
-    /// 두 칸으로 나눠 한 화면에 담는다(VR에서 스크롤은 조작이 번거롭다).
+    /// <b>정황 칸은 없앴다</b>. 예전에는 왼쪽에 물증, 오른쪽에 정황(증언·목격·실토)을
+    /// 나란히 깔았는데, 그러면 들이밀 수 있는 것과 그저 들은 것이 한 장에 섞여
+    /// 어느 쪽이 상대의 입을 여는 물건인지 알 수 없게 된다. 들은 말은 이제 심문
+    /// 자막에서 붉게 한 번 지나가고, 수첩에는 손에 쥔 것만 남는다.
+    ///
+    /// 그래서 물증 카드가 한 장 넓이를 다 쓴다 — 한 줄에 넉 장씩 들어간다.
+    /// 카드가 많아지면 스크롤이 필요하지만, 사건당 물증이 열 남짓이라 한 화면에 담긴다
+    /// (VR에서 스크롤은 조작이 번거롭다).
     /// </summary>
     [RequireComponent(typeof(Canvas))]
     public class JournalPanel : MonoBehaviour
@@ -32,8 +38,8 @@ namespace IMUNROK.Common
         private JournalView _owner;
         private CanvasGroup _group;
         private WorldHudAnchor _anchor;
-        private RectTransform _leftCol, _rightCol;
-        private Text _title;
+        private RectTransform _col;
+        private Text _title, _brief;
         private readonly List<GameObject> _cards = new List<GameObject>();
 
         private const float PageW = 1500f, PageH = 900f;
@@ -123,9 +129,13 @@ namespace IMUNROK.Common
             NewText("라벨", "✕ 덮기", Vector2.zero, new Vector2(200f, 66f), close, _clueFontSize,
                     new Color(0.98f, 0.94f, 0.86f));
 
-            float colW = (PageW - 120f) * 0.5f;
-            _leftCol  = NewRect("물증", new Vector2(-colW * 0.5f - 20f, -40f), new Vector2(colW, PageH - 200f), page);
-            _rightCol = NewRect("정황", new Vector2( colW * 0.5f + 20f, -40f), new Vector2(colW, PageH - 200f), page);
+            // 사건 개요는 제목 바로 밑에 한 줄로 눕힌다 — 조사종이를 안 읽고 지나갔어도
+            // 첫 장에는 남아 있어야 한다.
+            _brief = NewText("개요", "", new Vector2(0f, PageH * 0.5f - 118f), new Vector2(PageW - 120f, 56f),
+                             page, _clueFontSize - 2, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.72f));
+            _brief.horizontalOverflow = HorizontalWrapMode.Wrap;
+
+            _col = NewRect("물증", new Vector2(0f, -70f), new Vector2(PageW - 120f, PageH - 260f), page);
         }
 
         // ── 내용(펼칠 때마다) ──
@@ -138,26 +148,28 @@ namespace IMUNROK.Common
             var gs = GameState.Instance;
             if (!gs.InCase)
             {
-                _title.text = "수첩 — 사건 밖에서는 단서가 보이지 않는다";
+                _title.text = "수첩 — 사건 밖에서는 물증이 보이지 않는다";
+                _brief.text = "";
                 return;
             }
 
             CaseId caseId = gs.CurrentCase.Value;
             var clues = Journal.Instance.GetClues(caseId);
-            string brief = _owner != null ? _owner.CaseBrief : null;
-            _title.text = string.IsNullOrWhiteSpace(brief)
-                        ? $"수첩 — 단서 {clues.Count}"
-                        : $"{brief}      (단서 {clues.Count})";
+            string head = _owner != null ? _owner.CaseBrief : null;
+            _title.text = string.IsNullOrWhiteSpace(head)
+                        ? $"수첩 — 물증 {clues.Count}"
+                        : $"{head}      (물증 {clues.Count})";
+
+            string brief = Journal.Instance.GetBrief(caseId);
+            _brief.text = string.IsNullOrWhiteSpace(brief) ? "" : brief;
 
             // 심문 중일 때만 들이밀 수 있다
             bool talking = InterrogationController.AnyOpen && InterrogationController.Active != null;
 
             var muljeung = new List<ClueEntry>();
-            var jeonghwang = new List<ClueEntry>();
-            foreach (var c in clues) (c.kind == ClueKind.물증 ? muljeung : jeonghwang).Add(c);
+            foreach (var c in clues) if (c.kind == ClueKind.물증) muljeung.Add(c);
 
-            FillEvidence(_leftCol, muljeung, caseId, talking);
-            FillColumn(_rightCol, "정황", jeonghwang, caseId, talking);
+            FillEvidence(_col, muljeung, caseId, talking);
         }
 
         /// <summary>
@@ -175,14 +187,15 @@ namespace IMUNROK.Common
             float w = col.sizeDelta.x;
             float y = col.sizeDelta.y * 0.5f - 40f;
 
-            var h = NewText("머리물증", "── 물증 ──", new Vector2(0f, y), new Vector2(w, 44f),
+            var h = NewText("머리물증", "── 주운 물증 ──", new Vector2(0f, y), new Vector2(w, 44f),
                             col, _clueFontSize + 4, _inkColor);
             _cards.Add(h.gameObject);
             y -= 64f;
 
             if (list.Count == 0)
             {
-                var e = NewText("없음", "(아직 없다)", new Vector2(0f, y), new Vector2(w, 40f),
+                var e = NewText("없음", "(아직 주운 것이 없다. 들은 말은 여기 적히지 않는다)",
+                                new Vector2(0f, y), new Vector2(w, 40f),
                                 col, _clueFontSize, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.5f));
                 _cards.Add(e.gameObject);
                 return;
@@ -271,87 +284,6 @@ namespace IMUNROK.Common
             if (close >= 0 && close + 1 < t.Length) t = t.Substring(close + 1).Trim();
             if (t.Length > 22) t = t.Substring(0, 22) + "…";
             return t;
-        }
-
-        private void FillColumn(RectTransform col, string header, List<ClueEntry> list,
-                                CaseId caseId, bool talking)
-        {
-            float w = col.sizeDelta.x;
-            float y = col.sizeDelta.y * 0.5f - 40f;
-
-            var h = NewText($"머리{header}", $"── {header} ──", new Vector2(0f, y), new Vector2(w, 44f),
-                            col, _clueFontSize + 4, _inkColor);
-            _cards.Add(h.gameObject);
-            y -= 60f;
-
-            if (list.Count == 0)
-            {
-                var e = NewText("없음", "(아직 없다)", new Vector2(0f, y), new Vector2(w, 40f),
-                                col, _clueFontSize, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.5f));
-                _cards.Add(e.gameObject);
-                return;
-            }
-
-            foreach (var c in list)
-            {
-                const float cardH = 76f;
-                var card = NewRect("단서", new Vector2(0f, y - cardH * 0.5f), new Vector2(w, cardH), col);
-                card.gameObject.AddComponent<Image>().color = _cardColor;
-                _cards.Add(card.gameObject);
-
-                // 심문에서 이미 밝혀진 사실("_revealed")은 다시 들이밀 수 없다.
-                // 조사종이처럼 처음부터 쥐고 있던 것도 마찬가지다 — 증거가 아니라 출발점이다.
-                bool canPresent = talking && c.presentable && !c.key.EndsWith("_revealed");
-
-                // 물증에 딸린 종이가 있으면 수첩에서 다시 펼쳐 본다. 정황은 들은 것이라 볼 것이 없다.
-                var doc = Journal.Instance.GetDocument(caseId, c.key);
-                bool canRead = doc != null;
-
-                float btnW = (canPresent ? 190f : 0f) + (canRead ? 150f : 0f);
-
-                var label = NewText("문구", "· " + c.text, new Vector2(-btnW * 0.5f, 0f),
-                                    new Vector2(w - 32f - btnW, cardH - 12f), card, _clueFontSize, _inkColor);
-                label.alignment = TextAnchor.MiddleLeft;
-                label.horizontalOverflow = HorizontalWrapMode.Wrap;
-
-                if (canRead)
-                {
-                    float x = w * 0.5f - (canPresent ? 268f : 80f);
-                    var r = NewRect("펼쳐보기", new Vector2(x, 0f), new Vector2(136f, 56f), card);
-                    var rbg = r.gameObject.AddComponent<Image>();
-                    rbg.color = _readColor;
-                    var rbtn = r.gameObject.AddComponent<Button>();
-                    rbtn.targetGraphic = rbg;
-                    var d = doc;
-                    rbtn.onClick.AddListener(() =>
-                    {
-                        // 수첩에서 꺼낸 것은 어둠 위에 놓는다 — 물증 카드와 같은 자리다
-                        DocumentView.Show(d.page, d.title, d.body, d.fine, null, true);
-                        _owner?.Close();   // 수첩을 덮어야 종이를 손에 쥔다
-                    });
-                    NewText("라벨", "펼쳐보기", Vector2.zero, new Vector2(136f, 56f), r, _clueFontSize - 2,
-                            new Color(0.98f, 0.94f, 0.86f));
-                }
-
-                if (canPresent)
-                {
-                    var b = NewRect("들이밀기", new Vector2(w * 0.5f - 100f, 0f), new Vector2(176f, 56f), card);
-                    var bg = b.gameObject.AddComponent<Image>();
-                    bg.color = _presentColor;
-                    var btn = b.gameObject.AddComponent<Button>();
-                    btn.targetGraphic = bg;
-                    var captured = c;
-                    btn.onClick.AddListener(() =>
-                    {
-                        InterrogationController.Active?.PresentFromJournal(captured);
-                        _owner?.Close();   // 수첩을 덮어야 제시 장면(대사·증거 그림)이 보인다
-                    });
-                    NewText("라벨", "들이밀기", Vector2.zero, new Vector2(176f, 56f), b, _clueFontSize - 2,
-                            new Color(0.98f, 0.94f, 0.86f));
-                }
-
-                y -= cardH + 10f;
-            }
         }
 
         // ── UI 헬퍼 ──

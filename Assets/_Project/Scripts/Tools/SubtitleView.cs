@@ -31,6 +31,8 @@ namespace IMUNROK.Common
         [SerializeField] private Color _nameplateColor = new Color(0.62f, 0.14f, 0.11f, 0.95f);
         [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
         [SerializeField] private Color _hintColor = new Color(1f, 0.85f, 0.5f, 0.75f);
+        [Tooltip("새로 알아낸 것을 말할 때의 글빛. 수첩에 안 적히는 말이라 여기서 한 번 눈에 박혀야 한다")]
+        [SerializeField] private Color _keyColor = new Color(0.95f, 0.34f, 0.28f);
 
         private static SubtitleView _instance;
         private CanvasGroup _group;
@@ -61,9 +63,15 @@ namespace IMUNROK.Common
             }
         }
 
-        /// <summary>자막을 띄운다. speaker/hint는 비워도 된다(그 줄이 사라진다).</summary>
-        public static void Show(string speaker, string line, string hint = null)
-            => Instance.ShowInternal(speaker, line, hint);
+        /// <summary>
+        /// 자막을 띄운다. speaker/hint는 비워도 된다(그 줄이 사라진다).
+        ///
+        /// <paramref name="key"/> 를 켜면 대사가 <b>붉게</b> 나온다 — 지금 이 한 마디가
+        /// 조사에 쓰일 말이라는 뜻이다. 수첩에는 물증만 적히므로, 들은 말은 여기서
+        /// 한 번 티가 나야 지나쳐 버리지 않는다.
+        /// </summary>
+        public static void Show(string speaker, string line, string hint = null, bool key = false)
+            => Instance.ShowInternal(speaker, line, hint, key);
 
         /// <summary>자막을 감춘다.</summary>
         public static void Hide()
@@ -113,7 +121,7 @@ namespace IMUNROK.Common
             if (_instance == this) _instance = null;
         }
 
-        private void ShowInternal(string speaker, string line, string hint)
+        private void ShowInternal(string speaker, string line, string hint, bool key = false)
         {
             bool wasHidden = _group.alpha < 0.5f;
 
@@ -121,6 +129,7 @@ namespace IMUNROK.Common
             _nameplate.gameObject.SetActive(hasName);
             if (hasName) _nameText.text = speaker;
 
+            _lineText.color = key ? _keyColor : _textColor;
             _lineText.text = line ?? "";
             _hintText.text = hint ?? "";
 

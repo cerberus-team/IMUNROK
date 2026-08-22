@@ -4,7 +4,12 @@ using UnityEngine;
 
 namespace IMUNROK.Common
 {
-    /// <summary>단서 종류 — 수첩 탭 분류. 물증(찾은 물건) / 정황(증언·목격·상황 그림).</summary>
+    /// <summary>
+    /// 단서 종류. <b>수첩에는 물증만 적힌다</b>(<see cref="Journal.AddClue"/> 참조).
+    ///
+    /// 정황은 값이 남아 있을 뿐 더는 기록되지 않는다 — 예전에 저장한 파일을 읽을 때
+    /// 이 값이 나오므로 이름을 없애지 않는다.
+    /// </summary>
     public enum ClueKind { 물증, 정황 }
 
     /// <summary>수첩에 기록되는 단서 한 줄.</summary>
@@ -86,13 +91,24 @@ namespace IMUNROK.Common
         private readonly Dictionary<string, Texture2D> _clueImages = new Dictionary<string, Texture2D>();
         private static string ImgKey(CaseId c, string key) => ((int)c) + ":" + key;
 
-        /// <summary>단서를 기록. 같은 (사건,key)는 한 번만. 새로 기록되면 true.
-        /// image: 상황 그림(선택), kind: 물증/정황(수첩 탭 분류).</summary>
+        /// <summary>
+        /// 단서를 기록. 같은 (사건,key)는 한 번만. 새로 기록되면 true.
+        ///
+        /// <b>물증만 적힌다</b>. 정황(<see cref="ClueKind.정황"/>)을 넘기면 조용히 흘린다.
+        ///
+        /// 왜인가: 수첩은 <b>주운 것</b>을 담는 그릇이다. 증언·목격·실토는 손에 쥔 것이
+        /// 아니라 그 자리에서 <b>들은 말</b>이고, 그것까지 적어 두면 들이밀 것과 들은 것이
+        /// 한 장에 섞여 어느 쪽이 상대의 입을 여는 물건인지 알 수 없게 된다. 들은 말은
+        /// 심문 자막에서 <b>붉게</b> 한 번 지나가고 사라진다 — 받아 적는 것은 조사관의 몫이다.
+        ///
+        /// 흘리더라도 그림은 받아 둔다. 뒤에 같은 key 가 물증으로 들어올 수 있다.
+        /// </summary>
         public bool AddClue(CaseId caseId, string key, string text, Texture2D image = null,
                             ClueKind kind = ClueKind.물증, bool presentable = true)
         {
             if (string.IsNullOrEmpty(key)) key = text;
             if (image != null) _clueImages[ImgKey(caseId, key)] = image;
+            if (kind != ClueKind.물증) return false;
             if (HasClue(caseId, key)) return false;
 
             var entry = new ClueEntry { caseId = caseId, key = key, text = text, kind = kind, presentable = presentable };
@@ -163,9 +179,34 @@ namespace IMUNROK.Common
             return _clueDocs.TryGetValue(ImgKey(caseId, key), out d) ? d : null;
         }
 
+        // ── 첫 장(사건 개요) ──
+
+        private readonly Dictionary<CaseId, string> _briefs = new Dictionary<CaseId, string>();
+
+        /// <summary>
+        /// 수첩 첫 장에 적히는 사건 개요(조사종이 요지).
+        ///
+        /// 예전에는 이것도 단서 한 줄로 밀어 넣었으나, 조사종이는 <b>내가 이미 아는 것</b>이라
+        /// 주운 물증이 아니다. 그래서 단서 목록이 아니라 따로 둔다.
+        /// </summary>
+        public void SetBrief(CaseId caseId, string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            _briefs[caseId] = text.Trim();
+            JournalPanel.Refresh();
+        }
+
+        /// <summary>이 사건의 개요(없으면 null).</summary>
+        public string GetBrief(CaseId caseId)
+        {
+            string s;
+            return _briefs.TryGetValue(caseId, out s) ? s : null;
+        }
+
         /// <summary>모두 지움(디버그/재시작용).</summary>
         public void ClearAll()
         {
+            _briefs.Clear();
             _clues.Clear();
             _clueImages.Clear();   // 그림 참조도 같이 버린다(안 지우면 텍스처를 계속 붙들고 있음)
             _clueDocs.Clear();

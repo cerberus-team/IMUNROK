@@ -7,8 +7,11 @@ using UnityEngine.InputSystem;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 수첩(手帖) — J(또는 도구벨트)로 펼쳐 지금 사건의 단서를 본다.
-    /// 심문 중이면 각 단서에 "들이밀기"(증거 제시) 버튼이 붙는다.
+    /// 수첩(手帖) — I 로 펼쳐 지금 사건에서 <b>주운 물증</b>을 본다.
+    /// 심문 중이면 각 물증에 "들이밀기"(증거 제시) 버튼이 붙는다.
+    ///
+    /// <b>왜 I 인가</b>: J 는 왼손 검지가 놓이는 자리라 걷기(WASD)와 멀고, 오른손으로
+    /// 옮겨 잡아야 눌린다. I 는 조사(調査)의 머리글자이기도 하다.
     ///
     /// 이 클래스는 열림/닫힘 상태만 들고 있고, 그리기는 JournalPanel(월드 Canvas)이 맡는다.
     /// </summary>
@@ -60,7 +63,7 @@ namespace IMUNROK.Common
         {
 #if ENABLE_INPUT_SYSTEM
             var kb = Keyboard.current;
-            if (kb != null && kb.jKey.wasPressedThisFrame) Toggle();
+            if (kb != null && kb.iKey.wasPressedThisFrame) Toggle();
 #endif
         }
 

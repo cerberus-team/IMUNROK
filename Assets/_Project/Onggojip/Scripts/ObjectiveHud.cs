@@ -17,7 +17,7 @@ namespace IMUNROK.Onggojip
     public class ObjectiveHud : MonoBehaviour
     {
         [SerializeField] private bool _show = true;
-        [TextArea] [SerializeField] private string _introLine = "마을 어귀에 닿았다. 수첩(J)을 살피거나, 지나는 이에게 말을 걸어보자";
+        [TextArea] [SerializeField] private string _introLine = "마을 어귀에 닿았다. 수첩(I)을 살피거나, 지나는 이에게 말을 걸어보자";
         [TextArea] [SerializeField] private string _investigateLine = "밤이다. 몰래 집 안을 조사하라";
         [TextArea] [SerializeField] private string _readyLine = "증거를 충분히 모았다 — 출도하라!  (F2 ▸ 출도)";
 

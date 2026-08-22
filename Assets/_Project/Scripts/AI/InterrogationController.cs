@@ -93,6 +93,18 @@ namespace IMUNROK.Common
 
         private string _lastPlayerLine = "";
 
+        /// <summary>
+        /// 지금 대사가 <b>새로 알아낸 것</b>인가. 그러면 자막이 붉게 나온다.
+        ///
+        /// 수첩에는 물증만 적힌다(<see cref="Journal.AddClue"/>). 추천 질문으로 캐낸 정황과
+        /// 증거를 들이밀어 받아낸 실토는 손에 쥐는 물건이 아니라 <b>그 자리에서 듣는 말</b>이라
+        /// 적히지 않는다. 그래서 들을 때 한 번은 티가 나야 한다 — 흰 글씨로 스쳐 가면
+        /// 방금 그 한 마디가 이 사건에서 무엇이었는지 알 수가 없다.
+        ///
+        /// 물음을 새로 던지면 꺼진다. 같은 말을 두 번 물어 두 번 붉을 일은 없다.
+        /// </summary>
+        private bool _lineIsKey;
+
         [Tooltip("클릭용 콜라이더가 없으면 몸 크기에 맞춰 자동으로 붙인다. 없으면 말을 걸 수 없다")]
         [SerializeField] private bool _autoFitCollider = true;
 
@@ -226,6 +238,7 @@ namespace IMUNROK.Common
             // 상태 초기화(다시 말 걸 때도 깨끗하게)
             _transcript.Clear();
             _unlockedFacts.Clear();
+            _lineIsKey = false;
             _unlockedGateKeys.Clear();
             _grantedTopics.Clear();
             _busy = false;
@@ -329,6 +342,7 @@ namespace IMUNROK.Common
             if (!_active || _busy || string.IsNullOrWhiteSpace(text)) return;
             string say = text.Trim();
             _lastPlayerLine = say;
+            _lineIsKey = false;
             _transcript.Add($"{PlayerTitle}: {say}");
 
             var req = new NpcRequest
@@ -359,11 +373,15 @@ namespace IMUNROK.Common
             _lastPlayerLine = t.question;
             _transcript.Add($"{PlayerTitle}: {t.question}");
 
-            // 이 대화로 단서 얻기(한 번만)
+            // 이 물음으로 무언가 캐냈나(한 번만). 수첩에 적지는 않는다 — 들은 말이다.
+            // 대신 대사를 붉게 내보내고, 인물이 이후에도 그 사실을 아는 채로 말하도록
+            // 밝혀진 것에 얹어 둔다.
+            _lineIsKey = false;
             if (!string.IsNullOrEmpty(t.grantsClueKey) && !_grantedTopics.Contains(t.grantsClueKey))
             {
                 _grantedTopics.Add(t.grantsClueKey);
-                Journal.Instance.AddClue(_character.caseId, t.grantsClueKey, t.grantsClueText, t.grantsClueImage, ClueKind.정황);
+                if (!string.IsNullOrEmpty(t.grantsClueText)) _unlockedFacts.Add(t.grantsClueText);
+                _lineIsKey = true;
             }
 
             var req = new NpcRequest
@@ -388,6 +406,7 @@ namespace IMUNROK.Common
         {
             if (_busy || clue == null) return;
             _lastPlayerLine = $"(증거) {clue.text}";
+            _lineIsKey = false;
             _transcript.Add($"{PlayerTitle}(증거): {clue.text}");
 
             // 제시한 증거의 상황 그림을 잠깐 "탁" 띄운다
@@ -409,11 +428,13 @@ namespace IMUNROK.Common
                     _unlockedGateKeys.Add(gate.clueKey);
                     _unlockedFacts.Add(gate.revealsInfo);
                     revealed = gate.revealsInfo;
-                    // 열린 사실을 새 단서로 수첩에 기록(심문이 수첩을 키운다)
-                    Journal.Instance.AddClue(_character.caseId, gate.clueKey + "_revealed", gate.revealsInfo, null, ClueKind.정황);
+                    // 실토는 수첩에 적지 않는다. 들이민 물증은 이미 수첩에 있고,
+                    // 그 물증이 무엇을 열었는지는 지금 눈앞에서 붉게 지나간다.
                 }
                 break;
             }
+
+            _lineIsKey = revealed != null;
 
             var req = new NpcRequest
             {
@@ -457,7 +478,9 @@ namespace IMUNROK.Common
             string hint = string.IsNullOrEmpty(_lastPlayerLine)
                         ? "마이크로 묻거나, 수첩에서 증거를 제시하시오"
                         : $"{PlayerTitle} — {_lastPlayerLine}";
-            SubtitleView.Show(_character.characterName, line, hint);
+            // 붉은 글씨는 말이 다 나온 뒤에만. 기다리는 동안의 "…" 까지 붉으면
+            // 무엇이 붉은 것인지 흐려진다.
+            SubtitleView.Show(_character.characterName, line, hint, _lineIsKey && !_busy);
         }
 
         private float _awayFor;
@@ -486,7 +509,7 @@ namespace IMUNROK.Common
             CheckWalkedAway();
 #if ENABLE_INPUT_SYSTEM
             var kb = UnityEngine.InputSystem.Keyboard.current;
-            // ESC로 심문창 닫기(인물 큐브 방식일 때). J는 수첩(JournalView)이 처리
+            // ESC로 심문창 닫기(인물 큐브 방식일 때). I는 수첩(JournalView)이 처리
             if (_active && kb != null && !_beginOnStart && kb.escapeKey.wasPressedThisFrame)
                 ClosePanel();
 #endif
