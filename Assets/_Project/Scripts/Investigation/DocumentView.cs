@@ -91,11 +91,14 @@ namespace IMUNROK.Common
                     _instance = go.AddComponent<DocumentView>();
                 }
             }
+            // 읽는 자리는 하나뿐이다. 수첩이나 개요가 펴져 있으면 그쪽이 닫힌다.
+            ReadingFocus.Claim(ReadingFocus.Panel.Document, Hide);
             _instance.ShowInternal(page, title, body, finePrint, onRead, dim);
         }
 
         public static void Hide()
         {
+            ReadingFocus.Release(ReadingFocus.Panel.Document);
             if (_instance == null) return;
             _instance.SetVisible(false);
             _instance._onRead = null;

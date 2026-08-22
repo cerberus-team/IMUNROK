@@ -50,11 +50,14 @@ namespace IMUNROK.Common
                     _instance = go.AddComponent<JournalPanel>();
                 }
             }
+            // 읽는 자리는 하나뿐이다. 손에 든 문서가 있으면 그것이 내려간다.
+            ReadingFocus.Claim(ReadingFocus.Panel.Journal, Close);
             _instance.OpenInternal(owner);
         }
 
         public static void Close()
         {
+            ReadingFocus.Release(ReadingFocus.Panel.Journal);
             if (_instance != null) _instance.SetVisible(false);
         }
 

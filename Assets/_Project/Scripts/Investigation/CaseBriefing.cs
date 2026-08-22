@@ -77,6 +77,9 @@ namespace IMUNROK.Common
             if (_shown) return;
             _shown = true;
 
+            // 읽는 자리는 하나뿐이다. 문서나 수첩이 펴져 있으면 그쪽이 닫힌다.
+            ReadingFocus.Claim(ReadingFocus.Panel.Briefing, Finish);
+
             var prefab = _scrollPrefab;
 #if UNITY_EDITOR
             if (prefab == null) prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(DefaultPrefab);
@@ -117,6 +120,8 @@ namespace IMUNROK.Common
         /// <summary>종이가 접혔다 — 치우고 사건을 시작한다.</summary>
         private void Finish()
         {
+            ReadingFocus.Release(ReadingFocus.Panel.Briefing);
+            _shown = false;
             if (_scroll != null)
             {
                 _scroll.OnRolled.RemoveListener(Finish);
