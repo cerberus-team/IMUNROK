@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -17,9 +18,17 @@ namespace IMUNROK.Common.EditorTools
     /// <b>단청도 같이 풀린다</b>: 서리청은 붉고 푸른 단청을 입힌 행궁 청사라, 민무늬 동헌
     /// 곁에 세우면 곁방이 주인보다 화려해진다. 여기서는 <b>동헌이 쓰던 재질</b>을 그대로 쓴다.
     ///
-    /// 생김새는 문서고답게 잡았다 — 정면 다섯 칸에 측면 두 칸, 기단은 낮고, 창 대신
-    /// 판문만 낸다. 문서고는 볕과 비를 꺼려 창을 잘 내지 않는다. 지붕은 맞배다
-    /// (상자로는 사다리꼴을 못 깎아서 우진각을 세우면 옆 물매가 엇갈린다 — 조사청에서 겪은 것).
+    /// 생김새는 문서고답게 잡았다 — 정면 다섯 칸에 측면 두 칸, 기단은 낮다.
+    ///
+    /// <b>지붕과 문은 상자로 짓지 않는다.</b> 처음엔 맞배지붕을 상자로 세웠는데, 상자로는
+    /// 처마가 휘지 않아 판때기를 얹은 꼴이었다. 동헌에 이미 제대로 된 팔작지붕과
+    /// 세살문이 있으므로 <b>그것을 떼어 온다</b> — 지붕은 Donheon_Opaque 의 서브메시
+    /// 셋(기와·합각·부연, 42,763), 문은 SM_Door_Sesal_r40(한 짝 6,923).
+    /// 두 채가 같은 손에서 나온 것처럼 보이는 것은 실제로 같은 물건이기 때문이다.
+    ///
+    /// 문은 <b>가운데 세 칸에만</b> 두 짝씩 단다. 다섯 칸에 다 달면 열 짝 69,230 이라
+    /// 지붕값을 넘는다. 양 끝 두 칸은 판벽으로 막는데, 문서고는 볕과 비를 꺼려
+    /// 어차피 문을 적게 내는 집이다.
     ///
     /// 다시 부르면 통째로 지우고 새로 짓는다.
     /// </summary>
@@ -38,10 +47,21 @@ namespace IMUNROK.Common.EditorTools
         private const float GidanH = 0.55f;                   // 기단 높이
         private const float GidanOut = 0.9f;                  // 기단이 기둥 밖으로 나온 폭
         private const float StoneTop = 0.70f;                 // 주춧돌 윗면 = 기둥이 앉는 자리
-        private const float EaveY = 3.30f;                    // 처마(도리) 높이
-        private const float RidgeY = 5.10f;                   // 용마루 높이
-        private const float Overhang = 0.95f;                 // 처마 내밀기
-        private const float RoofThick = 0.22f;
+        private const float EaveY = 3.30f;                    // 처마(도리) 높이 — 지붕 밑면이 여기 앉는다
+
+        /// <summary>
+        /// 동헌 지붕을 서고에 맞추는 배율. 동헌 지붕은 18.689 x 9.891m 인데
+        /// 정면 12m + 처마 0.95m x2 = 13.9m 에 맞추면 0.7437 이다. 그때 측면이 7.36m 라
+        /// 몸통 6m 에 처마가 0.68m 씩 나온다 — 따로 맞출 것도 없이 떨어진다.
+        /// 가로세로를 따로 눌러 맞추지 않는 까닭은 처마 곡선과 합각이 일그러지기 때문이다.
+        /// </summary>
+        private const float RoofScale = 0.7437f;
+
+        private const string DonheonPrefab = "Assets/_Project/_Common/Sets/Gwana/Prefabs/PF_Donheon.prefab";
+        private const string RoofMeshPath = "Assets/_Project/_Common/Sets/Gwana/Donheon/Meshes/SM_동헌지붕.asset";
+
+        /// <summary>Donheon_Opaque 에서 지붕에 해당하는 서브메시 — 기와·합각·부연.</summary>
+        private static readonly int[] RoofSubmeshes = { 5, 6, 7 };
 
         /// <summary>
         /// 마당 남쪽. 앞면(+Z)이 마당을 본다. 담이 z=-13, 동헌 앞면이 x=7.7 이다.
@@ -84,7 +104,7 @@ namespace IMUNROK.Common.EditorTools
                 UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
             Debug.Log("[관아] 문서고를 지었습니다.\n  부재 " + rend + " · 삼각형 " + tri.ToString("N0")
                       + "\n  정면 " + FrontW.ToString("F1") + "m · 측면 " + SideD.ToString("F1")
-                      + "m · 용마루 " + RidgeY.ToString("F1") + "m");
+                      + "m · 처마 " + EaveY.ToString("F1") + "m (지붕은 동헌 것을 " + RoofScale.ToString("F3") + " 로 줄였다)");
         }
 
         // ── 재질 ──
@@ -95,7 +115,11 @@ namespace IMUNROK.Common.EditorTools
             _wood = Load("MI_KoreanWood_1.001.mat");   // 기둥·도리
             _door = Load("M_Wood_Tile.mat");           // 판문 — 널을 세워 짠 문
             _floor = Load("M_Wood_Tile.mat");          // 마루
-            _wall = Load("Donheon_Body.mat");          // 벽
+            // 벽에 Donheon_Body 를 썼다가 물렀다. 그것은 <b>아틀라스</b>다
+            // (Donheon_Atlas_Albedo_final). 아틀라스는 한 장에 여러 부재의 껍질이 모여 있어서,
+            // 무늬를 되풀이시키면 남의 부재가 벽에 끌려 들어온다 — 벽 한 면이 알록달록한
+            // 조각보가 되었다. 되풀이시켜도 되는 것은 이음매가 물리는 낱장 텍스처뿐이다.
+            _wall = Load("MI_R_BrickConcrete1.mat");   // 벽 — 동헌 합각벽이 쓰던 것
             _stone = Load("M_Stone_Granite.mat");      // 기단 장대석
             _rubble = Load("M_Stone_Rubble.mat");      // 기단 몸통·주춧돌
             _roof = Load("MI_R_Roof1.mat");            // 기와
@@ -223,26 +247,91 @@ namespace IMUNROK.Common.EditorTools
 
         private static void BuildDoors(Transform g)
         {
-            // 앞면 다섯 칸에 판문. 가운데 칸만 두 짝으로 열리게 갈라 둔다 —
-            // 나중에 여닫이를 붙일 자리라 이름을 따로 준다.
-            float h = EaveY - StoneTop - 0.25f;
-            float y = StoneTop + h * 0.5f;
+            float sill = StoneTop + 0.12f;                 // 마루 윗면 — 문이 여기 선다
             float z = SideD * 0.5f;
+
+            var (leaf, leafMats, leafRot) = LoadDonheonPart("SM_Door_Sesal_r40");
+            float leafW = 1.124f, leafH = 1.858f;
+
             for (int i = 0; i < 5; i++)
             {
                 float x = -FrontW * 0.5f + Bay * (i + 0.5f);
-                if (i == 2)
+
+                // 양 끝 두 칸은 판벽. 문을 다섯 칸에 다 달면 열 짝 69,230 이라 지붕값을 넘는다.
+                if (i == 0 || i == 4 || leaf == null)
                 {
-                    Box(g, "문_가운데_좌", new Vector3(x - Bay * 0.24f, y, z), new Vector3(Bay * 0.46f, h, 0.12f), _door, null, 0.9f);
-                    Box(g, "문_가운데_우", new Vector3(x + Bay * 0.24f, y, z), new Vector3(Bay * 0.46f, h, 0.12f), _door, null, 0.9f);
+                    float h = EaveY - sill - 0.25f;
+                    Box(g, "판벽_" + i, new Vector3(x, sill + h * 0.5f, z),
+                        new Vector3(Bay * 0.96f, h, 0.12f), _door, null, 0.9f);
+                    continue;
                 }
-                else
+
+                // 가운데 세 칸 — 두 짝씩. 한 칸 2.4m 에 두 짝 2.25m 라 좌우로 조금 남는다.
+                for (int k = 0; k < 2; k++)
                 {
-                    Box(g, "문_" + i, new Vector3(x, y, z), new Vector3(Bay * 0.92f, h, 0.12f), _door, null, 0.9f);
+                    float dx = x + (k == 0 ? -1f : 1f) * leafW * 0.5f;
+                    PlaceDonheonPart(g, "문_" + i + "_" + (k == 0 ? "좌" : "우"), leaf, leafMats, leafRot,
+                                     new Vector3(dx, sill + leafH * 0.5f, z));
                 }
+
+                // 문 위 — 문(1.858m)이 칸 높이(2.48m)보다 낮아 그만큼 빈다. 벽으로 메운다.
+                float topY = sill + leafH;
+                float gap = EaveY - 0.25f - topY;
+                if (gap > 0.05f)
+                    Box(g, "문위벽_" + i, new Vector3(x, topY + gap * 0.5f, z),
+                        new Vector3(Bay * 0.96f, gap, 0.12f), _wall, null, 0.5f);
             }
-            // 인방 — 문 위를 가로지르는 나무. 문과 도리 사이의 틈을 메운다.
+
+            // 인방 — 문 위를 가로지르는 나무. 문과 도리 사이의 틈을 막는다.
             Box(g, "인방", new Vector3(0f, EaveY - 0.12f, z), new Vector3(FrontW, 0.25f, 0.16f), _wood, null, 0.8f);
+        }
+
+        // ── 동헌에서 떼어 오기 ──
+
+        /// <summary>
+        /// 동헌 프리팹에서 부재 하나를 찾아 메시·재질·자세를 돌려준다.
+        ///
+        /// 자세를 그대로 들고 오는 까닭: 동헌 FBX 는 부재마다 원점이 제각각이고
+        /// (문 하나가 로컬 (4.570, -0.860, 2.441) 에 있다) 축도 돌아가 있다(270, 270, 0).
+        /// 그 값을 손으로 풀어 쓰느니 <b>회전은 원본을 베끼고 자리는 bounds 로 맞추는</b> 편이
+        /// 안전하다 — 나중에 동헌 FBX 가 새로 와도 이 코드는 그대로 산다.
+        /// </summary>
+        private static (Mesh, Material[], Quaternion) LoadDonheonPart(string partName)
+        {
+            var pf = AssetDatabase.LoadAssetAtPath<GameObject>(DonheonPrefab);
+            if (pf == null) { Debug.LogWarning("[관아] 동헌 프리팹이 없습니다: " + DonheonPrefab); return (null, null, Quaternion.identity); }
+            foreach (var t in pf.GetComponentsInChildren<Transform>(true))
+            {
+                if (t.name != partName) continue;
+                var mf = t.GetComponent<MeshFilter>();
+                var r = t.GetComponent<Renderer>();
+                if (mf == null || mf.sharedMesh == null || r == null) break;
+                return (mf.sharedMesh, r.sharedMaterials, t.rotation);
+            }
+            Debug.LogWarning("[관아] 동헌에서 '" + partName + "' 을 못 찾았습니다.");
+            return (null, null, Quaternion.identity);
+        }
+
+        /// <summary>
+        /// 떼어 온 부재를 놓는다. 자리는 <b>렌더러 bounds 의 가운데</b>로 맞춘다 —
+        /// 메시 원점이 어디에 있든 상관없어진다.
+        /// </summary>
+        private static GameObject PlaceDonheonPart(Transform parent, string name, Mesh mesh,
+                                                   Material[] mats, Quaternion rot, Vector3 localCenter,
+                                                   float scale = 1f)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.localRotation = rot;
+            go.transform.localScale = Vector3.one * scale;
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterials = mats;
+
+            // 문서고 뿌리는 돌아가 있지도 늘어나 있지도 않으므로 월드 어긋남이 곧 로컬 어긋남이다.
+            var b = r.bounds;
+            go.transform.position += (Where + localCenter) - b.center;
+            return go;
         }
 
         private static void BuildBeams(Transform g)
@@ -261,41 +350,108 @@ namespace IMUNROK.Common.EditorTools
 
         private static void BuildRoof(Transform g)
         {
-            // 맞배지붕. 앞뒤 두 폭만 세우고 옆은 박공널로 막는다 —
-            // 우진각으로 네 물매를 다 세우면 상자끼리 엇갈린다(조사청에서 겪은 것).
-            float halfZ = SideD * 0.5f;
-            float rise = RidgeY - EaveY;
-            float y = (RidgeY + EaveY) * 0.5f;
-
-            float runZ = halfZ + Overhang;
-            float slopeZ = Mathf.Sqrt(runZ * runZ + rise * rise);
-            float ang = Mathf.Atan2(rise, runZ) * Mathf.Rad2Deg;
-            float widthX = FrontW + Overhang * 2f;
-
-            Box(g, "지붕_남", new Vector3(0f, y, runZ * 0.5f), new Vector3(widthX, RoofThick, slopeZ),
-                _roof, Quaternion.Euler(ang, 0f, 0f), 0.9f);
-            Box(g, "지붕_북", new Vector3(0f, y, -runZ * 0.5f), new Vector3(widthX, RoofThick, slopeZ),
-                _roof, Quaternion.Euler(ang, 180f, 0f), 0.9f);
-
-            Box(g, "용마루", new Vector3(0f, RidgeY + 0.10f, 0f), new Vector3(widthX, 0.28f, 0.55f), _roof, null, 1f);
-
-            // 박공널 — 지붕 양 끝의 세모. 상자로 세모를 못 만드니 층을 지어 깎는다.
-            // 지붕 폭 밖으로 나가면 날개가 돋친 꼴이 되므로 안쪽에 세운다.
-            const int Steps = 8;
-            for (int side = 0; side < 2; side++)
+            var mesh = EnsureRoofMesh(out var mats, out var rot);
+            if (mesh == null)
             {
-                float x = (side == 0 ? -1f : 1f) * FrontW * 0.5f;
-                var grp = Group(g, side == 0 ? "박공_서" : "박공_동");
-                for (int k = 0; k < Steps; k++)
-                {
-                    float t0 = (float)k / Steps, t1 = (float)(k + 1) / Steps;
-                    float yc = EaveY + rise * (t0 + t1) * 0.5f;
-                    float depth = 2f * runZ * (1f - (t0 + t1) * 0.5f);
-                    if (depth < 0.05f) continue;
-                    Box(grp, "박공_" + k, new Vector3(x, yc, 0f),
-                        new Vector3(0.14f, rise / Steps + 0.01f, depth), _wall, null, 0.6f);
-                }
+                Debug.LogWarning("[관아] 동헌 지붕을 못 떼어 왔습니다. 지붕 없이 세웁니다.");
+                return;
             }
+
+            // 동헌 지붕과 같은 자세로 세운 뒤, 긴 축을 서고 정면(X)으로 눕힌다.
+            var go = new GameObject("지붕");
+            go.transform.SetParent(g, false);
+            go.transform.localRotation = Quaternion.Euler(0f, 90f, 0f) * rot;
+            go.transform.localScale = Vector3.one * RoofScale;
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterials = mats;
+
+            // 밑면을 처마 높이에 앉힌다. 지붕 메시의 원점이 어디든 bounds 로 맞추면 된다.
+            var b = r.bounds;
+            var want = new Vector3(Where.x, EaveY + b.size.y * 0.5f, Where.z);
+            go.transform.position += want - b.center;
+        }
+
+        /// <summary>
+        /// 동헌 지붕만 따로 구운 메시를 찾아 준다. 없으면 그 자리에서 굽는다.
+        ///
+        /// 왜 미리 구워 두지 않나: 이 메시는 <b>동헌 FBX 에서 뽑아낸 것</b>이라 아트다.
+        /// .gitignore 가 Sets/Gwana 밑의 asset 을 걷어내므로 저장소에서 받아만 봐서는 없다.
+        /// 그러니 없으면 만든다 — 원본(동헌 FBX)은 공유폴더로 오니 그것만 있으면 산다.
+        ///
+        /// 뽑는 법: Donheon_Opaque 는 서브메시 여덟 장짜리 한 덩이인데 그중 다섯째~일곱째가
+        /// 기와·합각·부연이다. 그 셋의 인덱스만 가져오고 쓰는 정점만 추려 다시 번호를 매긴다
+        /// (통째로 베끼면 정점 13만을 다 들고 오게 된다 — 지붕이 쓰는 것은 9만 6천이다).
+        /// </summary>
+        private static Mesh EnsureRoofMesh(out Material[] mats, out Quaternion rot)
+        {
+            mats = null; rot = Quaternion.identity;
+
+            var pf = AssetDatabase.LoadAssetAtPath<GameObject>(DonheonPrefab);
+            if (pf == null) { Debug.LogWarning("[관아] 동헌 프리팹이 없습니다: " + DonheonPrefab); return null; }
+
+            Transform opaque = null;
+            foreach (var t in pf.GetComponentsInChildren<Transform>(true))
+                if (t.name == "Donheon_Opaque") { opaque = t; break; }
+            if (opaque == null) { Debug.LogWarning("[관아] 동헌에서 Donheon_Opaque 를 못 찾았습니다."); return null; }
+
+            var srcR = opaque.GetComponent<Renderer>();
+            var src = opaque.GetComponent<MeshFilter>().sharedMesh;
+            rot = opaque.rotation;
+
+            var sm = srcR.sharedMaterials;
+            mats = new Material[RoofSubmeshes.Length];
+            for (int i = 0; i < RoofSubmeshes.Length; i++)
+                mats[i] = RoofSubmeshes[i] < sm.Length ? sm[RoofSubmeshes[i]] : null;
+
+            var cached = AssetDatabase.LoadAssetAtPath<Mesh>(RoofMeshPath);
+            if (cached != null) return cached;
+
+            if (!src.isReadable) { Debug.LogWarning("[관아] 동헌 메시를 읽을 수 없습니다(Read/Write 꺼짐)."); return null; }
+
+            var map = new Dictionary<int, int>();
+            var vs = src.vertices; var ns = src.normals; var uv = src.uv; var tg = src.tangents;
+            var nv = new List<Vector3>(); var nn = new List<Vector3>();
+            var nu = new List<Vector2>(); var nt = new List<Vector4>();
+            var subs = new List<int[]>();
+
+            foreach (int si in RoofSubmeshes)
+            {
+                if (si >= src.subMeshCount) continue;
+                var tri = src.GetTriangles(si);
+                var outT = new int[tri.Length];
+                for (int k = 0; k < tri.Length; k++)
+                {
+                    int o = tri[k];
+                    if (!map.TryGetValue(o, out int n))
+                    {
+                        n = nv.Count; map[o] = n;
+                        nv.Add(vs[o]);
+                        nn.Add(ns.Length > o ? ns[o] : Vector3.up);
+                        nu.Add(uv.Length > o ? uv[o] : Vector2.zero);
+                        nt.Add(tg.Length > o ? tg[o] : new Vector4(1f, 0f, 0f, 1f));
+                    }
+                    outT[k] = n;
+                }
+                subs.Add(outT);
+            }
+
+            var m = new Mesh { name = "SM_동헌지붕" };
+            m.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;   // 정점 9만 6천 — 16비트로는 못 담는다
+            m.SetVertices(nv); m.SetNormals(nn); m.SetUVs(0, nu); m.SetTangents(nt);
+            m.subMeshCount = subs.Count;
+            for (int i = 0; i < subs.Count; i++) m.SetTriangles(subs[i], i);
+            m.RecalculateBounds();
+
+            string dir = System.IO.Path.GetDirectoryName(RoofMeshPath).Replace('\\', '/');
+            if (!AssetDatabase.IsValidFolder(dir))
+                AssetDatabase.CreateFolder(System.IO.Path.GetDirectoryName(dir).Replace('\\', '/'),
+                                           System.IO.Path.GetFileName(dir));
+            AssetDatabase.CreateAsset(m, RoofMeshPath);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[관아] 동헌 지붕을 떼어 구웠습니다 — 삼각형 " + (m.triangles.Length / 3).ToString("N0")
+                      + " · 정점 " + m.vertexCount.ToString("N0") + "  ·  " + RoofMeshPath);
+            return m;
         }
     }
 }
