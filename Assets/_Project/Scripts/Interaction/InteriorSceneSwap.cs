@@ -30,6 +30,17 @@ namespace IMUNROK.Common
     /// 값으로 판단해야 한다. 재는 것은 에디터에서 한 번 — [이문록 ▸ 사랑방 ▸ 방 넓이 재기].
     ///
     /// 문지방에 걸터서서 씬이 깜빡이지 않도록, 들어설 때보다 나설 때의 선을 넉넉히 잡는다.
+    ///
+    /// <b>방에 있는 동안은 오클루전을 끈다</b>(<see cref="_dropOcclusionInside"/>).
+    /// 마당 오클루전은 <b>마당이 서 있는 상태로</b> 구웠다. 그때 이 방의 자리는 사랑채
+    /// 벽 속이라 '막힌 칸'으로 구워졌고, 막힌 칸에 들어선 카메라는 유니티가 거의 전부를
+    /// 잘라 낸다 — 방에 들어가면 세간은커녕 벽까지 사라졌다. 오브젝트에서 Occludee 플래그를
+    /// 떼는 것만으로는 모자랐다. 자르는 판단이 <b>오브젝트가 아니라 카메라 자리</b>에서
+    /// 시작되기 때문이다.
+    ///
+    /// 방은 32만 삼각형에 드로우 280 이라 잘라 낼 것도 없다. 그러니 들어설 때 끄고
+    /// 나설 때 켠다. 굽는 쪽을 손보는 길도 있지만, 안팎이 같은 자리를 나눠 쓰는 한
+    /// 한 벌로 두 상태를 다 맞출 수는 없다.
     /// </summary>
     public class InteriorSceneSwap : MonoBehaviour
     {
@@ -64,6 +75,9 @@ namespace IMUNROK.Common
         [Tooltip("다시 밝아지는 데 걸리는 시간(초)")]
         [SerializeField] private float _fadeIn = 0.35f;
 
+        [Tooltip("방에 있는 동안 오클루전을 끈다. 마당 기준으로 구운 판정이 방을 통째로 지우기 때문이다")]
+        [SerializeField] private bool _dropOcclusionInside = true;
+
         [Header("방에 든 동안만 켤 것")]
         [Tooltip("문을 열었을 때 발밑에 있어야 할 간이 마당 바닥. 마당 씬을 통째로 내리므로 " +
                  "이것이 없으면 문 너머가 허공이 된다. 비워 두어도 돌아간다")]
@@ -91,6 +105,7 @@ namespace IMUNROK.Common
                                  "[이문록 ▸ 사랑방 ▸ 방 넓이 재기] 를 한 번 눌러 주십시오.", this);
 
             if (_groundWhileInside != null) _groundWhileInside.SetActive(false);
+            ApplyOcclusion(false);
 
             // 껍데기 씬만 올라온 채로 시작할 수 있다(허브에서 곧장 들어온 경우).
             // 마당을 올려 두고, 혹시 편집 중에 같이 열려 있던 실내 씬은 내린다.
@@ -148,6 +163,7 @@ namespace IMUNROK.Common
             }
 
             if (_groundWhileInside != null) _groundWhileInside.SetActive(goInside);
+            ApplyOcclusion(goInside);
 
             _inside = goInside;
             yield return null;               // 한 프레임 두어 올라온 것이 확실히 그려지게
@@ -156,6 +172,18 @@ namespace IMUNROK.Common
             _busy = false;
 
             if (goInside) _onEntered?.Invoke(); else _onLeft?.Invoke();
+        }
+
+        /// <summary>
+        /// 카메라의 오클루전을 켜고 끈다. 카메라는 씬을 갈아 끼워도 껍데기 씬에 그대로
+        /// 남으므로 여기서 만져야 한다.
+        /// </summary>
+        private void ApplyOcclusion(bool inside)
+        {
+            if (!_dropOcclusionInside) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+            cam.useOcclusionCulling = !inside;
         }
 
         private static bool IsLoaded(string sceneName)
