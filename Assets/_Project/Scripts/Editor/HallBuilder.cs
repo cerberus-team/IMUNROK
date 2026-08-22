@@ -91,8 +91,19 @@ namespace IMUNROK.Common.EditorTools
         {
             if (!LoadMaterials()) return;
 
+            // 다시 짓기는 <b>지우고 새로 짓는</b> 것이다. 손으로 옮겨 둔 벽이며 걷어낸
+            // 칸막이며 전부 같이 사라진다. 한 번 그렇게 날려 먹은 뒤로 여기서 묻는다.
             var old = GameObject.Find(RootName);
-            if (old != null) Undo.DestroyObjectImmediate(old);
+            if (old != null)
+            {
+                bool go = EditorUtility.DisplayDialog(
+                    "조사청 실내를 다시 짓습니다",
+                    "이미 지어 둔 방을 통째로 지우고 새로 짓습니다.\n" +
+                    "손으로 옮기거나 지운 것이 있으면 전부 사라집니다.\n\n계속할까요?",
+                    "다시 짓는다", "그만둔다");
+                if (!go) { Debug.Log("[조사청] 다시 짓기를 그만두었습니다."); return; }
+                Undo.DestroyObjectImmediate(old);
+            }
 
             var root = new GameObject(RootName);
             Undo.RegisterCreatedObjectUndo(root, "조사청 실내 짓기");
@@ -437,9 +448,10 @@ namespace IMUNROK.Common.EditorTools
             Box(g, "벽_북_중방", new Vector3((MidX0 + MidX1) * 0.5f, y, RoomZMax),
                 new Vector3(MidX1 - MidX0, h, WallThick), _wall, true, null, 0.5f);
 
-            // 방과 방 사이 칸막이
-            Box(g, "벽_칸막이", new Vector3(WestX1, y, (RoomZMin + RoomZMax) * 0.5f),
-                new Vector3(WallThick, h, RoomZMax - RoomZMin), _wall, true, null, 0.5f);
+            // 방과 방 사이 칸막이는 <b>세우지 않는다</b>. 원본 광풍각에 있어서 처음엔
+            // 따라 세웠는데, 조사청은 한 사람이 한 자리에서 다 보는 방이라 가운데를
+            // 막으면 사건판과 보료가 서로 안 보인다. 손으로 걷어낸 것을 도구가 다시
+            // 세우는 일이 없도록 여기서 아예 뺀다.
 
             // 문 위로 남는 자리(인방 위 벽). 문이 천장까지 닿으면 한옥이 아니라 유리문이 된다.
             float lintel = BeamBottom - DoorTop;
