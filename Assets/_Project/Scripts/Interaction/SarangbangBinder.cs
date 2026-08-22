@@ -38,8 +38,27 @@ namespace IMUNROK.Common
 
         private bool _bound;
 
-        private void OnEnable() { SceneManager.sceneLoaded += OnSceneLoaded; TryBindLoaded(); }
-        private void OnDisable() { SceneManager.sceneLoaded -= OnSceneLoaded; }
+        private void OnEnable()
+        {
+            SceneManager.sceneLoaded += OnSceneLoaded;
+            SceneManager.sceneUnloaded += OnSceneUnloaded;
+            TryBindLoaded();
+        }
+
+        private void OnDisable()
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            SceneManager.sceneUnloaded -= OnSceneUnloaded;
+        }
+
+        /// <summary>
+        /// 실내 씬이 내려가면 이은 것이 통째로 사라진다. 다시 올라올 때 또 이어야 하므로
+        /// 빗장을 푼다 — 예전에는 씬이 한 번 올라와 그대로 있었기에 한 번만 이으면 됐다.
+        /// </summary>
+        private void OnSceneUnloaded(Scene s)
+        {
+            if (s.name == _sceneName) _bound = false;
+        }
 
         private void OnSceneLoaded(Scene s, LoadSceneMode mode)
         {

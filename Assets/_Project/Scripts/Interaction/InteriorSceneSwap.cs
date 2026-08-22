@@ -1,72 +1,73 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 사랑채를 <b>두 채로 갈아 끼운다</b> — 밖에서는 받아온 원본, 안에서는 상자로 지은 실내.
+    /// 사랑채 안팎을 <b>씬째로 갈아 끼운다</b> — 마당에 서면 마당 씬만, 방에 들면 실내 씬만.
     ///
-    /// 왜 두 채인가: 받아온 사랑채 한 채가 <b>234,735 삼각형</b>이고 상자로 지은 실내는
-    /// 9,300 이다. 스물다섯 배 차이라, 방 안에 앉아 있는 동안은 상자 쪽이 낫다.
-    /// 자리와 치수를 원본에서 재서 지었으므로 이미 놓아둔 보료·문갑·경상이 그대로 맞는다.
+    /// <b>왜 이렇게 바꿨나</b>: 예전에는 두 씬을 다 올려 둔 채 <c>SetActive</c> 로 켜고 껐다.
+    /// 그러면 안 그려질 뿐 <b>메모리에는 그대로</b> 남고, 벽 너머 고택이 창호를 뚫고 그려지는
+    /// 것을 막느라 '높이로 잘라 접는'(Fold) 잔손이 붙어 있었다. 재어 보니 마당에 서 있을 때
+    /// 3,507,683 삼각형, 접고 방에 들어가도 745,822 였다. 퀘스트 한 프레임 예산이 20~50만이다.
     ///
-    /// <b>고친 것</b>: 예전에는 들어가는 일만 있었다. 한 번 들어서면 원본은 영영 꺼진 채였고,
-    /// 아궁이를 보러 마당으로 되돌아 나오면 집이 상자인 채로 서 있었다 — "내부 씬이 자꾸
-    /// 깨진다"가 이것이었다. 이제 <b>어디에 서 있는지를 매 프레임 보고</b> 그때그때 갈아 끼운다.
-    /// 드나드는 횟수에 제한이 없다.
+    /// 그래서 <b>김명관고택을 Onggojip_마당 씬으로 떼어냈다</b>(3,322,792). 플레이어·NPC·
+    /// 표식·HUD 는 Onggojip 껍데기 씬(184,891)에 남아 늘 올라와 있고, 문턱을 넘을 때
+    /// 마당과 실내를 <b>진짜로 언로드/로드</b>한다. 접을 일도, 켜고 끌 일도 없어졌다.
     ///
-    /// 갈아 끼우는 선은 방바닥이 정한다(<see cref="_floor"/>). 문지방에 걸터서서 깜빡이지
-    /// 않도록, 들어설 때보다 나설 때의 선을 조금 넉넉히 잡는다.
+    /// <b>아궁이 때문이 아니었다</b>: 예전 주석이 아궁이를 들먹인 것은, 한 번 방에 들면
+    /// 되돌아 나올 수 없어 아궁이를 보러 마당에 나갔을 때 집이 상자인 채였기 때문이다.
+    /// 그건 증상이고 원인은 늘 삼각형이었다. 드나드는 횟수에 제한이 없는 것은 그대로다.
     ///
-    /// 붙이는 법: 빈 오브젝트에 붙이고 _showWhileInside 에 지은 실내, _hideWhileInside 에
-    /// 원본 사랑채, _floor 에 방바닥을 연결한다.
+    /// <b>바꾸는 순간은 어둠으로 덮는다</b>: 씬을 진짜로 불러오면 틈이 생긴다. VR 에서
+    /// 눈앞의 세상이 뒤늦게 나타나면 멀미가 나므로 <see cref="ScreenFade"/> 로 암전한다 —
+    /// 순간이동에 이미 쓰는 방식이라 손에 익은 연출이다.
+    ///
+    /// <b>방 넓이를 미리 재어 둔다</b>(<see cref="_roomBox"/>): 안팎을 가르는 선은 방바닥이
+    /// 정하는데, 마당에 서 있는 동안 실내 씬은 <b>올라와 있지도 않다</b>. 그러니 실려 있는
+    /// 값으로 판단해야 한다. 재는 것은 에디터에서 한 번 — [이문록 ▸ 사랑방 ▸ 방 넓이 재기].
+    ///
+    /// 문지방에 걸터서서 씬이 깜빡이지 않도록, 들어설 때보다 나설 때의 선을 넉넉히 잡는다.
     /// </summary>
     public class InteriorSceneSwap : MonoBehaviour
     {
-        [Header("실내를 다른 씬에 두었을 때")]
-        [Tooltip("실내가 들어 있는 씬 이름. 채우면 시작할 때 얹어 올린다. " +
-                 "비우면 이 씬 안의 _showWhileInside 를 켜고 끈다(옛 방식)")]
-        [SerializeField] private string _sceneName = "";
+        [Header("갈아 끼울 두 씬")]
+        [Tooltip("실내가 들어 있는 씬 이름")]
+        [SerializeField] private string _sceneName = "Onggojip_사랑방";
 
-        [Tooltip("실내 씬의 뿌리 오브젝트 이름. 그 밑에서 구조·소품·방바닥을 찾는다")]
+        [Tooltip("마당·고택이 들어 있는 씬 이름. 방에 드는 동안 통째로 내린다")]
+        [SerializeField] private string _yardScene = "Onggojip_마당";
+
+        [Tooltip("실내 씬의 뿌리 오브젝트 이름. 잇는 쪽에서 쓴다")]
         [SerializeField] private string _interiorRootName = "사랑채_실내";
 
-        [Header("두 채")]
-        [Tooltip("실내에 들어설 때 켤 것 — 상자로 지은 사랑채 실내(구조)")]
-        [SerializeField] private GameObject _showWhileInside;
-
-        [Tooltip("실내에 있는 동안 꺼둘 것 — 받아온 원본 사랑채")]
-        [SerializeField] private GameObject _hideWhileInside;
-
-        [Tooltip("실내에 있는 동안만 켤 세간(소품). 비우면 늘 켜 둔다. " +
-                 "세간만 40만 삼각형이라 마당에 서 있는 동안은 끄는 편이 낫다")]
-        [SerializeField] private GameObject _propsWhileInside;
-
-        [Header("방에 앉은 동안 접어 둘 바깥채")]
-        [Tooltip("고택 전체(김명관고택). 방 안에 있는 동안 이 밑에서 먼 덩이를 접는다")]
-        [SerializeField] private GameObject _foldWhileInside;
-
-        [Tooltip("방바닥보다 낮은 것(땅·박석·기단)은 접지 않는다. 문을 열었을 때 " +
-                 "발밑이 하늘이면 안 되기 때문이다. 이것만으로 대개 충분하다")]
-        [SerializeField] private bool _keepGround = true;
-
-        [Tooltip("그 위에 더, 방 겉면에서 이 거리(m) 안이면 솟은 것도 남긴다. " +
-                 "0 이면 남기지 않는다 — 방 곁의 기둥·벽만 해도 85만 삼각형이라 대개 0 이 낫다")]
-        [SerializeField] private float _keepWithin = 0f;
-
         [Header("안팎을 가르는 선")]
-        [Tooltip("방바닥. 이 넓이가 곧 '안'이다. 비우면 _showWhileInside 전체를 쓴다")]
-        [SerializeField] private Transform _floor;
+        [Tooltip("방바닥이 차지하는 넓이. 실내 씬이 안 올라와 있어도 판단해야 하므로 미리 재어 둔다. " +
+                 "[이문록 ▸ 사랑방 ▸ 방 넓이 재기] 로 채운다")]
+        [SerializeField] private Bounds _roomBox;
 
         [Tooltip("방바닥 가장자리에서 이만큼 밖까지는 아직 '안'으로 친다(m). 문지방 두께쯤")]
-        [SerializeField] private float _enterMargin = 0.3f;
+        [SerializeField] private float _enterMargin = 0.15f;
 
-        [Tooltip("나설 때는 이만큼 더 나가야 '밖'이 된다(m). 문지방에 걸터서서 " +
-                 "집이 깜빡이는 것을 막는다")]
-        [SerializeField] private float _leaveMargin = 1.2f;
+        [Tooltip("나설 때는 이만큼 더 나가야 '밖'이 된다(m). 문지방에 걸터서서 씬이 깜빡이는 것을 막는다")]
+        [SerializeField] private float _leaveMargin = 0.55f;
 
         [Tooltip("방 위아래 여유(m). 마루에서 천장까지 넉넉히")]
         [SerializeField] private float _height = 3.2f;
+
+        [Header("암전")]
+        [Tooltip("어두워지는 데 걸리는 시간(초)")]
+        [SerializeField] private float _fadeOut = 0.25f;
+
+        [Tooltip("다시 밝아지는 데 걸리는 시간(초)")]
+        [SerializeField] private float _fadeIn = 0.35f;
+
+        [Header("방에 든 동안만 켤 것")]
+        [Tooltip("문을 열었을 때 발밑에 있어야 할 간이 마당 바닥. 마당 씬을 통째로 내리므로 " +
+                 "이것이 없으면 문 너머가 허공이 된다. 비워 두어도 돌아간다")]
+        [SerializeField] private GameObject _groundWhileInside;
 
         [Header("이벤트")]
         [Tooltip("실내로 들어선 순간")]
@@ -75,199 +76,117 @@ namespace IMUNROK.Common
         [SerializeField] private UnityEvent _onLeft;
 
         private bool _inside;
-        private Bounds _room;
-        private bool _measured;
-        private GameObject[] _folded;
-        private float _floorTop;
+        private bool _busy;
 
         /// <summary>지금 실내에 있나.</summary>
         public bool Inside => _inside;
 
+        /// <summary>씬을 갈아 끼우는 중인가. 도중에 다른 처리가 끼어들면 안 될 때 본다.</summary>
+        public bool Busy => _busy;
+
         private void Start()
         {
-            if (!string.IsNullOrEmpty(_sceneName)) LoadInterior();
-            Measure();
-            Apply();          // 씬을 켠 자리(마당)에 맞춰 시작한다
+            if (_roomBox.size.sqrMagnitude < 0.01f)
+                Debug.LogWarning($"[{name}] 방 넓이가 비어 있습니다. " +
+                                 "[이문록 ▸ 사랑방 ▸ 방 넓이 재기] 를 한 번 눌러 주십시오.", this);
+
+            if (_groundWhileInside != null) _groundWhileInside.SetActive(false);
+
+            // 껍데기 씬만 올라온 채로 시작할 수 있다(허브에서 곧장 들어온 경우).
+            // 마당을 올려 두고, 혹시 편집 중에 같이 열려 있던 실내 씬은 내린다.
+            if (!IsLoaded(_yardScene)) SceneManager.LoadScene(_yardScene, LoadSceneMode.Additive);
+            if (IsLoaded(_sceneName)) StartCoroutine(DropAtStart());
         }
 
-        /// <summary>
-        /// 실내 씬을 얹어 올린다.
-        ///
-        /// 왜 시작할 때 미리 올리나: 불러오는 데 걸리는 틈이 <b>중문을 넘는 순간</b>에 오면
-        /// 집이 눈앞에서 뒤늦게 나타난다. 실내는 9,300 삼각형뿐이라 처음부터 들고 있어도
-        /// 부담이 없고, 어차피 마당에 있는 동안은 꺼 두므로 그려지지도 않는다.
-        /// 씬을 나눈 값은 <b>파일을 따로 여닫는 것</b>에 있지 불러오는 시점에 있지 않다.
-        /// </summary>
-        private void LoadInterior()
+        private IEnumerator DropAtStart()
         {
-            if (UnityEngine.SceneManagement.SceneManager.GetSceneByName(_sceneName).isLoaded) return;
-            if (!Application.CanStreamedLevelBeLoaded(_sceneName))
-            {
-                Debug.LogWarning($"[{name}] 실내 씬 '{_sceneName}' 을 빌드 설정에서 못 찾았습니다.", this);
-                return;
-            }
-            UnityEngine.SceneManagement.SceneManager.LoadScene(_sceneName, UnityEngine.SceneManagement.LoadSceneMode.Additive);
-        }
-
-        /// <summary>
-        /// 올라온 실내 씬에서 켜고 끌 것을 이름으로 찾아 문다.
-        /// 씬을 건너뛰는 참조는 저장되지 않으므로 인스펙터로는 못 잇는다.
-        /// </summary>
-        public void BindInterior(UnityEngine.SceneManagement.Scene interior)
-        {
-            foreach (var root in interior.GetRootGameObjects())
-            {
-                if (root.name != _interiorRootName) continue;
-                foreach (var t in root.GetComponentsInChildren<Transform>(true))
-                {
-                    if (t.name == "구조" && t.parent == root.transform) _showWhileInside = t.gameObject;
-                    else if (t.name == "소품" && t.parent == root.transform) _propsWhileInside = t.gameObject;
-                    else if (t.name == "장판바닥") _floor = t;
-                }
-            }
-            _measured = false;
-            Measure();
-            Apply();
+            yield return null;
+            if (IsLoaded(_sceneName)) yield return SceneManager.UnloadSceneAsync(_sceneName);
         }
 
         private void Update()
         {
+            if (_busy) return;
             var cam = Camera.main;
-            if (cam == null || !_measured) return;
+            if (cam == null || _roomBox.size.sqrMagnitude < 0.01f) return;
 
             // 들어설 때와 나설 때의 선이 다르다. 문지방 위에서 왔다 갔다 하면
-            // 집 한 채가 매 프레임 켜졌다 꺼진다.
+            // 씬 두 장이 매 프레임 오르내린다.
             float margin = _inside ? _leaveMargin : _enterMargin;
-            var box = _room;
+            var box = _roomBox;
+            box.size = new Vector3(box.size.x, _height, box.size.z);
             box.Expand(new Vector3(margin * 2f, 0f, margin * 2f));
 
             bool now = box.Contains(new Vector3(cam.transform.position.x, box.center.y, cam.transform.position.z));
-            if (now == _inside) return;
-
-            _inside = now;
-            Apply();
-            if (now) _onEntered?.Invoke(); else _onLeft?.Invoke();
-        }
-
-        /// <summary>방의 넓이를 잰다. 한 번만.</summary>
-        private void Measure()
-        {
-            Transform src = _floor != null ? _floor : (_showWhileInside != null ? _showWhileInside.transform : null);
-            if (src == null) return;
-
-            var rs = src.GetComponentsInChildren<Renderer>(true);
-            if (rs.Length == 0) return;
-
-            var b = rs[0].bounds;
-            foreach (var r in rs) b.Encapsulate(r.bounds);
-            _floorTop = b.max.y;                       // 접을 것을 가르는 높이 — 늘리기 전에 챙겨 둔다
-            b.size = new Vector3(b.size.x, _height, b.size.z);
-            _room = b;
-            _measured = true;
-        }
-
-        private void Apply()
-        {
-            if (_showWhileInside != null && _showWhileInside.activeSelf != _inside)
-                _showWhileInside.SetActive(_inside);
-
-            if (_hideWhileInside != null && _hideWhileInside.activeSelf == _inside)
-                _hideWhileInside.SetActive(!_inside);
-
-            if (_propsWhileInside != null && _propsWhileInside.activeSelf != _inside)
-                _propsWhileInside.SetActive(_inside);
-
-            Fold(_inside);
+            if (now != _inside) StartCoroutine(Swap(now));
         }
 
         /// <summary>
-        /// 닫힌 방에 앉아 있는 동안, 벽 너머의 바깥채를 접는다.
+        /// 어둠으로 덮고, 한쪽을 내리고 다른 쪽을 올린 뒤 다시 밝힌다.
         ///
-        /// 왜 필요한가: 사랑채 한 채를 상자로 갈아 끼워도 <b>나머지 고택이 그대로 그려진다</b>.
-        /// 방 안에서 잰 값이 삼각형 135만인데 그중 100만이 벽 바깥이었다. 벽이 가리고 있는데도
-        /// 그려지는 것은, 이 규모에서는 가림 계산(Occlusion)이 남쪽 창호를 뚫고 지나가기
-        /// 때문이다 — 창호는 여닫혀야 하므로 가림벽으로 칠 수 없다.
-        ///
-        /// 그래서 <b>높이로</b> 자른다. 땅에 깔린 것(마당 박석·기단·장독대, 다 합쳐 17만)은
-        /// 놔두고, <b>솟아 있는 것</b>(291만)을 접는다. 벽·지붕은 어차피 벽 너머라 안 보이고,
-        /// 문을 열었을 때 필요한 것은 발밑이지 남의 집 지붕이 아니다.
-        ///
-        /// 거리로 자르는 것도 해 보았으나 소용이 없었다. 방 곁 3m 만 남겨도 그 안에 든
-        /// 기단·기둥·창방이 <b>85만 삼각형</b>이었다 — 가까운 것이 곧 가벼운 것은 아니다.
-        ///
-        /// 접는 것은 덩이째 끄는 것이다 — LOD 가 걸린 덩이는
-        /// 렌더러만 꺼 두면 LOD 가 다음 프레임에 도로 켜 버린다.
-        ///
-        /// 문지방을 넘는 순간에만 한 번 도는 일이라, 매 프레임 값은 들지 않는다.
+        /// 내리기를 먼저 하는 까닭: 두 씬이 겹쳐 올라오는 순간이 없어야 한다.
+        /// 그 순간을 허용하면 최악의 한 프레임이 예전과 똑같아진다 — 그것을 없애려고 나눈 것이다.
         /// </summary>
-        private void Fold(bool fold)
+        private IEnumerator Swap(bool goInside)
         {
-            if (_foldWhileInside == null) return;
+            _busy = true;
 
-            if (_folded == null)
+            ScreenFade.To(1f, _fadeOut);
+            yield return new WaitForSecondsRealtime(_fadeOut);
+
+            string drop = goInside ? _yardScene : _sceneName;
+            string lift = goInside ? _sceneName : _yardScene;
+
+            if (IsLoaded(drop)) yield return SceneManager.UnloadSceneAsync(drop);
+
+            if (!IsLoaded(lift))
             {
-                // 방을 아직 못 쟀으면 무엇이 '먼 것'인지 알 수 없다. 마당에서는 접을 일도
-                // 없으므로 그냥 물러난다 — 실내 씬이 올라와 Measure 가 된 뒤에 다시 온다.
-                if (!_measured) return;
-
-                var room = _room;
-                var list = new System.Collections.Generic.List<GameObject>();
-                foreach (Transform t in _foldWhileInside.transform)
-                {
-                    // 갈아 끼우는 원본은 이미 _hideWhileInside 가 맡는다. 두 번 만지지 않는다.
-                    if (_hideWhileInside != null && t.gameObject == _hideWhileInside) continue;
-
-                    var rs = t.GetComponentsInChildren<Renderer>(true);
-                    if (rs.Length == 0) continue;
-                    var b = rs[0].bounds;
-                    for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
-
-                    // 땅에 깔린 것은 놔둔다 — 마당 박석, 기단, 장독대. 다 합쳐 17만이고,
-                    // 문을 열었을 때 발밑이 있어야 한다.
-                    if (_keepGround && b.max.y <= _floorTop) continue;
-
-                    if (_keepWithin > 0f && room.SqrDistance(b.ClosestPoint(room.center)) <= _keepWithin * _keepWithin)
-                        continue;
-
-                    list.Add(t.gameObject);
-                }
-                _folded = list.ToArray();
+                if (Application.CanStreamedLevelBeLoaded(lift))
+                    yield return SceneManager.LoadSceneAsync(lift, LoadSceneMode.Additive);
+                else
+                    Debug.LogWarning($"[{name}] 씬 '{lift}' 을 빌드 설정에서 못 찾았습니다.", this);
             }
 
-            for (int i = 0; i < _folded.Length; i++)
-                if (_folded[i] != null && _folded[i].activeSelf == fold)
-                    _folded[i].SetActive(!fold);
+            if (_groundWhileInside != null) _groundWhileInside.SetActive(goInside);
+
+            _inside = goInside;
+            yield return null;               // 한 프레임 두어 올라온 것이 확실히 그려지게
+
+            ScreenFade.To(0f, _fadeIn);
+            _busy = false;
+
+            if (goInside) _onEntered?.Invoke(); else _onLeft?.Invoke();
+        }
+
+        private static bool IsLoaded(string sceneName)
+        {
+            if (string.IsNullOrEmpty(sceneName)) return false;
+            var s = SceneManager.GetSceneByName(sceneName);
+            return s.IsValid() && s.isLoaded;
         }
 
         // ── 밖에서 부르는 신호(옛 배선과 호환) ──
 
-        /// <summary>실내로 들여보낸다. 자리와 무관하게 곧바로 갈아 끼운다.</summary>
-        public void EnterInside()
-        {
-            if (!_measured) Measure();
-            if (_inside) return;
-            _inside = true;
-            Apply();
-            _onEntered?.Invoke();
-        }
+        /// <summary>실내로 들여보낸다. 자리와 무관하게 갈아 끼운다.</summary>
+        public void EnterInside() { if (!_inside && !_busy) StartCoroutine(Swap(true)); }
 
         /// <summary>마당으로 되돌린다.</summary>
-        public void ExitOutside()
-        {
-            if (!_inside) return;
-            _inside = false;
-            Apply();
-            _onLeft?.Invoke();
-        }
+        public void ExitOutside() { if (_inside && !_busy) StartCoroutine(Swap(false)); }
 
-        private void OnDrawGizmosSelected()
-        {
-            if (!_measured) Measure();
-            if (!_measured) return;
-            Gizmos.color = new Color(0.4f, 0.9f, 1f, 0.8f);
-            Gizmos.DrawWireCube(_room.center, _room.size + new Vector3(_enterMargin * 2f, 0f, _enterMargin * 2f));
-            Gizmos.color = new Color(1f, 0.7f, 0.3f, 0.6f);
-            Gizmos.DrawWireCube(_room.center, _room.size + new Vector3(_leaveMargin * 2f, 0f, _leaveMargin * 2f));
-        }
+        /// <summary>
+        /// 실내 씬이 올라왔을 때 잇는 쪽(<see cref="SarangbangBinder"/>)이 부른다.
+        /// 예전에는 여기서 켜고 끌 것을 찾아 물었지만, 이제 씬째로 오르내리므로 할 일이 없다.
+        /// 자리를 남겨 두는 것은 씬에 배선된 호출을 깨뜨리지 않기 위해서다.
+        /// </summary>
+        public void BindInterior(Scene interior) { }
+
+        /// <summary>재어 둔 방 넓이. 에디터 도구가 채운다.</summary>
+        public Bounds RoomBox { get => _roomBox; set => _roomBox = value; }
+
+        /// <summary>실내 씬 이름. 에디터 도구가 읽는다.</summary>
+        public string RoomSceneName => _sceneName;
+
+        /// <summary>실내 뿌리 이름. 에디터 도구가 읽는다.</summary>
+        public string InteriorRootName => _interiorRootName;
     }
 }

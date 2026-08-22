@@ -310,6 +310,12 @@ namespace IMUNROK.Common
         /// <summary>앉을 자리를 밖에서 물려 준다.</summary>
         public void BindSitSpot(Transform spot) { if (spot != null) _sitSpot = spot; }
 
+        /// <summary>
+        /// 甲이 나갈 중문을 나중에 물려 준다(<see cref="YardBinder"/> 가 부른다).
+        /// 고택이 마당 씬으로 떨어져 나가면서 씬을 건너뛰게 된 참조다.
+        /// </summary>
+        public void BindDoor(DoorController door) { if (door != null) _door = door; }
+
         /// <summary>지금 이 방을 떠났나(보료를 들출 수 있는가).</summary>
         public bool HasLeft => _phase == Phase.Gone;
 

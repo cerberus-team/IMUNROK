@@ -48,6 +48,13 @@ namespace IMUNROK.Common
         [SerializeField] private float _radius = 1.2f;
         [Tooltip("연결하면 이 문이 열려 있을 때만 발동(중간대문)")]
         [SerializeField] private DoorController _requireDoorOpen;
+
+        /// <summary>
+        /// 씬을 건너뛴 문을 나중에 물려 준다(<see cref="YardBinder"/> 가 부른다).
+        /// 고택이 마당 씬으로 떨어져 나가면서 인스펙터로는 이을 수 없게 되었다 —
+        /// 유니티는 씬을 건너뛰는 참조를 저장하지 못한다.
+        /// </summary>
+        public void BindRequiredDoor(DoorController door) { if (door != null) _requireDoorOpen = door; }
         [Tooltip("연결하면 이 인물이 먼저 지나간 뒤에만 발동(복동을 따라 들어가는 연출)")]
         [SerializeField] private Transform _requireLeaderPassed;
         [Tooltip("한 번만 발동. 끄면 드나들 때마다 발동")]
