@@ -80,8 +80,19 @@ namespace IMUNROK.Common
         [SerializeField] private string _liftState = "Tassel_Lift";
         [Tooltip("비우면 소품에서 Animator 를 찾아 쓴다")]
         [SerializeField] private Animator _propAnimator;
-        [Tooltip("들어 올린 정도를 클립 어디까지 쓸지. 1이면 클립 전체를 쓴다")]
+        [Tooltip("들어 올린 정도를 클립 어디까지 쓸지(긁기 방식일 때만). 1이면 클립 전체를 쓴다")]
         [Range(0.2f, 1f)] [SerializeField] private float _liftClipSpan = 1f;
+
+        [Tooltip("켜면 눈에 대는 순간 동작을 <b>제 속도로 튼다</b>(1.63초). 끄면 들어 올린 정도에 맞춰 긁는다.
+" +
+                 "긁는 쪽은 손과 술이 한 몸으로 움직이나, 눈에 대는 데 0.1초뿐이라 1.63초짜리 흔들림이 " +
+                 "그 안에 뭉개져 아무 일도 안 일어난 것처럼 보인다. 술은 손보다 늦게 따라오는 것이 맞다")]
+        [SerializeField] private bool _playLiftOnRaise = true;
+
+        [Tooltip("이만큼 들어 올리면 동작을 튼다(0~1)")]
+        [Range(0.05f, 0.9f)] [SerializeField] private float _liftTriggerAt = 0.15f;
+
+        private bool _liftPlaying;
 
         private static MagnifierLens _instance;
 
@@ -483,9 +494,29 @@ namespace IMUNROK.Common
         {
             if (_propAnimator == null || string.IsNullOrEmpty(_liftState)) return;
 
-            // 차례가 중요하다. 속도를 0 으로 <b>먼저</b> 두면 Update(0) 이 표본을 안 뜬다 —
-            // 뼈가 하나도 안 움직여 한참 헤맸다. 1 로 두고 찍은 뒤 0 으로 내린다
-            // (BokdongController.HoldStand 가 같은 차례를 쓴다).
+            if (_playLiftOnRaise)
+            {
+                // 눈에 대기 시작하면 한 번 틀고, 제 속도로 끝까지 흔들리게 둔다.
+                // 손은 0.1초에 올라가고 술은 1.63초에 걸쳐 따라온다 — 늦게 따라오는 것이
+                // 술이라는 물건의 결이다. 다 내리면 다시 틀 수 있게 빗장을 푼다.
+                bool up = _raise >= _liftTriggerAt;
+                if (up && !_liftPlaying)
+                {
+                    _liftPlaying = true;
+                    _propAnimator.speed = 1f;
+                    _propAnimator.Play(_liftState, 0, 0f);
+                }
+                else if (!up && _liftPlaying)
+                {
+                    _liftPlaying = false;
+                    _propAnimator.speed = 1f;
+                    _propAnimator.Play(_liftState, 0, 0f);   // 내릴 때도 한 번 흔들린다
+                }
+                return;
+            }
+
+            // 긁기 — 차례가 중요하다. 속도를 0 으로 <b>먼저</b> 두면 Update(0) 이 표본을
+            // 안 뜬다. 1 로 두고 찍은 뒤 0 으로 내린다(BokdongController 가 같은 차례를 쓴다).
             float t = Mathf.Clamp01(Mathf.SmoothStep(0f, 1f, _raise)) * _liftClipSpan;
             _propAnimator.speed = 1f;
             _propAnimator.Play(_liftState, 0, t);

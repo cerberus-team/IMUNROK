@@ -108,6 +108,14 @@ namespace IMUNROK.Common
         {
             if (!_canOpen) return;
 
+            // 마주 앉아 말하는 중에는 방을 뒤지지 않는다.
+            //
+            // 화면에 남은 자국이 이것이었다 — 옹덕구가 아직 앞에 앉아 말하는데 그 위로
+            // 빈 종이가 펼쳐졌다. 빈 종이라는 것은 복동이 아직 안 나갔다는 뜻이니,
+            // 애초에 손이 가면 안 되는 때다. 도구벨트·노크·만지기거부는 이미 이 값을
+            // 보고 있었는데 여기만 빠져 있었다.
+            if (InterrogationController.AnyOpen) return;
+
             var cam = Camera.main;
             if (cam != null && _maxTouchDistance > 0f &&
                 ModelBounds.DistanceTo(transform, cam.transform.position) > _maxTouchDistance)
