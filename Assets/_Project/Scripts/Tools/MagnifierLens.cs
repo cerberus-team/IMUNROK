@@ -83,8 +83,7 @@ namespace IMUNROK.Common
         [Tooltip("들어 올린 정도를 클립 어디까지 쓸지(긁기 방식일 때만). 1이면 클립 전체를 쓴다")]
         [Range(0.2f, 1f)] [SerializeField] private float _liftClipSpan = 1f;
 
-        [Tooltip("켜면 눈에 대는 순간 동작을 <b>제 속도로 튼다</b>(1.63초). 끄면 들어 올린 정도에 맞춰 긁는다.
-" +
+        [Tooltip("켜면 눈에 대는 순간 동작을 <b>제 속도로 튼다</b>(1.63초). 끄면 들어 올린 정도에 맞춰 긁는다. " +
                  "긁는 쪽은 손과 술이 한 몸으로 움직이나, 눈에 대는 데 0.1초뿐이라 1.63초짜리 흔들림이 " +
                  "그 안에 뭉개져 아무 일도 안 일어난 것처럼 보인다. 술은 손보다 늦게 따라오는 것이 맞다")]
         [SerializeField] private bool _playLiftOnRaise = true;
