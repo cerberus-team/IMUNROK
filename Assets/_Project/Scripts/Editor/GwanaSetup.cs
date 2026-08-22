@@ -23,8 +23,18 @@ namespace IMUNROK.Common.EditorTools
     /// </summary>
     public static class GwanaSetup
     {
-        private const string GatePath = "Assets/GwanaHandoff/Prefabs/PF_GwanaGateSet.prefab";
-        private const string DonheonPath = "Assets/GwanaHandoff/Prefabs/PF_Donheon.prefab";
+        /// <summary>
+        /// 관아 한 벌이 사는 곳. 전달본은 Models·_Import·Gate_Hwaryeongjeon·
+        /// Wall_SlitBlocker·Seocheon 다섯 군데로 흩어져 들어왔는데, 앞의 넷은 작업 중
+        /// 임시 폴더였고 Seocheon 은 아직 비어 있던 딴 사건 폴더였다. 관아는 사건마다
+        /// 다시 나오는 무대라 사건 폴더가 아니라 공통 자리에 한 벌만 둔다.
+        /// 사건별로 모양을 고칠 때는 이걸 복사하지 말고 그 사건 폴더에 프리팹
+        /// 배리언트를 뜬다 — 아트 원본은 330MB 라 두 벌째부터 값이 비싸다.
+        /// </summary>
+        private const string SetRoot = "Assets/_Project/_Common/Sets/Gwana";
+
+        private const string GatePath = SetRoot + "/Prefabs/PF_GwanaGateSet.prefab";
+        private const string DonheonPath = SetRoot + "/Prefabs/PF_Donheon.prefab";
         private const string RootName = "관아세트";
 
         /// <summary>동헌은 게이트 기준 +X 13.42m, 9.6cm 낮은 지면에 앉아 있었다(전달본 실측).</summary>
@@ -202,9 +212,9 @@ namespace IMUNROK.Common.EditorTools
             var folders = new List<string>();
             foreach (var f in new[]
                      {
-                         "Assets/Models/Gwana_Gate_Set_Tex",
-                         "Assets/_Project/Seocheon/Art/Textures/Donheon",
-                         "Assets/_Import/NPC_Gatekeeper",
+                         SetRoot + "/Gate/Textures",
+                         SetRoot + "/Donheon/Textures",
+                         SetRoot + "/Gatekeeper",
                      })
                 if (AssetDatabase.IsValidFolder(f)) folders.Add(f);
 
@@ -245,14 +255,20 @@ namespace IMUNROK.Common.EditorTools
                         textureCompression = TextureImporterCompression.Compressed,
                     };
                     ti.SetPlatformTextureSettings(and);
-                    EditorUtility.SetDirty(ti);
+
+                    // SetDirty 만으로는 .meta 만 더러워지고 텍스처는 2048 인 채로 남는다.
+                    // 그 뒤 Refresh(ForceUpdate) 를 불러도 마찬가지다 — 임포터가
+                    // "다시 구워라"는 말을 못 듣는다. SaveAndReimport 가 그 말이다.
+                    ti.SaveAndReimport();
                     done++;
                 }
             }
             finally
             {
+                // StartAssetEditing 로 묶어 두었으므로 위의 SaveAndReimport 들은
+                // 예약만 되어 있다. 여기서 한 번에 굽는다.
                 AssetDatabase.StopAssetEditing();
-                AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+                AssetDatabase.Refresh();
             }
 
             sb.AppendLine("  텍스처 " + done + "장을 1024 · ASTC 6x6 으로 다시 구웠습니다.");
