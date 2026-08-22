@@ -69,9 +69,10 @@ namespace IMUNROK.Common.EditorTools
         private const float SillH = 0.45f;       // 머름 높이(마루 윗면에서)
         private const float WinH = 1.40f;        // 창 높이
         private const float FrameW = 0.075f;     // 창틀 굵기
-        private const float BarStep = 0.16f;     // 세로살 사이
-        private const float BarW = 0.032f;       // 살 굵기
-        private const int BarRows = 3;           // 가로살 줄 수(세살창)
+        private const float BarW = 0.030f;       // 살 굵기
+        private const float BarT = 0.030f;       // 살이 면에서 튀어나오는 깊이
+        private const float SalLeaf = 0.75f;     // 살을 짜는 한 짝의 너비
+        private const int SalDepth = 1;          // 바람개비를 몇 겹 두를지(0=한 겹, 1=두 겹)
 
         // 방 둘의 경계(원본 벽 자리에서 잰 것)
         private const float RoomZMin = -1.54f, RoomZMax = 1.46f;
@@ -430,6 +431,61 @@ namespace IMUNROK.Common.EditorTools
             Leaves(g, "문_중방_남", MidX0, MidX1, y, h, RoomZMin, true);
         }
 
+        /// <summary>
+        /// 한 면을 문짝으로 채운다. 창과 같은 숫대살을 짜되, <b>발치에는 널을 댄다</b>
+        /// (청판). 문은 드나드는 데라 아랫도리에 발이 닿고 치맛자락이 스치는데,
+        /// 거기까지 종이를 바르면 한 철을 못 간다.
+        ///
+        /// alongX 면 x 방향으로, 아니면 z 방향으로 늘어놓는다.
+        /// </summary>
+        private static void Leaves(Transform g, string name, float a0, float a1,
+                                   float y, float h, float fixedCoord, bool alongX)
+        {
+            const float LeafW = 0.75f;
+            const float PanelH = 0.40f;      // 아래 청판 높이
+            float y0 = y - h * 0.5f, y1 = y + h * 0.5f;
+            float span = a1 - a0, mid = (a0 + a1) * 0.5f;
+
+            var group = Group(g, name);
+            int n = Mathf.Max(1, Mathf.RoundToInt(span / LeafW));
+            float w = span / n;
+
+            // 청판 — 발치
+            Face(group, name + "_청판", mid, y0 + PanelH * 0.5f, span, PanelH, 0.055f,
+                 fixedCoord, alongX, _beam, true, 0.7f);
+
+            // 한지 — 청판 위. 살보다 바깥쪽 한 겹.
+            float ph = y1 - (y0 + PanelH);
+            Face(group, name + "_한지", mid, y0 + PanelH + ph * 0.5f, span, ph, 0.014f,
+                 fixedCoord, alongX, _paper, true, 1f);
+
+            // 문틀 — 위아래 가로대와 짝 사이 세로대
+            Face(group, name + "_위틀", mid, y1 - FrameW * 0.5f, span, FrameW, 0.10f,
+                 fixedCoord, alongX, _beam, false, 0.6f);
+            Face(group, name + "_아래틀", mid, y0 + PanelH + FrameW * 0.5f, span, FrameW, 0.10f,
+                 fixedCoord, alongX, _beam, false, 0.6f);
+            for (int i = 0; i <= n; i++)
+                Face(group, name + "_설주" + i, a0 + w * i, (y0 + y1) * 0.5f, FrameW, h, 0.10f,
+                     fixedCoord, alongX, _beam, false, 0.6f);
+
+            // 살 — 창과 같은 숫대살
+            Sal(Group(group, "살"), fixedCoord, a0 + FrameW * 0.5f, a1 - FrameW * 0.5f,
+                y0 + PanelH + FrameW, y1 - FrameW, !alongX);
+        }
+
+        /// <summary>
+        /// 벽면 하나에 얹는 판. u 는 면을 따라간 자리, v 는 높이, t 는 두께다.
+        /// alongX 면 면이 z 에 서서 x 로 뻗고, 아니면 x 에 서서 z 로 뻗는다.
+        /// </summary>
+        private static void Face(Transform g, string name, float u, float v, float du, float dv,
+                                 float t, float fixedCoord, bool alongX, Material mat,
+                                 bool collide, float tile)
+        {
+            var pos = alongX ? new Vector3(u, v, fixedCoord) : new Vector3(fixedCoord, v, u);
+            var size = alongX ? new Vector3(du, dv, t) : new Vector3(t, dv, du);
+            Box(g, name, pos, size, mat, collide, null, tile);
+        }
+
         // ── 창 ──────────────────────────────────────
 
         /// <summary>
@@ -482,49 +538,115 @@ namespace IMUNROK.Common.EditorTools
             Box(g, "창호지", new Vector3(fx + outward * 0.035f, (inner0 + inner1) * 0.5f, cz),
                 new Vector3(0.012f, inner1 - inner0, span - FrameW), _changho, false, null, 1f);
 
-            // ⑤ 살 — 세로로 촘촘히, 가로로 세 줄
-            var 살 = Group(g, "창살");
-            float h = inner1 - inner0, ymid = (inner0 + inner1) * 0.5f;
-            int n = Mathf.Max(2, Mathf.RoundToInt(span / BarStep));
-            float step = span / n;
-            for (int i = 1; i < n; i++)
+            // ⑤ 살 — 숫대살
+            Sal(Group(g, "창살"), fx, z0 + FrameW * 0.5f, z1 - FrameW * 0.5f, inner0, inner1, true);
+        }
+
+        // ── 숫대살 ──────────────────────────────────
+
+        /// <summary>
+        /// <b>숫대살</b> — 산가지를 늘어놓은 듯 크고 작은 네모가 엇물리는 살.
+        ///
+        /// 세살(가는 세로살에 가로 세 줄)은 방문에 쓰는 수수한 살이다. 사랑채 실내가
+        /// 그것을 쓴다(M_창살문, 세로 일곱에 가로 세 묶음). 조사청의 창은 격을 한 단
+        /// 올린다 — 왕명을 받는 마루니 살도 그만한 것이 걸려야 한다.
+        ///
+        /// <b>어떻게 짜나</b>: 한 짝을 <b>바람개비꼴</b>로 가른다. 네 변에 띠를 두르되
+        /// 서로 한 칸씩 밀어 붙여(위 띠는 오른쪽을 비우고, 오른 띠는 아래를 비우고…)
+        /// 돌아가게 하고, 남은 가운데를 다시 같은 식으로 가른다. 마지막에 남는 것이
+        /// 가장 큰 알이다. 이 규칙은 <b>언제나 빈틈 없이 들어맞으므로</b> 살이 허공에서
+        /// 끊기는 일이 없다 — 무늬를 손으로 하나씩 적어 넣으면 반드시 한둘이 어긋난다.
+        ///
+        /// 띠를 길이 방향으로 잘게 썰어 잔살을 만든다. 그래서 겉은 잘고 안으로 갈수록
+        /// 성기며, 한가운데는 훤한 알 하나가 남는다.
+        /// </summary>
+        private static void Sal(Transform g, float fixedCoord, float a0, float a1,
+                                float v0, float v1, bool alongZ)
+        {
+            int n = Mathf.Max(1, Mathf.RoundToInt((a1 - a0) / SalLeaf));
+            float w = (a1 - a0) / n;
+
+            // 살은 <b>금</b>으로 모은다. 판마다 테두리를 두르면 이웃한 판이 맞닿는 자리에
+            // 같은 살이 두 번씩 놓여, 한 면에 360대가 섰다(제대로 짜면 서른 남짓이다).
+            var cuts = new System.Collections.Generic.List<Vector4>();
+            for (int i = 0; i < n; i++)
             {
-                float z = z0 + step * i;
-                if (Mathf.Abs(z - cz) < FrameW) continue;   // 가운데 세로틀 자리
-                Box(살, "세로살_" + i, new Vector3(fx, ymid, z),
-                    new Vector3(BarW + 0.01f, h, BarW), _beam, false, null, 0f);
+                float u0 = a0 + w * i, u1 = u0 + w;
+                if (i > 0) cuts.Add(new Vector4(v0, v1, u0, 0f));   // 짝과 짝 사이 세로살
+                Cut(cuts, u0, v0, u1, v1, 0);
             }
-            for (int r = 1; r <= BarRows; r++)
+
+            for (int i = 0; i < cuts.Count; i++)
             {
-                float y = inner0 + h * r / (BarRows + 1f);
-                Box(살, "가로살_" + r, new Vector3(fx, y, cz),
-                    new Vector3(BarW + 0.01f, BarW, span - FrameW), _beam, false, null, 0f);
+                var c = cuts[i];
+                bool horizontal = c.w > 0.5f;
+                float len = c.y - c.x, mid = (c.x + c.y) * 0.5f;
+                if (len < 0.015f) continue;
+
+                Vector3 pos, size;
+                if (alongZ)
+                {
+                    pos = horizontal ? new Vector3(fixedCoord, c.z, mid) : new Vector3(fixedCoord, mid, c.z);
+                    size = horizontal ? new Vector3(BarT, BarW, len + BarW) : new Vector3(BarT, len + BarW, BarW);
+                }
+                else
+                {
+                    pos = horizontal ? new Vector3(mid, c.z, fixedCoord) : new Vector3(c.z, mid, fixedCoord);
+                    size = horizontal ? new Vector3(len + BarW, BarW, BarT) : new Vector3(BarW, len + BarW, BarT);
+                }
+                Box(g, (horizontal ? "가로살_" : "세로살_") + i, pos, size, _beam, false, null, 0f);
             }
         }
 
-        /// <summary>한 면을 문짝으로 채운다. alongX 면 x 방향으로, 아니면 z 방향으로 늘어놓는다.</summary>
-        private static void Leaves(Transform g, string name, float a0, float a1,
-                                   float y, float h, float fixedCoord, bool alongX)
-        {
-            const float LeafW = 0.75f;
-            int n = Mathf.Max(1, Mathf.RoundToInt((a1 - a0) / LeafW));
-            float w = (a1 - a0) / n;
-            var group = Group(g, name);
-            for (int i = 0; i < n; i++)
-            {
-                float c = a0 + w * (i + 0.5f);
-                var pos = alongX ? new Vector3(c, y, fixedCoord) : new Vector3(fixedCoord, y, c);
-                var size = alongX ? new Vector3(w - 0.03f, h, 0.06f) : new Vector3(0.06f, h, w - 0.03f);
-                Box(group, $"{name}_{i}", pos, size, _paper, true, null, 1f);
+        /// <summary>가로살 한 금 — 높이 at 에서 x0..x1 까지.</summary>
+        private static Vector4 H(float x0, float x1, float at) { return new Vector4(x0, x1, at, 1f); }
 
-                // 문틀 — 짝과 짝 사이 세로대. 이것이 없으면 종이 한 장이 된다.
-                var sPos = alongX ? new Vector3(a0 + w * i, y, fixedCoord) : new Vector3(fixedCoord, y, a0 + w * i);
-                var sSize = alongX ? new Vector3(0.07f, h, 0.09f) : new Vector3(0.09f, h, 0.07f);
-                Box(group, $"{name}_틀{i}", sPos, sSize, _beam, false, null, 0.6f);
+        /// <summary>세로살 한 금 — 자리 at 에서 y0..y1 까지.</summary>
+        private static Vector4 V(float y0, float y1, float at) { return new Vector4(y0, y1, at, 0f); }
+
+        /// <summary>
+        /// 바람개비 가르기. 네 띠(A 위·B 오른·C 왼·D 아래)가 서로 한 칸씩 물려 돌아가고
+        /// 가운데(E)가 남는다. 넷과 가운데를 합치면 원래 네모가 빈틈없이 채워지므로,
+        /// 살이 허공에서 끊기는 일이 없다 — 무늬를 손으로 적어 넣으면 반드시 한둘이 어긋난다.
+        ///
+        /// 여기서는 <b>판이 아니라 금</b>을 낸다. 바람개비의 금 넷과, 띠 안을 잘게 써는
+        /// 잔금들이다. 겉은 잘고 안으로 갈수록 성기며 한가운데에 훤한 알 하나가 남는다.
+        /// </summary>
+        private static void Cut(System.Collections.Generic.List<Vector4> segs,
+                                float x0, float y0, float x1, float y1, int depth)
+        {
+            float w = x1 - x0, h = y1 - y0;
+            float band = Mathf.Min(w, h) * (depth == 0 ? 0.15f : 0.24f);
+            if (depth > SalDepth || Mathf.Min(w, h) < band * 3.2f || band < 0.03f) return;
+
+            float ax = x1 - band, by = y0 + band, cx = x0 + band, dy = y1 - band;
+            float cell = band * (depth == 0 ? 1.7f : 2.2f);
+
+            segs.Add(H(x0, ax, by));    // A 와 가운데 사이
+            segs.Add(V(y0, dy, ax));    // B
+            segs.Add(V(by, y1, cx));    // C
+            segs.Add(H(cx, x1, dy));    // D
+
+            Slice(segs, x0, y0, ax, by, true, cell);    // A 위   — 세로 잔금
+            Slice(segs, ax, y0, x1, dy, false, cell);   // B 오른 — 가로 잔금
+            Slice(segs, x0, by, cx, y1, false, cell);   // C 왼   — 가로 잔금
+            Slice(segs, cx, dy, x1, y1, true, cell);    // D 아래 — 세로 잔금
+
+            Cut(segs, cx, by, ax, dy, depth + 1);
+        }
+
+        /// <summary>띠 하나를 길이 방향으로 잘게 썬다. 금만 낸다(양 끝은 이미 있다).</summary>
+        private static void Slice(System.Collections.Generic.List<Vector4> segs,
+                                  float x0, float y0, float x1, float y1, bool alongX, float cell)
+        {
+            float len = alongX ? x1 - x0 : y1 - y0;
+            int k = Mathf.Max(1, Mathf.RoundToInt(len / Mathf.Max(0.02f, cell)));
+            float step = len / k;
+            for (int i = 1; i < k; i++)
+            {
+                if (alongX) segs.Add(V(y0, y1, x0 + step * i));
+                else segs.Add(H(x0, x1, y0 + step * i));
             }
-            var endPos = alongX ? new Vector3(a1, y, fixedCoord) : new Vector3(fixedCoord, y, a1);
-            var endSize = alongX ? new Vector3(0.07f, h, 0.09f) : new Vector3(0.09f, h, 0.07f);
-            Box(group, $"{name}_틀끝", endPos, endSize, _beam, false, null, 0.6f);
         }
 
         private static void BuildRoof(Transform g)
