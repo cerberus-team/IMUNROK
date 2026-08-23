@@ -12,7 +12,9 @@ namespace IMUNROK.Common
     /// 마지막에 손에 쥐여 준다 — 읽고 끝나는 안내가 아니라 그 자리에서 한 번 겪는 것.
     ///
     /// 흐름:
-    ///   놓임 → (누름) 떠오름 → 한 마디씩 → 마지막에 벨트로 들어가고 손에 잡힘 → 제자리로
+    ///   놓임 → (누름) 떠오름 → 첫 마디는 <b>띄워 놓고 본다</b>
+    ///        → 드는 이야기가 나오는 마디에서 <b>손에 쥐여 주고</b> 물건은 제자리로
+    ///        → 남은 마디는 손에 든 채로 듣는다 → 끝에 <b>내려놓는다</b>(벨트에서도 뺀다)
     /// 자막의 <b>닫기</b>를 누르면 도중에 그만두고 도구는 문갑으로 돌아간다.
     /// 그만둔 도구는 다시 눌러 처음부터 익힐 수 있다.
     ///
@@ -48,6 +50,11 @@ namespace IMUNROK.Common
         [Tooltip("들어 본 것을 내려놓을 때 할 말. {0} 자리에 도구 이름이 들어간다. " +
                  "조사청에서 도구는 두고 가는 것이다 — 그 규칙이 말로 한 번 나와야 한다")]
         [SerializeField] private string _putDownWord = "{0}은 여기 두고 간다. 사건에 나설 때 따로 챙겨 드리리다.";
+
+        [Tooltip("몇 번째 마디에서 손에 쥐여 줄지(0부터). -1이면 마지막에. " +
+                 "첫 마디는 '이것이 무엇이다' 라 물건을 눈앞에 띄워 놓고 보는 것이 맞고, " +
+                 "그다음 마디부터는 '들면 이러하다' 라 손에 든 채로 들어야 말이 된다")]
+        [SerializeField] private int _handAtStep = 1;
 
         [Header("들어 올리기")]
         // 물건과 글이 <b>겹치면 안 된다</b> — 그런데 어느 쪽을 위로 둘지가 중요하다.
@@ -166,7 +173,7 @@ namespace IMUNROK.Common
         {
             SubtitleView.OnClosed -= OnNoticeClosed;
             StopAwaiting();   // 씬을 떠나며 남긴 구독은 다음 씬에서 유령이 된다
-            if (_hefting) { _hefting = false; var b = ToolbeltHud.Instance; if (b != null && _tool != null) b.Revoke(_tool); }
+            if (_hefting) { _hefting = false; _inHand = false; var b = ToolbeltHud.Instance; if (b != null && _tool != null) b.Revoke(_tool); }
         }
 
         private void Start()
@@ -196,7 +203,8 @@ namespace IMUNROK.Common
         {
             if (_phase != Phase.익히는중) return;
 
-            if (_spinSpeed != 0f)
+            // 손에 들어간 뒤에는 안 돌린다 — 그 물건은 이미 제자리로 미끄러지는 중이다
+            if (_spinSpeed != 0f && !_inHand)
                 transform.Rotate(Vector3.up, _spinSpeed * Time.deltaTime, Space.World);
 
             // ── 다음 한 마디로 넘기기 ──
@@ -303,6 +311,7 @@ namespace IMUNROK.Common
 
             Tint(0f);
             _step = -1;
+            _inHand = false;
             if (_moving != null) StopCoroutine(_moving);
             _moving = StartCoroutine(LiftRoutine());
         }
@@ -350,22 +359,66 @@ namespace IMUNROK.Common
                 return;
             }
 
+            // 이 마디부터는 <b>손에 든 채로</b> 듣는다.
+            //
+            // 여태 마지막에야 쥐여 주었다. 그런데 둘째 마디가 하는 말이
+            // "손에 들면 앞이 밝아진다" 이다 — 손에 아무것도 없는 채로 그 말을
+            // 들으면 무슨 소리인지 알 수가 없다. 물건 이야기를 하는 마디에는
+            // 물건이 눈앞에 떠 있어야 하고, <b>드는 이야기</b>를 하는 마디에는
+            // 그것이 손에 있어야 한다.
+            if (_handAtStep >= 0 && _step == _handAtStep) TakeInHand();
+
             string name = _tool != null ? _tool.displayName : "";
-            string hint = (_step == _steps.Length - 1) ? "(눌러서 손에 쥔다)" : "(눌러서 다음)";
+            string hint = (_step == _steps.Length - 1) ? "(눌러서 마친다)" : "(눌러서 다음)";
             SubtitleView.Show(name, _steps[_step], hint);
             _stepShownAt = Time.unscaledTime;
         }
 
+        /// <summary>손에 쥐여 준다 — 문갑의 물건은 제자리로 돌아간다. 지금 든 것이 곧 그것이므로.</summary>
+        private void TakeInHand()
+        {
+            if (_inHand || _tool == null) return;
+            var belt = ToolbeltHud.Instance;
+            if (belt == null) return;
+
+            belt.Grant(_tool);
+            for (int i = 0; i < belt.Tools.Count; i++)
+                if (belt.Tools[i] == _tool) { belt.Select(i + 1); break; }
+
+            _inHand = true;
+            _hefting = true;          // 이제 내려놓을 것이 생겼다
+
+            // 물건만 조용히 제자리로 보낸다. 여기서 <see cref="GoHome"/> 를 부르면
+            // <b>익히는중이 끝나 버려</b> 눌러도 다음 마디로 안 넘어간다 —
+            // 손에는 쥐여 주고 말은 멎는 꼴이 된다.
+            if (_sliding != null) StopCoroutine(_sliding);
+            _sliding = StartCoroutine(SlideHome());
+        }
+
+        /// <summary>물건만 제자리로. 상태(마디 도는 중)는 건드리지 않는다.</summary>
+        private IEnumerator SlideHome()
+        {
+            Vector3 from = transform.position;
+            Quaternion fromRot = transform.rotation;
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.deltaTime / Mathf.Max(0.01f, _liftSeconds);
+                float e = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
+                transform.position = Vector3.Lerp(from, _homePos, e);
+                transform.rotation = Quaternion.Slerp(fromRot, _homeRot, e);
+                yield return null;
+            }
+            transform.position = _homePos;
+            transform.rotation = _homeRot;
+            _sliding = null;
+        }
+
         private void Finish()
         {
-            var belt = ToolbeltHud.Instance;
-            if (belt != null && _tool != null)
-            {
-                belt.Grant(_tool);
-                // 손에 쥐여 준다 — 배운 것을 곧바로 들고 있어야 익힌 것이 된다.
-                for (int i = 0; i < belt.Tools.Count; i++)
-                    if (belt.Tools[i] == _tool) { belt.Select(i + 1); break; }
-            }
+            // 마디를 도는 사이에 이미 쥐여 주었으면 그대로 두고, 마디가 짧아
+            // 그럴 틈이 없었으면 여기서 쥐여 준다.
+            TakeInHand();
 
             // 마지막 한 마디까지 읽고 나면 벨트를 도로 올린다 — 방금 배운 것이
             // 벨트에 들어가 앉는 것을 보아야 "손에 익혔다"가 눈으로 확인된다.
@@ -431,6 +484,12 @@ namespace IMUNROK.Common
         /// <summary>들어 보는 중인가. 그동안은 차례를 놓지 않는다 — 손에 하나다.</summary>
         private bool _hefting;
 
+        /// <summary>손에 쥐여 준 뒤인가. 두 번 쥐여 주지 않으려고 둔다.</summary>
+        private bool _inHand;
+
+        /// <summary>물건만 제자리로 보내는 중(마디는 계속 돈다).</summary>
+        private Coroutine _sliding;
+
         /// <summary>
         /// 한 번 들어 보고 <b>내려놓는다</b>.
         ///
@@ -454,10 +513,11 @@ namespace IMUNROK.Common
         }
 
         /// <summary>손을 비운다 — 벨트에서도 뺀다. 어느 길로 끝나든 여기를 지난다.</summary>
-        private void PutDown()
+        private void PutDown(bool speak = true)
         {
             if (!_hefting) return;
             _hefting = false;
+            _inHand = false;
 
             var belt = ToolbeltHud.Instance;
             if (belt != null && _tool != null) belt.Revoke(_tool);
@@ -465,9 +525,13 @@ namespace IMUNROK.Common
             SubtitleView.SetPinned(false);
             SubtitleView.SetReadingDistance(1.3f, -0.28f);
 
-            string nm = _tool != null ? _tool.displayName : "";
-            SubtitleView.Show(nm, string.Format(_putDownWord, nm), "(눌러서 마친다)");
-            StartCoroutine(DismissOnClick());
+            // 그만두려고 자막을 닫은 사람에게 다시 자막을 띄우지는 않는다.
+            if (speak)
+            {
+                string nm = _tool != null ? _tool.displayName : "";
+                SubtitleView.Show(nm, string.Format(_putDownWord, nm), "(눌러서 마친다)");
+                StartCoroutine(DismissOnClick());
+            }
 
             if (_busy == this && _phase == Phase.놓임) _busy = null;
         }
@@ -539,10 +603,11 @@ namespace IMUNROK.Common
             // 여기서 받아 나가면 이 방이 창고가 되고, 무엇보다 <b>다시 해 볼 수가</b>
             // 없다 — 이미 가진 도구를 또 익힐 까닭이 없어지기 때문이다.
             // 익히기는 몇 번이고 되풀이할 수 있어야 한다.
-            var belt = ToolbeltHud.Instance;
-            if (belt != null && _tool != null) belt.Revoke(_tool);
-
-            SubtitleView.SetPinned(false);
+            // 손에서 놓는 일은 <b>한 군데</b>에만 적어 둔다. 여기서 따로 거두면
+            // 들고 있다는 표(_hefting)가 남아, 차례를 영영 안 놓고 씬을 떠날 때
+            // 또 한 번 거두려 든다.
+            _hefting = true;                  // PutDown 이 제 일을 하도록
+            PutDown(speak: false);
 
             SubtitleView.Show(_tool.displayName,
                               string.Format(_practiceDone, _tool.displayName), "(눌러서 마친다)");
@@ -592,7 +657,12 @@ namespace IMUNROK.Common
             }
             // 들어 보다 자막을 닫았다 — 그래도 물건은 내려놓는다. 닫았다고 가져가는
             // 것이 되면, 이 방에서 나가는 가장 쉬운 길이 곧 도구를 챙기는 길이 된다.
-            if (_hefting) { PutDown(); return; }
+            if (_hefting)
+            {
+                PutDown(speak: false);
+                if (_phase == Phase.익히는중) GoHome();   // 마디를 돌던 중이었으면 그것도 접는다
+                return;
+            }
             if (_phase == Phase.익히는중) GoHome();
         }
 
