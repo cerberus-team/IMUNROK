@@ -78,6 +78,7 @@ namespace IMUNROK.Common
 
         private System.Action _onLit;
         private string _litPrint = "";
+        private string _litGlyphs = "";   // 획만 잡혔을 때 보여 줄 것(한자 그대로)
         private Texture _litTexture;
         private bool _litDone;
         private float _litProgress;
@@ -102,7 +103,8 @@ namespace IMUNROK.Common
         /// <param name="onLit">다 드러났을 때 한 번</param>
         public static void Show(Texture page, string title, string body,
                                 string finePrint = null, System.Action onRead = null, bool dim = false,
-                                Texture litPage = null, string litPrint = null, System.Action onLit = null)
+                                Texture litPage = null, string litPrint = null, System.Action onLit = null,
+                                string litGlyphs = null)
         {
             if (_instance == null)
             {
@@ -116,7 +118,7 @@ namespace IMUNROK.Common
             }
             // 읽는 자리는 하나뿐이다. 수첩이나 개요가 펴져 있으면 그쪽이 닫힌다.
             ReadingFocus.Claim(ReadingFocus.Panel.Document, Hide);
-            _instance.ShowInternal(page, title, body, finePrint, onRead, dim, litPage, litPrint, onLit);
+            _instance.ShowInternal(page, title, body, finePrint, onRead, dim, litPage, litPrint, onLit, litGlyphs);
         }
 
         public static void Hide()
@@ -191,28 +193,56 @@ namespace IMUNROK.Common
         /// 다르면 하나를 익혀도 다른 하나를 또 처음부터 익혀야 한다 — <b>대고 기다린다</b>
         /// 하나로 통일해 두면, 다음에 팀원이 도구를 하나 더 얹어도 같은 손짓으로 쓴다.
         /// </summary>
+        /// <summary>불에 비추고 있다 — <b>대고 있는 만큼</b> 읽힌다.</summary>
         public static void Lighting(float progress)
         {
             if (_instance == null || !IsOpen) return;
-            _instance._litProgress = progress;
-            _instance._sinceLit = 0f;
-            if (progress < 1f || _instance._litDone) return;
+            var d = _instance;
+            d._litProgress = progress;
+            d._sinceLit = 0f;
 
-            _instance._litDone = true;
-            if (_instance._litTexture != null && _instance._pageLit != null)
+            // 겹 사이의 장은 <b>진작부터</b> 비쳐 든다. 다 차야 나타나면 그때까지
+            // 아무 일도 안 일어나는 것과 같아서, 대고 있는 것이 맞는지조차 알 수 없다.
+            if (d._litTexture != null && d._pageLit != null && progress > 0.02f && !d._pageLit.enabled)
             {
-                _instance._pageLit.texture = _instance._litTexture;
-                _instance._pageLit.enabled = true;
+                d._pageLit.texture = d._litTexture;
+                d._pageLit.enabled = true;
             }
-            if (!string.IsNullOrEmpty(_instance._litPrint))
+
+            // ── 읽히는 정도는 세 켜다 ──
+            //
+            // 글자가 비치는 것과 그 글자를 읽는 것과 뜻을 새기는 것은 다른 일이다.
+            // 스치듯 대면 무언가 있다는 것만 알고, 오래 대야 글자가 잡히고, 끝까지
+            // 대야 뜻이 새겨진다. 급히 지나가며 다 알아내는 조사는 없다.
+            if (d._lit != null)
             {
-                _instance._lit.text = _instance._litPrint;
-                _instance._lit.gameObject.SetActive(true);
+                string line;
+                if (progress < Glimpse) line = "";
+                else if (progress < Legible)
+                    line = "겹 사이로 무언가 비친다 — 글자 같기는 한데 획이 잡히지 않는다.";
+                else if (progress < 1f)
+                    line = string.IsNullOrEmpty(d._litGlyphs)
+                         ? "글자가 잡힌다. 뜻까지 새기려면 더 대고 있어야 한다."
+                         : d._litGlyphs + "  — 획은 잡히나 뜻이 아직 안 새겨진다.";
+                else line = d._litPrint;
+
+                bool on = !string.IsNullOrEmpty(line);
+                if (on) d._lit.text = line;
+                if (d._lit.gameObject.activeSelf != on) d._lit.gameObject.SetActive(on);
             }
-            var cb = _instance._onLit;
+
+            if (progress < 1f || d._litDone) return;
+
+            d._litDone = true;
+            var cb = d._onLit;
             if (cb != null) cb();
             ToolPractice.Done("lantern");
         }
+
+        /// <summary>이만큼은 대고 있어야 무언가 비친다는 것을 안다.</summary>
+        private const float Glimpse = 0.20f;
+        /// <summary>이만큼이면 획이 잡힌다. 뜻은 아직이다.</summary>
+        private const float Legible = 0.62f;
 
         /// <summary>이 종이에 등불로 볼 것이 남아 있나. 안내 글줄을 고를 때 쓴다.</summary>
         public static bool HasBacklight
@@ -241,7 +271,8 @@ namespace IMUNROK.Common
 
         private void ShowInternal(Texture page, string title, string body,
                                   string finePrint, System.Action onRead, bool dim,
-                                  Texture litPage, string litPrint, System.Action onLit)
+                                  Texture litPage, string litPrint, System.Action onLit,
+                                  string litGlyphs)
         {
             // 수첩에서 꺼내 든 것은 <b>어둠 위에</b> 놓는다. 방을 보며 조사하는 중이 아니라
             // 앉아서 물건 하나를 뜯어보는 중이므로, 둘레가 비면 그 하나에만 눈이 간다.
@@ -286,6 +317,7 @@ namespace IMUNROK.Common
             _dragging = false;
 
             _litPrint = string.IsNullOrEmpty(litPrint) ? "" : litPrint;
+            _litGlyphs = string.IsNullOrEmpty(litGlyphs) ? "" : litGlyphs;
             _litTexture = litPage;
             _onLit = onLit;
             _litDone = false;
@@ -305,7 +337,7 @@ namespace IMUNROK.Common
             _hint.text = hasFine
                 ? "끌어서 돌려 볼 수 있다 · 잔글씨는 오른쪽 단추를 <b>누른 채</b> 종이를 들여다본다"
                 : hasLit
-                ? "끌어서 돌려 볼 수 있다 · 등불을 들면 종이가 빛을 먹는다"
+                ? "끌어서 돌려 볼 수 있다 · 불빛 앞에 대면 겹 사이가 비친다"
                 : "끌어서 돌려 볼 수 있다 · (Esc — 내려놓기)";
 
             SetVisible(true);
@@ -422,9 +454,10 @@ namespace IMUNROK.Common
             if (_pageLit != null && _pageLit.enabled)
                 _pageLit.color = new Color(1f, 1f, 1f, _lit01);
 
-            if (_litDone) _hint.text = "빛에 배어 나왔다";
-            else if (lighting && _litProgress > 0.05f)
-                _hint.text = "비추는 중… " + Mathf.RoundToInt(Mathf.Clamp01(_litProgress) * 100f) + "%";
+            if (_litDone) _hint.text = "빛에 다 배어 나왔다";
+            else if (lighting && _litProgress > 0.03f)
+                _hint.text = "불빛에 비추는 중… " + Mathf.RoundToInt(Mathf.Clamp01(_litProgress) * 100f)
+                           + "%  (똑바로 마주 댈수록 빠르다)";
 
 #if ENABLE_INPUT_SYSTEM
             var kb = UnityEngine.InputSystem.Keyboard.current;

@@ -40,8 +40,12 @@ namespace IMUNROK.Common
         [TextArea]
         [Tooltip("등불에 비춰야 드러나는 것. 잔글씨(돋보기)와 달리 이 글자는 원래 종이에 없던 것이다")]
         [SerializeField] private string _litText = "";
-        [Tooltip("등불에 비춰야만 단서가 적힌다")]
+        [Tooltip("불빛에 비춰야만 단서가 적힌다")]
         [SerializeField] private bool _clueNeedsLantern = false;
+        [Tooltip("획만 잡혔을 때 보여 줄 것 — 대개 한자 그대로다. " +
+                 "잠깐 대면 무언가 비치는 것만 알고, 오래 대면 글자가 잡히고, " +
+                 "끝까지 대야 뜻이 새겨진다. 그 가운데 켜에 쓴다")]
+        [SerializeField] private string _litGlyphs = "";
 
         [SerializeField] private string _title = "";
         [TextArea]
@@ -160,7 +164,8 @@ namespace IMUNROK.Common
                                   _clueNeedsMagnifier ? new System.Action(Record) : null,
                                   false,
                                   _litPage, _litText,
-                                  _clueNeedsLantern ? new System.Action(Record) : null);
+                                  _clueNeedsLantern ? new System.Action(Record) : null,
+                                  _litGlyphs);
             }
             else
             {

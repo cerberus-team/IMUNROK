@@ -26713,19 +26713,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.ToolTutorial
   _tool: {fileID: 11400000, guid: d4ed2d4018efb4b40bf0271bef1152fa, type: 2}
   _steps:
-  - "\uB4F1\uBD88\uC774\uB2E4. \uBB3C\uAC74 \uB4A4\uB85C \uB3CC\uB824 \uBE5B\uC744
-    \uB123\uB294 \uBB3C\uAC74\uC774\uC624."
-  - "\uC190\uC9D3\uC740 \uB3CB\uBCF4\uAE30\uC640 \uAC19\uB2E4 \u2014 \uC624\uB978\uCABD
-    \uB2E8\uCD94\uB97C \uC950\uBA74 \uC62C\uB77C\uAC04\uB2E4. \uB2E4\uB9CC \uC774\uAC83\uC740
-    \uC885\uC774 \uB108\uBA38\uB85C \uB118\uC5B4\uAC04\uB2E4."
+  - "\uB4F1\uBD88\uC774\uB2E4. \uB2E4\uB9CC \uC774\uAC83\uC740 \uB4F1\uBD88\uC758
+    \uC7AC\uC8FC\uAC00 \uC544\uB2C8\uB77C \uBD88\uC758 \uC7AC\uC8FC\uC694."
   - "\uACB9\uC73C\uB85C \uBC14\uB978 \uC885\uC774\uB294 \uBE5B\uC744 \uB4A4\uC5D0\uC11C
-    \uB123\uC5B4\uC57C \uC18D\uC774 \uBE44\uCE5C\uB2E4. \uBC30\uC811 \uC18D\uC5D0
-    \uB07C\uC6B4 \uC7A5\uC774 \uADF8\uB54C \uBC30\uC5B4 \uB098\uC628\uB2E4."
+    \uB123\uC5B4\uC57C \uC18D\uC774 \uBE44\uCE5C\uB2E4 \u2014 \uCD1B\uBD88\uC774\uB4E0
+    \uB4F1\uC794\uC774\uB4E0 \uC0C1\uAD00\uC5C6\uB2E4."
+  - "\uC885\uC774\uB97C \uC950\uACE0 \uBD88\uC744 \uB9C8\uC8FC \uBCF4\uC2DC\uC624.
+    \uC624\uB798 \uB308\uC218\uB85D \uAE4A\uC774 \uBE44\uCE5C\uB2E4 \u2014 \uC7A0\uAE50\uC774\uBA74
+    \uBB34\uC5B8\uAC00 \uC788\uB2E4\uB294 \uAC83\uB9CC \uC54C\uACE0, \uB05D\uAE4C\uC9C0
+    \uB300\uC57C \uB73B\uC774 \uC0C8\uACA8\uC9C4\uB2E4."
   _endWord: "{0}\uC744 \uC190\uC5D0 \uC775\uD614\uB2E4. \uC774\uC81C \uC5B8\uC81C\uB4E0
     \uAEBC\uB0B4 \uC4F8 \uC218 \uC788\uB2E4."
   _example: {fileID: 693705541}
-  _practice: "\uAC19\uC740 \uC885\uC774\uC694. \uC624\uB978\uCABD \uB2E8\uCD94\uB97C
-    \uC950\uACE0 \uB4F1\uBD88\uC744 \uC885\uC774 \uB4A4\uB85C \uB118\uACA8 \uBCF4\uC2DC\uC624."
+  _practice: "\uAC19\uC740 \uC885\uC774\uC694. \uBC29\uC758 \uBD88\uC744 \uCC3E\uC544
+    \uC885\uC774\uB97C \uADF8 \uC55E\uC5D0 \uB300 \uBCF4\uC2DC\uC624. \uB4F1\uBD88\uC744
+    \uC190\uC5D0 \uB4E4\uBA74 \uC5B4\uB514\uC11C\uB098 \uB41C\uB2E4."
   _practiceDone: "\uB410\uB2E4. \uC774\uB9CC\uD558\uBA74 {0}\uC740 \uC190\uC5D0 \uC775\uC5C8\uB2E4."
   _readDistance: 0.42
   _readDrop: 0.08
@@ -44383,6 +44385,7 @@ GameObject:
   - component: {fileID: 613814970}
   - component: {fileID: 613814969}
   - component: {fileID: 613814971}
+  - component: {fileID: 613814972}
   m_Layer: 0
   m_Name: "\uCC3D\uBE5B"
   m_TagString: Untagged
@@ -44499,6 +44502,21 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!114 &613814972
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613814968}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60afdb38b8f21be4094b65ad30d64ee1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.Firelight
+  _reach: 1.8
+  _strength: 0.8
+  _light: {fileID: 613814969}
 --- !u!1001 &614809829
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -51043,10 +51061,12 @@ MonoBehaviour:
     \uCC0D\uC5C8\uB2E4. \uAE09\uD788 \uAFB8\uBBFC \uBB38\uC11C\uB2E4."
   _clueNeedsMagnifier: 0
   _litPage: {fileID: 2800000, guid: 77829656cce91bc4382ab17cb7185862, type: 3}
-  _litText: "\uACB9 \uC0AC\uC774\uC5D0 \uD55C \uC904\uC774 \uB07C\uC5EC \uC788\uB2E4
-    \u2014 \u898B\u800C\u4E0D\u7591\u662F\u8B02\u76F2. \uAC89\uC7A5\uC5D0\uC11C \uB72F\uC5B4\uB0B8
-    \uB4A4 \uBC30\uC811 \uC18D\uC5D0 \uC228\uACBC\uB2E4."
+  _litText: "\u898B\u800C\u4E0D\u7591\u662F\u8B02\u76F2 \u2014 \uBCF4\uACE0\uB3C4
+    \uC758\uC2EC\uD558\uC9C0 \uC54A\uC73C\uBA74 \uADF8\uAC83\uC744 \uB208\uBA40\uC5C8\uB2E4
+    \uD55C\uB2E4.\n\uAC89\uC7A5\uC5D0\uC11C \uB72F\uC5B4\uB0B8 \uB4A4 \uBC30\uC811
+    \uC18D\uC5D0 \uC228\uAE34 \uC904\uC774\uB2E4."
   _clueNeedsLantern: 0
+  _litGlyphs: "\u898B\u800C\u4E0D\u7591\u662F\u8B02\u76F2"
   _title: "\u4E8B\u76EE"
   _body: 
   _requiresMagnifier: 0
@@ -69711,6 +69731,7 @@ GameObject:
   - component: {fileID: 931501282}
   - component: {fileID: 931501281}
   - component: {fileID: 931501285}
+  - component: {fileID: 931501286}
   m_Layer: 0
   m_Name: "\uCD1B\uBD88"
   m_TagString: Untagged
@@ -69833,6 +69854,21 @@ MonoBehaviour:
   _flameRenderer: {fileID: 931501282}
   _emissionColor: {r: 1, g: 0.5, b: 0.15, a: 1}
   _emissionBase: 3
+--- !u!114 &931501286
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 931501280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60afdb38b8f21be4094b65ad30d64ee1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.Firelight
+  _reach: 1.5
+  _strength: 0.75
+  _light: {fileID: 1587127805}
 --- !u!1001 &931966533
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -101517,6 +101553,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1346042037}
   - component: {fileID: 1346042038}
+  - component: {fileID: 1346042039}
   m_Layer: 0
   m_Name: "_\uB4F1\uBD88"
   m_TagString: Untagged
@@ -101563,6 +101600,21 @@ MonoBehaviour:
   _swingOnTake: 1
   _upPose: {x: 0, y: 0.26, z: 0.88}
   _raiseSpeed: 6
+--- !u!114 &1346042039
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1346042036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60afdb38b8f21be4094b65ad30d64ee1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.Firelight
+  _reach: 3
+  _strength: 1
+  _light: {fileID: 159383759}
 --- !u!1 &1346554537
 GameObject:
   m_ObjectHideFlags: 0
@@ -111282,6 +111334,7 @@ MonoBehaviour:
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
+  _litGlyphs: 
   _title: "\uB3C4\uAD6C \uC5F0\uC2B5 \xB7 \uD655\uB300\uACBD"
   _body: "\uBB3C\uCCB4\uB97C \uC0B4\uD3B4\uBCF4\uBA74 \uC774\uB807\uAC8C \uC815\uBCF4\uAC00
     \uB72C\uB2E4.\n\uC0AC\uAC74\uC5D0 \uB4E4\uC5B4\uAC00\uBA74, \uC774\uB807\uAC8C
