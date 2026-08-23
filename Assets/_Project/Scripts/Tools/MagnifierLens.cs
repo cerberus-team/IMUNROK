@@ -794,8 +794,10 @@ namespace IMUNROK.Common
             // 종이를 쥐고 있는 동안에는 어차피 방을 짚지도 걷지도 않으므로(방을
             // 짚는 손은 이미 물러나 있다) 그때만 이 단추를 렌즈에 내준다.
             // 겹칠 일이 없어지고, 안내대로 하면 된다.
-            bool byButton = _alsoRightButton || DocumentView.IsOpen;
-            if (byButton && Mouse.current != null && Mouse.current.rightButton.isPressed) return true;
+            // 두 도구가 <b>같은 손짓</b>을 쓴다(ToolRaise). 여기만 따로 두면 등불과
+            // 어긋나고, 어긋나면 하나를 익혀도 다른 하나를 또 처음부터 익혀야 한다.
+            if (ToolRaise.Held) return true;
+            if (_alsoRightButton && Mouse.current != null && Mouse.current.rightButton.isPressed) return true;
 
             var kb = Keyboard.current;
             if (kb == null) return _raiseLatch;

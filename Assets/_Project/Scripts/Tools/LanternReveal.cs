@@ -36,6 +36,7 @@ namespace IMUNROK.Common
         private const float Cool = 0.45f;
 
         private float _t;
+        private LanternController _lamp;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()
@@ -48,15 +49,32 @@ namespace IMUNROK.Common
 
         private void Update()
         {
-            if (!DocumentView.IsOpen) { _t = 0f; return; }
+            if (!DocumentView.IsOpen)
+            {
+                _t = 0f;
+                if (_lamp != null) _lamp.SetRaise(0f);
+                return;
+            }
 
             // 종이에 등불로 볼 것이 없으면 아무 일도 안 한다. 그냥 옛 문서를 들고
             // 등불을 켜 든 것뿐인데 종이가 노랗게 달아오르면, 뭔가 있는 줄 알고
             // 한참을 서 있게 된다.
             if (!DocumentView.HasBacklight) { _t = 0f; return; }
 
-            bool holding = ToolbeltHud.SelectedToolId == ToolId;
-            if (holding) _t += Time.deltaTime / Seconds;
+            // 손에 든 것만으로는 안 된다 — <b>들어 올려야</b> 비추는 것이 된다.
+            //
+            // 여태는 등불을 고르기만 하면 종이가 저 혼자 밝아졌다. 아무 짓도 안 했는데
+            // 밝아지니 무엇 때문에 밝아졌는지 알 수가 없고, 등불이 쓰는 물건이 아니라
+            // 걸치는 물건이 된다. 돋보기와 같은 손짓을 쓴다(<see cref="ToolRaise"/>).
+            bool inHand = ToolbeltHud.SelectedToolId == ToolId;
+            bool up = inHand && ToolRaise.Held;
+
+            // 등불을 <b>종이 뒤로</b> 넘긴다. 유리는 사이에 끼우고 불은 뒤로 가는 것이
+            // 두 도구의 다른 점이자, 무엇이 왜 드러나는지를 눈으로 말해 주는 대목이다.
+            if (_lamp == null) _lamp = Object.FindFirstObjectByType<LanternController>();
+            if (_lamp != null) _lamp.SetRaise(up ? 1f : 0f);
+
+            if (up) _t += Time.deltaTime / Seconds;
             else { _t -= Cool * Time.deltaTime; if (_t <= 0f) { _t = 0f; return; } }
 
             _t = Mathf.Clamp01(_t);
