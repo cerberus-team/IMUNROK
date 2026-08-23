@@ -61,7 +61,10 @@ namespace IMUNROK.Common
         [Range(-0.1f, 0.15f)] [SerializeField] private float _eyeDrop = 0.03f;
 
         [Tooltip("눈에 댈 때 맞춰 둔 기울기를 이만큼 바로 세운다. 0이면 그 각도 그대로 들여다본다")]
-        [Range(0f, 1f)] [SerializeField] private float _eyeStraighten = 0f;
+        // 0 이면 문갑에 놓였던 기울기 그대로 눈앞에 온다 — 유리가 비스듬히 서서
+        // 들여다보는 자세가 안 나오고, 각도가 이상하다는 말이 그것이었다.
+        // 눈에 댈 때만은 유리가 <b>눈을 마주 보아야</b> 한다.
+        [Range(0f, 1f)] [SerializeField] private float _eyeStraighten = 0.85f;
 
         [Header("드는 자세 — 맞춰 둔 자세를 안 쓸 때만")]
         [Tooltip("평소 — 눈 아래 비껴 들고 있다. 앞이 안 가린다")]

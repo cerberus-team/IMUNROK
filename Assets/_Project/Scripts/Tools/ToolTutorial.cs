@@ -87,15 +87,7 @@ namespace IMUNROK.Common
         /// </summary>
         private const float StepGuard = 1.4f;
 
-        // ── 고개로 넘기기 ──
-        // 들여다보는 자세는 <b>아래를 보는 것</b>이고, 다 보았다는 신호는
-        // <b>고개를 드는 것</b>이다. 말로 시키지 않아도 몸이 먼저 아는 신호다.
-        /// <summary>이보다 아래를 보고 있으면 들여다보는 중으로 친다(도).</summary>
-        private const float LookDownAngle = 14f;
-        /// <summary>눈이 이보다 위로 올라오면 다 본 것으로 친다(도).</summary>
-        private const float LookUpAngle = 2f;
-        /// <summary>이만큼(초)을 기다려도 안 들면 그냥 넘긴다.</summary>
-        private const float LookUpPatience = 25f;
+
 
         /// <summary>생성기가 씬을 짤 때 채운다.</summary>
         public ToolDef Tool { get => _tool; set => _tool = value; }
@@ -400,32 +392,35 @@ namespace IMUNROK.Common
             // 찾아낸 것이 종이에 떠오른 그 순간에 종이를 걷고 축하부터 하면, 정작
             // <b>무엇을 찾았는지 읽을 틈이 없다</b>. 도구를 쓰는 일은 아래를 들여다보는
             // 일이고, 다 보았다는 신호는 <b>고개를 드는 것</b>이다. 그때까지 기다린다.
-            StartCoroutine(WaitForLookUp());
+            StartCoroutine(WaitForRead());
             return;
         }
 
         /// <summary>
         /// 찾아낸 것을 다 읽고 <b>고개를 들 때까지</b> 기다린다.
         ///
-        /// 아래를 보고 있어야 시작하고(그것이 들여다보는 자세다), 눈이 수평으로
-        /// 올라오면 다 본 것으로 친다. 한참을 안 들면 그냥 넘긴다 —
-        /// 고개를 안 드는 사람을 영영 붙들어 둘 수는 없다.
+        /// 찾아낸 것이 종이 아래에 적힌다. 그것을 읽고 <b>누를 때</b> 넘어간다 —
+        /// 넘긴다는 것은 알아들었다는 뜻이므로, 알아들은 사람이 직접 눌러야 맞다.
         /// </summary>
-        private IEnumerator WaitForLookUp()
+        private IEnumerator WaitForRead()
         {
-            var cam = Camera.main;
             SubtitleView.Show(_tool != null ? _tool.displayName : "",
-                              "찾았소. 다 보았거든 고개를 드시오.", "(고개를 들면 넘어간다)");
+                              "찾았소. 종이 아래에 적힌 것을 읽어 보시오.", "(다 읽었으면 누르시오)");
 
-            float waited = 0f;
-            bool lookedDown = false;
-            while (cam != null && waited < LookUpPatience)
+            // <b>누를 때</b> 넘어간다.
+            //
+            // 한때 고개를 들면 넘어가게 했다. 몸이 아는 신호라 여겼는데, 정작 읽는
+            // 사람은 고개를 들었다 내렸다 하며 읽는다 — 읽다 말고 넘어가 버린다.
+            // 넘기는 것은 <b>알아들었다는 뜻</b>이므로, 알아들은 사람이 직접 눌러야 맞다.
+            // 읽을 틈은 문턱으로 준다.
+            float shown = Time.unscaledTime;
+            while (true)
             {
-                waited += Time.unscaledDeltaTime;
-                float pitch = cam.transform.eulerAngles.x;
-                if (pitch > 180f) pitch -= 360f;          // 350도는 -10도다
-                if (pitch > LookDownAngle) lookedDown = true;
-                if (lookedDown && pitch < LookUpAngle) break;
+#if ENABLE_INPUT_SYSTEM
+                var mouse = UnityEngine.InputSystem.Mouse.current;
+                if (mouse != null && mouse.leftButton.wasPressedThisFrame
+                    && Time.unscaledTime - shown > StepGuard && !PointerOnCloseTab()) break;
+#endif
                 yield return null;
             }
 
@@ -488,6 +483,26 @@ namespace IMUNROK.Common
         {
             SetPhase(Phase.내려가는중);
 
+            // 손에 드는 소품이 이미 나타났으면 이 물건은 <b>그 자리에서 사라진다</b>.
+            //
+            // 여태 눈앞의 물건이 손 쪽으로 날아가는 동안, 손에서는 벨트가 내준 소품이
+            // 이미 나타나 있었다 — 같은 돋보기가 둘이 되어 하나는 잡히고 하나는
+            // 내려놓아지는 꼴이었다. 둘이 겹치면 날리지 않고 그냥 감춘다.
+            var cam0 = Camera.main;
+            bool alreadyInHand = false;
+            if (cam0 != null && _tool != null)
+                foreach (var h in cam0.GetComponentsInChildren<HeldToolModel>(true))
+                    if (h.ToolId == _tool.id) { alreadyInHand = true; break; }
+            if (alreadyInHand)
+            {
+                transform.position = _homePos;
+                transform.rotation = _homeRot;
+                Vanish();
+                SetPhase(Phase.놓임);
+                _moving = null;
+                yield break;
+            }
+
             // 손에 드는 자리를 찾는다. 없으면 그냥 눈 아래로 내려 보낸다.
             Vector3 target = transform.position;
             var cam = Camera.main;
@@ -515,11 +530,17 @@ namespace IMUNROK.Common
             transform.position = _homePos;
             transform.rotation = _homeRot;
             transform.localScale = fromScale;
-            foreach (var r in _renderers) if (r != null) r.enabled = false;
-            var col = GetComponent<Collider>(); if (col != null) col.enabled = false;
+            Vanish();
 
             SetPhase(Phase.놓임);
             _moving = null;
+        }
+
+        /// <summary>문갑 위에서 감춘다 — 가져갔으니 없는 것이 맞다.</summary>
+        private void Vanish()
+        {
+            foreach (var r in _renderers) if (r != null) r.enabled = false;
+            var col = GetComponent<Collider>(); if (col != null) col.enabled = false;
         }
 
         private void GoHome()

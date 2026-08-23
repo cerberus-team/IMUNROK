@@ -40,6 +40,9 @@ namespace IMUNROK.Common
         [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
         [SerializeField] private Color _tabColor = new Color(0.28f, 0.10f, 0.09f, 0.9f);
 
+        /// <summary>종이를 내려 두는 높이(m). 눈앞은 설명이 쓴다.</summary>
+        private const float LowDrop = -0.34f;
+
         private static DocumentView _instance;
 
         private Canvas _canvas;
@@ -63,7 +66,7 @@ namespace IMUNROK.Common
         // 불러내는</b> 도구다. 배접 속에 숨긴 글, 밀랍으로 눌러 쓴 자국, 물에 지운 먹.
         // 그래서 여기서는 종이에 손을 대도 된다 — 잔글씨와 달리 이 글자는 원래
         // 종이에 그려져 있지 않았다.
-        private Image _glow;          // 종이 뒤에서 비쳐 드는 불빛
+        private float _lit01;         // 종이가 달아오른 정도(0~1)
         private RawImage _pageLit;    // 빛에 드러난 종이 면(있으면 겹쳐 배어 나온다)
         private Text _lit;            // 빛에 드러난 것 — 종이 아래에
 
@@ -119,7 +122,8 @@ namespace IMUNROK.Common
         public static void Hide()
         {
             ReadingFocus.Release(ReadingFocus.Panel.Document);
-            SubtitleView.SetReadingDistance(1.3f, -0.28f);   // 비켜 세웠던 자막을 제자리로
+            if (_instance != null && _instance._anchor != null)
+                _instance._anchor.SetDistance(_instance._holdDistance, _instance._holdDrop);
             if (_instance == null) return;
             _instance.SetVisible(false);
             _instance._onRead = null;
@@ -255,9 +259,6 @@ namespace IMUNROK.Common
                 _pageRt.sizeDelta = size;
                 _backFace.rectTransform.sizeDelta = size;
                 _edge.rectTransform.sizeDelta = size + new Vector2(10f, 10f);
-                // 불빛은 종이보다 조금 넓게 번진다. 딱 맞으면 종이가 켜진 것이 되고,
-                // 넘쳐야 종이 <b>뒤에서</b> 비쳐 드는 것이 된다.
-                _glow.rectTransform.sizeDelta = size + new Vector2(58f, 58f);
                 _pageLit.rectTransform.sizeDelta = size;
                 _page.enabled = true;
                 _edge.enabled = true;
@@ -294,7 +295,8 @@ namespace IMUNROK.Common
             _lit.gameObject.SetActive(false);
             _pageLit.texture = null;
             _pageLit.enabled = false;
-            _glow.color = new Color(_glow.color.r, _glow.color.g, _glow.color.b, 0f);
+            _lit01 = 0f;
+            if (_page != null) _page.color = _paper;
 
             // 안내는 <b>남은 일 하나만</b> 짚는다. 두 도구를 한 줄에 늘어놓으면 둘 다
             // 지금 해야 하는 것처럼 읽혀, 아무것도 안 해도 되는 종이 앞에서도 헤맨다.
@@ -316,7 +318,10 @@ namespace IMUNROK.Common
             // 통째로 덮는다 — "예시로 한 장 드리겠소…" 의 가운데 토막이 종이에 가려
             // 앞뒤만 읽혔다. 둘 다 눈앞에 있어야 하는 것이니 하나를 끄는 대신
             // 자막을 종이 머리 위로 비켜 세운다. 내려놓으면 제자리로 돌아간다.
-            SubtitleView.SetReadingDistance(1.3f, 0.30f);
+            // 자막은 <b>건드리지 않는다</b>. 읽어야 하는 것은 설명이고 설명은 눈앞에
+            // 있어야 한다 — 밀려날 쪽은 <b>종이</b>다. 종이는 손에 든 것이니 내려다보면
+            // 되고, 고개를 들면 설명이 있다.
+            if (_anchor != null) _anchor.SetDistance(_holdDistance, LowDrop);
         }
 
         /// <summary>
@@ -410,17 +415,12 @@ namespace IMUNROK.Common
             _sinceLit += Time.deltaTime;
             bool lighting = _sinceLit < 0.25f;
             float want = _litDone ? 1f : (lighting ? Mathf.Clamp01(_litProgress) : 0f);
-            if (_glow != null)
-            {
-                var c = _glow.color;
-                float a = Mathf.MoveTowards(c.a, want * 0.85f, (want > c.a / 0.85f ? 2.2f : 0.9f) * Time.deltaTime);
-                _glow.color = new Color(c.r, c.g, c.b, a);
-                // 종이도 함께 따뜻해진다. 뒤에서 빛이 드는 종이는 희지 않고 누렇다.
-                if (_page != null)
-                    _page.color = Color.Lerp(_paper, new Color(1f, 0.88f, 0.68f), a * 0.75f);
-                if (_pageLit != null && _pageLit.enabled)
-                    _pageLit.color = new Color(1f, 1f, 1f, Mathf.Clamp01(a / 0.85f));
-            }
+            // 종이 <b>자체가</b> 달아오른다.
+            _lit01 = Mathf.MoveTowards(_lit01, want, (want > _lit01 ? 1.9f : 0.8f) * Time.deltaTime);
+            if (_page != null)
+                _page.color = Color.Lerp(_paper, new Color(1f, 0.90f, 0.66f), _lit01);
+            if (_pageLit != null && _pageLit.enabled)
+                _pageLit.color = new Color(1f, 1f, 1f, _lit01);
 
             if (_litDone) _hint.text = "빛에 배어 나왔다";
             else if (lighting && _litProgress > 0.05f)
@@ -485,13 +485,12 @@ namespace IMUNROK.Common
             _edge.color = new Color(0.20f, 0.16f, 0.12f, 0.55f);
             _edge.raycastTarget = false;
 
-            // 등불빛 — 종이보다 <b>먼저</b> 만든다. 캔버스는 형제 차례대로 그리므로
-            // 먼저 만든 것이 뒤에 깔린다. 종이 뒤에서 새어 나오는 빛이라야 배접 속을
-            // 비추는 것이 되지, 종이 위에 덮이면 그냥 종이가 노래진 것이다.
-            var glowRt = NewRect("등불빛", Vector2.zero, new Vector2(_pageSpan + 58f, _pageSpan + 58f), _hand);
-            _glow = glowRt.gameObject.AddComponent<Image>();
-            _glow.color = new Color(1f, 0.72f, 0.36f, 0f);
-            _glow.raycastTarget = false;
+            // 등불빛은 <b>테두리로 두르지 않는다</b>.
+            //
+            // 종이보다 조금 큰 네모를 뒤에 깔고 노란빛을 넣었더니, 빛이 아니라
+            // <b>노란 액자</b>가 종이를 둘렀다. 네모는 아무리 흐려도 네모다.
+            // 뒤에서 빛이 든 종이는 둘레가 밝아지는 것이 아니라 <b>종이 자체가</b>
+            // 누렇게 달아오르고 그 속의 것이 비쳐 나온다 — 종이 빛깔로 하면 된다.
 
             _pageRt = NewRect("종이", Vector2.zero, new Vector2(_pageSpan, _pageSpan), _hand);
             _page = _pageRt.gameObject.AddComponent<RawImage>();
