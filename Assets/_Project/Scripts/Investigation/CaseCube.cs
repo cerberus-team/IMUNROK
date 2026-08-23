@@ -177,7 +177,17 @@ namespace IMUNROK.Common
         /// <summary>현재 상태(+하이라이트)에 맞춰 큐브 색을 다시 칠한다.</summary>
         private void RefreshColor()
         {
+            // 두 값을 여기서 다시 챙긴다.
+            //
+            // 이것들은 Awake 에서 만들어 두는데, <b>Awake 를 거치지 않고 OnEnable 만
+            // 도는 때</b>가 있다 — 플레이 중에 스크립트가 다시 컴파일되면 유니티가
+            // 도메인을 갈아 끼우면서 직렬화되지 않는 값(이 둘)을 버리고 OnEnable 부터
+            // 다시 부른다. 그때 GetPropertyBlock(null) 이 되어 터졌다.
+            // 만들기가 거저인 값이므로 없으면 그 자리에서 만든다.
+            if (_renderer == null) _renderer = GetComponent<Renderer>();
             if (_renderer == null) return;
+            if (_mpb == null) _mpb = new MaterialPropertyBlock();
+            if (_state == null) _state = GameState.Instance;
 
             bool ready = Openable;
             Color c = !ready ? _notReadyColor : _state.GetStatus(_caseId) switch

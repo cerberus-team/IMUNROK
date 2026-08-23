@@ -140,6 +140,7 @@ namespace IMUNROK.Common
             if (_windowRenderer != null)
             {
                 Color wc = Color.Lerp(_closedWindowColor, _openWindowColor, k);
+                if (_mpb == null) _mpb = new MaterialPropertyBlock();
                 _windowRenderer.GetPropertyBlock(_mpb);
                 _mpb.SetColor(BaseColorId, wc);
                 _windowRenderer.SetPropertyBlock(_mpb);

@@ -346,6 +346,7 @@ namespace IMUNROK.Common
         private void Tint(float brighten)
         {
             if (_renderers == null) return;
+            if (_mpb == null) _mpb = new MaterialPropertyBlock();
             foreach (var r in _renderers)
             {
                 if (r == null) continue;

@@ -66,6 +66,7 @@ namespace IMUNROK.Common
             if (_active && _hovered)
                 c = Color.Lerp(c, Color.white, _hoverBrighten);
 
+            if (_mpb == null) _mpb = new MaterialPropertyBlock();
             _renderer.GetPropertyBlock(_mpb);
             _mpb.SetColor(BaseColorId, c);
             _renderer.SetPropertyBlock(_mpb);
