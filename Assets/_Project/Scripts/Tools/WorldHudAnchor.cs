@@ -291,8 +291,13 @@ namespace IMUNROK.Common
             // 위아래 치우침도 같은 비율로. 안 그러면 당겨온 창이 시야 아래로 내려앉는다.
             float drop = _verticalOffset * (d / Mathf.Max(0.01f, _distance));
 
-            // 수첩이 펴지면 나머지는 무릎께로 물러난다
-            float want = (_stowable && StowAll) ? 1f : 0f;
+            // 수첩이 펴지면 나머지는 무릎께로 물러난다.
+            //
+            // 붙박은 창만은 예외다. 도구를 익히는 동안 벨트를 내리려고 <see cref="StowAll"/>
+            // 을 켜는데, 그 신호가 <b>설명 자막까지 같이 끌어내렸다</b> — 눈앞에 두라고
+            // 붙박아 놓고는 42cm 를 내려 도구와 겹치게 만들고 있었다. 붙박은 것은
+            // 물러날 것이 아니다.
+            float want = (_stowable && StowAll && !Pinned) ? 1f : 0f;
             _stow = Mathf.MoveTowards(_stow, want, _stowSpeed * Time.deltaTime);
             drop -= _stowDrop * Mathf.SmoothStep(0f, 1f, _stow);
 

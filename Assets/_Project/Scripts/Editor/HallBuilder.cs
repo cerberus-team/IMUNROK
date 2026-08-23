@@ -635,7 +635,17 @@ namespace IMUNROK.Common.EditorTools
         private static void Steps(Transform g, float x0, float x1)
         {
             var group = Group(g, "댓돌");
+
+            // 계단 한가운데는 <b>기둥 사이 한 칸의 한가운데</b>여야 한다.
+            //
+            // 여태는 열리는 짝들이 걸친 구간의 한가운데로 잡았다. 그런데 열리는 짝이
+            // 두 칸에 나뉘어 있으면 그 한가운데는 <b>두 칸 사이의 기둥</b>이 된다 —
+            // 계단을 곧게 올라오면 기둥에 어깨가 걸려 방으로 못 들어왔다. 문은 열려
+            // 있는데 들어갈 수가 없으니 어디가 막혔는지도 안 보인다.
+            // 그래서 짝들의 한가운데에서 <b>가장 가까운 칸의 한가운데</b>로 끌어온다.
             float mid = (x0 + x1) * 0.5f;
+            float k = Mathf.Round((mid - XMin) / Bay - 0.5f);
+            mid = XMin + Bay * (k + 0.5f);
             float width = (x1 - x0) + 0.6f;          // 문보다 조금 넓게 — 문틀에 발이 안 걸리게
 
             // 높이를 헤아려 보면 이렇다(방 기준):
@@ -664,9 +674,19 @@ namespace IMUNROK.Common.EditorTools
                     _stone, true, null, 0.5f);
             }
 
-            // 섬돌 — 기단(0.25)에서 마루(0.71)로 오르는 0.46m 를 반으로 가른다.
-            // 문 바로 앞에 놓이는 넓적한 돌이고, 조선 집에서 신을 벗어 두는 자리다.
-            Box(group, "섬돌", new Vector3(mid, 0.25f + 0.115f, RoomZMin - 0.42f),
+            // 섬돌 — 신을 벗어 두는 넓적한 돌. <b>툇마루 끝</b>에 놓는다.
+            //
+            // 여태 방문 바로 앞(RoomZMin - 0.42)에 두었다. 그런데 문 앞은 이미
+            // 툇마루 위라, 돌이 <b>마루널 밑에 통째로 묻혔다</b> — 한 번도 보인 적이 없다.
+            // 그러고 나니 기단(0.25)에서 마루(0.71)로 오르는 <b>0.46m</b> 가 통으로
+            // 남았는데, 걷는 부품이 오를 수 있는 턱은 0.40m 다. 나가기는 떨어지면
+            // 되니 되었으나 <b>돌아 들어올 수가 없었다</b> — 문은 열려 있는데 마루 턱에
+            // 걸려 되돌아 나온다. 어디가 막혔는지 보이지도 않는 종류의 막힘이다.
+            //
+            // 그래서 마루 끝(ZMin) 바깥 기단 턱 위에 놓고, 윗면을 <b>0.37</b> 로 잡는다.
+            // 윗단(0.00)에서 0.37, 섬돌에서 마루(0.71)로 0.34 — 둘 다 0.40 안이다.
+            // 윗면을 이보다 높이면 <b>윗단에 선 몸에게 벽</b>이 되어 도로 막힌다.
+            Box(group, "섬돌", new Vector3(mid, 0.255f, ZMin - 0.35f),
                 new Vector3(width - 0.30f, 0.23f, 0.62f), _stone, true, null, 0.6f);
 
             // 옛 디딤돌 하나를 걷는다.
@@ -832,15 +852,23 @@ namespace IMUNROK.Common.EditorTools
             Box(g, "틀_자유단", new Vector3(dir * (lw - FrameW * 0.5f), 0f, 0f),
                 new Vector3(FrameW, h, 0.09f), _beam, false, null, 0.6f);
 
-            // 한지 — 살보다 <b>바깥쪽</b> 한 겹. 조선 창호는 밖에서 바르므로
-            // 방 안에서 보면 살이 도드라지고 밖에서 보면 종이만 희다.
-            Box(g, "한지", new Vector3(mid, paperY0 + ph * 0.5f, outward * 0.020f),
+            // 한지 — <b>살과 살 사이 한가운데</b>.
+            //
+            // 처음엔 살보다 바깥쪽 한 겹에 발랐다(조선 창호는 밖에서 바르니까).
+            // 그러면 방 안에서는 살이 도드라지고 밖에서는 <b>흰 종이만</b> 보인다.
+            // 고증으로는 그러하나, 마당에 나서서 돌아본 조사청이 밋밋한 흰 판이 된다 —
+            // 이 방을 밖에서 보는 일이 실제로 있는 놀이라면 무늬는 양쪽에 있어야 한다.
+            // 그래서 종이를 한가운데로 옮기고 살을 <b>두 켜</b>로 짠다. 둘 다 틀 두께
+            // 안에 들어가므로 문짝이 두꺼워지지도 않는다.
+            Box(g, "한지", new Vector3(mid, paperY0 + ph * 0.5f, 0f),
                 new Vector3(lw - FrameW, ph - FrameW, 0.012f), _paper, true, null, 1f);
 
-            // 살 — 창과 같은 숫대살
+            // 살 — 창과 같은 숫대살. 안쪽 한 켜, 바깥쪽 한 켜.
             float s0 = Mathf.Min(0f, dir * lw) + FrameW;
             float s1 = Mathf.Max(0f, dir * lw) - FrameW;
-            Sal(Group(g, "살"), 0f, s0, s1, paperY0 + FrameW, y1 - FrameW, false);
+            const float DoorSal = 0.045f - BarT * 0.5f;    // 틀 면에 맞춘다(틀 두께 0.09)
+            Sal(Group(g, "살"), -outward * DoorSal, s0, s1, paperY0 + FrameW, y1 - FrameW, false);
+            Sal(Group(g, "살_밖"), outward * DoorSal, s0, s1, paperY0 + FrameW, y1 - FrameW, false);
         }
 
 
@@ -962,18 +990,21 @@ namespace IMUNROK.Common.EditorTools
             Box(g, "틀_자유단", new Vector3(0f, 0f, dir * (lw - FrameW * 0.5f)),
                 new Vector3(BarT * 1.6f, lh, FrameW), _beam, false, null, 0.6f);
 
-            // 한지 — 살보다 바깥쪽 한 겹
-            Box(g, "창호지", new Vector3(outward * 0.022f, 0f, mid),
+            // 창호지 — 살과 살 사이 한가운데(문짝과 같은 까닭. DoorLeaf 에 적었다)
+            Box(g, "창호지", new Vector3(0f, 0f, mid),
                 new Vector3(0.012f, lh - FrameW, lw - FrameW), _changho, false, null, 1f);
 
-            // 살 — 숫대살
+            // 살 — 숫대살 두 켜. 창틀은 0.048 로 문틀의 절반이라 살도 가늘게 짠다.
             float a0 = Mathf.Min(0f, dir * lw) + FrameW;
             float a1 = Mathf.Max(0f, dir * lw) - FrameW;
-            Sal(Group(g, "살"), 0f, a0, a1, -lh * 0.5f + FrameW, lh * 0.5f - FrameW, true);
+            const float WinSal = 0.016f;                       // 살 두께
+            const float WinOff = BarT * 1.6f * 0.5f - WinSal * 0.5f;
+            Sal(Group(g, "살"), -outward * WinOff, a0, a1, -lh * 0.5f + FrameW, lh * 0.5f - FrameW, true, WinSal);
+            Sal(Group(g, "살_밖"), outward * WinOff, a0, a1, -lh * 0.5f + FrameW, lh * 0.5f - FrameW, true, WinSal);
         }
 
         private static void Sal(Transform g, float fixedCoord, float a0, float a1,
-                                float v0, float v1, bool alongZ)
+                                float v0, float v1, bool alongZ, float barT = BarT)
         {
             int n = Mathf.Max(1, Mathf.RoundToInt((a1 - a0) / SalLeaf));
             float w = (a1 - a0) / n;
@@ -999,12 +1030,12 @@ namespace IMUNROK.Common.EditorTools
                 if (alongZ)
                 {
                     pos = horizontal ? new Vector3(fixedCoord, c.z, mid) : new Vector3(fixedCoord, mid, c.z);
-                    size = horizontal ? new Vector3(BarT, BarW, len + BarW) : new Vector3(BarT, len + BarW, BarW);
+                    size = horizontal ? new Vector3(barT, BarW, len + BarW) : new Vector3(barT, len + BarW, BarW);
                 }
                 else
                 {
                     pos = horizontal ? new Vector3(mid, c.z, fixedCoord) : new Vector3(c.z, mid, fixedCoord);
-                    size = horizontal ? new Vector3(len + BarW, BarW, BarT) : new Vector3(BarW, len + BarW, BarT);
+                    size = horizontal ? new Vector3(len + BarW, BarW, barT) : new Vector3(BarW, len + BarW, barT);
                 }
                 Box(g, (horizontal ? "가로살_" : "세로살_") + i, pos, size, _beam, false, null, 0f);
             }
