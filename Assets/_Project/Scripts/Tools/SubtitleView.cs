@@ -86,9 +86,19 @@ namespace IMUNROK.Common
         /// </summary>
         public static void SetReadingDistance(float distance, float verticalOffset = -0.28f)
         {
+            // <b>없어도 적어 둔다.</b> 자막판은 첫 Show 때 비로소 만들어지는데, 도구
+            // 익히기는 물건이 떠오르기 <b>전에</b> 자리를 잡아 둔다 — 그 사이에는
+            // _instance 가 없어서 여기서 조용히 돌아 나갔고, 그렇게 잡아 둔 자리는
+            // 없던 일이 되었다. 아무 말도 안 나오니 고쳐도 그대로인 것처럼 보인다.
+            _wantDistance = distance; _wantDrop = verticalOffset; _hasWantDistance = true;
             if (_instance == null || _instance._anchor == null) return;   // 없으면 만들지 않는다
             _instance._anchor.SetDistance(distance, verticalOffset);
         }
+
+        // 자막판이 생기기 전에 미리 시켜 둔 것들. 태어날 때 이대로 받아 든다.
+        private static bool _wantPinned;
+        private static bool _hasWantDistance;
+        private static float _wantDistance = 1.3f, _wantDrop = -0.28f;
 
         /// <summary>
         /// 자막을 <b>눈앞에 붙박는다</b> — 고개를 어디로 돌리든 늘 시야 한가운데.
@@ -99,6 +109,7 @@ namespace IMUNROK.Common
         /// </summary>
         public static void SetPinned(bool on)
         {
+            _wantPinned = on;                                             // 없어도 적어 둔다(위 참조)
             if (_instance == null || _instance._anchor == null) return;
             _instance._anchor.Pinned = on;
             if (on) _instance._anchor.Recenter();
@@ -126,6 +137,9 @@ namespace IMUNROK.Common
             _instance = this;
             _anchor = GetComponent<WorldHudAnchor>();
             if (_anchor == null) _anchor = gameObject.AddComponent<WorldHudAnchor>();
+            // 태어나기 전에 시켜 둔 것을 받아 든다
+            if (_hasWantDistance) _anchor.SetDistance(_wantDistance, _wantDrop);
+            _anchor.Pinned = _wantPinned;
             Build();
             SetVisible(false);
         }
