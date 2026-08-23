@@ -107,6 +107,15 @@ namespace IMUNROK.Common
         private void Begin()
         {
             if (_tool == null) return;
+
+            // 익히는 동안은 도구벨트를 허리 아래로 내린다.
+            //
+            // 벨트는 눈에서 0.6m, 자막은 1.3m 다. 벨트가 앞이므로 <b>고른 칸의 붉은
+            // 바탕이 자막 글씨를 덮는다</b> — "돋보기다. 작은 것을 크게 본다" 의 첫
+            // 두 글자가 붉은 판에 가려 안 읽혔다. 익히는 중에 읽어야 할 것은 자막이지
+            // 벨트가 아니다. 수첩을 펼 때 쓰던 것과 같은 장치다.
+            WorldHudAnchor.StowAll = true;
+
             Tint(0f);
             _step = -1;
             if (_moving != null) StopCoroutine(_moving);
@@ -164,6 +173,10 @@ namespace IMUNROK.Common
             }
             _learned = true;
 
+            // 마지막 한 마디까지 읽고 나면 벨트를 도로 올린다 — 방금 배운 것이
+            // 벨트에 들어가 앉는 것을 보아야 "손에 익혔다"가 눈으로 확인된다.
+            WorldHudAnchor.StowAll = false;
+
             if (!string.IsNullOrEmpty(_endWord) && _tool != null)
                 SubtitleView.Show(_tool.displayName, string.Format(_endWord, _tool.displayName), "(닫기)");
 
@@ -178,6 +191,9 @@ namespace IMUNROK.Common
 
         private void GoHome()
         {
+            // 도중에 그만두었을 수도 있다. 어느 길로 끝나든 벨트는 도로 올린다 —
+            // 안 그러면 익히기를 접은 뒤로 벨트가 영영 내려가 있다.
+            WorldHudAnchor.StowAll = false;
             if (_moving != null) StopCoroutine(_moving);
             _moving = StartCoroutine(HomeRoutine());
         }
