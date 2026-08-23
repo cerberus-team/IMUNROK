@@ -103,10 +103,17 @@ namespace IMUNROK.Gyeonu
             var mouse = Mouse.current;
             var kb = Keyboard.current;
             if (mouse == null || kb == null) return;
-            if (kb.escapeKey.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame)
+            if ((kb.escapeKey.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame) && target.CanExitFocus)
             {
                 ExitFocus();
                 return;
+            }
+            // 누르는 대상(암문 자물쇠) — 커서가 가리킨 곳으로 레이를 쏴 준다.
+            // 포커스 중에는 걷기 컨트롤러가 꺼져 커서 잠금이 풀려 있으므로 마우스로 직접 가리킬 수 있다.
+            if (mouse.leftButton.wasPressedThisFrame)
+            {
+                var cam = GetComponent<Camera>();
+                if (cam != null) target.HandleClick(cam.ScreenPointToRay(mouse.position.ReadValue()));
             }
             if (mouse.leftButton.isPressed)
             {
@@ -130,8 +137,8 @@ namespace IMUNROK.Gyeonu
                 GUI.Label(new Rect(0, Screen.height - 64f, Screen.width, 22f), status, stat);
             }
             // 하단 고정 안내(DebugToast.ShowPinned)가 뜨면 조작 힌트는 그 자리를 내준다
-            if (!DebugToast.PinnedActive)
-                GUI.Label(new Rect(0, Screen.height - 40f, Screen.width, 22f), "드래그: 돌리기   Esc/우클릭: 물러나기", hint);
+            if (!DebugToast.PinnedActive && !string.IsNullOrEmpty(target.FocusHint))
+                GUI.Label(new Rect(0, Screen.height - 40f, Screen.width, 22f), target.FocusHint, hint);
         }
 
         /// <summary>비네트 쿼드 준비 — 카메라 앞 0.4m, 화면을 덮는 크기. Sprites/Default(알파 블렌드)

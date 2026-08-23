@@ -69,6 +69,12 @@ namespace IMUNROK.Gyeonu
         [TextArea(1, 4)]
         public string journalText = "";
 
+        [Tooltip("채우면 획득 순간 GyeonuWorld에 이 플래그가 선다 (2026-08-23).\n" +
+                 "물건 자체가 곧 단서인 경우에 쓴다 — 예: C4 서책을 손에 넣으면 암문의 존재를 " +
+                 "알게 되므로 ammun_clue_found. 문·힌트 쪽은 플래그만 보면 되므로 " +
+                 "소지품 시스템을 몰라도 된다.")]
+        public string worldFlag = "";
+
         /// <summary>중복 판정용 키. itemId가 비어 있으면 에셋 이름으로 대신한다.</summary>
         public string Key => string.IsNullOrEmpty(itemId) ? name : itemId;
 

@@ -63,6 +63,10 @@ namespace IMUNROK.Gyeonu
                 Journal.Instance.AddClue(CaseId.Case3_Gyeonu, item.journalKey, text);
             }
 
+            // 물건 자체가 단서인 경우 — 획득 순간 세계 플래그를 세운다 (2026-08-23).
+            // 문·힌트 쪽은 플래그만 보므로 소지품 시스템을 몰라도 된다.
+            if (!string.IsNullOrEmpty(item.worldFlag)) GyeonuWorld.Set(item.worldFlag);
+
             Debug.Log($"[소지품] 획득: {item.displayName} ({item.Key})");
             Added?.Invoke(item);
             Changed?.Invoke();

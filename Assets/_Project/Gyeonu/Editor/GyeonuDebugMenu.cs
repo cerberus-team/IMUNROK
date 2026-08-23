@@ -68,6 +68,31 @@ namespace IMUNROK.Gyeonu.Editor
             Debug.Log("[디버그] 암문 단서 해제 — 물가가 다시 아무것도 아닌 곳이 된다");
         }
 
+        [MenuItem(Root + "암문 퍼즐 조건 충족 (C4 서책 + 밤)", priority = 410)]
+        static void GrantAmmunPuzzlePrereq()
+        {
+            var item = AssetDatabase.LoadAssetAtPath<InventoryItem>(
+                "Assets/_Project/Gyeonu/Resources/GyeonuItems/Item_C4_아버지유품서책.asset");
+            if (item != null) Inventory.Add(item);      // 획득하면 worldFlag(암문단서)가 함께 선다
+            else GyeonuWorld.Set(GyeonuWorld.F_암문단서);
+            GyeonuWorld.Night = true;
+            Debug.Log("[디버그] C4 서책 소지 + 밤 — 이제 암문을 조사하면 돌 자물쇠 퍼즐이 시작된다 (정답 1 1 1 2 2 1)");
+        }
+
+        [MenuItem(Root + "암문 자물쇠 풀린 것으로 (퍼즐 건너뛰기)", priority = 411)]
+        static void SolveAmmunPuzzle()
+        {
+            GyeonuWorld.Set(GyeonuWorld.F_암문퍼즐);
+            Debug.Log("[디버그] 암문 자물쇠 해제 — 조사하면 곧장 열린다");
+        }
+
+        [MenuItem(Root + "암문 자물쇠 되잠그기", priority = 412)]
+        static void RelockAmmunPuzzle()
+        {
+            GyeonuWorld.Set(GyeonuWorld.F_암문퍼즐, false);
+            Debug.Log("[디버그] 암문 자물쇠 되잠금 — 다시 풀어야 한다");
+        }
+
         [MenuItem(Root + "관아 개구멍 이야기 들음", priority = 408)]
         static void GrantGapHoleStory()
         {

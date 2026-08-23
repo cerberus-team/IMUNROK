@@ -38,6 +38,8 @@ namespace IMUNROK.Gyeonu
         /// <summary>오작교 교대 암문의 존재를 아는 단서를 얻었다 — 이때만(그리고 밤에만) 문틈 빛이 보인다.
         /// 길에는 아무 표시도 없다 — 위치는 단서 문서로 알아야 한다 (2026-08-20).</summary>
         public const string F_암문단서 = "ammun_clue_found";
+        /// <summary>오작교 암문의 돌 자물쇠(개미수열)를 풀었다 — 한 번 풀면 다시 풀 필요가 없다 (2026-08-23).</summary>
+        public const string F_암문퍼즐 = "ammun_puzzle_solved";
         /// <summary>마을 아이들에게 관아 담장 개구멍 이야기를 들었다 — 밤에만, 이 단서가 있어야
         /// 개구멍이 그냥 담장이 아니라 밀어서 여는 자리라는 걸 알아본다 (2026-08-21).
         /// 조건 미달이면 커서를 올려도 아무 반응이 없다 — 문인 줄도 모르는 상태다.</summary>

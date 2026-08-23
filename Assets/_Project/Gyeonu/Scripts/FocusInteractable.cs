@@ -61,6 +61,22 @@ namespace IMUNROK.Gyeonu
         /// <summary>포커스 중 스크롤/보조 입력 (부호 = 방향). 부품 전환 등에 쓴다 — 기본 무시.</summary>
         public virtual void HandleScroll(float direction) { }
 
+        /// <summary>
+        /// 포커스 중 클릭 (화면 좌표에서 쏜 카메라 레이). **눌러서 조작하는 대상**만 구현한다
+        /// (암문 자물쇠, 2026-08-23). 돌려 보는 대상(혼상·혼천의)은 기본 빈 구현 그대로 두면 된다.
+        ///
+        /// 포커스 중에는 걷기 컨트롤러가 꺼지면서 커서 잠금이 함께 풀리므로(DebugWalkController.OnDisable)
+        /// 데스크톱에서는 마우스로 직접 가리킬 수 있다. VR 리그로 갈아끼울 때는 컨트롤러
+        /// 포인터 레이를 그대로 이 함수에 넘기면 된다 — 대상 코드는 무수정.
+        /// </summary>
+        public virtual void HandleClick(Ray ray) { }
+
+        /// <summary>포커스 중 하단에 띄울 조작 안내. 대상마다 조작이 다르다.</summary>
+        public virtual string FocusHint => "드래그: 돌리기   Esc/우클릭: 물러나기";
+
+        /// <summary>지금 물러날 수 있는가. 연출이 도는 동안 막고 싶으면 false를 돌려준다.</summary>
+        public virtual bool CanExitFocus => true;
+
         /// <summary>포커스 중 하단에 띄울 상태 문구 (예: 조작 중인 고리 이름). null이면 생략.</summary>
         public virtual string FocusStatus => null;
 

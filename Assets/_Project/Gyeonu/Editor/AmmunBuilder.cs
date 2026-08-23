@@ -396,6 +396,12 @@ namespace IMUNROK.Gyeonu.Editor
 
             Debug.Log($"[암문] 서면 암문 완성 — 면 x{FaceX} / z {DoorCZ - DoorWidth * 0.5f}~{DoorCZ + DoorWidth * 0.5f} / " +
                       $"y {DoorBottom}~{DoorTop} / 통로 x{FaceX}~{PassInnerX}. 위치용 큐브 {killed}개 제거.");
+
+            // ── ⑩ 돌 자물쇠 퍼즐 (2026-08-23) ──
+            //   문짝을 새로 오려 냈으므로 버튼도 새 앞면에 맞춰 다시 앉혀야 한다.
+            //   퍼즐 쪽 빌더가 앞면을 다시 실측해 켜 이음매까지 맞춘다 — 여기서 함께 부른다.
+            AmmunPuzzleBuilder.Build();
+
             MarkDirty();
         }
 
@@ -775,8 +781,19 @@ namespace IMUNROK.Gyeonu.Editor
 
             float z0 = DoorCZ - DoorWidth * 0.5f, z1 = DoorCZ + DoorWidth * 0.5f;
 
-            // ── 1차: 문 사각형에 **걸치는** 바깥(−X)향 삼각형 후보 + 최외곽 x ──
+            // ── 1차: 문 사각형에 **걸치는** 삼각형 후보 + 최외곽 x ──
             //    걸치기만 해도 후보다 — 아래에서 사각형 경계로 잘라 낼 것이므로.
+            //
+            // ⚠️ **면 방향으로 거르지 않는다** (2026-08-23 수정). 예전에는 바깥(−X)향
+            //    삼각형만 후보로 삼았는데, 석축 앞면은 매끈한 판이 아니라 0.40m마다 물러나는
+            //    켜(course)라서 **켜와 켜 사이의 수평 턱**(법선 ±Y)과 돌과 돌 사이의
+            //    **세로 이음면**(법선 ±Z)이 걸러져 석축 쪽에 그대로 남았다.
+            //    문이 닫혀 있을 때는 앞면과 이어져 보이니 몰랐는데, 열고 나면 그 턱들이
+            //    **개구부를 가로지르는 가는 줄로 허공에 떠 있었다**
+            //    (2026-08-23 사용자 지적, y 1.019 / 1.404 / 1.723 / 2.186 / 2.572 / 2.972 / 3.353
+            //     일곱 줄 + 위쪽 모서리 세로 조각). 켜의 옆·윗면은 앞면과 한 덩이니 함께 뜯어야 한다.
+            //    깊이 제한(BandHalf)은 그대로라 석축이 속까지 뚫리지는 않는다.
+            //    최외곽 x 기준만은 여전히 **바깥향 삼각형**으로 잡는다 — 턱까지 섞으면 기준이 흔들린다.
             var cand = new HashSet<int>();
             float outerX = 999f;
             for (int t = 0; t < tris.Length; t += 3)
@@ -786,9 +803,9 @@ namespace IMUNROK.Gyeonu.Editor
                 var c = mtx.MultiplyPoint3x4(v[tris[t + 2]]);
                 if (Mathf.Min(a.z, Mathf.Min(b.z, c.z)) > z1 || Mathf.Max(a.z, Mathf.Max(b.z, c.z)) < z0) continue;
                 if (Mathf.Min(a.y, Mathf.Min(b.y, c.y)) > DoorTop || Mathf.Max(a.y, Mathf.Max(b.y, c.y)) < DoorBottom) continue;
-                var nr = Vector3.Cross(b - a, c - a).normalized;
-                if (Vector3.Dot(nr, Vector3.left) < 0.30f) continue;
                 cand.Add(t);
+                var nr = Vector3.Cross(b - a, c - a).normalized;
+                if (Vector3.Dot(nr, Vector3.left) < 0.30f) continue;      // 기준 x는 앞면만 본다
                 var g = (a + b + c) / 3f;
                 if (g.z >= z0 && g.z <= z1 && g.y >= DoorBottom && g.y <= DoorTop && g.x < outerX) outerX = g.x;
             }

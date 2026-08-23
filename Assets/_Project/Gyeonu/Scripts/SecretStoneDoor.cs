@@ -51,6 +51,13 @@ namespace IMUNROK.Gyeonu
         public string puzzleFlag = "";
         [TextArea] public string puzzleMessage = "돌에 손을 얹었지만 무엇을 어떻게 눌러야 할지 모르겠다.";
 
+        [Tooltip("실제 퍼즐 컴포넌트 (IDoorPuzzle 구현 — 예: AmmunLockPuzzle).\n" +
+                 "꽂혀 있으면 조건(단서·밤)을 다 갖췄을 때 **문이 열리는 대신 퍼즐이 시작된다.**\n" +
+                 "비워 두면 예전처럼 puzzleMessage만 뜬다.")]
+        public MonoBehaviour puzzle;
+
+        IDoorPuzzle Puzzle => puzzle as IDoorPuzzle;
+
         [Header("문구")]
         [TextArea] public string openMessage = "돌이 안으로 밀리더니 옆으로 미끄러진다. 어둠 속으로 계단이 이어진다.";
 
@@ -61,6 +68,8 @@ namespace IMUNROK.Gyeonu
         public string promptKnown = "문 열기";
         [Tooltip("이미 열린 뒤")]
         public string promptOpened = "들어가기";
+        [Tooltip("퍼즐이 꽂혀 있고 아직 못 풀었을 때 — 눌러도 열리지 않으므로 '문 열기'라고 하면 안 된다")]
+        public string promptPuzzle = "살펴보기";
 
         [Header("상태 유지")]
         [Tooltip("열린 상태를 기억할 GyeonuWorld 키")]
@@ -82,7 +91,11 @@ namespace IMUNROK.Gyeonu
 
         // 커서 문구는 **시간대와 무관**하다 (2026-08-20 사용자 지정).
         // 낮이라 못 여는 것은 눌러 봐야 아는 정보이므로 조준 단계에서 미리 알려 주지 않는다.
-        public override string Prompt => _open ? promptOpened : (Known ? promptKnown : promptUnknown);
+        public override string Prompt =>
+            _open ? promptOpened
+          : !Known ? promptUnknown
+          : (Puzzle != null && !PuzzleSolved) ? promptPuzzle
+          : promptKnown;
         public bool IsOpen => _open;
 
         /// <summary>퍼즐 쪽이 부를 진입점. 퍼즐이 없으면(플래그 비었으면) 할 일이 없다.</summary>
@@ -124,13 +137,22 @@ namespace IMUNROK.Gyeonu
                 return;
             }
 
-            // 퍼즐 자리 — 지금은 puzzleFlag가 비어 있어 그냥 통과한다.
+            // ③ 퍼즐 — 조건을 다 갖췄으면 문이 열리는 게 아니라 **퍼즐이 시작된다** (2026-08-23).
+            //    한 번 풀면 puzzleFlag가 세션에 남으므로 다음부터는 여기를 그냥 지나 곧장 열린다.
             if (!PuzzleSolved)
             {
+                if (Puzzle != null) { Puzzle.BeginPuzzle(actor); return; }
                 DebugToast.ShowPinned(puzzleMessage);
                 return;
             }
 
+            Open();
+        }
+
+        /// <summary>실제 개방 — 퍼즐이 풀렸을 때 퍼즐 쪽에서도 부른다.</summary>
+        public void Open()
+        {
+            if (_open) return;
             _open = true;
             GyeonuWorld.Set(openKey);
             if (revealed != null) revealed.SetActive(true);
