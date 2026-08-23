@@ -45,6 +45,10 @@ namespace IMUNROK.Common
         [Tooltip("과제를 해냈을 때 할 말. {0} 자리에 도구 이름이 들어간다")]
         [SerializeField] private string _practiceDone = "됐다. 이만하면 {0}은 손에 익었다.";
 
+        [Tooltip("들어 본 것을 내려놓을 때 할 말. {0} 자리에 도구 이름이 들어간다. " +
+                 "조사청에서 도구는 두고 가는 것이다 — 그 규칙이 말로 한 번 나와야 한다")]
+        [SerializeField] private string _putDownWord = "{0}은 여기 두고 간다. 사건에 나설 때 따로 챙겨 드리리다.";
+
         [Header("들어 올리기")]
         // 물건과 글이 <b>겹치면 안 된다</b> — 그런데 어느 쪽을 위로 둘지가 중요하다.
         //
@@ -162,6 +166,7 @@ namespace IMUNROK.Common
         {
             SubtitleView.OnClosed -= OnNoticeClosed;
             StopAwaiting();   // 씬을 떠나며 남긴 구독은 다음 씬에서 유령이 된다
+            if (_hefting) { _hefting = false; var b = ToolbeltHud.Instance; if (b != null && _tool != null) b.Revoke(_tool); }
         }
 
         private void Start()
@@ -229,7 +234,7 @@ namespace IMUNROK.Common
 
             // 차례를 쥐고 있는 동안은 놓임이 아니거나 과제를 기다리는 중이다.
             if (p != Phase.놓임) _busy = this;
-            else if (_busy == this && !_awaiting) _busy = null;
+            else if (_busy == this && !_awaiting && !_hefting) _busy = null;
         }
 
         /// <summary>
@@ -401,11 +406,70 @@ namespace IMUNROK.Common
                 return;
             }
 
+            // ── 들어 보기 ──
+            //
+            // 과제가 없는 도구(등불)는 여기서 끝났었다. 그런데 <b>끝내기만 했지
+            // 거두지를 않았다</b> — 위에서 벨트에 넣고 손에 쥐여 준 것이 그대로
+            // 남아, 익히고 나면 등불을 <b>들고 나가게</b> 되어 있었다. 거두는 일은
+            // 과제를 낸 쪽(<see cref="Finished"/>)에만 적혀 있었다.
+            //
+            // 조사청에서 손에 쥐는 것은 <b>써 보라는 뜻이지 가지라는 뜻이 아니다</b>.
+            // 그러니 마지막 마디는 둘로 나눈다: 한 번 <b>들어 보고</b>, 그다음
+            // <b>내려놓는다</b>. 들어 보는 동안 물건은 손에 있고 문갑의 것은 제자리로
+            // 돌아간다 — 지금 들고 있는 것이 곧 그 물건이기 때문이다.
             _learned = true;
-            if (!string.IsNullOrEmpty(_endWord) && _tool != null)
-                SubtitleView.Show(_tool.displayName, string.Format(_endWord, _tool.displayName), "(닫기)");
+            _hefting = true;
 
-            GoHome();
+            string nm = _tool != null ? _tool.displayName : "";
+            if (!string.IsNullOrEmpty(_endWord))
+                SubtitleView.Show(nm, string.Format(_endWord, nm), "(눌러서 내려놓는다)");
+
+            GoHome(release: false);   // 글은 아직 눈앞에 붙박여 있어야 한다
+            StartCoroutine(HeftThenPutDown());
+        }
+
+        /// <summary>들어 보는 중인가. 그동안은 차례를 놓지 않는다 — 손에 하나다.</summary>
+        private bool _hefting;
+
+        /// <summary>
+        /// 한 번 들어 보고 <b>내려놓는다</b>.
+        ///
+        /// 내려놓는 것이 이 방의 규칙이다. 사건에 나설 때 필요한 것은 그때 따로
+        /// 쥐여 주므로, 여기서 챙겨 나갈 까닭이 없다 — 무엇보다 이미 가진 도구는
+        /// <b>다시 익힐 수가 없다</b>. 튜토리얼은 몇 번이고 되풀이할 수 있어야 한다.
+        /// </summary>
+        private IEnumerator HeftThenPutDown()
+        {
+            float shown = Time.unscaledTime;
+            while (SubtitleView.IsShowing)
+            {
+#if ENABLE_INPUT_SYSTEM
+                var mouse = UnityEngine.InputSystem.Mouse.current;
+                if (mouse != null && mouse.leftButton.wasPressedThisFrame
+                    && Time.unscaledTime - shown > StepGuard && !PointerOnCloseTab()) break;
+#endif
+                yield return null;
+            }
+            PutDown();
+        }
+
+        /// <summary>손을 비운다 — 벨트에서도 뺀다. 어느 길로 끝나든 여기를 지난다.</summary>
+        private void PutDown()
+        {
+            if (!_hefting) return;
+            _hefting = false;
+
+            var belt = ToolbeltHud.Instance;
+            if (belt != null && _tool != null) belt.Revoke(_tool);
+
+            SubtitleView.SetPinned(false);
+            SubtitleView.SetReadingDistance(1.3f, -0.28f);
+
+            string nm = _tool != null ? _tool.displayName : "";
+            SubtitleView.Show(nm, string.Format(_putDownWord, nm), "(눌러서 마친다)");
+            StartCoroutine(DismissOnClick());
+
+            if (_busy == this && _phase == Phase.놓임) _busy = null;
         }
 
         /// <summary>낸 과제를 해냈다. 어느 도구를 썼는지로 가른다 — 남의 과제에 끼어들지 않게.</summary>
@@ -526,17 +590,24 @@ namespace IMUNROK.Common
                 if (_busy == this) _busy = null;
                 return;
             }
+            // 들어 보다 자막을 닫았다 — 그래도 물건은 내려놓는다. 닫았다고 가져가는
+            // 것이 되면, 이 방에서 나가는 가장 쉬운 길이 곧 도구를 챙기는 길이 된다.
+            if (_hefting) { PutDown(); return; }
             if (_phase == Phase.익히는중) GoHome();
         }
 
-        private void GoHome()
+        private void GoHome(bool release = true)
         {
             // 도중에 그만두었을 수도 있다. 어느 길로 끝나든 벨트는 도로 올리고
             // 자막도 제자리로 돌린다 — 안 그러면 익히기를 접은 뒤로 벨트가 영영
             // 내려가 있고 자막도 발치에 깔린 채로 남는다.
             WorldHudAnchor.StowAll = false;
-            SubtitleView.SetReadingDistance(1.3f, -0.28f);
-            SubtitleView.SetPinned(false);   // 방을 둘러보는 동안에는 도로 늦게 따라온다
+            // 들어 보는 동안에는 아직 놓아 주지 않는다 — 손에 물건이 있고 읽을 글이 남았다.
+            if (release)
+            {
+                SubtitleView.SetReadingDistance(1.3f, -0.28f);
+                SubtitleView.SetPinned(false);   // 방을 둘러보는 동안에는 도로 늦게 따라온다
+            }
 
             // 받은 종이는 익히기가 <b>끝날 때까지</b> 내려놓을 것이 아니다.
             //
