@@ -85,7 +85,17 @@ namespace IMUNROK.Common
         /// 알기도 전에 끝나 버린다. 손이 두 번 튀거나 끌던 손을 놓기만 해도 두 마디가
         /// 지나간다. 읽을 시간은 주고 넘겨야 읽은 것이 된다.
         /// </summary>
-        private const float StepGuard = 0.9f;
+        private const float StepGuard = 1.4f;
+
+        // ── 고개로 넘기기 ──
+        // 들여다보는 자세는 <b>아래를 보는 것</b>이고, 다 보았다는 신호는
+        // <b>고개를 드는 것</b>이다. 말로 시키지 않아도 몸이 먼저 아는 신호다.
+        /// <summary>이보다 아래를 보고 있으면 들여다보는 중으로 친다(도).</summary>
+        private const float LookDownAngle = 14f;
+        /// <summary>눈이 이보다 위로 올라오면 다 본 것으로 친다(도).</summary>
+        private const float LookUpAngle = 2f;
+        /// <summary>이만큼(초)을 기다려도 안 들면 그냥 넘긴다.</summary>
+        private const float LookUpPatience = 25f;
 
         /// <summary>생성기가 씬을 짤 때 채운다.</summary>
         public ToolDef Tool { get => _tool; set => _tool = value; }
@@ -362,7 +372,12 @@ namespace IMUNROK.Common
                 // 물건에 눈이 따라가 종이가 펴진 것을 못 본다.
                 if (_example != null) _example.OpenNow();
 
-                GoHome();
+                // 물건은 <b>문갑으로 돌아가지 않는다</b>.
+                //
+                // 받아서 쓰는 물건인데 도로 제자리로 날아가면, 준 것이 아니라 잠깐
+                // 보여 준 것이 된다. 손으로 건너간다 — 눈앞의 물건이 손에 드는 자리로
+                // 옮겨 가며 사라지고, 그 자리에 벨트의 도구가 들린다.
+                HandOver();
                 return;
             }
 
@@ -379,6 +394,48 @@ namespace IMUNROK.Common
             if (!_awaiting || _tool == null || toolId != _tool.id) return;
             StopAwaiting();
             _learned = true;
+
+            // 여기서 곧바로 끝내지 않는다.
+            //
+            // 찾아낸 것이 종이에 떠오른 그 순간에 종이를 걷고 축하부터 하면, 정작
+            // <b>무엇을 찾았는지 읽을 틈이 없다</b>. 도구를 쓰는 일은 아래를 들여다보는
+            // 일이고, 다 보았다는 신호는 <b>고개를 드는 것</b>이다. 그때까지 기다린다.
+            StartCoroutine(WaitForLookUp());
+            return;
+        }
+
+        /// <summary>
+        /// 찾아낸 것을 다 읽고 <b>고개를 들 때까지</b> 기다린다.
+        ///
+        /// 아래를 보고 있어야 시작하고(그것이 들여다보는 자세다), 눈이 수평으로
+        /// 올라오면 다 본 것으로 친다. 한참을 안 들면 그냥 넘긴다 —
+        /// 고개를 안 드는 사람을 영영 붙들어 둘 수는 없다.
+        /// </summary>
+        private IEnumerator WaitForLookUp()
+        {
+            var cam = Camera.main;
+            SubtitleView.Show(_tool != null ? _tool.displayName : "",
+                              "찾았소. 다 보았거든 고개를 드시오.", "(고개를 들면 넘어간다)");
+
+            float waited = 0f;
+            bool lookedDown = false;
+            while (cam != null && waited < LookUpPatience)
+            {
+                waited += Time.unscaledDeltaTime;
+                float pitch = cam.transform.eulerAngles.x;
+                if (pitch > 180f) pitch -= 360f;          // 350도는 -10도다
+                if (pitch > LookDownAngle) lookedDown = true;
+                if (lookedDown && pitch < LookUpAngle) break;
+                yield return null;
+            }
+
+            Finished();
+        }
+
+        /// <summary>고개를 들었다 — 종이를 걷고 손을 비우고 한마디 한다.</summary>
+        private void Finished()
+        {
+            if (_tool == null) return;
 
             // 해냈으면 종이를 <b>거둔다</b>. 다 본 종이가 눈앞에 그대로 떠 있으면
             // 무엇이 끝난 것인지가 안 보인다 — 치우는 것이 곧 "됐다"는 말이다.
@@ -409,6 +466,60 @@ namespace IMUNROK.Common
         private void OnNoticeClosed()
         {
             if (_phase == Phase.익히는중) GoHome();
+        }
+
+        /// <summary>
+        /// 눈앞의 물건을 <b>손으로 넘긴다</b> — 문갑으로 되돌리지 않는다.
+        ///
+        /// 손에 드는 자리(HeldToolModel 이 붙은 곳)로 옮겨 가며 사라지고, 그 자리에
+        /// 벨트가 내준 진짜 도구가 들린다. 그래야 <b>받은</b> 것이 된다.
+        /// 문갑 위의 이 물건은 그 뒤로 없다 — 가져갔으니 없는 것이 맞다.
+        /// 다시 익히고 싶으면 벨트에서 꺼내 쓰면 된다.
+        /// </summary>
+        private void HandOver()
+        {
+            WorldHudAnchor.StowAll = false;
+            SubtitleView.SetReadingDistance(1.3f, -0.28f);
+            if (_moving != null) StopCoroutine(_moving);
+            _moving = StartCoroutine(HandOverRoutine());
+        }
+
+        private IEnumerator HandOverRoutine()
+        {
+            SetPhase(Phase.내려가는중);
+
+            // 손에 드는 자리를 찾는다. 없으면 그냥 눈 아래로 내려 보낸다.
+            Vector3 target = transform.position;
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                target = cam.transform.position + cam.transform.forward * 0.35f - cam.transform.up * 0.22f;
+                foreach (var h in cam.GetComponentsInChildren<HeldToolModel>(true))
+                    if (_tool != null && h.ToolId == _tool.id) { target = h.transform.position; break; }
+            }
+
+            Vector3 from = transform.position;
+            Vector3 fromScale = transform.localScale;
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.deltaTime / Mathf.Max(0.01f, _liftSeconds);
+                float e = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
+                transform.position = Vector3.Lerp(from, target, e);
+                transform.localScale = Vector3.Lerp(fromScale, fromScale * 0.15f, e);
+                yield return null;
+            }
+
+            // 자리는 제집으로 돌려놓되 <b>보이지 않게</b> 둔다. 지우지 않는 까닭은
+            // 익히기가 이 물건에 붙어 있고, 예시 증거도 여기서 붙들고 있기 때문이다.
+            transform.position = _homePos;
+            transform.rotation = _homeRot;
+            transform.localScale = fromScale;
+            foreach (var r in _renderers) if (r != null) r.enabled = false;
+            var col = GetComponent<Collider>(); if (col != null) col.enabled = false;
+
+            SetPhase(Phase.놓임);
+            _moving = null;
         }
 
         private void GoHome()
