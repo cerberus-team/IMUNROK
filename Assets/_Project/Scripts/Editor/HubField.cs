@@ -16,12 +16,27 @@ namespace IMUNROK.Common.EditorTools
     ///
     /// 그래서 정원을 <b>끄고</b>(지우지 않는다) 평지 한 장에 나무·돌·꽃을 흩뿌린다.
     ///
-    /// <b>무엇을 심나</b>: 받아 둔 두 꾸러미에서 가벼운 것을 고른다.
-    ///   · 나무 — 사시나무(2,084)가 압도적으로 싸다. 곰솔·버드나무를 몇 그루만 섞어 결을 낸다.
-    ///     단풍은 한 그루에 42,734 라 멀리 두어도 값이 크다.
-    ///   · 돌 — 작은 것(576·1,818)을 많이, 큰 것(9,520)은 하나만.
-    ///   · 꽃 — 해당화가 40,540 이라 <b>가까이에만</b> 몇 포기 둔다. 어차피 꽃은
-    ///     멀리서 보이지도 않는다. 나머지 바닥은 쑥·수염풀로 덮는다(1,486·1,985).
+    /// <b>무엇을 심나</b>: Fristy 꾸러미로 갈아탔다. 앞서 쓰던 문화재 꾸러미보다
+    /// 자릿수가 다르게 가볍고, 스타일라이즈라 결도 하나로 간다.
+    ///
+    ///   갈래   Fristy        앞서 쓰던 것
+    ///   나무   8,607~13,016  단풍 42,734 · 곰솔 17,331
+    ///   바위     276~1,198   576~9,520
+    ///   꽃       228~416     해당화 40,540   ← <b>백 분의 일</b>
+    ///   풀        16~96      억새 5,968 · 쑥 1,486
+    ///
+    /// 꽃과 풀이 거의 공짜라, 여태 못 하던 <b>촘촘하게</b>가 된다. 앞서는 나무 스물에
+    /// 꽃 다섯이었는데 그것으로 53만이었다. 이제 그보다 훨씬 배게 심고도 그 아래다.
+    ///
+    /// 렌더러 수도 본다. 한 프리팹이 렌더러 스물셋인 것도 있는데(Tree_Prefab_2),
+    /// 삼각형은 같아도 드로우콜이 스물셋이다. 렌더러가 적은 쪽을 고른다.
+    ///
+    /// <b>건물을 기점으로 켜를 나눈다</b>: 조사청에서 멀어질수록 심는 것이 달라진다.
+    ///   · 8~16m  풀과 꽃만. 집이 맨땅에 놓이지 않고 <b>풀 속에</b> 앉는다.
+    ///   · 14~40m 거기에 바위와 덤불이 섞인다.
+    ///   · 26~76m 나무가 선다. 멀리 갈수록 나무만 남아 숲 가장자리가 된다.
+    /// 갈래마다 <b>서로 얼마나 붙어도 되는지</b>가 다르다(minGap) — 풀은 1.1m 까지
+    /// 붙어도 되고 나무는 7m 는 떨어져야 한다. 한 값으로 재면 풀이 성기거나 나무가 겹친다.
     ///
     /// <b>흩뿌리기는 제자리를 지킨다</b>: 씨앗을 박아 둔 난수라 몇 번을 다시 깔아도
     /// 같은 자리에 같은 것이 선다. 눈으로 맞춰 놓고 다시 눌렀더니 딴 데 가 있으면
@@ -38,40 +53,53 @@ namespace IMUNROK.Common.EditorTools
         private static readonly Vector3 Center = new Vector3(70.13f, 0f, 283.33f);
         private const float GroundY = 136.95f;   // 기단이 앉는 높이
         private const float Ground = 190f;       // 평지 한 변(m)
-        private const float Clear = 14f;         // 조사청 둘레 이 안에는 아무것도 없다
-        private const float Far = 78f;           // 이보다 멀리는 안 심는다(어차피 안 보인다)
+        private const float Clear = 8f;          // 조사청 둘레 이 안에는 아무것도 없다(마당)
+        private const float Far = 76f;           // 이보다 멀리는 안 심는다(어차피 안 보인다)
         private const int Seed = 20260823;
 
         private const string GroundMatPath = "Assets/_Project/_Common/Materials/M_조사청_들판.mat";
 
-        /// <summary>심을 것 — 경로·개수·크기 범위·안쪽 반지름.</summary>
+        /// <summary>심을 것 — 경로·개수·거리·크기·서로 떨어질 거리.</summary>
         private class Plant
         {
             public string path;
             public int count;
             public float rMin, rMax;      // 조사청에서 이 거리 사이에
             public float sMin, sMax;      // 크기 흔들기
+            public float gap;             // 다른 것과 이만큼은 떨어진다(m)
             public string group;
         }
 
+        private const string F = "Assets/Fristy stylize Modular Assets 2/Prefabs/";
+
         private static readonly Plant[] Kinds =
         {
-            // 나무 — 싼 것을 많이, 비싼 것을 조금
-            new Plant{ path="Assets/Soswaewon/Prefabs/Environments/SM_Aspen.prefab",   count=14, rMin=18f, rMax=Far, sMin=0.75f, sMax=1.25f, group="나무" },
-            new Plant{ path="Assets/Coastal_Dune_Pack/Meshes/SM_Black_Pine.fbx",       count=4,  rMin=20f, rMax=60f, sMin=0.70f, sMax=1.10f, group="나무" },
-            new Plant{ path="Assets/Soswaewon/Prefabs/Environments/SM_Willow.prefab",  count=2,  rMin=22f, rMax=45f, sMin=0.80f, sMax=1.05f, group="나무" },
+            // ── 나무 — 값이 나가는 쪽이므로 멀리, 성기게 ──
+            new Plant{ path=F+"3_1_Tree.prefab", count=12, rMin=26f, rMax=Far, sMin=0.80f, sMax=1.35f, gap=7f,  group="나무" },
+            new Plant{ path=F+"3_2_Tree.prefab", count=10, rMin=30f, rMax=Far, sMin=0.75f, sMax=1.25f, gap=8f,  group="나무" },
+            new Plant{ path=F+"3_3_Tree.prefab", count=8,  rMin=34f, rMax=Far, sMin=0.70f, sMax=1.15f, gap=9f,  group="나무" },
 
-            // 돌 — 작은 것이 여럿, 큰 것은 하나
-            new Plant{ path="Assets/Soswaewon/Prefabs/Props/SM_Rock01d.prefab", count=12, rMin=15f, rMax=55f, sMin=0.6f, sMax=1.6f, group="돌" },
-            new Plant{ path="Assets/Soswaewon/Prefabs/Props/SM_Rock01c.prefab", count=6,  rMin=16f, rMax=50f, sMin=0.7f, sMax=1.4f, group="돌" },
-            new Plant{ path="Assets/Soswaewon/Prefabs/Props/SM_Rock01b.prefab", count=3,  rMin=18f, rMax=42f, sMin=0.8f, sMax=1.3f, group="돌" },
-            new Plant{ path="Assets/Soswaewon/Prefabs/Props/SM_Rock01a.prefab", count=1,  rMin=26f, rMax=38f, sMin=0.9f, sMax=1.1f, group="돌" },
+            // ── 바위 — 싸다(276~1,198). 크고 작은 것을 섞어 켜를 만든다 ──
+            new Plant{ path=F+"2_Rock.prefab",   count=6,  rMin=22f, rMax=60f, sMin=0.55f, sMax=1.10f, gap=6f,  group="바위" },
+            new Plant{ path=F+"4_Rock_2.prefab", count=10, rMin=16f, rMax=52f, sMin=0.60f, sMax=1.30f, gap=4f,  group="바위" },
+            new Plant{ path=F+"4_Rock_1.prefab", count=14, rMin=14f, rMax=48f, sMin=0.60f, sMax=1.40f, gap=3f,  group="바위" },
+            new Plant{ path=F+"4_Rock.prefab",   count=16, rMin=13f, rMax=46f, sMin=0.55f, sMax=1.35f, gap=3f,  group="바위" },
+            new Plant{ path=F+"3_Rock_1.prefab", count=18, rMin=12f, rMax=44f, sMin=0.50f, sMax=1.30f, gap=2.4f, group="바위" },
+            new Plant{ path=F+"3_Rock_3.prefab", count=16, rMin=12f, rMax=42f, sMin=0.50f, sMax=1.30f, gap=2.4f, group="바위" },
+            new Plant{ path=F+"3_Rock_4.prefab", count=14, rMin=12f, rMax=40f, sMin=0.50f, sMax=1.25f, gap=2.4f, group="바위" },
 
-            // 꽃 — 해당화는 비싸다. 눈에 드는 데만.
-            new Plant{ path="Assets/Coastal_Dune_Pack/Meshes/SM_Lugose.fbx",           count=5,  rMin=15f, rMax=26f, sMin=0.8f, sMax=1.3f, group="꽃" },
-            new Plant{ path="Assets/Coastal_Dune_Pack/Meshes/SM_Eulalia.fbx",          count=10, rMin=16f, rMax=48f, sMin=0.8f, sMax=1.5f, group="풀" },
-            new Plant{ path="Assets/Coastal_Dune_Pack/Meshes/SM_Artemisia.fbx",        count=26, rMin=15f, rMax=52f, sMin=0.7f, sMax=1.5f, group="풀" },
-            new Plant{ path="Assets/Coastal_Dune_Pack/Meshes/SM_Anthephoroides.fbx",   count=22, rMin=15f, rMax=52f, sMin=0.7f, sMax=1.6f, group="풀" },
+            // ── 꽃 — 228·416 이라 마음껏 심는다. 집 가까이가 제일 촘촘하다 ──
+            new Plant{ path=F+"Purple Plant Variant.prefab", count=46, rMin=8f,  rMax=30f, sMin=0.70f, sMax=1.50f, gap=1.5f, group="꽃" },
+            new Plant{ path=F+"White Plant Variant.prefab",  count=42, rMin=8f,  rMax=32f, sMin=0.70f, sMax=1.50f, gap=1.5f, group="꽃" },
+            new Plant{ path=F+"Plant_1 Variant.prefab",      count=34, rMin=9f,  rMax=36f, sMin=0.70f, sMax=1.40f, gap=1.6f, group="꽃" },
+            new Plant{ path=F+"Plant_3 Variant.prefab",      count=22, rMin=12f, rMax=40f, sMin=0.60f, sMax=1.20f, gap=2.2f, group="꽃" },
+
+            // ── 풀 — 16~96 삼각형. 여기서 촘촘함이 나온다 ──
+            new Plant{ path=F+"1_Grass_2.prefab",        count=150, rMin=8f,  rMax=52f, sMin=0.70f, sMax=1.80f, gap=1.1f, group="풀" },
+            new Plant{ path=F+"5_Weed 1.prefab",         count=90,  rMin=9f,  rMax=48f, sMin=0.70f, sMax=1.70f, gap=1.3f, group="풀" },
+            new Plant{ path=F+"5_Weed 2 Variant.prefab", count=80,  rMin=9f,  rMax=46f, sMin=0.70f, sMax=1.70f, gap=1.3f, group="풀" },
+            new Plant{ path=F+"5_Weed_7  Variant.prefab",count=70,  rMin=10f, rMax=44f, sMin=0.70f, sMax=1.60f, gap=1.4f, group="풀" },
+            new Plant{ path=F+"6_Weed Variant.prefab",   count=60,  rMin=10f, rMax=42f, sMin=0.70f, sMax=1.60f, gap=1.5f, group="풀" },
         };
 
         [MenuItem("이문록/조사청/바깥 들판 깔기")]
@@ -135,7 +163,9 @@ namespace IMUNROK.Common.EditorTools
             var rng = new System.Random(Seed);
             var groups = new Dictionary<string, Transform>();
             long tris = 0;
-            var taken = new List<Vector2>();
+            // (x, z, 이 자리가 요구하는 간격). 간격이 갈래마다 다르므로 자리마다 들고 다닌다 —
+            // 풀 곁에 나무가 서는 것은 되지만, 나무 곁에 나무가 서면 안 된다.
+            var taken = new List<Vector3>();
 
             foreach (var k in Kinds)
             {
@@ -163,8 +193,8 @@ namespace IMUNROK.Common.EditorTools
                 for (int i = 0; i < k.count; i++)
                 {
                     Vector2 p;
-                    if (!Spot(rng, k.rMin, k.rMax, taken, out p)) continue;
-                    taken.Add(p);
+                    if (!Spot(rng, k.rMin, k.rMax, k.gap, taken, out p)) continue;
+                    taken.Add(new Vector3(p.x, p.y, k.gap));
 
                     var inst = (GameObject)PrefabUtility.InstantiatePrefab(src, g);
                     inst.transform.position = new Vector3(Center.x + p.x, GroundY, Center.z + p.y);
@@ -185,20 +215,27 @@ namespace IMUNROK.Common.EditorTools
         /// 심을 자리 하나. 조사청 둘레와 앞길을 비우고, 이미 심은 것과 너무 붙지 않게 한다.
         /// 스무 번 굴려도 자리를 못 찾으면 그 그루는 건너뛴다 — 억지로 밀어 넣으면 겹친다.
         /// </summary>
-        private static bool Spot(System.Random rng, float rMin, float rMax, List<Vector2> taken, out Vector2 p)
+        private static bool Spot(System.Random rng, float rMin, float rMax, float gap,
+                                 List<Vector3> taken, out Vector2 p)
         {
-            for (int tries = 0; tries < 20; tries++)
+            for (int tries = 0; tries < 40; tries++)
             {
                 float a = (float)rng.NextDouble() * Mathf.PI * 2f;
                 float r = Mathf.Lerp(Mathf.Max(rMin, Clear), rMax, Mathf.Sqrt((float)rng.NextDouble()));
                 p = new Vector2(Mathf.Cos(a) * r, Mathf.Sin(a) * r);
 
                 // 앞길 — 남쪽으로 난 길목은 비워 둔다. 나무가 길을 막으면 나갈 데가 없어 보인다.
-                if (Mathf.Abs(p.x) < 6f && p.y < 0f) continue;
+                if (Mathf.Abs(p.x) < 4.5f && p.y < 0f) continue;
 
+                // 두 자리가 요구하는 간격 가운데 <b>큰 쪽</b>을 지킨다. 작은 쪽으로 재면
+                // 풀이 요구한 1.1m 만 띄우고 나무가 나무 옆에 선다.
                 bool clash = false;
                 foreach (var q in taken)
-                    if ((q - p).sqrMagnitude < 9f) { clash = true; break; }   // 3m 안에 겹치지 않게
+                {
+                    float need = Mathf.Max(gap, q.z);
+                    float dx = q.x - p.x, dy = q.y - p.y;
+                    if (dx * dx + dy * dy < need * need) { clash = true; break; }
+                }
                 if (!clash) return true;
             }
             p = Vector2.zero;
