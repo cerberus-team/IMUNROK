@@ -400,6 +400,31 @@ function Draw-Doc($g, $doc, $w, $h, $fontName, $rng) {
         $ci++
     }
 
+    # A sheet slipped between the layers of the backing paper. Nothing shows on the
+    # face; hold the sheet against a lamp and its shadow gathers into letters.
+    #
+    # Bake it as a second file of the same document (same seed, same columns) with
+    # this field added - the game cross-fades that file in over the plain one while
+    # the lantern is up. Painted faint and warm because it is being seen *through*
+    # the paper, not on it: the fibres eat most of the contrast and the flame
+    # pushes what is left toward amber.
+    $hidden = Get-Field $doc 'hidden' $null
+    if ($hidden) {
+        $faint  = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(120, 92, 56, 28))
+        $faint2 = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(88, 108, 68, 36))
+        $hFont  = New-Face $fontName ($fontSize * 0.86) ([System.Drawing.FontStyle]::Regular)
+        # Left margin - the visible columns march right to left from $startX, so the
+        # far left is the one band they never reach on a short document.
+        $hx = 108 + ($colStep * 0.45)
+        $hi = 0
+        foreach ($col in $hidden) {
+            Paint-Column $g $col $hFont ($hx + $hi * $colStep) ($startY + 46) ($charStep * 0.86) $faint $faint2 4 $rng | Out-Null
+            $hi++
+        }
+        $hFont.Dispose(); $faint.Dispose(); $faint2.Dispose()
+        Write-Host ("  {0}: + hidden, {1} cols" -f $doc.file, $hidden.Count)
+    }
+
     Paint-Seal $g (Get-Field $doc 'seal' '') 132 ($h - 262) 118 $fontName $rng
 
     $titleFont.Dispose(); $bodyFont.Dispose(); $ink.Dispose(); $inkSoft.Dispose()

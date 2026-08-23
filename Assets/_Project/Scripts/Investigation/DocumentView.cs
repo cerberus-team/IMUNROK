@@ -58,11 +58,27 @@ namespace IMUNROK.Common
         private Text _fine;
         private Text _hint;
 
+        // ── 등불에 비추기 ──
+        // 돋보기가 <b>이미 그려진 것을 알아보는</b> 도구라면, 등불은 <b>없던 것을
+        // 불러내는</b> 도구다. 배접 속에 숨긴 글, 밀랍으로 눌러 쓴 자국, 물에 지운 먹.
+        // 그래서 여기서는 종이에 손을 대도 된다 — 잔글씨와 달리 이 글자는 원래
+        // 종이에 그려져 있지 않았다.
+        private Image _glow;          // 종이 뒤에서 비쳐 드는 불빛
+        private RawImage _pageLit;    // 빛에 드러난 종이 면(있으면 겹쳐 배어 나온다)
+        private Text _lit;            // 빛에 드러난 것 — 종이 아래에
+
         private System.Action _onRead;
         private string _finePrint = "";
         private bool _readDone;
         private float _readProgress;
         private float _sinceRead;
+
+        private System.Action _onLit;
+        private string _litPrint = "";
+        private Texture _litTexture;
+        private bool _litDone;
+        private float _litProgress;
+        private float _sinceLit;
         private Vector2 _tilt;            // 손목으로 종이를 기울인 정도
         private Vector2 _spin;            // 끌어서 돌린 정도(가로·세로)
         private bool _dragging;
@@ -78,8 +94,12 @@ namespace IMUNROK.Common
         /// <param name="body">맨눈으로도 아는 것</param>
         /// <param name="finePrint">돋보기로 들여다봐야 알아지는 것. 다 읽으면 종이 아래에 뜬다</param>
         /// <param name="onRead">다 읽었을 때 한 번</param>
+        /// <param name="litPage">등불에 비추면 배어 나오는 종이 면(선택). 원래 면 위로 겹쳐 든다</param>
+        /// <param name="litPrint">등불에 비춰야 드러나는 것. 다 드러나면 종이 아래에 뜬다</param>
+        /// <param name="onLit">다 드러났을 때 한 번</param>
         public static void Show(Texture page, string title, string body,
-                                string finePrint = null, System.Action onRead = null, bool dim = false)
+                                string finePrint = null, System.Action onRead = null, bool dim = false,
+                                Texture litPage = null, string litPrint = null, System.Action onLit = null)
         {
             if (_instance == null)
             {
@@ -93,7 +113,7 @@ namespace IMUNROK.Common
             }
             // 읽는 자리는 하나뿐이다. 수첩이나 개요가 펴져 있으면 그쪽이 닫힌다.
             ReadingFocus.Claim(ReadingFocus.Panel.Document, Hide);
-            _instance.ShowInternal(page, title, body, finePrint, onRead, dim);
+            _instance.ShowInternal(page, title, body, finePrint, onRead, dim, litPage, litPrint, onLit);
         }
 
         public static void Hide()
@@ -155,7 +175,43 @@ namespace IMUNROK.Common
             }
             var cb = _instance._onRead;
             if (cb != null) cb();
+            ToolPractice.Done("magnify");
         }
+
+        /// <summary>
+        /// 등불이 종이를 비추는 중. 진행도가 1을 넘으면 숨은 것이 다 배어 나온다.
+        ///
+        /// <see cref="Reading"/> 와 같은 꼴로 두었다. 도구가 둘인데 쓰는 법이 서로
+        /// 다르면 하나를 익혀도 다른 하나를 또 처음부터 익혀야 한다 — <b>대고 기다린다</b>
+        /// 하나로 통일해 두면, 다음에 팀원이 도구를 하나 더 얹어도 같은 손짓으로 쓴다.
+        /// </summary>
+        public static void Lighting(float progress)
+        {
+            if (_instance == null || !IsOpen) return;
+            _instance._litProgress = progress;
+            _instance._sinceLit = 0f;
+            if (progress < 1f || _instance._litDone) return;
+
+            _instance._litDone = true;
+            if (_instance._litTexture != null && _instance._pageLit != null)
+            {
+                _instance._pageLit.texture = _instance._litTexture;
+                _instance._pageLit.enabled = true;
+            }
+            if (!string.IsNullOrEmpty(_instance._litPrint))
+            {
+                _instance._lit.text = _instance._litPrint;
+                _instance._lit.gameObject.SetActive(true);
+            }
+            var cb = _instance._onLit;
+            if (cb != null) cb();
+            ToolPractice.Done("lantern");
+        }
+
+        /// <summary>이 종이에 등불로 볼 것이 남아 있나. 안내 글줄을 고를 때 쓴다.</summary>
+        public static bool HasBacklight
+            => _instance != null && IsOpen && !_instance._litDone
+               && (_instance._litTexture != null || !string.IsNullOrEmpty(_instance._litPrint));
 
         private void Awake()
         {
@@ -178,7 +234,8 @@ namespace IMUNROK.Common
         private void OnDestroy() { if (_instance == this) { _instance = null; IsOpen = false; } }
 
         private void ShowInternal(Texture page, string title, string body,
-                                  string finePrint, System.Action onRead, bool dim)
+                                  string finePrint, System.Action onRead, bool dim,
+                                  Texture litPage, string litPrint, System.Action onLit)
         {
             // 수첩에서 꺼내 든 것은 <b>어둠 위에</b> 놓는다. 방을 보며 조사하는 중이 아니라
             // 앉아서 물건 하나를 뜯어보는 중이므로, 둘레가 비면 그 하나에만 눈이 간다.
@@ -196,6 +253,10 @@ namespace IMUNROK.Common
                 _pageRt.sizeDelta = size;
                 _backFace.rectTransform.sizeDelta = size;
                 _edge.rectTransform.sizeDelta = size + new Vector2(10f, 10f);
+                // 불빛은 종이보다 조금 넓게 번진다. 딱 맞으면 종이가 켜진 것이 되고,
+                // 넘쳐야 종이 <b>뒤에서</b> 비쳐 드는 것이 된다.
+                _glow.rectTransform.sizeDelta = size + new Vector2(58f, 58f);
+                _pageLit.rectTransform.sizeDelta = size;
                 _page.enabled = true;
                 _edge.enabled = true;
             }
@@ -221,8 +282,26 @@ namespace IMUNROK.Common
             _spin = Vector2.zero;
             _dragging = false;
 
+            _litPrint = string.IsNullOrEmpty(litPrint) ? "" : litPrint;
+            _litTexture = litPage;
+            _onLit = onLit;
+            _litDone = false;
+            _litProgress = 0f;
+            _sinceLit = 99f;
+            _lit.text = "";
+            _lit.gameObject.SetActive(false);
+            _pageLit.texture = null;
+            _pageLit.enabled = false;
+            _glow.color = new Color(_glow.color.r, _glow.color.g, _glow.color.b, 0f);
+
+            // 안내는 <b>남은 일 하나만</b> 짚는다. 두 도구를 한 줄에 늘어놓으면 둘 다
+            // 지금 해야 하는 것처럼 읽혀, 아무것도 안 해도 되는 종이 앞에서도 헤맨다.
+            // IsOpen 이 아직 false 라 HasBacklight 를 못 쓴다 — 방금 넣은 값으로 직접 본다.
+            bool hasLit = litPage != null || !string.IsNullOrEmpty(litPrint);
             _hint.text = hasFine
                 ? "끌어서 돌려 볼 수 있다 · 잔글씨는 돋보기를 눈에 대고(오른쪽 단추)"
+                : hasLit
+                ? "끌어서 돌려 볼 수 있다 · 등불을 들면 종이가 빛을 먹는다"
                 : "끌어서 돌려 볼 수 있다 · (Esc — 내려놓기)";
 
             SetVisible(true);
@@ -314,6 +393,29 @@ namespace IMUNROK.Common
             else if (_sinceRead < 0.25f && _readProgress > 0.05f)
                 _hint.text = "읽는 중… " + Mathf.RoundToInt(Mathf.Clamp01(_readProgress) * 100f) + "%";
 
+            // ── 등불 ──
+            // 불빛은 <b>진행도를 따라 밝아지되 꺼질 때는 천천히</b> 진다. 손이 조금
+            // 흔들려 등불이 잠깐 어긋날 때마다 종이가 껌뻑이면 등불을 든 것이 아니라
+            // 스위치를 누르는 것이 된다.
+            _sinceLit += Time.deltaTime;
+            bool lighting = _sinceLit < 0.25f;
+            float want = _litDone ? 1f : (lighting ? Mathf.Clamp01(_litProgress) : 0f);
+            if (_glow != null)
+            {
+                var c = _glow.color;
+                float a = Mathf.MoveTowards(c.a, want * 0.85f, (want > c.a / 0.85f ? 2.2f : 0.9f) * Time.deltaTime);
+                _glow.color = new Color(c.r, c.g, c.b, a);
+                // 종이도 함께 따뜻해진다. 뒤에서 빛이 드는 종이는 희지 않고 누렇다.
+                if (_page != null)
+                    _page.color = Color.Lerp(_paper, new Color(1f, 0.88f, 0.68f), a * 0.75f);
+                if (_pageLit != null && _pageLit.enabled)
+                    _pageLit.color = new Color(1f, 1f, 1f, Mathf.Clamp01(a / 0.85f));
+            }
+
+            if (_litDone) _hint.text = "빛에 배어 나왔다";
+            else if (lighting && _litProgress > 0.05f)
+                _hint.text = "비추는 중… " + Mathf.RoundToInt(Mathf.Clamp01(_litProgress) * 100f) + "%";
+
 #if ENABLE_INPUT_SYSTEM
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb != null && kb.escapeKey.wasPressedThisFrame) Hide();
@@ -373,10 +475,28 @@ namespace IMUNROK.Common
             _edge.color = new Color(0.20f, 0.16f, 0.12f, 0.55f);
             _edge.raycastTarget = false;
 
+            // 등불빛 — 종이보다 <b>먼저</b> 만든다. 캔버스는 형제 차례대로 그리므로
+            // 먼저 만든 것이 뒤에 깔린다. 종이 뒤에서 새어 나오는 빛이라야 배접 속을
+            // 비추는 것이 되지, 종이 위에 덮이면 그냥 종이가 노래진 것이다.
+            var glowRt = NewRect("등불빛", Vector2.zero, new Vector2(_pageSpan + 58f, _pageSpan + 58f), _hand);
+            _glow = glowRt.gameObject.AddComponent<Image>();
+            _glow.color = new Color(1f, 0.72f, 0.36f, 0f);
+            _glow.raycastTarget = false;
+
             _pageRt = NewRect("종이", Vector2.zero, new Vector2(_pageSpan, _pageSpan), _hand);
             _page = _pageRt.gameObject.AddComponent<RawImage>();
             _page.color = _paper;
             _page.raycastTarget = false;
+
+            // 빛에 드러난 면 — 종이 <b>위에</b> 겹쳐 배어 나온다. 사건 팀원이 같은 문서를
+            // 한 장 더 그려 두면(숨은 글씨가 보이는 것으로) 그것이 서서히 떠오른다.
+            // 여기서는 종이에 글자를 보태도 된다. 잔글씨와 달리 이 글자는 <b>원래 종이에
+            // 그려져 있지 않았고</b>, 빛이 불러낸 것이기 때문이다.
+            var litRt = NewRect("드러난면", Vector2.zero, new Vector2(_pageSpan, _pageSpan), _pageRt);
+            _pageLit = litRt.gameObject.AddComponent<RawImage>();
+            _pageLit.color = new Color(1f, 1f, 1f, 0f);
+            _pageLit.raycastTarget = false;
+            _pageLit.enabled = false;
 
             // 표제 쪽지 — <b>종이의 자식</b>이다. 그래야 종이를 돌리면 같이 돌고,
             // 뒤집으면 뒷면에 함께 덮인다. 손 밑에 따로 달면 종이는 돌아가는데 이름만
@@ -415,6 +535,15 @@ namespace IMUNROK.Common
                             new Vector2(780f, 78f), _chrome.transform, _fontSize - 6);
             _fine.color = new Color(1f, 0.93f, 0.74f);
             _fine.gameObject.SetActive(false);
+
+            // 빛에 배어 나온 것 — 읽어낸 것과 같은 자리, 다른 빛깔. 불에 익은 글씨는
+            // 누렇게 뜨는 것이 아니라 붉게 탄다.
+            // 읽어낸 것보다 한 줄 아래다. 한 종이에 잔글씨와 숨은 글이 다 있으면
+            // 둘이 같은 자리에 겹쳐 찍힌다.
+            _lit = NewText("배어나온것", "", new Vector2(0f, -_pageSpan * 0.62f - 106f),
+                           new Vector2(780f, 60f), _chrome.transform, _fontSize - 6);
+            _lit.color = new Color(1f, 0.72f, 0.48f);
+            _lit.gameObject.SetActive(false);
 
             _body = NewText("요약", "", new Vector2(0f, -_pageSpan * 0.62f), new Vector2(700f, 76f),
                             _chrome.transform, _fontSize - 4);

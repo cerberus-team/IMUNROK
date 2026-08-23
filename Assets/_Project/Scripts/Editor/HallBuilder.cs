@@ -553,8 +553,9 @@ namespace IMUNROK.Common.EditorTools
 
             // ── 짝 넷 ──
             float lw = pw * 0.5f - FrameW * 0.5f;
-            var blocked = new System.Collections.Generic.List<Bounds>();
+            var blocked = new System.Collections.Generic.List<Furniture>();
             GatherFurniture(blocked);
+            var blockLog = new System.Collections.Generic.List<string>();
             int locked = 0;
 
             int idx = 0;
@@ -571,16 +572,19 @@ namespace IMUNROK.Common.EditorTools
                     DoorLeaf(leaf.transform, dir, lw, h, outward);
 
                     // 앞이 막힌 짝인가 — 병풍이 붙어 섰거나 문갑이 등지고 있으면 잠근다.
-                    bool shut = Blocked(blocked, hinge, dir, lw, y0, y1);
-                    if (shut) { leaf.name += "_막힘"; locked++; }
+                    string by = Blocked(blocked, hinge, dir, lw, y0, y1);
+                    bool shut = by != null;
+                    if (shut) { leaf.name += "_막힘"; locked++; blockLog.Add(leaf.name + "  ←  " + by); }
 
                     // 자유단이 바깥(-Z)으로 나가려면 회전 부호가 dir 을 따라가야 한다.
                     // 부호를 뒤집으면 문이 방 안쪽으로 열려 세간을 뚫는다.
                     LeafController(leaf.transform, dir * DoorOpen, !shut);
                 }
 
-            if (locked > 0)
-                Debug.Log("[조사청] " + name + " — 앞이 막힌 짝 " + locked + "장을 잠갔습니다(이름 뒤에 _막힘).");
+            // 어느 짝이 무엇에 막혔는지 적어 둔다. 잠긴 까닭이 안 보이면 잘못 잠근 것을
+            // 알아챌 길이 없다 — 세간을 옮기고도 문이 안 열리면 문이 고장 난 줄 안다.
+            Debug.Log("[조사청] " + name + " — 열 수 있는 짝 " + (4 - locked) + " · 잠근 것 " + locked
+                      + (blockLog.Count > 0 ? "\n     " + string.Join("\n     ", blockLog.ToArray()) : ""));
         }
 
         /// <summary>
@@ -590,7 +594,10 @@ namespace IMUNROK.Common.EditorTools
         /// 잡힌다 — 방 한가운데 놓인 서안이 문짝까지 닿은 것으로 나온다. 여덟 귀퉁이를
         /// 방 좌표로 옮겨 다시 재야 맞다.
         /// </summary>
-        private static void GatherFurniture(System.Collections.Generic.List<Bounds> into)
+        /// <summary>세간 하나 — 방 기준 상자와 그 이름. 무엇이 막았는지 적어 주려고 이름을 같이 든다.</summary>
+        private class Furniture { public Bounds box; public string name; }
+
+        private static void GatherFurniture(System.Collections.Generic.List<Furniture> into)
         {
             var room = GameObject.Find(RootName);
             if (room == null) return;
@@ -603,18 +610,43 @@ namespace IMUNROK.Common.EditorTools
                 var cam = Camera.main;
                 if (cam != null && r.transform.IsChildOf(cam.transform.root)) continue;
 
-                var b = r.bounds;
-                var c = b.center; var e = b.extents;
-                var local = new Bounds(inv.MultiplyPoint3x4(c), Vector3.zero);
+                // 물건이 <b>제 축으로</b> 차지한 상자를 가져다 방 좌표로 옮긴다.
+                //
+                // 처음엔 Renderer.bounds(월드 축 상자)의 여덟 귀퉁이를 옮겼다. 그런데
+                // 방이 140도 돌아앉아 있으므로, 방과 나란히 놓인 물건일수록 월드 상자가
+                // 이미 부풀어 있고 그것을 <b>다시</b> 돌려 상자를 뜨면 한 번 더 부푼다.
+                // 2.2×2.3m 짜리 보료가 3.13×3.13 이 되어 서방 문짝 넉 장을 다 덮었다.
+                // 메시가 제 좌표에서 차지한 상자를 물건의 행렬로 옮기면 부풀지 않는다.
+                var mf = r.GetComponent<MeshFilter>();
+                Bounds src = (mf != null && mf.sharedMesh != null) ? mf.sharedMesh.bounds : r.bounds;
+                Matrix4x4 m = (mf != null && mf.sharedMesh != null)
+                            ? inv * r.transform.localToWorldMatrix
+                            : inv;
+
+                var c = src.center; var e = src.extents;
+                var local = new Bounds(m.MultiplyPoint3x4(c), Vector3.zero);
                 for (int i = 0; i < 8; i++)
                 {
                     var corner = new Vector3(c.x + ((i & 1) == 0 ? -e.x : e.x),
                                              c.y + ((i & 2) == 0 ? -e.y : e.y),
                                              c.z + ((i & 4) == 0 ? -e.z : e.z));
-                    local.Encapsulate(inv.MultiplyPoint3x4(corner));
+                    local.Encapsulate(m.MultiplyPoint3x4(corner));
                 }
                 if (Mathf.Abs(local.center.x) > 8f || Mathf.Abs(local.center.z) > 6f) continue;
-                into.Add(local);
+
+                // 방보다 큰 것은 세간이 아니다.
+                //
+                // 안개 고리(반지름 44·55m)와 들판 판때기가 여기 걸려 있었다. 가운데가
+                // 조사청이니 <b>중심은 방 안</b>이고, 상자는 방을 통째로 삼킨다. 그래서
+                // 문짝 여덟이 남김없이 "앞이 막혔다"로 잠겼다. 크기로 거른다 — 방 한 칸이
+                // 3m 인데 6m 를 넘는 세간은 없다.
+                var s = local.size;
+                if (s.x > 6f || s.z > 6f || s.y > 6f) continue;
+
+                string path = r.name;
+                var up = r.transform.parent;
+                while (up != null && up.parent != null) { path = up.name + "/" + path; up = up.parent; }
+                into.Add(new Furniture { box = local, name = path });
             }
         }
 
@@ -629,21 +661,24 @@ namespace IMUNROK.Common.EditorTools
         /// <b>다가서는 길</b>이다. 병풍이 문에 붙어 서 있거나 문갑이 등지고 있으면
         /// 사람이 그 짝에 손을 댈 수가 없다 — 그런 짝이 열리면 세간을 뚫고 바깥이 보인다.
         /// </summary>
-        private static bool Blocked(System.Collections.Generic.List<Bounds> furniture,
-                                    float hinge, float dir, float lw, float y0, float y1)
+        private static string Blocked(System.Collections.Generic.List<Furniture> furniture,
+                                      float hinge, float dir, float lw, float y0, float y1)
         {
-            float x0 = Mathf.Min(hinge, hinge + dir * lw) - 0.12f;
-            float x1 = Mathf.Max(hinge, hinge + dir * lw) + 0.12f;
+            // 여유는 아주 조금만 준다. 0.12m 를 주었더니 문갑 모서리에서 4cm 가 겹쳐
+            // 멀쩡히 드나들 수 있는 짝까지 잠겼다. 한 짝이 0.72m 인데 0.12 는 육분의 일이다.
+            float x0 = Mathf.Min(hinge, hinge + dir * lw) - 0.04f;
+            float x1 = Mathf.Max(hinge, hinge + dir * lw) + 0.04f;
             float z0 = RoomZMin - 0.06f, z1 = RoomZMin + BlockDepth;
 
-            foreach (var b in furniture)
+            foreach (var f in furniture)
             {
+                var b = f.box;
                 if (b.max.x < x0 || b.min.x > x1) continue;
                 if (b.max.z < z0 || b.min.z > z1) continue;
                 if (b.max.y < y0 + 0.10f || b.min.y > y1) continue;
-                return true;
+                return f.name;
             }
-            return false;
+            return null;
         }
 
         /// <summary>

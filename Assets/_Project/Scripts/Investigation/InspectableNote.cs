@@ -34,6 +34,15 @@ namespace IMUNROK.Common
         [Tooltip("돋보기로 읽어야만 단서가 적힌다. 끄면 쥐어 보기만 해도 적힌다")]
         [SerializeField] private bool _clueNeedsMagnifier = false;
 
+        [Header("등불에 비추면 나오는 것")]
+        [Tooltip("배접 속에 숨긴 글이 보이는 종이 면(선택). 등불을 들면 원래 면 위로 배어 나온다")]
+        [SerializeField] private Texture2D _litPage;
+        [TextArea]
+        [Tooltip("등불에 비춰야 드러나는 것. 잔글씨(돋보기)와 달리 이 글자는 원래 종이에 없던 것이다")]
+        [SerializeField] private string _litText = "";
+        [Tooltip("등불에 비춰야만 단서가 적힌다")]
+        [SerializeField] private bool _clueNeedsLantern = false;
+
         [SerializeField] private string _title = "";
         [TextArea]
         [SerializeField] private string _body = "";
@@ -134,7 +143,10 @@ namespace IMUNROK.Common
             if (page != null)
             {
                 DocumentView.Show(page, _title, "", _fineText,
-                                  _clueNeedsMagnifier ? new System.Action(Record) : null);
+                                  _clueNeedsMagnifier ? new System.Action(Record) : null,
+                                  false,
+                                  _litPage, _litText,
+                                  _clueNeedsLantern ? new System.Action(Record) : null);
             }
             else
             {
@@ -144,7 +156,8 @@ namespace IMUNROK.Common
 
             // 맨눈으로도 아는 것이면 쥔 것만으로 적힌다.
             // 잔글씨라야 아는 것이면 돋보기로 다 읽어야(위 onRead) 적힌다.
-            if (!_clueNeedsMagnifier) Record();
+            // 배접 속에 숨긴 것이라야 아는 것이면 등불에 비춰야(위 onLit) 적힌다.
+            if (!_clueNeedsMagnifier && !_clueNeedsLantern) Record();
         }
 
         // ── 돋보기로 들여다보기 ────────────────────

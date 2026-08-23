@@ -33,6 +33,14 @@ namespace IMUNROK.Common
         [Tooltip("다 익힌 뒤 할 말. {0} 자리에 도구 이름이 들어간다")]
         [SerializeField] private string _endWord = "{0}을 손에 익혔다. 이제 언제든 꺼내 쓸 수 있다.";
 
+        [Header("해 보기 — 읽고 끝나지 않게")]
+        [Tooltip("말이 끝나면 손에 쥐여 주고 이 과제를 낸다. 실제로 해내야 다 익힌 것이 된다.\n" +
+                 "비워 두면 예전처럼 말만 하고 끝난다")]
+        [TextArea(2, 3)]
+        [SerializeField] private string _practice = "";
+        [Tooltip("과제를 해냈을 때 할 말. {0} 자리에 도구 이름이 들어간다")]
+        [SerializeField] private string _practiceDone = "됐다. 이만하면 {0}은 손에 익었다.";
+
         [Header("들어 올리기")]
         [Tooltip("눈에서 이만큼 앞에 들어 올린다(m)")]
         [SerializeField] private float _readDistance = 0.42f;
@@ -55,6 +63,7 @@ namespace IMUNROK.Common
         private int _step;
         private Coroutine _moving;
         private bool _learned;
+        private bool _awaiting;   // 낸 과제를 기다리는 중
 
         /// <summary>생성기가 씬을 짤 때 채운다.</summary>
         public ToolDef Tool { get => _tool; set => _tool = value; }
@@ -69,7 +78,12 @@ namespace IMUNROK.Common
         }
 
         private void OnEnable() => SubtitleView.OnClosed += OnNoticeClosed;
-        private void OnDisable() => SubtitleView.OnClosed -= OnNoticeClosed;
+
+        private void OnDisable()
+        {
+            SubtitleView.OnClosed -= OnNoticeClosed;
+            StopAwaiting();   // 씬을 떠나며 남긴 구독은 다음 씬에서 유령이 된다
+        }
 
         private void Start()
         {
@@ -107,6 +121,10 @@ namespace IMUNROK.Common
         private void Begin()
         {
             if (_tool == null) return;
+
+            // 과제를 기다리던 중에 다시 눌렀다면 그 기다림은 접는다 — 처음부터
+            // 다시 익히는 것이고, 구독이 겹치면 한 번 해내고 두 번 축하받는다.
+            StopAwaiting();
 
             // 익히는 동안은 도구벨트를 허리 아래로 내린다.
             //
@@ -171,16 +189,47 @@ namespace IMUNROK.Common
                 for (int i = 0; i < belt.Tools.Count; i++)
                     if (belt.Tools[i] == _tool) { belt.Select(i + 1); break; }
             }
-            _learned = true;
 
             // 마지막 한 마디까지 읽고 나면 벨트를 도로 올린다 — 방금 배운 것이
             // 벨트에 들어가 앉는 것을 보아야 "손에 익혔다"가 눈으로 확인된다.
             WorldHudAnchor.StowAll = false;
 
+            // ── 해 보기 ──
+            // 말을 다 읽었다고 익힌 것이 아니다. 도구는 <b>손에 든 채로 무언가에 대 보아야</b>
+            // 무엇에 쓰는 물건인지 알아진다. 그래서 여기서 끝내지 않고 과제를 하나 낸다 —
+            // 물건은 문갑으로 돌려보내고(이제 손에 든 것으로 해야 하니까), 해냈다는
+            // 소식이 <see cref="ToolPractice"/> 로 올 때까지 기다린다.
+            if (!string.IsNullOrEmpty(_practice) && !_learned)
+            {
+                _awaiting = true;
+                ToolPractice.OnUsed += OnPracticed;
+                SubtitleView.Show(_tool != null ? _tool.displayName : "", _practice, "(직접 해 보면 된다)");
+                GoHome();
+                return;
+            }
+
+            _learned = true;
             if (!string.IsNullOrEmpty(_endWord) && _tool != null)
                 SubtitleView.Show(_tool.displayName, string.Format(_endWord, _tool.displayName), "(닫기)");
 
             GoHome();
+        }
+
+        /// <summary>낸 과제를 해냈다. 어느 도구를 썼는지로 가른다 — 남의 과제에 끼어들지 않게.</summary>
+        private void OnPracticed(string toolId)
+        {
+            if (!_awaiting || _tool == null || toolId != _tool.id) return;
+            StopAwaiting();
+            _learned = true;
+            SubtitleView.Show(_tool.displayName,
+                              string.Format(_practiceDone, _tool.displayName), "(닫기)");
+        }
+
+        private void StopAwaiting()
+        {
+            if (!_awaiting) return;
+            _awaiting = false;
+            ToolPractice.OnUsed -= OnPracticed;
         }
 
         /// <summary>자막을 닫으면 익히기도 접는다 — 눈앞의 물건만 남아 있으면 갇힌 꼴이 된다.</summary>
