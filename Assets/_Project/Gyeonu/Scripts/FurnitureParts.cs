@@ -11,7 +11,7 @@ namespace IMUNROK.Gyeonu
     /// 서랍은 회전 대신 로컬 오프셋으로 앞으로 빠진다.
     /// 클릭 판정은 가구의 기존 차단 콜라이더가 받는다 (DebugInteractor가 부모에서 이 컴포넌트를 찾는다).
     /// </summary>
-    public class FurnitureParts : Interactable
+    public class FurnitureParts : Interactable, IOpenable
     {
         [System.Serializable]
         public class Part

@@ -35,6 +35,16 @@ namespace IMUNROK.Gyeonu
         Vector3 spawnPos;
         Quaternion spawnRot;
 
+        /// <summary>UI(소지품 판 등)가 조작을 가져갔다 — 이동·시선·Esc·R을 전부 놓는다.
+        /// ⚠️ 처음엔 "시선은 남긴다"였다(고개로 판을 가리키는 VR 방식). 그런데 데스크톱에서는
+        ///    마우스가 시선과 조준을 겸할 수 없어 **커서가 화면 한가운데 못 박히고 마우스를 움직이면
+        ///    머리만 돌아갔다**(2026-08-24 실측: 마우스 우측 이동 → yaw 180°→228°, 조준점은 (0,0) 고정).
+        ///    지금은 판이 열리면 커서를 풀어 마우스로 직접 가리킨다 — 시선은 그동안 멈춘다.</summary>
+        [HideInInspector] public bool uiOpen;
+
+        /// <summary>드래그로 무언가를 돌리는 중 — 시선까지 멈춘다 (마우스가 두 일을 겸하지 않게).</summary>
+        [HideInInspector] public bool lookLocked;
+
         void Awake()
         {
             cc = GetComponent<CharacterController>();
@@ -49,6 +59,9 @@ namespace IMUNROK.Gyeonu
             //   워커가 있으면 조준 입력도 반드시 있게 여기서 보강한다.
             if (eye != null && eye.GetComponent<DebugInteractor>() == null)
                 eye.gameObject.AddComponent<DebugInteractor>();
+            // 소지품 판 입력도 같은 이유로 여기서 보강한다 — 씬마다 설치 메뉴가 따로라 빠뜨리기 쉽다
+            if (eye != null && eye.GetComponent<InventoryInput>() == null)
+                eye.gameObject.AddComponent<InventoryInput>();
         }
 
         void OnEnable() => SetCursorLock(true);
@@ -60,18 +73,20 @@ namespace IMUNROK.Gyeonu
             var mouse = Mouse.current;
             if (kb == null || mouse == null) return;
 
-            if (kb.escapeKey.wasPressedThisFrame) SetCursorLock(false);
-            if (kb.rKey.wasPressedThisFrame)      // 끼임 탈출: 스폰으로 복귀
+            // Esc·R은 판이 떠 있는 동안 UI 쪽(뒤로 가기)이 가져간다
+            if (!uiOpen && kb.escapeKey.wasPressedThisFrame) SetCursorLock(false);
+            if (!uiOpen && kb.rKey.wasPressedThisFrame)      // 끼임 탈출: 스폰으로 복귀
             {
                 cc.enabled = false;
                 transform.SetPositionAndRotation(spawnPos, spawnRot);
                 fallSpeed = 0f;
                 cc.enabled = true;
             }
-            if (mouse.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
+            // 판이 떠 있는 동안에는 커서를 다시 잡지 않는다 — 그 커서로 판을 가리키는 중이다
+            if (!uiOpen && mouse.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
                 SetCursorLock(true);
 
-            if (Cursor.lockState == CursorLockMode.Locked)
+            if (Cursor.lockState == CursorLockMode.Locked && !lookLocked && !uiOpen)
             {
                 Vector2 look = mouse.delta.ReadValue() * mouseSensitivity;
                 transform.Rotate(0f, look.x, 0f);
@@ -79,11 +94,15 @@ namespace IMUNROK.Gyeonu
                 if (eye != null) eye.localEulerAngles = new Vector3(pitch, 0f, 0f);
             }
 
+            // 판이 떠 있는 동안에는 제자리 — 중력만 계속 먹인다
             Vector2 wasd = Vector2.zero;
-            if (kb.wKey.isPressed) wasd.y += 1f;
-            if (kb.sKey.isPressed) wasd.y -= 1f;
-            if (kb.dKey.isPressed) wasd.x += 1f;
-            if (kb.aKey.isPressed) wasd.x -= 1f;
+            if (!uiOpen)
+            {
+                if (kb.wKey.isPressed) wasd.y += 1f;
+                if (kb.sKey.isPressed) wasd.y -= 1f;
+                if (kb.dKey.isPressed) wasd.x += 1f;
+                if (kb.aKey.isPressed) wasd.x -= 1f;
+            }
             float speed = kb.leftShiftKey.isPressed ? sprintSpeed : walkSpeed;
 
             Vector3 move = (transform.right * wasd.x + transform.forward * wasd.y);

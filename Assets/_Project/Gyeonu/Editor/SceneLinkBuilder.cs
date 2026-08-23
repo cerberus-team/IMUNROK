@@ -266,10 +266,9 @@ namespace IMUNROK.Gyeonu.Editor
                 Walk(hub, "출구_조사청", new Vector3(-10f, 0f, -72f), 180f,
                      new Vector3(4f, 5f, 4f), HubScene, "");
 
-            // 언덕 안개를 **위치 기반 양방향**으로 돌린다 (2026-08-17).
-            //   올라오면 걷히고, 내려가면 다시 자욱해진다 → 아래가 마을인지 숲인지 모른 채 내려간다.
-            //   집무실에서 나온 자리(언덕 위)는 진행도 1이라 안개가 끼지 않는다 —
-            //   External 예약이 없어도 헛연출이 안 나므로 SceneEntry로 되돌린다.
+            // 언덕 안개는 **진입용·하산용 두 개**를 GwanaFogFx 가 만든다 (2026-08-21).
+            //   올라오면 걷히고(약하게), 내려가면 다시 자욱해진다(전환 직전엔 앞이 안 보이게).
+            //   여기서는 빠진 게 없는지 확인만 한다 — 값의 주인은 GwanaFogFx 다.
             SetFogRevealBidirectional();
 
             InstallTimeSync(WorldTimeSync.Kind.야외_하늘프리셋);
@@ -555,34 +554,29 @@ namespace IMUNROK.Gyeonu.Editor
         }
 
         /// <summary>
-        /// 언덕 안개를 위치 기반 양방향으로 돌린다 — 오르면 걷히고 내려가면 다시 짙어진다.
-        /// 농도·구간·속도 같은 연출 값은 그대로 두고 발동 방식만 바꾼다.
+        /// 언덕 안개가 양방향으로 갖춰져 있는지 확인만 한다. **값은 건드리지 않는다.**
+        ///
+        /// ★2026-08-21 — 예전에는 여기서 FogReveal 하나를 찾아 monotonic=false 로 바꾸고
+        ///  농도까지 덮어썼다. 두 가지가 겹쳐 하산 연출이 통째로 사라졌다:
+        ///    ① 한 컴포넌트로 양방향을 겸하니 **올라올 때와 내려갈 때 농도가 같은 값**이었다.
+        ///       진입이 과하다는 지적에 0.60→0.34 로 내리자 하산도 같이 묽어졌다.
+        ///    ② `관아 ▸ 진입 안개 ▸ …` 메뉴가 연출 그룹(관아_연출)을 통째로 다시 만들면서
+        ///       monotonic 을 기본값 true 로 되돌렸고, 이 메뉴를 다시 돌리지 않는 한 복구되지 않았다.
+        ///       (씬 파일에 `monotonic: 1` 로 굳어 있었다)
+        ///  → 이제 진입용·하산용 FogReveal 을 <see cref="GwanaFogFx"/> 가 **둘 다** 만든다.
+        ///    이 메서드는 값의 주인이 아니다. 빠진 것만 알려 준다.
         /// </summary>
         static void SetFogRevealBidirectional()
         {
-            var fog = Object.FindFirstObjectByType<FogReveal>();
-            if (fog == null) { Debug.LogWarning("[씬전환] FogReveal을 찾지 못했다 — 안개 연동 건너뜀"); return; }
-
-            // (조기 반환 없음 — 농도 값까지 매번 다시 적용해야 튜닝이 반영된다)
-
-            Undo.RecordObject(fog, "언덕 안개 양방향 전환");
-            fog.monotonic = false;
-            fog.arm = FogReveal.ArmMode.SceneEntry;
-
-            // 2026-08-18 — 짙은 쪽 끝값을 대폭 올린다.
-            // 그 전 값(3/26, 밀도 0.09, 파티클 0.16, 베일 0.55)으로는 내려가는 동안
-            // 아래 숲과 벌판이 그대로 보여 "뭐가 있는지 모르는" 상태가 되지 않았다.
-            // Linear Fog는 소실 거리가 짧을수록 짙다 — 26m → 7m 로 약 3.7배.
-            fog.startFogStart      = 0.5f;    // 3    → 0.5
-            fog.startFogEnd        = 7f;      // 26   → 7     (약 3.7배)
-            fog.startFogDensity    = 0.38f;   // 0.09 → 0.38  (Exp 모드 대비, 약 4.2배)
-            fog.particleStartAlpha = 0.60f;   // 0.16 → 0.60  (약 3.8배)
-            fog.skyVeilStartAlpha  = 0.95f;   // 0.55 → 0.95  (거의 불투명 — 하늘까지 가린다)
-
-            EditorUtility.SetDirty(fog);
-            Debug.Log("[씬전환] 언덕 안개 '" + fog.name + "' → 위치 기반 양방향 + 농도 강화"
-                    + " (소실 " + fog.startFogEnd + "m, 파티클 " + fog.particleStartAlpha
-                    + ", 베일 " + fog.skyVeilStartAlpha + ")");
+            bool up = false, down = false;
+            foreach (var f in Object.FindObjectsByType<FogReveal>(FindObjectsSortMode.None))
+            {
+                if (f.revealKey == "Gwana_FromVillage") up = true;
+                if (f.revealKey == "Gwana_ToVillage") down = true;
+            }
+            if (up && down) { Debug.Log("[씬전환] 언덕 안개 확인 — 진입·하산 두 연출 모두 있다"); return; }
+            Debug.LogWarning("[씬전환] 언덕 안개가 빠졌다 (진입=" + up + " 하산=" + down + ") — "
+                           + "`Tools ▸ 이문록 ▸ 관아 ▸ 진입 안개 ▸ 확정` 을 돌릴 것");
         }
 
         /// <summary>

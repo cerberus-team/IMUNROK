@@ -31,39 +31,32 @@ namespace IMUNROK.Gyeonu.Editor
             if (old != null) Object.DestroyImmediate(old);
             var root = new GameObject(RootName);
 
-            // ── 담장 (용마루 3.08, 밑동 폭 1.1) ──
+            // ── 담장 ──
+            // 화성 행궁 모듈 담장으로 바꾸면 용마루가 3.08 → 2.09 로 낮아지고 두께도 1.44 → 0.858 이 된다.
+            // 콜라이더 윗면을 실제 담장 높이에 맞춘다 — 점프가 없으므로 2.09 면 넘어갈 수 없고,
+            // 그래도 새는 경우를 대비해 아래 '경계_*' 박스가 놀이 영역을 한 번 더 두른다.
+            bool team = GwanaWallSwap.Available;
+            float wTop = team ? GwanaWallSwap.WallTopY : WallTop;
+            // WallThick(0.8578) 은 기와 갓 내밈까지 포함한 실측 폭이라 여유가 거의 필요 없다.
+            // 그래도 5cm 씩은 둔다 — 딱 맞추면 담장에 붙어 설 때 카메라 근평면이 벽을 뚫는다.
+            float wThick = team ? GwanaWallSwap.WallThick + 0.10f : WallColW;
+            float gateHalf = team ? GwanaGateSwap.SideFaceX : GateHalfW;
             const float ov = 0.56f;
-            float wallH = WallTop - WallColBottom;
-            float wallC = (WallTop + WallColBottom) * 0.5f;
-            Box(root, "담장_남서", new Vector3((-WallHalfX - ov - GateHalfW) * 0.5f, wallC, WallZS),
-                new Vector3(WallHalfX + ov - GateHalfW, wallH, WallColW));
-            Box(root, "담장_남동", new Vector3((WallHalfX + ov + GateHalfW) * 0.5f, wallC, WallZS),
-                new Vector3(WallHalfX + ov - GateHalfW, wallH, WallColW));
+            float wallH = wTop - WallColBottom;
+            float wallC = (wTop + WallColBottom) * 0.5f;
+            Box(root, "담장_남서", new Vector3((-WallHalfX - ov - gateHalf) * 0.5f, wallC, WallZS),
+                new Vector3(WallHalfX + ov - gateHalf, wallH, wThick));
+            Box(root, "담장_남동", new Vector3((WallHalfX + ov + gateHalf) * 0.5f, wallC, WallZS),
+                new Vector3(WallHalfX + ov - gateHalf, wallH, wThick));
             foreach (float s in new[] { -1f, 1f })
                 Box(root, "담장_측", new Vector3(s * WallHalfX, wallC, (WallZS + WallZN) * 0.5f),
-                    new Vector3(WallColW, wallH, WallZN - WallZS + 2f * ov));
+                    new Vector3(wThick, wallH, WallZN - WallZS + 2f * ov));
             Box(root, "담장_북", new Vector3(0f, wallC, WallZN),
-                new Vector3(2f * (WallHalfX + ov), wallH, WallColW));
+                new Vector3(2f * (WallHalfX + ov), wallH, wThick));
 
             // ── 외삼문 ──
-            // 기단 (상면 0.45가 통로 바닥)
-            Box(root, "문_기단", new Vector3(0f, GateBaseTop - 0.75f, GateZ), new Vector3(2f * GateHalfW, 1.5f, 5.2f));
-            // 앞뒤 계단 (3단 0.45 — 램프로 대체, 16°)
-            foreach (float s in new[] { -1f, 1f })
-                Ramp(root, "문_계단", new Vector3(0f, 0.24f, GateZ + s * 3.28f),
-                     new Vector3(4.8f, 0.20f, 1.70f), s * 15f);
-            // 기둥 8개
-            foreach (float cx in new[] { -6.6f, -2.2f, 2.2f, 6.6f })
-                foreach (float cz in new[] { -1.6f, 1.6f })
-                    Box(root, "문_기둥", new Vector3(cx, 2.4f, GateZ + cz), new Vector3(0.55f, 4.0f, 0.55f));
-            // 협문(닫힌 문짝) — 좌우 간은 통과 불가
-            foreach (float s in new[] { -1f, 1f })
-                Box(root, "문_협문", new Vector3(s * 4.40f, 1.85f, GateZ), new Vector3(3.92f, 2.8f, 0.35f));
-            // 열려 있는 중앙 문짝 — ⚠️ 문짝 두께(0.14)만 막으면 문짝과 문선 사이에 폭 0.5m
-            // 슬롯이 남아 캡슐(지름 0.6)이 그 구석에 몰려 빠져나오지 못한다(Play 검증에서 발생).
-            // 문선 라인(±2.52)까지 한 덩어리로 채워 슬롯 자체를 없앤다. 통로 유효폭 3.6m.
-            foreach (float s in new[] { -1f, 1f })
-                Box(root, "문_열린문짝", new Vector3(s * 2.16f, 1.95f, GateZ + 0.62f), new Vector3(0.72f, 3.05f, 1.96f));
+            if (GwanaGateSwap.Available) BuildTeamGateColliders(root);
+            else BuildProcGateColliders(root);
 
             // ── 월대 ──
             Box(root, "월대", new Vector3(0f, DaeTop - 2.0f, (DaeZ0 + DaeZ1) * 0.5f),
@@ -93,7 +86,7 @@ namespace IMUNROK.Gyeonu.Editor
             Box(root, "경계_남", new Vector3(0f, 4f, PlayZS), new Vector3(2f * PlayHalfX, 40f, 0.8f));
 
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-            Debug.Log($"[관아] 보행 콜라이더 구축 — 담장 5, 외삼문 13, 월대 4, 경계 4");
+            Debug.Log($"[관아] 보행 콜라이더 구축 — 담장 5, 외삼문 {(GwanaGateSwap.Available ? "4(팀 에셋)" : "13(절차생성)")}, 월대 4, 경계 4");
         }
 
         [MenuItem("Tools/이문록/관아 ▸ 디버그 워커 설치")]
@@ -155,6 +148,58 @@ namespace IMUNROK.Gyeonu.Editor
                 EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
                 Debug.Log("[관아] DebugAutoWalker " + n + "개 제거");
             }
+        }
+
+        /// <summary>
+        /// 팀 전달본 외삼문(GwanaGateSwap)용. 절차생성 문과 형상이 달라 콜라이더도 다르다.
+        ///   · 기단이 0.45 → 0.241 로 낮아져 앞뒤 계단(램프)이 필요 없다. stepOffset 0.6 으로 그냥 오른다
+        ///   · 협문 2칸은 문짝이 닫힌 채로 오는 모델이라, 기둥을 따로 세우지 않고
+        ///     몸체 깊이(z −1.90~+0.95) 안의 통로 밖 전부를 벽 한 덩어리로 막는다.
+        ///     ⚠️ 절차생성 문에서 겪었던 "문짝과 문선 사이 0.5m 슬롯에 캡슐이 끼는" 문제를
+        ///        같은 이유로 원천 차단한 것이다 — 기둥별로 쪼개지 말 것
+        ///   · 앞뒤 처마밑 앞마당(z −3.60~−1.90, +0.95~+2.95)은 열어 둔다. 나졸이 거기 선다
+        /// </summary>
+        static void BuildTeamGateColliders(GameObject root)
+        {
+            float px = GwanaGateSwap.PlatformHalfX;
+            float pz0 = GwanaGateSwap.PlatformZ0, pz1 = GwanaGateSwap.PlatformZ1;
+            float bz0 = GwanaGateSwap.BodyZ0, bz1 = GwanaGateSwap.BodyZ1;
+            float ph = GwanaGateSwap.PassHalfX;
+
+            // 기단 — 윗면이 걷는 바닥
+            Box(root, "문_기단",
+                new Vector3(0f, GwanaGateSwap.PlatformTop - 0.75f, GateZ + (pz0 + pz1) * 0.5f),
+                new Vector3(2f * px, 1.5f, pz1 - pz0));
+            // 중앙칸 문지방 — 0.28 턱. 넘어갈 수는 있어야 하므로 낮게만 둔다
+            Box(root, "문_문지방", new Vector3(0f, GwanaGateSwap.SillTop - 0.25f, GateZ + 0.17f),
+                new Vector3(2f * (ph + 0.8f), 0.5f, 0.55f));
+            // 통로 좌우 벽체 (협문칸 + 문간방 + 앞 기둥을 한 덩어리로)
+            foreach (float s in new[] { -1f, 1f })
+                Box(root, "문_측벽", new Vector3(s * (ph + px + 0.3f) * 0.5f, 2.4f, GateZ + (bz0 + bz1) * 0.5f),
+                    new Vector3(px + 0.3f - ph, 5.0f, bz1 - bz0));
+        }
+
+        /// <summary>팀 에셋이 없을 때 쓰는 절차생성 외삼문용 콜라이더 (GwanaStructures 폴백과 짝).</summary>
+        static void BuildProcGateColliders(GameObject root)
+        {
+            // 기단 (상면 0.45가 통로 바닥)
+            Box(root, "문_기단", new Vector3(0f, GateBaseTop - 0.75f, GateZ), new Vector3(2f * GateHalfW, 1.5f, 5.2f));
+            // 앞뒤 계단 (3단 0.45 — 램프로 대체, 16°)
+            foreach (float s in new[] { -1f, 1f })
+                Ramp(root, "문_계단", new Vector3(0f, 0.24f, GateZ + s * 3.28f),
+                     new Vector3(4.8f, 0.20f, 1.70f), s * 15f);
+            // 기둥 8개
+            foreach (float cx in new[] { -6.6f, -2.2f, 2.2f, 6.6f })
+                foreach (float cz in new[] { -1.6f, 1.6f })
+                    Box(root, "문_기둥", new Vector3(cx, 2.4f, GateZ + cz), new Vector3(0.55f, 4.0f, 0.55f));
+            // 협문(닫힌 문짝) — 좌우 간은 통과 불가
+            foreach (float s in new[] { -1f, 1f })
+                Box(root, "문_협문", new Vector3(s * 4.40f, 1.85f, GateZ), new Vector3(3.92f, 2.8f, 0.35f));
+            // 열려 있는 중앙 문짝 — ⚠️ 문짝 두께(0.14)만 막으면 문짝과 문선 사이에 폭 0.5m
+            // 슬롯이 남아 캡슐(지름 0.6)이 그 구석에 몰려 빠져나오지 못한다(Play 검증에서 발생).
+            // 문선 라인(±2.52)까지 한 덩어리로 채워 슬롯 자체를 없앤다. 통로 유효폭 3.6m.
+            foreach (float s in new[] { -1f, 1f })
+                Box(root, "문_열린문짝", new Vector3(s * 2.16f, 1.95f, GateZ + 0.62f), new Vector3(0.72f, 3.05f, 1.96f));
         }
 
         // ── 헬퍼 ──

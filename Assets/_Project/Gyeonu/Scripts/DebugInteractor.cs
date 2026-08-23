@@ -27,6 +27,18 @@ namespace IMUNROK.Gyeonu
             {
                 if (hit.collider.transform.root == transform.root) continue;
                 var it = hit.collider.GetComponentInParent<Interactable>();
+
+                // 열린 가구는 한 겹 더 들여다본다 (2026-08-24).
+                //   가구의 조준 판정은 몸통을 통째로 감싼 차단 박스가 받는다 — 그래서 궤 안에 든
+                //   물건은 **늘 궤에 가려** 조준되지 않는다(반닫이 속 서책에서 실측).
+                //   열려 있을 때만, 그리고 그 안쪽에 집을 물건이 있을 때만 통과시킨다.
+                //   닫힌 가구는 그대로 막는다 — 안이 안 보이는데 집히면 안 된다.
+                if (it is IOpenable openable && openable.IsOpen)
+                {
+                    var inner = PickupBehind(hits, hit.distance);
+                    if (inner != null) { target = inner; break; }
+                }
+
                 if (it != null && it.CanInteract(gameObject)) target = it;
                 break;
             }
@@ -34,6 +46,20 @@ namespace IMUNROK.Gyeonu
             if (target != null && Cursor.lockState == CursorLockMode.Locked
                 && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
                 target.Interact(gameObject);
+        }
+
+        /// <summary>주어진 거리보다 뒤에 있는 첫 ItemPickup — 열린 가구 속을 볼 때만 쓴다.
+        /// 집을 수 있는 물건에만 한정한다: 아무 Interactable이나 통과시키면 열린 문 너머
+        /// 엉뚱한 것이 조준되고, 궤를 다시 닫을 방법도 사라진다.</summary>
+        ItemPickup PickupBehind(RaycastHit[] sorted, float from)
+        {
+            foreach (var h in sorted)
+            {
+                if (h.distance <= from) continue;
+                var pick = h.collider.GetComponentInParent<ItemPickup>();
+                if (pick != null && pick.CanInteract(gameObject)) return pick;
+            }
+            return null;
         }
 
         void OnGUI()
@@ -47,7 +73,9 @@ namespace IMUNROK.Gyeonu
             {
                 var label = new GUIStyle(GUI.skin.label) { fontSize = 15, alignment = TextAnchor.MiddleCenter };
                 label.normal.textColor = Color.yellow;
-                GUI.Label(new Rect(cx - 120f, cy + 16f, 240f, 22f), target.displayName + " — " + target.Prompt);
+                // displayName을 비워 두면(예: 관아 개구멍) 접두사 없이 행동 문구만 뜬다.
+                string text = string.IsNullOrEmpty(target.displayName) ? target.Prompt : target.displayName + " — " + target.Prompt;
+                GUI.Label(new Rect(cx - 120f, cy + 16f, 240f, 22f), text, label);
             }
         }
     }

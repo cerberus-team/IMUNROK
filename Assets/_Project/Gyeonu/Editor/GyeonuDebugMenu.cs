@@ -68,6 +68,20 @@ namespace IMUNROK.Gyeonu.Editor
             Debug.Log("[디버그] 암문 단서 해제 — 물가가 다시 아무것도 아닌 곳이 된다");
         }
 
+        [MenuItem(Root + "관아 개구멍 이야기 들음", priority = 408)]
+        static void GrantGapHoleStory()
+        {
+            GyeonuWorld.Set(GyeonuWorld.F_개구멍이야기);
+            Debug.Log("[디버그] 개구멍 이야기 들음 — 밤에 담장 그 자리에 가면 '밀기'가 뜬다");
+        }
+
+        [MenuItem(Root + "관아 개구멍 이야기 되돌리기", priority = 409)]
+        static void RevokeGapHoleStory()
+        {
+            GyeonuWorld.Set(GyeonuWorld.F_개구멍이야기, false);
+            Debug.Log("[디버그] 개구멍 이야기 해제 — 담장이 다시 그냥 담장으로 보인다");
+        }
+
         [MenuItem(Root + "진행 상태 전부 초기화", priority = 404)]
         static void ResetAll()
         {
@@ -97,6 +111,37 @@ namespace IMUNROK.Gyeonu.Editor
         {
             GyeonuWorld.Rain = !GyeonuWorld.Rain;
             Debug.Log("[디버그] 시간대 = " + GyeonuWorld.SkyKey);
+        }
+
+        // ── 소지품 ────────────────────────────────────────
+
+        [MenuItem(Root + "소지품 — 시험 서책 획득", priority = 430)]
+        static void GrantTestItem()
+        {
+            var item = UnityEditor.AssetDatabase.LoadAssetAtPath<InventoryItem>(
+                "Assets/_Project/Gyeonu/Resources/GyeonuItems/Item_C4_아버지유품서책.asset");
+            if (item == null)
+            {
+                Debug.LogWarning("[디버그] 시험 아이템이 아직 없다 — Tools ▸ 이문록 ▸ 소지품 ▸ 시험 아이템 만들기 먼저");
+                return;
+            }
+            if (Inventory.Add(item)) Debug.Log("[디버그] 소지품에 넣음: " + item.displayName + " (Play 중 I 키로 열어 볼 것)");
+            else Debug.Log("[디버그] 이미 지니고 있다: " + item.displayName);
+        }
+
+        [MenuItem(Root + "소지품 — 전부 획득 (Resources 안의 모든 정의)", priority = 431)]
+        static void GrantAllItems()
+        {
+            int n = 0;
+            foreach (var it in Inventory.Catalog) if (Inventory.Add(it)) n++;
+            Debug.Log($"[디버그] 소지품 {n}개 추가 (현재 {Inventory.Count}개)");
+        }
+
+        [MenuItem(Root + "소지품 — 비우기", priority = 432)]
+        static void ClearInventory()
+        {
+            Inventory.Clear();
+            Debug.Log("[디버그] 소지품 비움");
         }
 
         // ── 별 길 안내 ────────────────────────────────────

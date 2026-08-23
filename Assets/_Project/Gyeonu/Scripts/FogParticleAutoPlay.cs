@@ -28,11 +28,21 @@ namespace IMUNROK.Gyeonu
         {
             _ps = GetComponent<ParticleSystem>();
             _last = Time.realtimeSinceStartup;
-            if (!Application.isPlaying && _ps != null)
+            if (_ps == null) return;
+
+            if (Application.isPlaying)
             {
-                // 시작하자마자 자욱하게 — 빈 화면에서 서서히 차오르면 배치 판단이 안 된다
-                _ps.Simulate(_ps.main.startLifetime.constantMax, true, true, false);
+                // ★★ Simulate() 는 시스템을 **정지 상태로 남긴다**(isPlaying=false).
+                //   편집 모드 프리뷰로 그 상태가 된 채 Play 에 들어가면 입자가 하나도 방출되지 않는다.
+                //   실제로 하산 안개가 Play 에서 통째로 안 보였고(입자 0개), 알파·밀도를 아무리
+                //   올려도 소용이 없었다 — 원인이 이것이었다. Play 시작 때 명시적으로 다시 튼다.
+                //   prewarm=true 라 Play(true) 만으로 첫 프레임부터 자욱하다.
+                _ps.Play(true);
+                return;
             }
+
+            // 시작하자마자 자욱하게 — 빈 화면에서 서서히 차오르면 배치 판단이 안 된다
+            _ps.Simulate(_ps.main.startLifetime.constantMax, true, true, false);
         }
 
         void Update()

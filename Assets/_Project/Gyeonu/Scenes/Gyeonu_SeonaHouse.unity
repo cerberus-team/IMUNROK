@@ -3016,11 +3016,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.WorldTimeSync
   kind: 1
   isReference: 0
+  forceClear: 0
   sun: {fileID: 0}
   "\uB0AE_\uB9D1\uC74C": {fileID: 0}
   "\uB0AE_\uBE44": {fileID: 0}
   "\uBC24_\uB9D1\uC74C": {fileID: 0}
   "\uBC24_\uBE44": {fileID: 0}
+  sunIntensityOverride: -1
+  ambientScale: 1
+  fogForceOff: 0
+  reflectionIntensityOverride: -1
+  fogDistanceOverride: 0
+  fogStartOverride: 250
+  fogEndOverride: 1500
   sceneNight: 0
   sceneRain: 0
   indoor: {fileID: 882354041}
@@ -3640,6 +3648,9 @@ MonoBehaviour:
   leftAngle: 100
   rightAngle: -100
   duration: 0.85
+  locked: 0
+  lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  playerOperable: 1
 --- !u!1 &290563972
 GameObject:
   m_ObjectHideFlags: 0
@@ -10506,6 +10517,8 @@ MonoBehaviour:
   sprintSpeed: 9
   mouseSensitivity: 0.12
   eye: {fileID: 2065066488}
+  uiOpen: 0
+  lookLocked: 0
 --- !u!143 &782795401
 CharacterController:
   m_ObjectHideFlags: 0
@@ -14347,6 +14360,9 @@ MonoBehaviour:
   leftAngle: -100
   rightAngle: 100
   duration: 0.85
+  locked: 0
+  lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  playerOperable: 1
 --- !u!1001 &1247774775
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -15700,6 +15716,38 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.07999992, y: 4, z: 4.21}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &1420226053
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1420226054}
+  m_Layer: 0
+  m_Name: "\uC120\uC544\uC9D1_\uC2B5\uB4DD\uBB3C"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1420226054
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1420226053}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1471953501}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1423060364
 GameObject:
   m_ObjectHideFlags: 0
@@ -15949,6 +15997,96 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 29b7037919b66d541902df19627a9047, type: 3}
   m_PrefabInstance: {fileID: 530723818}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1471953500
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1420226054}
+    m_Modifications:
+    - target: {fileID: 1156892845649588745, guid: 38997273b3182694a805b7c133e24446, type: 3}
+      propertyPath: m_Name
+      value: "\uC2B5\uB4DD_\uC544\uBC84\uC9C0\uC720\uD488\uC11C\uCC45"
+      objectReference: {fileID: 0}
+    - target: {fileID: 5237466201465617288, guid: 38997273b3182694a805b7c133e24446, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 4.395
+      objectReference: {fileID: 0}
+    - target: {fileID: 5237466201465617288, guid: 38997273b3182694a805b7c133e24446, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.1052176
+      objectReference: {fileID: 0}
+    - target: {fileID: 5237466201465617288, guid: 38997273b3182694a805b7c133e24446, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -2.33
+      objectReference: {fileID: 0}
+    - target: {fileID: 5237466201465617288, guid: 38997273b3182694a805b7c133e24446, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.9986295
+      objectReference: {fileID: 0}
+    - target: {fileID: 5237466201465617288, guid: 38997273b3182694a805b7c133e24446, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5237466201465617288, guid: 38997273b3182694a805b7c133e24446, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.05233596
+      objectReference: {fileID: 0}
+    - target: {fileID: 5237466201465617288, guid: 38997273b3182694a805b7c133e24446, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5237466201465617288, guid: 38997273b3182694a805b7c133e24446, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5237466201465617288, guid: 38997273b3182694a805b7c133e24446, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5237466201465617288, guid: 38997273b3182694a805b7c133e24446, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1156892845649588745, guid: 38997273b3182694a805b7c133e24446, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1471953503}
+  m_SourcePrefab: {fileID: 100100000, guid: 38997273b3182694a805b7c133e24446, type: 3}
+--- !u!4 &1471953501 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5237466201465617288, guid: 38997273b3182694a805b7c133e24446, type: 3}
+  m_PrefabInstance: {fileID: 1471953500}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1471953502 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1156892845649588745, guid: 38997273b3182694a805b7c133e24446, type: 3}
+  m_PrefabInstance: {fileID: 1471953500}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1471953503
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1471953502}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f9ee8c0ee780c54ba3eb7aa914f36ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.ItemPickup
+  displayName: "\uC0C1\uD638\uC791\uC6A9"
+  item: {fileID: 11400000, guid: fbc46640d8b2d32439720f19e2ef9e00, type: 2}
+  revealName: 0
+  overrideName: 
+  verbOverride: "\uAEBC\uB0B4\uAE30"
+  insideFurniture: {fileID: 367000398}
+  pickupToast: 
+  requiredFlags: []
 --- !u!1 &1478552316
 GameObject:
   m_ObjectHideFlags: 0
@@ -21650,3 +21788,4 @@ SceneRoots:
   - {fileID: 1717404577}
   - {fileID: 253688553}
   - {fileID: 603530969}
+  - {fileID: 1420226054}

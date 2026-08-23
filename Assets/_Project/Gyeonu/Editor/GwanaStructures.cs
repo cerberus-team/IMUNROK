@@ -118,6 +118,14 @@ namespace IMUNROK.Gyeonu.Editor
 
         static void BuildWalls(Transform parent)
         {
+            // 2026-08-21 — 화성 행궁 에셋의 모듈 담장(SM_StraightStronewall_1, 높이 2.09)을 반복 배치한다.
+            //   그 전 팀원 전달본 담장도 높이 2.09 라 외삼문·나졸과의 비례는 그대로다. 바뀐 것은
+            //   "긴 담장을 잘라 쓰기" → "타일링 모듈 이어 붙이기" 로, 잘린 단면이 모서리에
+            //   드러나던 문제가 없어졌다. 자세한 근거는 GwanaWallSwap 참조.
+            // 아래 절차 생성(높이 3.08)은 에셋 없는 환경용 폴백으로 남긴다.
+            if (GwanaWallSwap.Available && GwanaWallSwap.BuildInto(parent)) return;
+            if (GwanaWallSwap.Available) Debug.LogWarning("[관아] 모듈 담장 생성 실패 — 절차 생성으로 대체");
+
             var group = new GameObject("담장");
             group.transform.SetParent(parent, false);
 
@@ -202,6 +210,12 @@ namespace IMUNROK.Gyeonu.Editor
 
         static void BuildGate(Transform parent)
         {
+            // 2026-08-20 — 팀원 전달본 외삼문(Gwana_Gate_Set_v1)으로 교체했다.
+            // 에셋이 임포트돼 있으면 그쪽을 쓴다. 아래 절차 생성은 에셋 없는 환경용 폴백으로 남긴다
+            // (전달본은 gitignore 대상이라 각자 unitypackage 에서 임포트해야 한다).
+            if (GwanaGateSwap.Available) { GwanaGateSwap.BuildGateInto(parent); return; }
+            Debug.LogWarning("[관아] 팀 게이트 에셋 없음 — 절차 생성 외삼문으로 대체한다");
+
             var stone = new GwanaMeshKit(GwanaMeshKit.MpuGranite);
             var rubble = new GwanaMeshKit(GwanaMeshKit.MpuRubble);
             var wood = new GwanaMeshKit(GwanaMeshKit.MpuWood);

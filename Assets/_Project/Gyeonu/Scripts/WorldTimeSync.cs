@@ -49,6 +49,24 @@ namespace IMUNROK.Gyeonu
         public Light sun;
         public SkyPreset 낮_맑음, 낮_비, 밤_맑음, 밤_비;
 
+        [Header("씬 로컬 보정 — 프리셋을 적용한 뒤 이 씬에서만 덮어쓴다")]
+        // SkyPreset 은 마을·은하담·견우마을이 함께 쓰는 공용 에셋이라 거기를 고치면 다른 씬이 같이 바뀐다.
+        // 한 씬만 어둡게/맑게 하고 싶을 때 프리셋 대신 여기를 쓴다. 기본값은 전부 '보정 없음'이다.
+        [Tooltip("방향광 세기를 이 값으로 고정 (음수면 프리셋 그대로)")]
+        public float sunIntensityOverride = -1f;
+        [Tooltip("앰비언트 3색에 곱할 배율 (1 = 프리셋 그대로)")]
+        public float ambientScale = 1f;
+        [Tooltip("켜면 이 씬은 Linear Fog 를 아예 쓰지 않는다.\n" +
+                 "유니티 안개는 '이미 그려진 픽셀을 안개색으로 물들이는' 방식이라 거리를 아무리 밀어도\n" +
+                 "물체 색이 씻긴다. 건물 색이 정확해야 하는 씬(관아)은 끄고 파티클로만 안개감을 낸다.")]
+        public bool fogForceOff = false;
+        [Tooltip("음수가 아니면 반사(하늘 큐브맵) 강도를 이 값으로 고정한다.\n" +
+                 "담장·목재가 하늘을 비춰 희푸르게 보이는 정도를 정하는 축이다.")]
+        public float reflectionIntensityOverride = -1f;
+        [Tooltip("켜면 안개 거리를 아래 값으로 덮어쓴다 (fogForceOff 가 우선)")]
+        public bool fogDistanceOverride = false;
+        public float fogStartOverride = 250f, fogEndOverride = 1500f;
+
         [Header("야외 — 씬에 저장된 시간대 (기준 씬일 때 이 값이 세계로 올라간다)")]
         public bool sceneNight = false;
         public bool sceneRain = false;
@@ -98,6 +116,29 @@ namespace IMUNROK.Gyeonu
 
             if (sun == null) sun = FindSun();
             preset.Apply(sun);
+            ApplyLocalTrim();
+        }
+
+        /// <summary>프리셋을 덮어쓰는 씬 로컬 보정. 프리셋을 적용한 직후에 반드시 한 번 더 돈다.</summary>
+        void ApplyLocalTrim()
+        {
+            if (sunIntensityOverride >= 0f && sun != null) sun.intensity = sunIntensityOverride;
+
+            if (!Mathf.Approximately(ambientScale, 1f))
+            {
+                RenderSettings.ambientSkyColor = RenderSettings.ambientSkyColor * ambientScale;
+                RenderSettings.ambientEquatorColor = RenderSettings.ambientEquatorColor * ambientScale;
+                RenderSettings.ambientGroundColor = RenderSettings.ambientGroundColor * ambientScale;
+            }
+
+            if (reflectionIntensityOverride >= 0f) RenderSettings.reflectionIntensity = reflectionIntensityOverride;
+
+            if (fogForceOff) RenderSettings.fog = false;
+            else if (fogDistanceOverride)
+            {
+                RenderSettings.fogStartDistance = fogStartOverride;
+                RenderSettings.fogEndDistance = fogEndOverride;
+            }
         }
 
         SkyPreset PickPreset()
