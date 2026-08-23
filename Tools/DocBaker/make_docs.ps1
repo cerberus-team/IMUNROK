@@ -80,8 +80,12 @@ function New-Face($name, $size, $style) {
 
 # If the chosen face has no glyph for this character, hand back a stand-in face that
 # does. An empty box does not read as bad handwriting - it reads as a broken asset.
+# Hangul only shows up in one document - the burnt letter (J10), which a slave
+# wrote, so it could not be hanja. The brush faces here carry no Hangul at all,
+# so that sheet falls through to this face. Chosun Centennial is the house Korean
+# face; it goes first so the letter reads in the same voice as the rest of the game.
 $script:fallbackName = 'Batang'
-foreach ($cand in @('HCR Batang','Batang','Gungsuh','Malgun Gothic')) {
+foreach ($cand in @('조선100년체','Chosun Centennial','ChosunCentennial','HCR Batang','Batang','Gungsuh','Malgun Gothic')) {
     if ($installed -contains $cand) { $script:fallbackName = $cand; break }
 }
 function Resolve-Face($font, $ch) {
@@ -485,6 +489,9 @@ function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontHand, $fontAlt, $rng) {
     # report nonsense widths, which shoved these columns clean off the sheet -
     # and Joseon documents have no such thing as an italic anyway.
     $fontB = New-Face $fontAlt ($fontSize * 1.08) ([System.Drawing.FontStyle]::Italic)
+    # hand 2 = nobody's handwriting. The household register is the office's own book -
+    # ruled, stamped and printed - so it is set in the print face like the titles.
+    $fontC = New-Face $fontName $fontSize ([System.Drawing.FontStyle]::Regular)
 
     $markFont  = New-Face $fontName ($fontSize * 1.05) ([System.Drawing.FontStyle]::Bold)
     $markBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(200, 132, 40, 32))
@@ -495,6 +502,9 @@ function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontHand, $fontAlt, $rng) {
         $hand = Get-Field $e 'hand' 0
         if ($hand -eq 1) {
             $endY = Paint-Column $g $e.text $fontB $x ($gridTop + 34) ($charStep * 1.10) $ink2 $ink2Soft 11 $rng 1
+        } elseif ($hand -eq 2) {
+            # Print: no wobble at all. Jitter 0 is what makes it read as set, not written.
+            $endY = Paint-Column $g $e.text $fontC $x ($gridTop + 34) $charStep $ink $ink 0 $rng
         } else {
             $endY = Paint-Column $g $e.text $fontA $x ($gridTop + 34) $charStep $ink $inkSoft 2 $rng
         }
@@ -507,7 +517,7 @@ function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontHand, $fontAlt, $rng) {
         $ci++
     }
 
-    $titleFont.Dispose(); $fontA.Dispose(); $fontB.Dispose(); $markFont.Dispose()
+    $titleFont.Dispose(); $fontA.Dispose(); $fontB.Dispose(); $fontC.Dispose(); $markFont.Dispose()
     $markBrush.Dispose(); $ink.Dispose(); $inkSoft.Dispose(); $ink2.Dispose(); $ink2Soft.Dispose()
 }
 
