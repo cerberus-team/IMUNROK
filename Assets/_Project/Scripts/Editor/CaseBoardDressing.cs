@@ -10,10 +10,16 @@ namespace IMUNROK.Common.EditorTools
     /// 종이에 그림은 발려 있으나 종이가 <b>어떻게 거기 있는지</b>가 없다 — 붙인 것도
     /// 아니고 걸린 것도 아니라, 벽에 스티커를 붙인 꼴이다.
     ///
-    /// <b>무엇을 더하나</b>: 위아래 축과 축머리, 그리고 가로지르는 붉은 끈.
-    /// 왕명을 담은 봉서는 붉은 끈으로 봉해 내려오므로, 펼쳐 걸어 둔 자리에도 그 끈이
-    /// 남아 있는 것이 맞다. 축이 있으면 종이가 <b>말렸다가 펴진 것</b>으로 보이고,
-    /// 끈이 있으면 <b>봉해져 왔던 것</b>으로 보인다.
+    /// <b>무엇을 더하나</b>: 위아래 축과 축머리, 그리고 <b>걸이끈과 못</b>.
+    ///
+    /// 축이 있으면 종이가 어전에서 <b>동그랗게 말려 온 것</b>으로 보인다. 그리고 그것을
+    /// 벽에 <b>걸어 두었다</b>는 것은 걸이끈이 말한다 — 붉은 끈이 위축 양 끝에서 올라가
+    /// 못 하나에 걸린다.
+    ///
+    /// <b>가로띠가 아니다</b>: 처음엔 붉은 끈을 종이 한가운데에 가로로 둘렀는데,
+    /// 그건 <b>아직 봉해져 있는</b> 봉서의 모습이다. 여기 걸린 것은 이미 풀어 읽은
+    /// 봉서다 — 봉한 띠가 그대로 있으면 펼쳐진 종이와 말이 안 맞는다. 그 끈은 풀려서
+    /// 걸이줄이 되는 것이 순리다.
     ///
     /// <b>종이의 자식으로 단다</b>: 사건판 옆에 따로 세우면 종이를 옮길 때 꾸밈이
     /// 제자리에 남는다. 다만 종이가 (0.30, 0.42) 로 눌려 있어 그대로 자식을 달면
@@ -36,7 +42,9 @@ namespace IMUNROK.Common.EditorTools
         private const float KnobL = 0.022f;
         private const float CordW = 0.020f;     // 끈 너비
         private const float CordT = 0.004f;     // 끈 두께
-        private const float CordAt = -0.30f;    // 끈이 가로지르는 높이(종이 높이 대비, -0.5~0.5)
+        private const float HangRatio = 0.30f;  // 걸이끈이 종이 위로 올라가는 높이(종이 높이 대비)
+        private const float NailR = 0.011f;     // 못 굵기
+        private const float NailOut = 0.016f;   // 못이 튀어나온 길이
         private const float Front = -0.012f;    // 종이보다 이만큼 앞(Quad 는 -Z 를 향한다)
 
         [MenuItem("이문록/조사청/사건판 꾸미기")]
@@ -84,6 +92,7 @@ namespace IMUNROK.Common.EditorTools
             // 종이의 실제 크기(m). Quad 는 1x1 이므로 눌린 자가 곧 크기다.
             float w = Mathf.Abs(s.x), h = Mathf.Abs(s.y);
             var g = frame.transform;
+            float endX = w * 0.5f + RodOver;
 
             for (int side = 0; side < 2; side++)
             {
@@ -91,20 +100,40 @@ namespace IMUNROK.Common.EditorTools
                 string tag = side == 0 ? "위" : "아래";
 
                 Rod(g, "축_" + tag, new Vector3(0f, y, Front), w + RodOver * 2f, RodR, wood);
-                Rod(g, "축머리_" + tag + "_좌", new Vector3(-(w * 0.5f + RodOver), y, Front), KnobL, KnobR, wood);
-                Rod(g, "축머리_" + tag + "_우", new Vector3(+(w * 0.5f + RodOver), y, Front), KnobL, KnobR, wood);
+                Rod(g, "축머리_" + tag + "_좌", new Vector3(-endX, y, Front), KnobL, KnobR, wood);
+                Rod(g, "축머리_" + tag + "_우", new Vector3(+endX, y, Front), KnobL, KnobR, wood);
             }
 
-            // 붉은 끈 — 종이를 가로지르고, 가운데에 매듭이 하나 앉는다
-            Box(g, "홍끈", new Vector3(0f, h * CordAt, Front - RodR * 0.6f),
-                new Vector3(w + 0.012f, CordW, CordT), cord);
-            Box(g, "매듭", new Vector3(0f, h * CordAt, Front - RodR * 1.2f),
-                new Vector3(CordW * 1.7f, CordW * 1.7f, CordT * 2.2f), cord);
-            // 매듭에서 흘러내린 끈 두 가닥
-            Box(g, "끈꼬리_좌", new Vector3(-CordW * 0.5f, h * CordAt - h * 0.10f, Front - RodR * 0.9f),
-                new Vector3(CordW * 0.45f, h * 0.20f, CordT), cord);
-            Box(g, "끈꼬리_우", new Vector3(+CordW * 0.5f, h * CordAt - h * 0.13f, Front - RodR * 0.9f),
-                new Vector3(CordW * 0.45f, h * 0.26f, CordT), cord);
+            // 걸이끈 — 위축 양 끝에서 올라가 한 점에서 만난다.
+            // 그 만나는 자리에 못이 박혀 있다. 이 둘이 있어야 "걸어 두었다"가 된다.
+            float topY = h * 0.5f;
+            float apexY = topY + h * HangRatio;
+            var apex = new Vector3(0f, apexY, Front);
+            Cord(g, "걸이끈_좌", new Vector3(-endX, topY, Front), apex, cord);
+            Cord(g, "걸이끈_우", new Vector3(+endX, topY, Front), apex, cord);
+
+            // 못 — 대가리가 조금 튀어나온다. 납작하면 그린 것으로 보인다.
+            Rod(g, "못", apex + new Vector3(0f, 0f, -NailOut * 0.5f), NailOut, NailR, wood);
+            Box(g, "못머리", apex + new Vector3(0f, 0f, -NailOut),
+                new Vector3(NailR * 2.6f, NailR * 2.6f, NailR * 1.2f), cord);
+        }
+
+        /// <summary>두 점을 잇는 끈 한 가닥. 길이와 기울기를 두 점에서 구한다.</summary>
+        private static void Cord(Transform parent, string name, Vector3 a, Vector3 b, Material mat)
+        {
+            var d = b - a;
+            float len = new Vector2(d.x, d.y).magnitude;
+            if (len < 1e-4f) return;
+            float ang = Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg;
+
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = name;
+            Object.DestroyImmediate(go.GetComponent<Collider>());
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = (a + b) * 0.5f;
+            go.transform.localRotation = Quaternion.Euler(0f, 0f, ang);
+            go.transform.localScale = new Vector3(len, CordW * 0.62f, CordT);
+            go.GetComponent<Renderer>().sharedMaterial = mat;
         }
 
         /// <summary>가로로 눕힌 원기둥. 유니티 원기둥은 높이 2·반지름 0.5 라 그만큼 되돌린다.</summary>
