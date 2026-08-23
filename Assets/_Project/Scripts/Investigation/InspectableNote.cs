@@ -113,6 +113,14 @@ namespace IMUNROK.Common
         /// 덮으면 조사하던 방이 사라진다. 그래서 종이만 눈앞으로 들어올린다.
         /// 잔글씨는 종이에 작게 적힌 채로 올라오므로, 읽으려면 돋보기를 대야 한다.
         /// </summary>
+        /// <summary>
+        /// 손이 닿는 거리를 따지지 않고 <b>바로 펴 준다</b>.
+        ///
+        /// 조사청에서 도구를 익힐 때 쓴다 — 그때 종이는 플레이어가 집어 든 것이 아니라
+        /// 가르치는 쪽이 쥐여 준 것이므로, 방 저쪽에 놓여 있어도 손에 온다.
+        /// </summary>
+        public void OpenNow() { Open(); }
+
         public void OnSelect()
         {
             if (!_canOpen) return;
@@ -130,6 +138,12 @@ namespace IMUNROK.Common
                 ModelBounds.DistanceTo(transform, cam.transform.position) > _maxTouchDistance)
                 return;
 
+            Open();
+        }
+
+        /// <summary>실제로 펴는 일. 손이 닿는지·말하는 중인지는 부른 쪽이 이미 봤다.</summary>
+        private void Open()
+        {
             // 종이는 <b>집어 든다</b>. 마루에 엎어진 채로 들여다보는 문서는 없다.
             //
             // 한때는 이름 한 줄만 물건 위에 띄우고 말았다. 방을 뒤지다 말고 커다란 글자판이

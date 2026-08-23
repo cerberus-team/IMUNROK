@@ -71,14 +71,31 @@ namespace IMUNROK.Common
             if (_belt != null) _belt.OnChanged -= Refresh;
         }
 
+        /// <summary>도구를 바꾼 뒤 이만큼 떠 있다가 스러진다(초).</summary>
+        private const float LingerSeconds = 2.4f;
+        private const float FadeSpeed = 3.2f;
+
+        private float _linger = LingerSeconds;
+
         private void Update()
         {
             // 심문·수첩 중엔 벨트를 감춘다(데스크탑 뷰와 같은 규칙).
             // 오브젝트를 끄지 않고 알파만 내려야 WorldHudAnchor의 위치 추종이 안 끊긴다.
             if (_belt == null || _group == null) return;
-            bool show = !_belt.Hidden;
-            _group.alpha = show ? 1f : 0f;
-            _group.blocksRaycasts = show;
+
+            // 벨트는 <b>바꿀 때만</b> 뜬다.
+            //
+            // 허리 앞 0.6m 에 늘 떠 있게 두었더니, 헤드셋에서는 허리춤이지만 모니터로
+            // 보면 <b>마룻바닥에 붉은 판이 하나 놓여 있는</b> 꼴이 되었다. 무엇보다
+            // 조사청은 방을 둘러보는 곳인데, 시야 아래쪽 한 자리를 늘 도구판이 차지하고
+            // 있으면 방이 그만큼 좁아진다. 손에 무엇을 들었는지는 손을 보면 되고,
+            // 벨트는 <b>바꾸는 순간</b>에만 있으면 된다.
+            _linger -= Time.deltaTime;
+            bool show = !_belt.Hidden && _linger > 0f;
+
+            float want = show ? 1f : 0f;
+            _group.alpha = Mathf.MoveTowards(_group.alpha, want, FadeSpeed * Time.deltaTime);
+            _group.blocksRaycasts = _group.alpha > 0.5f;
         }
 
         // ─────────────────────────────────────────────
@@ -131,6 +148,10 @@ namespace IMUNROK.Common
                 _slotBgs[i].color = (i == _belt.SelectedIndex) ? _selectedColor : _slotColor;
 
             if (_caption != null) _caption.text = $"손 : {_belt.SlotName(_belt.SelectedIndex)}";
+
+            // 바뀌었으니 다시 떠오른다. 도구를 새로 받았을 때도 여기를 지나므로,
+            // 방금 익힌 것이 벨트에 들어가 앉는 것을 눈으로 보게 된다.
+            _linger = LingerSeconds;
         }
 
         // ── UI 만들기 헬퍼 ──

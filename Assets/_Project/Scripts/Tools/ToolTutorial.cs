@@ -34,6 +34,10 @@ namespace IMUNROK.Common
         [SerializeField] private string _endWord = "{0}을 손에 익혔다. 이제 언제든 꺼내 쓸 수 있다.";
 
         [Header("해 보기 — 읽고 끝나지 않게")]
+        [Tooltip("과제를 낼 때 손에 쥐여 줄 예시 증거. 비워 두면 말만 하고 만다.\n" +
+                 "'저기 문갑 위의 무엇을 가져다 해 보시오' 는 심부름이지 배움이 아니다 — " +
+                 "종이는 이쪽에서 쥐여 주고, 도구 쓰는 일만 하게 한다")]
+        [SerializeField] private InspectableNote _example;
         [Tooltip("말이 끝나면 손에 쥐여 주고 이 과제를 낸다. 실제로 해내야 다 익힌 것이 된다.\n" +
                  "비워 두면 예전처럼 말만 하고 끝난다")]
         [TextArea(2, 3)]
@@ -204,6 +208,16 @@ namespace IMUNROK.Common
                 _awaiting = true;
                 ToolPractice.OnUsed += OnPracticed;
                 SubtitleView.Show(_tool != null ? _tool.displayName : "", _practice, "(직접 해 보면 된다)");
+
+                // 예시 증거를 <b>쥐여 준다</b>.
+                //
+                // "문갑 위의 사목을 가져다 해 보시오" 는 심부름이다 — 물건을 찾아
+                // 방을 헤매다 보면 정작 배우려던 도구는 뒷전이 된다. 종이는 이쪽에서
+                // 펴 주고, 배우는 사람은 <b>도구 쓰는 일 하나만</b> 하면 된다.
+                // 종이가 펴진 뒤에 물건이 내려가야 한다 — 순서가 뒤집히면 내려가는
+                // 물건에 눈이 따라가 종이가 펴진 것을 못 본다.
+                if (_example != null) _example.OpenNow();
+
                 GoHome();
                 return;
             }

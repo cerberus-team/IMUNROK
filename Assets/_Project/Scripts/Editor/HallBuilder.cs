@@ -516,8 +516,14 @@ namespace IMUNROK.Common.EditorTools
         /// </summary>
         private static void BuildDoors(Transform g)
         {
-            Swing(g, "문_서방_남", WestX0, WestX1);
-            Swing(g, "문_중방_남", MidX0, MidX1);
+            var a = Swing(g, "문_서방_남", WestX0, WestX1);
+            var b = Swing(g, "문_중방_남", MidX0, MidX1);
+
+            // 댓돌은 <b>두 면을 합쳐 한 번만</b> 놓는다. 면마다 놓으면 열리는 짝이
+            // 서로 맞닿아 있을 때(지금이 그렇다) 계단이 두 벌 겹쳐 선다.
+            float x0 = Mathf.Min(a.x, b.x), x1 = Mathf.Max(a.y, b.y);
+            if (x1 > x0) Steps(g, x0, x1);
+            else Debug.LogWarning("[조사청] 열리는 짝이 하나도 없어 댓돌을 못 놓았습니다.");
         }
 
         /// <summary>문 아래 청판(널)의 높이. 발이 닿고 치맛자락이 스치는 자리다.</summary>
@@ -526,8 +532,8 @@ namespace IMUNROK.Common.EditorTools
         /// <summary>열었을 때 짝이 젖혀지는 각(도). 사람이 지나갈 만큼은 열려야 한다.</summary>
         private const float DoorOpen = 78f;
 
-        /// <summary>한 면 — 붙박이 문틀과 여닫이 짝 넷.</summary>
-        private static void Swing(Transform g, string name, float a0, float a1)
+        /// <summary>한 면 — 붙박이 문틀과 여닫이 짝 넷. 열리는 짝들이 걸친 x 구간을 돌려준다.</summary>
+        private static Vector2 Swing(Transform g, string name, float a0, float a1)
         {
             float h = DoorTop - FloorTop;
             float y0 = FloorTop, y1 = FloorTop + h, yc = FloorTop + h * 0.5f;
@@ -557,6 +563,8 @@ namespace IMUNROK.Common.EditorTools
             GatherFurniture(blocked);
             var blockLog = new System.Collections.Generic.List<string>();
             int locked = 0;
+            // 열리는 짝들이 걸쳐 있는 x 구간. 디딤돌은 그 앞에만 놓는다.
+            var openSpan = new Vector2(float.MaxValue, -float.MaxValue);
 
             int idx = 0;
             for (int p = 0; p < pairs; p++)
@@ -575,6 +583,11 @@ namespace IMUNROK.Common.EditorTools
                     string by = Blocked(blocked, hinge, dir, lw, y0, y1);
                     bool shut = by != null;
                     if (shut) { leaf.name += "_막힘"; locked++; blockLog.Add(leaf.name + "  ←  " + by); }
+                    else
+                    {
+                        openSpan.x = Mathf.Min(openSpan.x, Mathf.Min(hinge, hinge + dir * lw));
+                        openSpan.y = Mathf.Max(openSpan.y, Mathf.Max(hinge, hinge + dir * lw));
+                    }
 
                     // 자유단이 바깥(-Z)으로 나가려면 회전 부호가 dir 을 따라가야 한다.
                     // 부호를 뒤집으면 문이 방 안쪽으로 열려 세간을 뚫는다.
@@ -585,6 +598,8 @@ namespace IMUNROK.Common.EditorTools
             // 알아챌 길이 없다 — 세간을 옮기고도 문이 안 열리면 문이 고장 난 줄 안다.
             Debug.Log("[조사청] " + name + " — 열 수 있는 짝 " + (4 - locked) + " · 잠근 것 " + locked
                       + (blockLog.Count > 0 ? "\n     " + string.Join("\n     ", blockLog.ToArray()) : ""));
+
+            return openSpan;
         }
 
         /// <summary>
@@ -594,6 +609,62 @@ namespace IMUNROK.Common.EditorTools
         /// 잡힌다 — 방 한가운데 놓인 서안이 문짝까지 닿은 것으로 나온다. 여덟 귀퉁이를
         /// 방 좌표로 옮겨 다시 재야 맞다.
         /// </summary>
+        /// <summary>마당 바닥(방 기준 y). 기단이 앉는 높이 136.95 에서 방 원점 137.73 을 뺀 것이다.</summary>
+        private const float YardY = -0.78f;
+
+        /// <summary>
+        /// 열리는 문 앞의 <b>댓돌</b>. 마루는 마당에서 1.5m 위다.
+        ///
+        /// 문만 열어 놓고 끝냈더니 드나드는 일이 이상해졌다 — 마당에서는 못 오르고,
+        /// 방에서는 낭떠러지로 내려선다. 조선 집이 이 높이를 다루는 방식이 댓돌이다:
+        /// 기단 앞에 넓적한 돌을 두어 단 놓아 마당과 마루를 잇는다. 계단이라기보다
+        /// <b>신 벗는 자리</b>여서, 한 단이 넓고 낮다.
+        ///
+        /// 단은 <b>위로 갈수록 좁아진다</b>. 아래가 넓어야 마당에서 발을 얹기 쉽고,
+        /// 위가 좁아야 마루 끝에 걸터앉는 자리가 남는다.
+        /// </summary>
+        private static void Steps(Transform g, float x0, float x1)
+        {
+            var group = Group(g, "댓돌");
+            float mid = (x0 + x1) * 0.5f;
+            float width = (x1 - x0) + 0.6f;          // 문보다 조금 넓게 — 문틀에 발이 안 걸리게
+
+            // 높이를 헤아려 보면 이렇다(방 기준):
+            //   마당 -0.78 · 기단 윗면 0.25 · 마루 0.71
+            // 마당에서 기단까지 1.03m 를 한 번에 오를 수는 없다. 그래서 기단 앞에
+            // 두 단을 놓아 세 걸음으로 나눈다 — 0.36 · 0.33 · 0.34.
+            // 기단에서 마루로 오르는 0.46m 는 한 걸음으로 둔다. 문지방을 넘어서는
+            // 자리라 오히려 턱이 있어야 <b>들어선다</b>는 느낌이 난다.
+            float front = ZMin - 0.70f;              // 기단 앞면
+            float[] tops = { -0.42f, -0.09f };
+            float[] depth = { 0.72f, 0.58f };
+
+            float outer = front;
+            for (int i = tops.Length - 1; i >= 0; i--)   // 위 단부터 기단에 붙여 나간다
+            {
+                float top = tops[i];
+                float bottom = (i == 0) ? YardY - 0.25f : tops[i - 1];
+                float h = top - bottom;
+                float z = outer - depth[i] * 0.5f;
+                outer -= depth[i];
+
+                Box(group, "댓돌_" + i,
+                    new Vector3(mid, bottom + h * 0.5f, z),
+                    new Vector3(width - i * 0.14f, h, depth[i]),
+                    _stone, true, null, 0.5f);
+            }
+
+            // 옛 디딤돌 하나를 걷는다.
+            //
+            // BuildGidan 이 남쪽 한가운데(x -0.04)에 넓적한 돌을 하나 놓아 두었는데,
+            // 윗면이 0.43 이라 <b>기단(0.25)보다 높다</b>. 오르려고 밟으면 도로 내려서야
+            // 하고, 무엇보다 문이 열리는 자리는 거기가 아니다. 열리는 짝 앞에 제대로
+            // 놓았으므로 그것은 없어도 된다.
+            var gidan = g.parent != null ? g.parent.Find("기단") : null;
+            var oldStone = gidan != null ? gidan.Find("디딤돌_남") : null;
+            if (oldStone != null) Undo.DestroyObjectImmediate(oldStone.gameObject);
+        }
+
         /// <summary>세간 하나 — 방 기준 상자와 그 이름. 무엇이 막았는지 적어 주려고 이름을 같이 든다.</summary>
         private class Furniture { public Bounds box; public string name; }
 

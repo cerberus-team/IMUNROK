@@ -12,14 +12,17 @@ namespace IMUNROK.Common.EditorTools
     /// 수첩은 늘 지니고 다니며 아무 때나 펴는 것(I)이고, 지도는 챕터마다 그냥 열리는
     /// 것(M)이다. 벨트에 칸을 차지하고 앉을 까닭이 없다. 손에 <b>들고</b> 무언가에
     /// <b>대는</b> 물건만 벨트에 오른다 — 지금은 등불과 돋보기 둘이고, 팀원이 도구를
-    /// 하나 더 만들면 그때 늘어난다.
-    /// 그래서 수첩·지도는 문갑에 그대로 두되 익히기를 떼고, 짚으면 이름 한 줄만 뜨게 한다.
+    /// 하나 더 만들면 그때 늘어난다. 그 둘은 문갑에서 <b>치운다</b> — 놓여 있다는 것만으로
+    /// "이것도 집어야 하는 물건"으로 읽히고, 짚을 것이 넷이면 익혀야 할 둘이 묻힌다.
     ///
-    /// <b>말만 읽고 끝나지 않게</b>: 돋보기와 등불에는 <b>해 볼 과제</b>를 붙인다.
-    /// 문갑 한가운데에 「事目」 한 장을 깔아 두고, 그것을 쥐고 돋보기를 대야 · 그것을
-    /// 등불에 비춰야 다 익힌 것이 된다. 사목에 적힌 세 줄이 곧 그 방법이다 —
-    /// 안내문을 따로 띄우는 대신 <b>조사청의 규칙</b>으로 적어 두었다. 읽는 것과
-    /// 배우는 것이 한 장에서 끝난다.
+    /// <b>말만 읽고 끝나지 않게</b>: 돋보기와 등불에는 <b>해 볼 과제</b>와 함께
+    /// <b>예시 증거를 쥐여 준다</b>. 말끝에 「事目」 한 장이 저절로 손에 펴지고,
+    /// 그 종이에 돋보기를 대야 · 그 종이를 등불에 비춰야 다 익힌 것이 된다.
+    /// 종이를 찾아오라고 시키지 않는 까닭은, 물건을 찾아 방을 헤매다 보면 정작
+    /// 배우려던 도구가 뒷전이 되기 때문이다.
+    ///
+    /// 사목에 적힌 세 줄이 곧 도구 쓰는 법이다 — 안내문을 따로 띄우는 대신
+    /// <b>조사청의 규칙</b>으로 적어 두었다. 읽는 것과 배우는 것이 한 장에서 끝난다.
     ///
     /// 그 사목은 두 장으로 굽는다. 겉장과, 배접 속에 끼운 장이 비쳐 보이는 장.
     /// 등불을 들면 뒷장이 앞장 위로 배어 나온다(<see cref="LanternReveal"/>).
@@ -59,50 +62,35 @@ namespace IMUNROK.Common.EditorTools
             }
 
             var log = new StringBuilder();
-            Sheet(room.transform, tools.transform, log);
-            Always(tools.transform, "도구_수첩", "수첩", "늘 품에 지닌다. I 를 누르면 아무 때나 펼친다.", log);
-            Always(tools.transform, "도구_지도", "지도", "늘 품에 지닌다. M 를 누르면 아무 때나 펼친다.", log);
+            var sheet = Sheet(room.transform, tools.transform, log);
 
-            Practice(tools.transform, "도구_돋보기",
-                     "문갑 위의 事目을 손에 쥐고, 돋보기를 눈에 대어(오른쪽 단추) 끝까지 읽어 보라.", log);
-            Practice(tools.transform, "도구_등불",
-                     "쥔 事目을 등불에 비춰 보라. 종이가 빛을 먹으면 겹 사이의 것이 배어 나온다.", log);
+            // 수첩과 지도는 <b>치운다</b>. 익히고 말고 할 물건이 아닌데 문갑에 놓여 있으면,
+            // 놓여 있다는 것만으로 "이것도 집어야 하는 물건"으로 읽힌다. 이름줄만 남겨
+            // 두어도 짚을 것이 넷이라, 정작 익혀야 할 둘이 묻힌다.
+            Remove(tools.transform, "도구_수첩", log);
+            Remove(tools.transform, "도구_지도", log);
+
+            Practice(tools.transform, "도구_돋보기", sheet,
+                     "예시로 한 장 드리겠소. 돋보기를 눈에 대고(오른쪽 단추) 글자를 키워 보시오.", log);
+            Practice(tools.transform, "도구_등불", sheet,
+                     "같은 종이요. 이번엔 등불을 들고 비춰 보시오 — 겹 사이의 것이 배어 나올 것이오.", log);
 
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(room.scene);
             Debug.Log("[문갑]\n" + log);
         }
 
-        /// <summary>
-        /// 익히지 않는 도구 — 이름 한 줄만 뜨게 한다.
-        ///
-        /// 물건은 문갑에 그대로 둔다. 치워 버리면 문갑이 휑해지고, 무엇보다
-        /// "이건 늘 지니고 있다"는 말을 할 자리가 없어진다.
-        /// </summary>
-        private static void Always(Transform tools, string name, string title, string line, StringBuilder log)
+        /// <summary>익히지 않는 물건은 문갑에서 치운다.</summary>
+        private static void Remove(Transform tools, string name, StringBuilder log)
         {
             var t = tools.Find(name);
-            if (t == null) { log.AppendLine("   ✘ " + name + " 없음"); return; }
-
-            var tut = t.GetComponent<ToolTutorial>();
-            if (tut != null) Undo.DestroyObjectImmediate(tut);
-
-            var note = t.GetComponent<InspectableNote>();
-            if (note == null) note = Undo.AddComponent<InspectableNote>(t.gameObject);
-            var so = new SerializedObject(note);
-            so.FindProperty("_title").stringValue = title + " — " + line;
-            so.FindProperty("_body").stringValue = "";
-            so.FindProperty("_canOpen").boolValue = false;      // 쥐어 볼 종이가 아니다
-            so.FindProperty("_recordClue").boolValue = false;
-            so.FindProperty("_requiresMagnifier").boolValue = false;
-            so.FindProperty("_maxTouchDistance").floatValue = 2.5f;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(note);
-
-            log.AppendLine("   " + name + " — 익히기를 떼고 이름줄만 남겼습니다");
+            if (t == null) { log.AppendLine("   " + name + " — 이미 없습니다"); return; }
+            Undo.DestroyObjectImmediate(t.gameObject);
+            log.AppendLine("   " + name + " — 문갑에서 치웠습니다");
         }
 
-        /// <summary>익히는 도구에 해 볼 과제를 붙인다.</summary>
-        private static void Practice(Transform tools, string name, string task, StringBuilder log)
+        /// <summary>익히는 도구에 해 볼 과제와 <b>쥐여 줄 예시 증거</b>를 붙인다.</summary>
+        private static void Practice(Transform tools, string name, InspectableNote example,
+                                     string task, StringBuilder log)
         {
             var t = tools.Find(name);
             if (t == null) { log.AppendLine("   ✘ " + name + " 없음"); return; }
@@ -111,9 +99,10 @@ namespace IMUNROK.Common.EditorTools
 
             var so = new SerializedObject(tut);
             so.FindProperty("_practice").stringValue = task;
+            so.FindProperty("_example").objectReferenceValue = example;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(tut);
-            log.AppendLine("   " + name + " — 과제를 붙였습니다");
+            log.AppendLine("   " + name + " — 과제와 예시 증거를 붙였습니다");
         }
 
         /// <summary>
@@ -121,14 +110,14 @@ namespace IMUNROK.Common.EditorTools
         /// 봤을 때 나뭇조각이 된다. 대신 뒤에서 보면 사라지므로, 문갑 위에 눕혀 두고
         /// 위에서만 보게 한다.
         /// </summary>
-        private static void Sheet(Transform room, Transform tools, StringBuilder log)
+        private static InspectableNote Sheet(Transform room, Transform tools, StringBuilder log)
         {
             var plain = AssetDatabase.LoadAssetAtPath<Texture2D>(PlainDoc);
             var lit = AssetDatabase.LoadAssetAtPath<Texture2D>(LitDoc);
             if (plain == null)
             {
                 log.AppendLine("   ✘ " + PlainDoc + " 이 없습니다 — Tools/DocBaker/make_docs.ps1 을 한 번 돌리세요.");
-                return;
+                return null;
             }
 
             var old = tools.Find(SheetName);
@@ -193,6 +182,7 @@ namespace IMUNROK.Common.EditorTools
 
             log.AppendLine("   " + SheetName + " 를 문갑에 깔았습니다"
                            + (lit == null ? "  (배접 속 장이 없어 등불에는 글만 뜹니다)" : "  (겉장 + 배접 속 장)"));
+            return note;
         }
     }
 }

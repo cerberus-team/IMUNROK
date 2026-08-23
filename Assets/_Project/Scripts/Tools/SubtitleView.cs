@@ -138,7 +138,20 @@ namespace IMUNROK.Common
             if (wasHidden && _anchor != null) _anchor.Recenter();
         }
 
-        private void SetVisible(bool on)
+        /// <summary>
+        /// 자막을 보이거나 감춘다.
+        ///
+        /// <paramref name="byUser"/> 는 <b>사람이 손으로 닫았는가</b>다. 이것이 참일 때만
+        /// <see cref="OnClosed"/> 가 울린다.
+        ///
+        /// 여태는 어떤 까닭으로 사라지든 다 울렸다. 그런데 자막을 치우는 손은 여럿이다 —
+        /// 문서를 펴면 읽는 자리를 내주느라 치우고, 대문에서 멀어지면 안내가 스스로
+        /// 물러나고, 심문이 끝나면 정리된다. 그 모두가 "사람이 그만두었다"로 읽혔다.
+        /// 조사청에서 도구를 익히다 말고 물건이 저 혼자 문갑으로 내려앉던 것이 이것이다:
+        /// 다음 한 마디를 띄우려는 참에 다른 무엇이 자막을 한 번 치우면, 익히기가
+        /// 그 자리에서 접혔다. <b>사라진 것과 그만둔 것은 다르다.</b>
+        /// </summary>
+        private void SetVisible(bool on, bool byUser = false)
         {
             if (_group == null) return;
             bool was = _group.alpha > 0.5f;
@@ -147,7 +160,7 @@ namespace IMUNROK.Common
             // 안 보이는 동안에는 닫기 표의 콜라이더도 꺼야 한다. 켜 둔 채로 두면
             // 눈앞에 보이지 않는 판이 남아 뒤쪽 물건으로 가는 레이를 가로챈다.
             if (_closeTab != null) _closeTab.SetActive(on);
-            if (was && !on) OnClosed?.Invoke();
+            if (was && !on && byUser) OnClosed?.Invoke();
         }
 
         /// <summary>
@@ -164,7 +177,7 @@ namespace IMUNROK.Common
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb == null) return;
             if (kb.escapeKey.wasPressedThisFrame || kb.backspaceKey.wasPressedThisFrame)
-                SetVisible(false);
+                SetVisible(false, true);        // 이것도 사람이 닫은 것이다
 #endif
         }
 
@@ -204,7 +217,7 @@ namespace IMUNROK.Common
             NewText("글", "닫기 ✕", Vector2.zero, size, rt, _hintFontSize, _hintColor);
 
             _closeTab = rt.gameObject.AddComponent<NoticeCloseTab>();
-            _closeTab.Bind(() => SetVisible(false), new Vector3(size.x, size.y, 8f));
+            _closeTab.Bind(() => SetVisible(false, true), new Vector3(size.x, size.y, 8f));
             _closeTab.SetActive(false);
         }
 
