@@ -181,6 +181,29 @@ namespace IMUNROK.Common
 #endif
         }
 
+        /// <summary>
+        /// 이 판은 <b>깊이를 따지지 않고</b> 그린다.
+        ///
+        /// 자막은 눈에서 1.3m 앞에 선다. 그런데 조사청에서는 문갑 앞에 서면 창이며
+        /// 기둥이 그보다 가까워서, 자막이 <b>창 뒤로 들어가</b> 살에 잘려 읽히지 않았다.
+        /// 이것은 방에 놓인 물건이 아니라 <b>눈앞에 든 글</b>이므로 무엇에도 가리면
+        /// 안 된다. 문서의 어둠판이 이미 같은 까닭으로 같은 일을 한다.
+        /// </summary>
+        private void DrawOnTop(Graphic g)
+        {
+            if (g == null) return;
+            var src = g.material != null ? g.material : g.defaultMaterial;
+            if (src == null) return;
+            var m = new Material(src) { name = src.name + "_앞에", hideFlags = HideFlags.HideAndDontSave };
+            m.SetInt("unity_GUIZTestMode", (int)UnityEngine.Rendering.CompareFunction.Always);
+            g.material = m;
+        }
+
+        private void AllOnTop()
+        {
+            foreach (var g in GetComponentsInChildren<Graphic>(true)) DrawOnTop(g);
+        }
+
         private void Build()
         {
             _font = UiFont.Resolve(_font);
@@ -206,6 +229,7 @@ namespace IMUNROK.Common
                                 panel, _hintFontSize, _hintColor);
 
             BuildCloseTab(panel, w, h);
+            AllOnTop();
         }
 
         /// <summary>바탕 오른쪽 위 귀퉁이에 걸치는 작은 닫기 표.</summary>

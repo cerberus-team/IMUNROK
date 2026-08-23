@@ -60,6 +60,7 @@ namespace IMUNROK.Common
         private Text _body;
         private Text _fine;
         private Text _hint;
+        private RectTransform _closeRt;   // 내려놓기 단추 — 익히는 동안엔 감춘다
 
         // ── 등불에 비추기 ──
         // 돋보기가 <b>이미 그려진 것을 알아보는</b> 도구라면, 등불은 <b>없던 것을
@@ -120,6 +121,20 @@ namespace IMUNROK.Common
             ReadingFocus.Claim(ReadingFocus.Panel.Document, Hide);
             _instance.ShowInternal(page, title, body, finePrint, onRead, dim, litPage, litPrint, onLit, litGlyphs);
         }
+
+        /// <summary>
+        /// 내려놓기를 <b>막는다</b>. 도구를 익히는 동안 쥐여 준 예시 증거에 쓴다 —
+        /// 그것은 내가 집은 종이가 아니라 <b>받은 종이</b>라, 내려놓을 것이 아니다.
+        /// 익히기가 끝나면 이쪽에서 거둔다.
+        /// </summary>
+        public static void SetCanPutDown(bool on)
+        {
+            _canPutDown = on;
+            if (_instance != null && _instance._closeRt != null)
+                _instance._closeRt.gameObject.SetActive(on);
+        }
+
+        private static bool _canPutDown = true;
 
         public static void Hide()
         {
@@ -339,6 +354,8 @@ namespace IMUNROK.Common
                 : hasLit
                 ? "끌어서 돌려 볼 수 있다 · 불빛 앞에 대면 겹 사이가 비친다"
                 : "끌어서 돌려 볼 수 있다 · (Esc — 내려놓기)";
+
+            if (_closeRt != null) _closeRt.gameObject.SetActive(_canPutDown);
 
             SetVisible(true);
             IsOpen = true;
@@ -593,14 +610,14 @@ namespace IMUNROK.Common
                             _chrome.transform, _fontSize - 8);
             _hint.color = new Color(_textColor.r, _textColor.g, _textColor.b, 0.7f);
 
-            var closeRt = NewRect("닫기", new Vector2(_pageSpan * 0.66f, _pageSpan * 0.58f),
+            _closeRt = NewRect("닫기", new Vector2(_pageSpan * 0.66f, _pageSpan * 0.58f),
                                   new Vector2(150f, 52f), _chrome.transform);
-            var closeBg = closeRt.gameObject.AddComponent<Image>();
+            var closeBg = _closeRt.gameObject.AddComponent<Image>();
             closeBg.color = _tabColor;
-            var closeBtn = closeRt.gameObject.AddComponent<Button>();
+            var closeBtn = _closeRt.gameObject.AddComponent<Button>();
             closeBtn.targetGraphic = closeBg;
             closeBtn.onClick.AddListener(Hide);
-            NewText("라벨", "내려놓기", Vector2.zero, new Vector2(150f, 56f), closeRt, _fontSize - 8);
+            NewText("라벨", "내려놓기", Vector2.zero, new Vector2(150f, 56f), _closeRt, _fontSize - 8);
         }
 
         private RectTransform NewRect(string name, Vector2 pos, Vector2 size, Transform parent)

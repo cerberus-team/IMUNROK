@@ -75,6 +75,23 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
+        /// <b>바닥을 딛고 선다</b> — 발밑을 찾아 그 위 눈높이에 맞춘다.
+        ///
+        /// Tab 으로 걷기에 들어설 때 하는 일과 같다. 밖에서 카메라를 옮겨 놓은 뒤
+        /// (들어서는 연출처럼) 부르면, 옮겨 놓은 높이가 아니라 <b>바닥에서 잰</b>
+        /// 높이로 다시 선다. 연출이 끝나고 시야가 내려앉아 있던 것이 이것이었다 —
+        /// 앉은 자리에서 0.5m 올라선 높이가 곧 선 키는 아니다.
+        /// </summary>
+        public void StandOnGround()
+        {
+            if (!Physics.Raycast(transform.position + Vector3.up * 0.2f, Vector3.down,
+                                 out var floor, 200f, ~0, QueryTriggerInteraction.Ignore)) return;
+            _walkMode = true;
+            _walkY = floor.point.y + _eyeHeight;
+            Vector3 p = transform.position; p.y = _walkY; transform.position = p;
+        }
+
+        /// <summary>
         /// 지금 보고 있는 방향을 각도로 다시 읽는다.
         ///
         /// 왜 필요한가: 이 부품은 yaw·pitch 를 <b>제가 들고</b> 그것으로 회전을 만든다.

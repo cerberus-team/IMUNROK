@@ -115,6 +115,9 @@ namespace IMUNROK.Common
             if (fly != null)
             {
                 fly.enabled = true;
+                // 올라선 높이(앉은 자리 + 0.5m)가 곧 선 키는 아니다. 바닥을 찾아
+                // 거기서 눈높이만큼 다시 잡는다 — Tab 을 한 번 누른 것과 같은 일이다.
+                fly.StandOnGround();
                 fly.SyncAngles();     // 지금 보는 쪽을 제 것으로 받아들이게 한다
             }
             Destroy(this);

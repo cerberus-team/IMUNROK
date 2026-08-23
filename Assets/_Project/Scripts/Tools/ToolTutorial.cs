@@ -382,7 +382,12 @@ namespace IMUNROK.Common
                 // 펴 주고, 배우는 사람은 <b>도구 쓰는 일 하나만</b> 하면 된다.
                 // 종이가 펴진 뒤에 물건이 내려가야 한다 — 순서가 뒤집히면 내려가는
                 // 물건에 눈이 따라가 종이가 펴진 것을 못 본다.
-                if (_example != null) _example.OpenNow();
+                if (_example != null)
+                {
+                    // 받은 종이는 <b>내려놓을 것이 아니다</b>. 익히기가 끝나면 이쪽에서 거둔다.
+                    DocumentView.SetCanPutDown(false);
+                    _example.OpenNow();
+                }
 
                 // 물건은 <b>문갑으로 돌아간다</b>.
                 //
@@ -456,7 +461,11 @@ namespace IMUNROK.Common
             // 해냈으면 종이를 <b>거둔다</b>. 다 본 종이가 눈앞에 그대로 떠 있으면
             // 무엇이 끝난 것인지가 안 보인다 — 치우는 것이 곧 "됐다"는 말이다.
             // 치운 뒤에 한마디 하는 것도 그래서다. 종이 뒤에서 하는 말은 안 읽힌다.
-            if (_example != null) DocumentView.Hide();
+            if (_example != null)
+            {
+                DocumentView.Hide();
+                DocumentView.SetCanPutDown(true);   // 다음 종이는 내려놓을 수 있다
+            }
 
             // <b>도구를 도로 내놓는다</b> — 손에서도, 벨트에서도.
             //
@@ -468,7 +477,29 @@ namespace IMUNROK.Common
             if (belt != null && _tool != null) belt.Revoke(_tool);
 
             SubtitleView.Show(_tool.displayName,
-                              string.Format(_practiceDone, _tool.displayName), "(닫기)");
+                              string.Format(_practiceDone, _tool.displayName), "(눌러서 마친다)");
+            StartCoroutine(DismissOnClick());
+        }
+
+        /// <summary>
+        /// 마지막 한마디는 <b>아무 데나 눌러</b> 닫는다.
+        ///
+        /// 여태 이 줄만 닫기 표를 정확히 눌러야 넘어갔다. 앞의 마디는 다 아무 데나
+        /// 눌러 넘겼는데 끝에서만 손이 바뀌니, 다 끝내 놓고 그 자리에 붙들린다.
+        /// 나가는 문은 들어온 문과 같아야 한다.
+        /// </summary>
+        private IEnumerator DismissOnClick()
+        {
+            float shown = Time.unscaledTime;
+            while (SubtitleView.IsShowing)
+            {
+#if ENABLE_INPUT_SYSTEM
+                var mouse = UnityEngine.InputSystem.Mouse.current;
+                if (mouse != null && mouse.leftButton.wasPressedThisFrame
+                    && Time.unscaledTime - shown > 0.5f) { SubtitleView.Hide(); break; }
+#endif
+                yield return null;
+            }
         }
 
         private void StopAwaiting()
@@ -491,6 +522,7 @@ namespace IMUNROK.Common
             // 내려가 있고 자막도 발치에 깔린 채로 남는다.
             WorldHudAnchor.StowAll = false;
             SubtitleView.SetReadingDistance(1.3f, -0.28f);
+            DocumentView.SetCanPutDown(true);
             if (_moving != null) StopCoroutine(_moving);
             _moving = StartCoroutine(HomeRoutine());
         }

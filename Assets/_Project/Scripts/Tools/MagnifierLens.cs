@@ -102,7 +102,10 @@ namespace IMUNROK.Common
         [Tooltip("비우면 같은 도구 id의 HeldToolModel 소품을 찾아 쓴다")]
         [SerializeField] private Transform _prop;
         [Tooltip("잰 유리 반지름에 곱한다. 1보다 조금 작아야 그림이 테 안쪽에 앉는다")]
-        [Range(0.5f, 1f)] [SerializeField] private float _glassInset = 0.82f;
+        // 0.82 는 <b>넘쳤다</b>. 테를 재는 셈이 술과 목까지 걸려 실제보다 크게 잡히는
+        // 일이 있어서, 그 위에 0.82 를 곱해도 알이 테 밖으로 비어져 나왔다 —
+        // 동그라미 너머까지 유리가 있는 것처럼 보이던 것이 이것이다. 넉넉히 줄인다.
+        [Range(0.4f, 1f)] [SerializeField] private float _glassInset = 0.62f;
         [Tooltip("소품의 앞뒤가 뒤집혀 보이면 켠다(유리 법선이 반대인 모델)")]
         [SerializeField] private bool _flipProp = false;
 
