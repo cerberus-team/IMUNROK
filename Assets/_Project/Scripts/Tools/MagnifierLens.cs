@@ -238,25 +238,17 @@ namespace IMUNROK.Common
             DrawOnTop(glassMat);
             _glass.sharedMaterial = glassMat;
 
-            // 테와 자루는 <b>소품이 없을 때만</b> 만든다. 손으로 만든 돋보기가 씬에 있는데
-            // 여기서 또 하나를 빚으면, 유리는 이쪽에 있고 테는 저쪽에 있는 물건이 된다.
+            // 테도 자루도 <b>만들지 않는다</b>.
+            //
+            // 한때 소품을 못 찾으면 여기서 원판과 테와 자루를 빚어 썼다. 없는 것보다
+            // 낫다고 여겼는데, 그것이 손으로 만들어 넣은 돋보기 대신 눈앞에 떠 있는
+            // 흰 물건의 정체였다. 못 찾으면 <b>안 만드는 것</b>이 맞다 — 흉내가 눈앞에
+            // 떠 있으면 진짜가 왜 안 나오는지조차 알 수 없다.
+            // 유리(렌즈 그림을 얹는 원판)만은 만든다. 그것은 흉내가 아니라 이 부품이
+            // 하는 일 자체이고, 소품을 찾으면 그 알 위에 겹쳐 앉는다.
             if (_propRoot == null)
-            {
-                var rim = Ring("테", 0.016f, new Color(0.46f, 0.36f, 0.17f));
-                rim.localScale = new Vector3(_glassRadius * 1.20f, _glassRadius * 1.20f, 1f);
-                rim.localPosition = new Vector3(0f, 0f, -0.001f);
-
-                var grip = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                Destroy(grip.GetComponent<Collider>());
-                grip.name = "자루";
-                grip.transform.SetParent(_lens, false);
-                grip.transform.localPosition = new Vector3(0f, -_glassRadius * 1.75f, 0.002f);
-                grip.transform.localScale = new Vector3(0.011f, _glassRadius * 0.75f, 0.011f);
-                var wood = new Material(unlit) { name = "돋보기_자루" };
-                SetColor(wood, new Color(0.24f, 0.15f, 0.09f));
-                DrawOnTop(wood);
-                grip.GetComponent<Renderer>().sharedMaterial = wood;
-            }
+                Debug.LogWarning("[돋보기] 손에 드는 소품(HeldToolModel toolId=" + _toolId +
+                                 ")을 못 찾았습니다 — 유리만 뜹니다. 씬에 소품을 달아 주세요.");
 
             // 눈 자리에 두는 렌즈 카메라. 유리가 가리는 각의 1/배율 만큼만 찍는다
             var camGo = new GameObject("돋보기_카메라");

@@ -46,17 +46,18 @@ namespace IMUNROK.Common
         [SerializeField] private string _practiceDone = "됐다. 이만하면 {0}은 손에 익었다.";
 
         [Header("들어 올리기")]
-        // 물건과 글이 <b>겹치면 안 된다</b>. 0.42m 앞 눈높이 아래에 들면 손바닥만 한
-        // 물건이 화면의 절반을 먹는데, 자막은 1.3m 뒤 한가운데 있으니 글자가 물건에
-        // 통째로 가린다 — "돋보기다, 작은 것을 크게 본다" 가 돋보기에 덮여 안 읽혔다.
-        // 그래서 물건은 <b>눈 위로</b> 올려 들고, 자막은 아래로 내려 세운다.
-        // 둘이 위아래로 갈라서면 어느 쪽도 서로를 가리지 않는다.
-        [Tooltip("눈에서 이만큼 앞에 들어 올린다(m). 멀수록 작아지고 자막과 덜 겹친다")]
-        [SerializeField] private float _readDistance = 0.58f;
-        [Tooltip("눈높이에서 이만큼 내려 잡는다(m). <b>음수면 눈 위로</b> 든다")]
-        [SerializeField] private float _readDrop = -0.15f;
-        [Tooltip("익히는 동안 자막을 이만큼 내려 세운다(m). 물건과 갈라서는 값이다")]
-        [SerializeField] private float _subtitleDrop = -0.46f;
+        // 물건과 글이 <b>겹치면 안 된다</b> — 그런데 어느 쪽을 위로 둘지가 중요하다.
+        //
+        // 한 번은 물건을 눈 위로 올리고 글을 발치로 내렸다. 겹치지는 않았으나
+        // <b>거꾸로</b>였다. 읽어야 하는 것은 글이고 글은 눈앞에 있어야 한다.
+        // 물건은 손에 든 것이니 <b>내려다보는</b> 것이 맞다 — 고개를 숙여야 보이고,
+        // 고개를 들면 글이 있다. 그 두 자세가 곧 "물건을 살피다 / 설명을 읽다"이다.
+        [Tooltip("눈에서 이만큼 앞에 들어 올린다(m)")]
+        [SerializeField] private float _readDistance = 0.52f;
+        [Tooltip("눈높이에서 이만큼 <b>아래로</b> 내려 잡는다(m). 물건은 내려다보는 것이다")]
+        [SerializeField] private float _readDrop = 0.34f;
+        [Tooltip("익히는 동안 자막을 둘 높이(m). 글은 <b>눈앞</b>에 있어야 읽힌다")]
+        [SerializeField] private float _subtitleDrop = -0.06f;
         [SerializeField] private float _liftSeconds = 0.5f;
         [Tooltip("들고 있는 동안 천천히 돈다 — 어느 쪽에서 봐도 무엇인지 알게")]
         [SerializeField] private float _spinSpeed = 25f;
@@ -287,13 +288,22 @@ namespace IMUNROK.Common
             Quaternion fromRot = transform.rotation;
             Vector3 to = ReadPosition(cam);
 
+            // 물건은 <b>바로 선 채로</b> 떠올라야 한다.
+            //
+            // 여태 카메라의 회전을 그대로 물건에 씌웠다. 그러면 물건이 카메라처럼
+            // 눕는다 — 등불이 뒤집힌 채 뱅뱅 돌던 까닭이 이것이다. 물건이 문갑 위에
+            // 서 있던 그 기울기를 그대로 두고 <b>고개만 이쪽으로 돌린다</b>.
+            // 그래야 세로축이 위를 향한 채로 돌아, 어느 각에서 봐도 바로 서 있다.
+            Vector3 home = _homeRot.eulerAngles;
+            Quaternion upright = Quaternion.Euler(home.x, cam.transform.eulerAngles.y, home.z);
+
             float t = 0f;
             while (t < 1f)
             {
                 t += Time.deltaTime / Mathf.Max(0.01f, _liftSeconds);
                 float e = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
                 transform.position = Vector3.Lerp(from, to, e);
-                transform.rotation = Quaternion.Slerp(fromRot, cam.transform.rotation, e);
+                transform.rotation = Quaternion.Slerp(fromRot, upright, e);
                 yield return null;
             }
 

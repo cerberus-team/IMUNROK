@@ -106,7 +106,19 @@ namespace IMUNROK.Common
             if (!MoveLocked && kb.tabKey.wasPressedThisFrame)
             {
                 _walkMode = !_walkMode;
-                _walkY = transform.position.y;
+                // 걷기로 들어설 때는 <b>바닥에 내려선다</b>.
+                //
+                // 여태 그때의 높이를 그대로 눈높이로 삼았다. 날아다니던 높이가 곧
+                // 걷는 높이가 되니, Tab 을 누른 자리에 따라 사람 키가 매번 달랐다 —
+                // 서 있는 높이와 걷는 높이가 어긋난다던 것이 이것이다.
+                // 걷는다는 것은 바닥을 딛는 일이므로 바닥에서 눈높이만큼 위가 맞다.
+                if (_walkMode && Physics.Raycast(transform.position + Vector3.up * 0.2f, Vector3.down,
+                                                 out var floor, 200f, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    _walkY = floor.point.y + _eyeHeight;
+                    Vector3 q = transform.position; q.y = _walkY; transform.position = q;
+                }
+                else _walkY = transform.position.y;
             }
 
             // G: 바로 아래 바닥으로 내려서서 그 높이를 걷는 눈높이로
