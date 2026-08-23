@@ -4,26 +4,25 @@ using UnityEngine;
 namespace IMUNROK.Common.EditorTools
 {
     /// <summary>
-    /// 사건판의 봉서를 <b>펼친 두루마리</b>로 꾸민다. 메뉴: [이문록 ▸ 조사청 ▸ 사건판 꾸미기]
+    /// 사건판에 걸린 <b>봉서</b>를 봉서답게 꾸민다. 메뉴: [이문록 ▸ 조사청 ▸ 사건판 꾸미기]
     ///
-    /// <b>지금까지</b>: 널빤지 하나(Plane)에 종이 석 장(Quad)을 얹어 둔 것이 전부였다.
-    /// 종이에 그림은 발려 있으나 종이가 <b>어떻게 거기 있는지</b>가 없다 — 붙인 것도
-    /// 아니고 걸린 것도 아니라, 벽에 스티커를 붙인 꼴이다.
+    /// <b>이것이 무엇인가부터</b>: 사건판의 종이 석 장은 그림이 아니라 <b>어전에서 왕이
+    /// 내린 봉서</b>다. 사건으로 드는 입구이자, 이 방에 있는 물건 가운데 가장 격이 높다.
     ///
-    /// <b>무엇을 더하나</b>: 위아래 축과 축머리, 그리고 <b>걸이끈과 못</b>.
+    /// 그래서 <b>족자로 꾸미면 안 된다</b>. 처음엔 위아래에 축을 물리고 걸이끈을 달았는데,
+    /// 축과 걸이끈은 그림을 <b>꾸며 걸어 두는</b> 장치다. 왕명은 감상하라고 내리는 것이
+    /// 아니다. 받아서 펴 보고, 벽에 붙여 두고, 그 앞에서 일하는 물건이다.
     ///
-    /// 축이 있으면 종이가 어전에서 <b>동그랗게 말려 온 것</b>으로 보인다. 그리고 그것을
-    /// 벽에 <b>걸어 두었다</b>는 것은 걸이끈이 말한다 — 붉은 끈이 위축 양 끝에서 올라가
-    /// 못 하나에 걸린다.
+    /// <b>봉서는 이렇게 생겼다</b>:
+    ///   · 말려서 온다   → 붙여 두어도 아랫자락이 아직 말려 있다(<see cref="Curl"/>).
+    ///   · 봉해서 온다   → 붉은 봉함끈이 풀린 채 한쪽에 늘어져 있다.
+    ///   · 붙여 둔다     → 위 귀퉁이 둘을 침으로 찔러 둔다. 축도 걸이줄도 없다.
     ///
-    /// <b>가로띠가 아니다</b>: 처음엔 붉은 끈을 종이 한가운데에 가로로 둘렀는데,
-    /// 그건 <b>아직 봉해져 있는</b> 봉서의 모습이다. 여기 걸린 것은 이미 풀어 읽은
-    /// 봉서다 — 봉한 띠가 그대로 있으면 펼쳐진 종이와 말이 안 맞는다. 그 끈은 풀려서
-    /// 걸이줄이 되는 것이 순리다.
+    /// 인장은 종이 그림에 이미 찍혀 있으므로 여기서 더하지 않는다.
     ///
     /// <b>종이의 자식으로 단다</b>: 사건판 옆에 따로 세우면 종이를 옮길 때 꾸밈이
     /// 제자리에 남는다. 다만 종이가 (0.30, 0.42) 로 눌려 있어 그대로 자식을 달면
-    /// 축이 타원이 된다 — 그래서 한 겹 사이에 <b>되돌리는 자</b>를 넣어 그 아래를
+    /// 침이 타원이 된다 — 그래서 한 겹 사이에 <b>되돌리는 자</b>를 넣어 그 아래를
     /// 정방으로 만든다.
     ///
     /// 다시 부르면 지웠다 새로 단다. 종이의 자리·크기는 건드리지 않는다.
@@ -35,17 +34,16 @@ namespace IMUNROK.Common.EditorTools
         private const string CordPath = "Assets/_Project/_Common/Materials/M_조사청_홍끈.mat";
         private const string WoodPath = "Assets/_Project/Onggojip/Art/KimMyeonggwanHouse/Material/MI_Wood02A.mat";
 
+        private const string PaperPath = "Assets/_Project/_Common/Materials/M_조사청_봉서지.mat";
+
         // ── 치수(m) ──
-        private const float RodR = 0.010f;      // 축 굵기(반지름)
-        private const float RodOver = 0.030f;   // 축이 종이 밖으로 나오는 길이(한쪽)
-        private const float KnobR = 0.017f;     // 축머리
-        private const float KnobL = 0.022f;
-        private const float CordW = 0.020f;     // 끈 너비
-        private const float CordT = 0.004f;     // 끈 두께
-        private const float HangRatio = 0.30f;  // 걸이끈이 종이 위로 올라가는 높이(종이 높이 대비)
-        private const float NailR = 0.011f;     // 못 굵기
-        private const float NailOut = 0.016f;   // 못이 튀어나온 길이
-        private const float Front = -0.012f;    // 종이보다 이만큼 앞(Quad 는 -Z 를 향한다)
+        private const float Curl = 0.013f;      // 아랫자락이 말린 굵기(반지름)
+        private const float PinR = 0.006f;      // 침 굵기
+        private const float PinOut = 0.014f;    // 침이 튀어나온 길이
+        private const float PinIn = 0.022f;     // 침이 귀퉁이에서 안쪽으로 들어온 거리
+        private const float CordW = 0.016f;     // 봉함끈 너비
+        private const float CordT = 0.004f;     // 봉함끈 두께
+        private const float Front = -0.010f;    // 종이보다 이만큼 앞(Quad 는 -Z 를 향한다)
 
         [MenuItem("이문록/조사청/사건판 꾸미기")]
         private static void Run()
@@ -54,8 +52,9 @@ namespace IMUNROK.Common.EditorTools
             if (pile == null) { Debug.LogError("[사건판] " + PileName + " 을 못 찾았습니다."); return; }
 
             var cord = Cord();
-            var wood = AssetDatabase.LoadAssetAtPath<Material>(WoodPath);
-            if (wood == null) { Debug.LogError("[사건판] 나무 재질을 못 찾았습니다: " + WoodPath); return; }
+            var sheet = Sheet();
+            var pin = AssetDatabase.LoadAssetAtPath<Material>(WoodPath);
+            if (pin == null) { Debug.LogError("[사건판] 침 재질을 못 찾았습니다: " + WoodPath); return; }
 
             int n = 0;
             foreach (Transform paper in pile.transform)
@@ -66,18 +65,18 @@ namespace IMUNROK.Common.EditorTools
                 var old = paper.Find(DressName);
                 if (old != null) Undo.DestroyObjectImmediate(old.gameObject);
 
-                Dress(paper, wood, cord);
+                Dress(paper, pin, cord, sheet);
                 n++;
             }
 
             EditorUtility.SetDirty(pile);
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(pile.scene);
-            Debug.Log("[사건판] 봉서 " + n + "장을 펼친 두루마리로 꾸몄습니다.");
+            Debug.Log("[사건판] 봉서 " + n + "장에 침과 봉함끈을 달았습니다.");
         }
 
-        private static void Dress(Transform paper, Material wood, Material cord)
+        private static void Dress(Transform paper, Material pin, Material cord, Material sheet)
         {
-            // 눌린 자를 되돌린다 — 이 아래는 정방이라 축이 타원이 되지 않는다.
+            // 눌린 자를 되돌린다 — 이 아래는 정방이라 침이 타원이 되지 않는다.
             var s = paper.localScale;
             var frame = new GameObject(DressName);
             Undo.RegisterCreatedObjectUndo(frame, "사건판 꾸미기");
@@ -92,30 +91,49 @@ namespace IMUNROK.Common.EditorTools
             // 종이의 실제 크기(m). Quad 는 1x1 이므로 눌린 자가 곧 크기다.
             float w = Mathf.Abs(s.x), h = Mathf.Abs(s.y);
             var g = frame.transform;
-            float endX = w * 0.5f + RodOver;
+            float topY = h * 0.5f, botY = -h * 0.5f;
+            float pinX = w * 0.5f - PinIn;
+            float pinY = topY - PinIn * 0.7f;
 
-            for (int side = 0; side < 2; side++)
-            {
-                float y = (side == 0 ? 1f : -1f) * h * 0.5f;
-                string tag = side == 0 ? "위" : "아래";
+            // ① 아랫자락 — 말려 온 종이라 아래가 아직 동그랗다.
+            //    나무가 아니라 <b>같은 종이</b>다. 축을 물리면 족자가 된다.
+            Rod(g, "말린자락", new Vector3(0f, botY + Curl * 0.5f, Front - Curl * 0.4f),
+                w, Curl, sheet);
 
-                Rod(g, "축_" + tag, new Vector3(0f, y, Front), w + RodOver * 2f, RodR, wood);
-                Rod(g, "축머리_" + tag + "_좌", new Vector3(-endX, y, Front), KnobL, KnobR, wood);
-                Rod(g, "축머리_" + tag + "_우", new Vector3(+endX, y, Front), KnobL, KnobR, wood);
-            }
+            // ② 침 둘 — 위 귀퉁이를 찔러 판에 붙여 둔다.
+            Pin(g, "침_좌", new Vector3(-pinX, pinY, Front), pin);
+            Pin(g, "침_우", new Vector3(+pinX, pinY, Front), pin);
 
-            // 걸이끈 — 위축 양 끝에서 올라가 한 점에서 만난다.
-            // 그 만나는 자리에 못이 박혀 있다. 이 둘이 있어야 "걸어 두었다"가 된다.
-            float topY = h * 0.5f;
-            float apexY = topY + h * HangRatio;
-            var apex = new Vector3(0f, apexY, Front);
-            Cord(g, "걸이끈_좌", new Vector3(-endX, topY, Front), apex, cord);
-            Cord(g, "걸이끈_우", new Vector3(+endX, topY, Front), apex, cord);
+            // ③ 봉함끈 — 봉했던 끈이 풀린 채 왼쪽 침에 걸려 늘어져 있다.
+            //    두 마디로 꺾어 두면 팽팽한 줄이 아니라 늘어진 끈으로 보인다.
+            var a = new Vector3(-pinX, pinY, Front - PinOut * 0.5f);
+            var b = new Vector3(-(w * 0.5f + 0.012f), pinY - h * 0.20f, Front - PinOut * 0.5f);
+            var c = new Vector3(-(w * 0.5f + 0.004f), pinY - h * 0.40f, Front - PinOut * 0.5f);
+            Cord(g, "봉함끈_1", a, b, cord);
+            Cord(g, "봉함끈_2", b, c, cord);
+            Box(g, "끈끝", c + new Vector3(0f, -CordW * 0.4f, 0f),
+                new Vector3(CordW * 0.9f, CordW * 1.1f, CordT), cord);
+        }
 
-            // 못 — 대가리가 조금 튀어나온다. 납작하면 그린 것으로 보인다.
-            Rod(g, "못", apex + new Vector3(0f, 0f, -NailOut * 0.5f), NailOut, NailR, wood);
-            Box(g, "못머리", apex + new Vector3(0f, 0f, -NailOut),
-                new Vector3(NailR * 2.6f, NailR * 2.6f, NailR * 1.2f), cord);
+        /// <summary>침 한 대 — 대가리가 조금 내밀어야 박은 것으로 보인다.</summary>
+        private static void Pin(Transform parent, string name, Vector3 at, Material mat)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            go.name = name;
+            Object.DestroyImmediate(go.GetComponent<Collider>());
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = at + new Vector3(0f, 0f, -PinOut * 0.5f);
+            go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);   // 축을 z 로 눕힌다
+            go.transform.localScale = new Vector3(PinR * 2f, PinOut * 0.5f, PinR * 2f);
+            go.GetComponent<Renderer>().sharedMaterial = mat;
+
+            var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            head.name = name + "_머리";
+            Object.DestroyImmediate(head.GetComponent<Collider>());
+            head.transform.SetParent(parent, false);
+            head.transform.localPosition = at + new Vector3(0f, 0f, -PinOut);
+            head.transform.localScale = Vector3.one * (PinR * 3.2f);
+            head.GetComponent<Renderer>().sharedMaterial = mat;
         }
 
         /// <summary>두 점을 잇는 끈 한 가닥. 길이와 기울기를 두 점에서 구한다.</summary>
@@ -158,6 +176,22 @@ namespace IMUNROK.Common.EditorTools
             go.transform.localPosition = pos;
             go.transform.localScale = size;
             go.GetComponent<Renderer>().sharedMaterial = mat;
+        }
+
+        /// <summary>말린 아랫자락에 쓸 종이 빛깔. 없으면 만든다.</summary>
+        private static Material Sheet()
+        {
+            var m = AssetDatabase.LoadAssetAtPath<Material>(PaperPath);
+            if (m != null) return m;
+
+            var sh = Shader.Find("Universal Render Pipeline/Lit");
+            m = new Material(sh) { name = "M_조사청_봉서지" };
+            m.SetColor("_BaseColor", new Color(0.87f, 0.83f, 0.72f));
+            if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.05f);
+            if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0f);
+            AssetDatabase.CreateAsset(m, PaperPath);
+            AssetDatabase.SaveAssets();
+            return m;
         }
 
         /// <summary>붉은 끈 재질. 없으면 만든다 — 봉서를 봉하던 그 빛깔이다.</summary>
