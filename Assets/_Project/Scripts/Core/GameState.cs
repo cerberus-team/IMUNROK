@@ -203,6 +203,26 @@ namespace IMUNROK.Common
             CheckAllCompleted();
         }
 
+        /// <summary>
+        /// 사건 <b>하나</b>를 처음으로 되돌린다 — 그 사건만 다시 시작할 때.
+        ///
+        /// <see cref="ResetAll"/> 은 판 전체를 지우므로 "이 사건만 처음부터"에는 쓸 수 없다.
+        /// 두 사건을 끝내 놓고 셋째를 다시 하려는 사람의 앞선 둘까지 지워 버린다.
+        ///
+        /// 수첩은 여기서 건드리지 않는다 — 지울지 말지는 부르는 쪽이 정한다.
+        /// (<see cref="Journal.ClearCase"/>)
+        /// </summary>
+        public void ResetCase(CaseId id)
+        {
+            var rec = GetRecord(id);
+            rec.status = CaseStatus.NotStarted;
+            rec.verdict = Verdict.None;
+            if (_currentCase.HasValue && _currentCase.Value == id) _currentCase = null;
+            _allCompletedFired = false;
+            Debug.Log($"[GameState] {id} 를 처음으로 되돌림");
+            RaiseChanged(id);
+        }
+
         /// <summary>제1사건 전용: 갑리(가짜) 처리 여부 기록.</summary>
         public void SetGapriHandled(bool handled)
         {

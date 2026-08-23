@@ -23,6 +23,15 @@ namespace IMUNROK.Common
     /// 열린다</b>. 지금은 옹고집전 하나뿐이고, 팀원이 제 씬을 넣는 날 그 문서는
     /// 저절로 살아난다 — 여기를 다시 고칠 일이 없다.
     ///
+    /// <b>차례가 있다</b>: 봉서 셋을 한꺼번에 받았어도 아무 것이나 먼저 펼 수는 없다.
+    /// 앞선 사건을 매듭지어야 다음 봉서가 열린다. 차례는 <see cref="CaseId"/> 에
+    /// 적힌 순서를 그대로 쓴다 — 여기에 1·2·3 을 따로 적어 두면 둘이 어긋날 자리가
+    /// 하나 더 생긴다.
+    ///
+    /// <b>누르면 곧바로 들어가지 않는다</b>: 사건에 드는 것은 되돌리기 어려운 일이라
+    /// 한 번은 묻는다. <see cref="CaseChoicePanel"/> 이 눈앞에 봉서로 풀려 내려와
+    /// 제목과 요지를 보이고, 하던 것이 있으면 이어할지 처음부터 할지 고르게 한다.
+    ///
     /// URP에서는 색을 MaterialPropertyBlock의 "_BaseColor"로 칠한다
     /// (머티리얼 에셋을 새로 만들지 않아도 되고, 큐브마다 독립적으로 색이 적용됨).
     /// </summary>
@@ -46,8 +55,19 @@ namespace IMUNROK.Common
         [Header("아직 오지 않은 사건")]
         [Tooltip("열리지 않는 문서를 눌렀을 때의 한 마디. 비우면 아무 말도 안 한다")]
         [SerializeField] private string _notReadyLine = "아직 봉서가 닿지 않은 사건이오.";
+        [Tooltip("차례가 아직 오지 않은 사건을 눌렀을 때의 한 마디")]
+        [SerializeField] private string _lockedLine = "앞선 사건부터 매듭지어야 하오.";
         [Tooltip("그 한 마디가 머무는 시간(초)")]
         [SerializeField] private float _notReadySeconds = 3.0f;
+
+        [Header("고르는 창에 적을 것")]
+        [Tooltip("비우면 사건 차례에서 짐작한다(제1사건…)")]
+        [SerializeField] private string _order = "";
+        [Tooltip("비우면 사건 이름에서 짐작한다")]
+        [SerializeField] private string _caseName = "";
+        [TextArea(2, 5)]
+        [Tooltip("고르는 창에 적히는 요지 두어 줄")]
+        [SerializeField] private string _brief = "";
 
         [Tooltip("가리켰을 때 흰색 쪽으로 섞는 정도(하이라이트)")]
         [Range(0f, 1f)]
@@ -67,8 +87,57 @@ namespace IMUNROK.Common
         /// 이 사건에 지금 들어갈 수 있나 — <b>씬이 빌드 목록에 올라와 있는가</b>로만 본다.
         /// 사건 이름을 코드에 박지 않는 까닭이다. 팀원이 제 씬을 넣으면 그날부터 열린다.
         /// </summary>
-        public bool Ready => !string.IsNullOrEmpty(_caseSceneName)
-                             && Application.CanStreamedLevelBeLoaded(_caseSceneName);
+        public bool Ready => InBuild(_caseSceneName);
+
+        /// <summary>
+        /// 이 이름의 씬이 빌드 목록에 켜져 있나.
+        ///
+        /// <c>Application.CanStreamedLevelBeLoaded</c> 를 쓰지 않는다 — 그것은
+        /// <b>에디터에서 거짓을 돌려준다</b>. 빌드 목록에 멀쩡히 켜져 있는 Onggojip 을
+        /// 두고도 false 라 하니, 편집 중에는 문서가 죄다 잠긴 것으로 보였다.
+        /// 목록을 직접 읽으면 편집 중이든 실행 중이든 같은 답이 나온다.
+        /// </summary>
+        private static bool InBuild(string sceneName)
+        {
+            if (string.IsNullOrEmpty(sceneName)) return false;
+            int n = SceneManager.sceneCountInBuildSettings;   // 켜진 것만 센다
+            for (int i = 0; i < n; i++)
+            {
+                string path = SceneUtility.GetScenePathByBuildIndex(i);
+                int a = path.LastIndexOf('/') + 1;
+                int b = path.LastIndexOf('.');
+                if (b <= a) continue;
+                if (string.Equals(path.Substring(a, b - a), sceneName,
+                                  System.StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>사건이 <see cref="CaseId"/> 에서 몇 번째인가(0부터).</summary>
+        private static int Order(CaseId id)
+        {
+            var all = System.Enum.GetValues(typeof(CaseId));
+            for (int i = 0; i < all.Length; i++) if ((CaseId)all.GetValue(i) == id) return i;
+            return 0;
+        }
+
+        /// <summary>
+        /// 차례가 왔나 — 앞선 사건을 매듭지었나. 첫 사건은 늘 열려 있다.
+        /// </summary>
+        public bool Unlocked
+        {
+            get
+            {
+                int i = Order(_caseId);
+                if (i <= 0) return true;
+                var all = System.Enum.GetValues(typeof(CaseId));
+                var prev = (CaseId)all.GetValue(i - 1);
+                return GameState.Instance.GetStatus(prev) == CaseStatus.Completed;
+            }
+        }
+
+        /// <summary>지금 이 문서를 펼 수 있나.</summary>
+        public bool Openable => Ready && Unlocked;
 
         /// <summary>
         /// 에디터 생성기(HubSceneBuilder)나 인스펙터 대신 코드로 세팅할 때 사용.
@@ -110,7 +179,7 @@ namespace IMUNROK.Common
         {
             if (_renderer == null) return;
 
-            bool ready = Ready;
+            bool ready = Openable;
             Color c = !ready ? _notReadyColor : _state.GetStatus(_caseId) switch
             {
                 CaseStatus.InProgress => _inProgressColor,
@@ -150,6 +219,10 @@ namespace IMUNROK.Common
                 return;
             }
 
+            // 차례가 먼저다 — 사람에게는 이쪽이 진짜 까닭이고,
+            // 씬이 없다는 것은 만드는 쪽 사정이라 나중에 본다.
+            if (!Unlocked) { Say(_lockedLine); return; }
+
             if (!Ready)
             {
                 // 아직 팀원 사건 씬이 없을 때: 상태는 건드리지 않는다.
@@ -160,11 +233,50 @@ namespace IMUNROK.Common
                 return;
             }
 
-            // 실제로 들어갈 수 있을 때만 상태를 바꾼다.
+            // 하던 것이 있나 — 들어가 본 적이 있거나 수첩에 이 사건 물증이 있으면.
+            bool hasProgress = _state.GetStatus(_caseId) == CaseStatus.InProgress
+                               || Journal.Instance.ClueCount(_caseId) > 0;
+
+            CaseChoicePanel.Open(OrderLabel(), NameLabel(), _brief, hasProgress, Fresh, Enter);
+        }
+
+        /// <summary>처음부터 — 이 사건의 단서와 상태만 지운다. 다른 사건은 그대로 둔다.</summary>
+        private void Fresh()
+        {
+            Journal.Instance.ClearCase(_caseId);
+            _state.ResetCase(_caseId);
+            Debug.Log($"[CaseCube] {_caseId} 처음부터");
+            Enter();
+        }
+
+        /// <summary>사건 씬으로 든다. 암전으로 한 번 덮어야 눈앞이 뚝 끊기지 않는다.</summary>
+        private void Enter()
+        {
             _state.StartCase(_caseId);   // 색이 주황으로 → 진행중 시각 피드백
             _state.EnterCase(_caseId);   // 수첩이 이 사건 단서를 보여줌
             Debug.Log($"[CaseCube] {_caseId} 사건 씬 로드 → '{_caseSceneName}'");
-            SceneManager.LoadScene(_caseSceneName);
+            string scene = _caseSceneName;
+            ScreenFade.Blink(0.4f, 0.5f, delegate { SceneManager.LoadScene(scene); });
+        }
+
+        private string OrderLabel()
+        {
+            if (!string.IsNullOrEmpty(_order)) return _order;
+            string[] n = { "제일", "제이", "제삼", "제사", "제오" };
+            int i = Order(_caseId);
+            return (i < n.Length ? n[i] : "제" + (i + 1)) + " 사건";
+        }
+
+        private string NameLabel()
+        {
+            if (!string.IsNullOrEmpty(_caseName)) return _caseName;
+            switch (_caseId)
+            {
+                case CaseId.Case1_Onggojip: return "옹고집전";
+                case CaseId.Case2_Seocheon: return "서천꽃밭";
+                case CaseId.Case3_Gyeonu:   return "견우직녀";
+            }
+            return _caseId.ToString();
         }
 
         /// <summary>
