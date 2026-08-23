@@ -1,4 +1,4 @@
-# Bakes aged-hanji case-document textures with vertical Gungsuh (Joseon palace script) text.
+﻿# Bakes aged-hanji case-document textures with vertical Gungsuh (Joseon palace script) text.
 #
 # Run from Unity:  menu [이문록 > 에셋: 사건 문서 텍스처 굽기]
 # Run by hand:     powershell -ExecutionPolicy Bypass -File Tools\DocBaker\make_docs.ps1
@@ -158,12 +158,27 @@ function Pick-Face($cands, $texts, $exclude, $mustCoverAll) {
     return $best
 }
 
-$fontName = Pick-Face @('LXGW WenKai KR','LXGW WenKai TC','Ma Shan Zheng','HCR Batang','Batang','Gungsuh') $allText $null $false
+# Three faces, and each one is a person.
+#
+#   $fontName   tkFangSong   - the plain hanja face. Titles, seals, and anything the
+#                              office itself wrote (the household register, the three
+#                              case sheets). Nobody's handwriting: it is print.
+#   $fontHand   Bakudai      - Ong Deok-gu's brush. Twenty years of trained, even
+#                              entries in his own ledgers.
+#   $fontAlt    AbbrFesFont  - Bok-dong's brush. A household slave who never had a
+#                              scholar's schooling, so it wanders. He shows up in the
+#                              last two lines - that is the forgery.
+#
+# The old lists stay behind each name as a fallback: fonts are art and live in the
+# team share, so a fresh clone may not have them yet. If the named face is missing
+# the bake still runs, and the log below says which face actually drew.
+$fontName = Pick-Face @('tkFangSong','LXGW WenKai KR','LXGW WenKai TC','Ma Shan Zheng','HCR Batang','Batang','Gungsuh') $allText $null $false
 if (-not $fontName) { $fontName = 'Batang' }
 
-# The second hand may only be a face that draws everything too. A half-covering
-# one would let the fallback back onto the page through the other door.
-$fontAlt = Pick-Face @('LXGW WenKai TC','LXGW WenKai Mono','Long Cang','Liu Jian Mao Cao','Zhi Mang Xing','Yuji Mai','Gungsuh','BatangChe') $allText $fontName $true
+$fontHand = Pick-Face @('Bakudai','LXGW WenKai KR','Ma Shan Zheng','HCR Batang','Batang') $allText $null $false
+if (-not $fontHand) { $fontHand = $fontName }
+
+$fontAlt = Pick-Face @('AbbrFesFont','Long Cang','Liu Jian Mao Cao','Zhi Mang Xing','Yuji Mai','LXGW WenKai TC','BatangChe') $allText $fontHand $false
 if (-not $fontAlt) {
     $fontAlt = $fontName
     Write-Host "  ! only one face draws every character - the two hands will differ by wobble alone."
@@ -186,9 +201,10 @@ function Report-MissingGlyphs($familyName, $texts) {
 }
 
 Report-MissingGlyphs $fontName $allText
-if ($fontAlt -ne $fontName) { Report-MissingGlyphs $fontAlt $allText }
+if ($fontHand -ne $fontName) { Report-MissingGlyphs $fontHand $allText }
+if ($fontAlt -ne $fontName -and $fontAlt -ne $fontHand) { Report-MissingGlyphs $fontAlt $allText }
 
-Write-Host "font: $fontName  (second hand: $fontAlt)"
+Write-Host "print: $fontName   Deok-gu: $fontHand   Bok-dong: $fontAlt"
 Write-Host "out : $sharedDir  (+ per-case folders)"
 
 $px = [System.Drawing.GraphicsUnit]::Pixel
@@ -424,7 +440,7 @@ function Draw-Pressed($g, $doc, $w, $h, $fontName, $rng) {
 
 # Account book. Entries run right to left, one per ruled column.
 # hand 1 is a different font, size and jitter - that difference IS the clue.
-function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontAlt, $rng) {
+function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontHand, $fontAlt, $rng) {
     $ink     = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(238, 38, 30, 24))
     $inkSoft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(210, 52, 42, 32))
     # Bok-dong writes with a thinner, waterier brush than the master's - it is not
@@ -462,7 +478,9 @@ function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontAlt, $rng) {
     }
     $rulePen.Dispose()
 
-    $fontA = New-Face $fontName $fontSize ([System.Drawing.FontStyle]::Regular)
+    # Hand 0 is Deok-gu's own brush, not the office's print face. The title above
+    # stays print - a ledger's header is ruled and stamped, the entries are written.
+    $fontA = New-Face $fontHand $fontSize ([System.Drawing.FontStyle]::Regular)
     # Regular, not Italic. A synthesised italic on a CJK face makes MeasureString
     # report nonsense widths, which shoved these columns clean off the sheet -
     # and Joseon documents have no such thing as an italic anyway.
@@ -541,7 +559,7 @@ foreach ($doc in $docs) {
     Paint-Paper $g $W $H $rng
 
     if ($kind -eq 'ledger') {
-        Draw-Ledger $g $doc $W $H $fontName $fontAlt $rng
+        Draw-Ledger $g $doc $W $H $fontName $fontHand $fontAlt $rng
     }
     elseif ($kind -eq 'pressed') {
         Draw-Pressed $g $doc $W $H $fontName $rng
