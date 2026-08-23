@@ -234,6 +234,21 @@ namespace IMUNROK.Common
             return Vector3.RotateTowards(dir, eye, (off - _maxOffAxis) * Mathf.Deg2Rad, 0f).normalized;
         }
 
+        /// <summary>
+        /// <b>눈앞에 붙박는다</b> — 고개를 어디로 돌리든 늘 시야 한가운데.
+        ///
+        /// 평소 이 창은 <b>일부러 늦게</b> 따라온다. 머리에 붙은 판이 아니라 앞에 놓인
+        /// 판처럼 보이게 하려고, 제 방향을 들고 있다가 시선이 <see cref="_maxOffAxis"/>
+        /// 도를 넘게 벗어나야 비로소 따라 돈다(<see cref="ViewDirection"/>). 방을
+        /// 둘러보는 동안에는 그것이 맞다.
+        ///
+        /// 그런데 <b>설명을 읽는 동안</b>에는 정반대다. 물건은 아래에 두고 글은 눈앞에
+        /// 두었는데, 물건을 보려고 고개를 숙이면 글이 저만치 뒤에 남는다 — 읽으려고
+        /// 다시 들면 이번엔 글이 따라오느라 흔들린다. 읽는 글은 <b>붙박여</b> 있어야 한다.
+        /// 그동안만 켠다.
+        /// </summary>
+        [System.NonSerialized] public bool Pinned;
+
         private void ApplyTransform(Transform head, bool instant)
         {
             float d = EffectiveDistance(head);
@@ -252,7 +267,11 @@ namespace IMUNROK.Common
             _stow = Mathf.MoveTowards(_stow, want, _stowSpeed * Time.deltaTime);
             drop -= _stowDrop * Mathf.SmoothStep(0f, 1f, _stow);
 
-            Vector3 dir = ViewDirection(head);
+            // 붙박은 동안에는 <b>시선 그대로</b>다. 들고 있던 방향도 같이 끌어 두어야
+            // 풀었을 때 홱 돌아가지 않는다.
+            Vector3 dir;
+            if (Pinned) { dir = head.forward; _anchorForward = dir; }
+            else dir = ViewDirection(head);
 
             // 아래로 치우치는 양은 시선 기준이라야 한다. 세계의 아래로 내리면
             // 고개를 숙였을 때 창이 발밑으로 파고든다.
@@ -268,7 +287,7 @@ namespace IMUNROK.Common
                 ? Quaternion.LookRotation(-toHead.normalized, Vector3.up)
                 : Quaternion.LookRotation(-toHead.normalized, Vector3.up);
 
-            if (instant)
+            if (instant || Pinned)
             {
                 transform.SetPositionAndRotation(target, targetRot);
                 return;

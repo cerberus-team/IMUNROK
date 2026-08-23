@@ -90,6 +90,20 @@ namespace IMUNROK.Common
             _instance._anchor.SetDistance(distance, verticalOffset);
         }
 
+        /// <summary>
+        /// 자막을 <b>눈앞에 붙박는다</b> — 고개를 어디로 돌리든 늘 시야 한가운데.
+        ///
+        /// 도구를 익히는 동안에만 켠다. 물건은 아래에 두고 글은 눈앞에 두었는데,
+        /// 물건을 보려고 고개를 숙이면 글이 저만치 뒤에 남고 다시 들면 흔들려 따라온다.
+        /// 읽는 글은 붙박여 있어야 한다.
+        /// </summary>
+        public static void SetPinned(bool on)
+        {
+            if (_instance == null || _instance._anchor == null) return;
+            _instance._anchor.Pinned = on;
+            if (on) _instance._anchor.Recenter();
+        }
+
         /// <summary>지금 자막이 떠 있는가(다른 UI가 겹치지 않게 참고).</summary>
         /// <summary>
         /// 이 인물보다 앞에 서게 한다. 바짝 붙어도 상대 몸이 자막을 덮지 않는다.

@@ -291,8 +291,10 @@ namespace IMUNROK.Common
             // 벨트가 아니다. 수첩을 펼 때 쓰던 것과 같은 장치다.
             WorldHudAnchor.StowAll = true;
 
-            // 자막을 아래로 내려 세운다 — 눈 위로 든 물건과 위아래로 갈라서게.
+            // 설명은 <b>눈앞에 붙박는다</b>. 물건은 아래에 있으므로 고개를 숙였다
+            // 들었다 하게 되는데, 그때마다 글이 뒤에 남거나 흔들려 따라오면 읽을 수가 없다.
             SubtitleView.SetReadingDistance(1.3f, _subtitleDrop);
+            SubtitleView.SetPinned(true);
 
             Tint(0f);
             _step = -1;
@@ -476,6 +478,8 @@ namespace IMUNROK.Common
             var belt = ToolbeltHud.Instance;
             if (belt != null && _tool != null) belt.Revoke(_tool);
 
+            SubtitleView.SetPinned(false);
+
             SubtitleView.Show(_tool.displayName,
                               string.Format(_practiceDone, _tool.displayName), "(눌러서 마친다)");
             StartCoroutine(DismissOnClick());
@@ -522,6 +526,7 @@ namespace IMUNROK.Common
             // 내려가 있고 자막도 발치에 깔린 채로 남는다.
             WorldHudAnchor.StowAll = false;
             SubtitleView.SetReadingDistance(1.3f, -0.28f);
+            SubtitleView.SetPinned(false);   // 방을 둘러보는 동안에는 도로 늦게 따라온다
             DocumentView.SetCanPutDown(true);
             if (_moving != null) StopCoroutine(_moving);
             _moving = StartCoroutine(HomeRoutine());
