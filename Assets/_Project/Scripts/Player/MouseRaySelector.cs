@@ -56,6 +56,14 @@ namespace IMUNROK.Common
             if (Physics.Raycast(ray, out RaycastHit info, _maxDistance, _mask))
                 hit = info.collider.GetComponentInParent<ISelectable>();
 
+            // 도구를 익히는 동안에는 손이 방으로 가지 않는다.
+            //
+            // 익히는 중에는 <b>어디를 눌러도</b> 다음 마디로 넘어간다(ToolTutorial).
+            // 그 누름이 방에도 닿으면, 눈앞에 든 돋보기를 뚫고 나간 레이가 뒤의
+            // 문짝을 맞혀 한 마디 넘길 때마다 문이 여닫힌다.
+            // 자막의 닫기 표만은 예외다 — 그것이 그만두는 유일한 길이다.
+            if (ToolTutorial.Learning && !(hit is NoticeCloseTab)) hit = null;
+
             // 대상이 바뀌면 hover 전환
             if (!ReferenceEquals(hit, _current))
             {

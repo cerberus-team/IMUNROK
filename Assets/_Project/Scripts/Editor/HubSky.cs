@@ -71,9 +71,9 @@ namespace IMUNROK.Common.EditorTools
         // 그러면 40m 밖의 땅이 아직 4할밖에 안 흐려서 땅과 하늘이 맞닿는 곧은 금이
         // 그대로 남았다 — 안개를 두르고도 지평선이 보였다. 48m 에서 다 묻히게 하면
         // 고리에 닿기 전에 땅이 먼저 안개가 된다.
-        private static readonly Color FogColor = new Color(0.34f, 0.38f, 0.45f);
-        private const float FogStart = 14f;
-        private const float FogEnd = 40f;
+        private static readonly Color FogColor = new Color(0.37f, 0.41f, 0.48f);
+        private const float FogStart = 9f;
+        private const float FogEnd = 30f;
 
         [MenuItem("이문록/조사청/하늘과 안개 두르기")]
         private static void Run()
@@ -204,7 +204,7 @@ namespace IMUNROK.Common.EditorTools
             // 그래도 <b>속이 비쳐서는 안 된다</b>. 0.62 로 두었더니 안개 너머의 지평선이
             // 그대로 읽혔다 — 가리라고 세운 것이 무늬가 되어 버린다.
             Shell(root.transform, mesh, shader, "안개_안", InnerR, InnerH,
-                  new Color(0.52f, 0.57f, 0.64f), 0.88f, 2.1f, 0.030f, 0.50f);
+                  new Color(0.55f, 0.60f, 0.67f), 1.0f, 1.6f, 0.030f, 0.38f);
             // 바깥은 짙게 — 여기가 세상의 끝이다. 너머가 비쳐 보이면 안 된다.
             // 결(무늬)도 약하게 준다. 짙은 벽에 결이 세면 안개가 아니라 커튼이 된다.
             Shell(root.transform, mesh, shader, "안개_밖", OuterR, OuterH,

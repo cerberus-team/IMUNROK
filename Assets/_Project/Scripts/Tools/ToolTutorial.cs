@@ -96,10 +96,66 @@ namespace IMUNROK.Common
                 _learned = true;
         }
 
+        /// <summary>지금 누군가 도구를 익히는 중인가. 방을 짚는 손이 이것을 보고 물러난다.</summary>
+        public static bool Learning { get; private set; }
+
         private void Update()
         {
-            if (_phase == Phase.익히는중 && _spinSpeed != 0f)
+            if (_phase != Phase.익히는중) return;
+
+            if (_spinSpeed != 0f)
                 transform.Rotate(Vector3.up, _spinSpeed * Time.deltaTime, Space.World);
+
+            // ── 다음 한 마디로 넘기기 ──
+            //
+            // 여태는 <b>물건을 다시 눌러</b> 넘겼다. 그런데 눌러지지가 않았다.
+            // 이 물건의 콜라이더는 반지름이 0.7m 인데(문갑 모델이 2.9배로 커져 있어
+            // 그 밑에 달린 것도 같이 커졌다) 눈앞 0.43m 에 들어 올리므로,
+            // <b>콜라이더가 카메라를 통째로 삼킨다</b>. 유니티는 콜라이더 <b>안에서</b>
+            // 출발한 레이를 그 콜라이더에 맞은 것으로 치지 않는다 — 레이가 돋보기를
+            // 그냥 지나쳐 뒤의 문짝을 맞히고 있었다. 익히기가 첫 마디에서 멎던 것이 이것이다.
+            //
+            // 물건을 더 멀리 들면 콜라이더는 비껴가지만 물건이 작아져 무엇인지 안 보인다.
+            // 애초에 안내도 "물건을 눌러서" 가 아니라 <b>"눌러서 다음"</b> 이었다 —
+            // 어디를 눌러도 넘어가는 것이 맞다.
+#if ENABLE_INPUT_SYSTEM
+            var mouse = UnityEngine.InputSystem.Mouse.current;
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame && !PointerOnCloseTab())
+                NextStep();
+#endif
+        }
+
+        /// <summary>
+        /// 상태를 바꾸면서 <see cref="Learning"/> 을 같이 적는다.
+        ///
+        /// 익히는 동안에는 방을 짚는 손이 물러나야 한다. 어디를 눌러도 다음으로
+        /// 넘어가게 해 두었으니, 그 누름이 돋보기를 뚫고 뒤의 문짝까지 닿으면
+        /// 한 마디 넘길 때마다 문이 여닫힌다.
+        /// </summary>
+        private void SetPhase(Phase p)
+        {
+            _phase = p;
+            Learning = (p == Phase.익히는중);
+        }
+
+        /// <summary>
+        /// 지금 가리키는 것이 자막의 <b>닫기 표</b>인가.
+        ///
+        /// 어디를 눌러도 넘어가게 해 두면 그만두는 길이 막힌다. 닫기 표만은
+        /// 넘기기로 세지 않고 제 일을 하게 둔다.
+        /// </summary>
+        private static bool PointerOnCloseTab()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var cam = Camera.main;
+            var mouse = UnityEngine.InputSystem.Mouse.current;
+            if (cam == null || mouse == null) return false;
+            RaycastHit h;
+            if (!Physics.Raycast(cam.ScreenPointToRay(mouse.position.ReadValue()), out h, 8f)) return false;
+            return h.collider.GetComponentInParent<NoticeCloseTab>() != null;
+#else
+            return false;
+#endif
         }
 
         // ── 손대기 ────────────────────────────────────
@@ -146,9 +202,9 @@ namespace IMUNROK.Common
 
         private IEnumerator LiftRoutine()
         {
-            _phase = Phase.떠오르는중;
+            SetPhase(Phase.떠오르는중);
             var cam = Camera.main;
-            if (cam == null) { _phase = Phase.놓임; yield break; }
+            if (cam == null) { SetPhase(Phase.놓임); yield break; }
 
             Vector3 from = transform.position;
             Quaternion fromRot = transform.rotation;
@@ -164,7 +220,7 @@ namespace IMUNROK.Common
                 yield return null;
             }
 
-            _phase = Phase.익히는중;
+            SetPhase(Phase.익히는중);
             _moving = null;
             NextStep();
         }
@@ -263,7 +319,7 @@ namespace IMUNROK.Common
 
         private IEnumerator HomeRoutine()
         {
-            _phase = Phase.내려가는중;
+            SetPhase(Phase.내려가는중);
             Vector3 from = transform.position;
             Quaternion fromRot = transform.rotation;
 
@@ -279,7 +335,7 @@ namespace IMUNROK.Common
 
             transform.position = _homePos;
             transform.rotation = _homeRot;
-            _phase = Phase.놓임;
+            SetPhase(Phase.놓임);
             _moving = null;
         }
 

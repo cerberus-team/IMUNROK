@@ -125,10 +125,9 @@ namespace IMUNROK.Common.EditorTools
 
             var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
             go.name = SheetName;
-            Undo.RegisterCreatedObjectUndo(go, "연습 사목 깔기");
+            Undo.RegisterCreatedObjectUndo(go, "연습 사목 두기");
             go.transform.SetParent(tools, false);
             go.transform.position = room.TransformPoint(SheetAt);
-            // 눕힌다. 손으로 놓은 종이는 반듯하지 않으므로 조금 비뚤게.
             go.transform.rotation = room.rotation * Quaternion.Euler(90f, 6f, 0f);
 
             // 문갑은 남의 모델이라 제 배율이 따로 있다(2.9배쯤). 그 밑에 붙이면서
@@ -153,11 +152,17 @@ namespace IMUNROK.Common.EditorTools
             EditorUtility.SetDirty(mat);
             go.GetComponent<Renderer>().sharedMaterial = mat;
 
-            // Quad 의 MeshCollider 는 한 면뿐이라 밑에서 짚으면 안 잡힌다. 상자로 바꾼다.
+            // 방에는 <b>보이지 않는다</b>.
+            //
+            // 문갑 위에 실제로 깔아 두었더니 짚을 것이 하나 더 늘었다. 문서는 앞으로
+            // 필요할 때 위에서 내려올 물건이지 문갑에 늘 놓여 있을 물건이 아니다.
+            // 그래서 이것은 <b>내용만 지닌 그릇</b>으로 남긴다 — 익히기가 이 그릇을
+            // 붙들고 있다가, 과제를 낼 때 그 안의 종이를 손에 펴 준다.
+            // 지우지 않고 남기는 까닭은, 지우면 익히기가 붙들 종이가 없어지기 때문이다.
+            var mr = go.GetComponent<MeshRenderer>();
+            if (mr != null) mr.enabled = false;
             var mc = go.GetComponent<MeshCollider>();
             if (mc != null) Object.DestroyImmediate(mc);
-            var bc = go.AddComponent<BoxCollider>();
-            bc.size = new Vector3(1f, 1f, 0.06f);
 
             var note = go.AddComponent<InspectableNote>();
             var so = new SerializedObject(note);
