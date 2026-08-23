@@ -29,6 +29,8 @@ namespace IMUNROK.Common
         [SerializeField] private bool _leftHanded = false;
         [Tooltip("VR 기기가 붙어 있어도 데스크탑 OnGUI를 그린다(디버그용). IMGUI는 헤드셋에 안 보인다")]
         [SerializeField] private bool _forceLegacyGui = false;
+        [Tooltip("헤드셋이 없어도 월드 공간 도구벨트를 띄운다(에디터에서 생김새를 볼 때만)")]
+        [SerializeField] private bool _forceWorldPanel = false;
 
         [Header("VR 패널(월드 Canvas)")]
         [Tooltip("켜두면 실행할 때 월드 공간 도구벨트를 스스로 만든다. 씬에 미리 배치할 필요 없음")]
@@ -138,9 +140,20 @@ namespace IMUNROK.Common
             Apply();
         }
 
+        /// <summary>
+        /// 월드 공간 벨트를 쓰는가. 헤드셋이 붙어 있으면 쓴다.
+        ///
+        /// <b>여태 둘이 한꺼번에 떠 있었다</b>. 이 값을 안 보고 무조건 월드 패널을
+        /// 만들었기 때문에, 헤드셋 없이 에디터에서 돌리면 화면 아래에 OnGUI 벨트가
+        /// 깔리고 그와 별개로 허리 앞 0.6m 에 붉은 판이 하나 더 떠 있었다 —
+        /// 바닥에 뭔가 겹쳐 놓인 것처럼 보이던 것이 그것이다.
+        /// 뷰는 <b>하나만</b> 뜬다. 둘 다 보고 싶으면 두 강제 스위치를 같이 켜면 된다.
+        /// </summary>
+        private bool UseWorldPanel => XRSettings.isDeviceActive || _forceWorldPanel;
+
         private void Start()
         {
-            if (_autoCreateVrPanel) CreateVrPanel();
+            if (_autoCreateVrPanel && UseWorldPanel) CreateVrPanel();
         }
 
         /// <summary>
@@ -192,7 +205,7 @@ namespace IMUNROK.Common
         private Texture2D _slot, _slotOn;
 
         /// <summary>IMGUI는 XR 스테레오 렌더링에 합성되지 않는다 → 헤드셋이 붙어 있으면 그리지 않는다.</summary>
-        private bool SkipLegacyGui => XRSettings.isDeviceActive && !_forceLegacyGui;
+        private bool SkipLegacyGui => UseWorldPanel && !_forceLegacyGui;
 
         private void OnGUI()
         {

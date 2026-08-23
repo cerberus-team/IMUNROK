@@ -553,8 +553,9 @@ namespace IMUNROK.Common.EditorTools
 
             // ── 짝 넷 ──
             float lw = pw * 0.5f - FrameW * 0.5f;
-            var pivots = new System.Collections.Generic.List<Transform>();
-            var angles = new System.Collections.Generic.List<float>();
+            var blocked = new System.Collections.Generic.List<Bounds>();
+            GatherFurniture(blocked);
+            int locked = 0;
 
             int idx = 0;
             for (int p = 0; p < pairs; p++)
@@ -569,13 +570,113 @@ namespace IMUNROK.Common.EditorTools
 
                     DoorLeaf(leaf.transform, dir, lw, h, outward);
 
-                    pivots.Add(leaf.transform);
+                    // 앞이 막힌 짝인가 — 병풍이 붙어 섰거나 문갑이 등지고 있으면 잠근다.
+                    bool shut = Blocked(blocked, hinge, dir, lw, y0, y1);
+                    if (shut) { leaf.name += "_막힘"; locked++; }
+
                     // 자유단이 바깥(-Z)으로 나가려면 회전 부호가 dir 을 따라가야 한다.
                     // 부호를 뒤집으면 문이 방 안쪽으로 열려 세간을 뚫는다.
-                    angles.Add(dir * DoorOpen);
+                    LeafController(leaf.transform, dir * DoorOpen, !shut);
                 }
 
-            Controller(group, pivots, angles);
+            if (locked > 0)
+                Debug.Log("[조사청] " + name + " — 앞이 막힌 짝 " + locked + "장을 잠갔습니다(이름 뒤에 _막힘).");
+        }
+
+        /// <summary>
+        /// 방 안에 놓인 세간을 <b>방 기준 좌표</b>로 모은다.
+        ///
+        /// 월드 AABB 로 견주면 방이 140도 돌아앉아 있어서 상자가 실제보다 훨씬 크게
+        /// 잡힌다 — 방 한가운데 놓인 서안이 문짝까지 닿은 것으로 나온다. 여덟 귀퉁이를
+        /// 방 좌표로 옮겨 다시 재야 맞다.
+        /// </summary>
+        private static void GatherFurniture(System.Collections.Generic.List<Bounds> into)
+        {
+            var room = GameObject.Find(RootName);
+            if (room == null) return;
+            var inv = room.transform.worldToLocalMatrix;
+
+            foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            {
+                // 방 자신과, 카메라에 매달린 것(손에 든 도구)은 세간이 아니다.
+                if (r.transform.IsChildOf(room.transform)) continue;
+                var cam = Camera.main;
+                if (cam != null && r.transform.IsChildOf(cam.transform.root)) continue;
+
+                var b = r.bounds;
+                var c = b.center; var e = b.extents;
+                var local = new Bounds(inv.MultiplyPoint3x4(c), Vector3.zero);
+                for (int i = 0; i < 8; i++)
+                {
+                    var corner = new Vector3(c.x + ((i & 1) == 0 ? -e.x : e.x),
+                                             c.y + ((i & 2) == 0 ? -e.y : e.y),
+                                             c.z + ((i & 4) == 0 ? -e.z : e.z));
+                    local.Encapsulate(inv.MultiplyPoint3x4(corner));
+                }
+                if (Mathf.Abs(local.center.x) > 8f || Mathf.Abs(local.center.z) > 6f) continue;
+                into.Add(local);
+            }
+        }
+
+        /// <summary>문 안쪽으로 이만큼까지에 세간이 있으면 그 짝은 못 연다(m).</summary>
+        private const float BlockDepth = 0.80f;
+
+        /// <summary>
+        /// 이 짝 앞이 막혔는가. 문 <b>안쪽</b>으로 <see cref="BlockDepth"/> m 짜리 상자를
+        /// 하나 세우고 세간과 겹치는지만 본다.
+        ///
+        /// 문은 바깥으로 열리므로 열리는 길 자체는 마당이라 늘 비어 있다. 막히는 것은
+        /// <b>다가서는 길</b>이다. 병풍이 문에 붙어 서 있거나 문갑이 등지고 있으면
+        /// 사람이 그 짝에 손을 댈 수가 없다 — 그런 짝이 열리면 세간을 뚫고 바깥이 보인다.
+        /// </summary>
+        private static bool Blocked(System.Collections.Generic.List<Bounds> furniture,
+                                    float hinge, float dir, float lw, float y0, float y1)
+        {
+            float x0 = Mathf.Min(hinge, hinge + dir * lw) - 0.12f;
+            float x1 = Mathf.Max(hinge, hinge + dir * lw) + 0.12f;
+            float z0 = RoomZMin - 0.06f, z1 = RoomZMin + BlockDepth;
+
+            foreach (var b in furniture)
+            {
+                if (b.max.x < x0 || b.min.x > x1) continue;
+                if (b.max.z < z0 || b.min.z > z1) continue;
+                if (b.max.y < y0 + 0.10f || b.min.y > y1) continue;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 짝 하나에 여닫는 부품을 물린다 — <b>짝마다 하나씩</b>이다.
+        ///
+        /// 처음엔 한 면(넉 짝)에 부품 하나를 물렸다. 그랬더니 짝 하나를 밀었는데
+        /// 넉 짝이 한꺼번에 활짝 열렸다. 사람이 미는 문은 <b>민 짝만</b> 열린다.
+        /// 부품을 짝마다 두면 그 일이 저절로 된다 — 어느 짝을 눌렀는지 따로 알아낼
+        /// 것도 없이, 눌린 짝의 부품이 제 짝만 돌린다.
+        ///
+        /// 사유 항목이라 <see cref="SerializedObject"/> 로 채운다 — 인스펙터에서 손으로
+        /// 끌어다 넣는 것과 같은 일을 코드로 하는 것이다.
+        /// </summary>
+        private static void LeafController(Transform leaf, float angle, bool canOpen)
+        {
+            var dc = leaf.gameObject.AddComponent<DoorController>();
+            var so = new SerializedObject(dc);
+
+            var arr = so.FindProperty("_leaves");
+            arr.arraySize = 1;
+            var e = arr.GetArrayElementAtIndex(0);
+            e.FindPropertyRelative("pivot").objectReferenceValue = leaf;
+            e.FindPropertyRelative("swingAngle").floatValue = angle;
+            e.FindPropertyRelative("slideOffset").vector3Value = Vector3.zero;
+
+            so.FindProperty("_motion").enumValueIndex = 0;      // 0 = Swing
+            so.FindProperty("_openDuration").floatValue = 0.9f;
+            so.FindProperty("_startOpen").boolValue = false;
+            so.FindProperty("_playerCanToggle").boolValue = canOpen;
+            so.FindProperty("_locked").boolValue = false;
+            // 문 앞까지 와야 손이 닿는다. 방 건너에서 눌러 열리면 손이 아니라 마술이다.
+            so.FindProperty("_maxTouchDistance").floatValue = 2.4f;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>
@@ -614,35 +715,6 @@ namespace IMUNROK.Common.EditorTools
             Sal(Group(g, "살"), 0f, s0, s1, paperY0 + FrameW, y1 - FrameW, false);
         }
 
-        /// <summary>
-        /// 여닫는 부품을 물린다. 사유 항목이라 <see cref="SerializedObject"/> 로 채운다 —
-        /// 에디터에서 손으로 끌어다 넣는 것과 같은 일을 코드로 하는 것이다.
-        /// </summary>
-        private static void Controller(Transform group,
-                                       System.Collections.Generic.List<Transform> pivots,
-                                       System.Collections.Generic.List<float> angles)
-        {
-            var dc = group.gameObject.AddComponent<DoorController>();
-            var so = new SerializedObject(dc);
-
-            var arr = so.FindProperty("_leaves");
-            arr.arraySize = pivots.Count;
-            for (int i = 0; i < pivots.Count; i++)
-            {
-                var e = arr.GetArrayElementAtIndex(i);
-                e.FindPropertyRelative("pivot").objectReferenceValue = pivots[i];
-                e.FindPropertyRelative("swingAngle").floatValue = angles[i];
-                e.FindPropertyRelative("slideOffset").vector3Value = Vector3.zero;
-            }
-            so.FindProperty("_motion").enumValueIndex = 0;      // 0 = Swing
-            so.FindProperty("_openDuration").floatValue = 1.1f;
-            so.FindProperty("_startOpen").boolValue = false;
-            so.FindProperty("_playerCanToggle").boolValue = true;
-            so.FindProperty("_locked").boolValue = false;
-            // 문 앞까지 와야 손이 닿는다. 방 건너에서 눌러 열리면 손이 아니라 마술이다.
-            so.FindProperty("_maxTouchDistance").floatValue = 3.2f;
-            so.ApplyModifiedPropertiesWithoutUndo();
-        }
 
         /// <summary>
         /// 벽면 하나에 얹는 판. u 는 면을 따라간 자리, v 는 높이, t 는 두께다.
