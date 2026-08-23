@@ -50,10 +50,22 @@ namespace IMUNROK.Common
             DontDestroyOnLoad(go);
         }
 
+        // 구독해 둔 상대를 <b>들고 있는다</b>.
+        //
+        // 뗄 때 Journal.Instance 를 다시 물어보고 있었는데, 그 물음이 문제였다 —
+        // 씬을 닫는 중에 이미 사라진 뒤라면 그 게터가 <b>떼기 위해 하나를 새로
+        // 만든다</b>. 정리가 끝난 뒤에 태어난 것이라 치울 사람이 없다:
+        // "Some objects were not cleaned up when closing the scene ... [Journal]"
+        // 이 그 소리였다. 붙을 때 잡아 둔 그것에서 떼면 새로 만들 일이 없다.
+        private Journal _journal;
+        private GameState _state;
+
         private void OnEnable()
         {
-            Journal.Instance.OnClueAdded += OnClue;
-            GameState.Instance.OnCaseChanged += OnCase;
+            _journal = Journal.Instance;
+            _state = GameState.Instance;
+            if (_journal != null) _journal.OnClueAdded += OnClue;
+            if (_state != null) _state.OnCaseChanged += OnCase;
             SceneManager.sceneLoaded += OnScene;
 
             // 저장을 불러와 들어온 판이면 이미 이어할 것이 있다.
@@ -62,8 +74,10 @@ namespace IMUNROK.Common
 
         private void OnDisable()
         {
-            if (Journal.Instance != null) Journal.Instance.OnClueAdded -= OnClue;
-            if (GameState.Instance != null) GameState.Instance.OnCaseChanged -= OnCase;
+            if (_journal != null) _journal.OnClueAdded -= OnClue;
+            if (_state != null) _state.OnCaseChanged -= OnCase;
+            _journal = null;
+            _state = null;
             SceneManager.sceneLoaded -= OnScene;
         }
 

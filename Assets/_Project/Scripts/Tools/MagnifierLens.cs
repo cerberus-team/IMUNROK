@@ -315,23 +315,34 @@ namespace IMUNROK.Common
         {
             if (_prop == null && _eye != null)
             {
+                // <b>켜져 있는 것을 먼저, 없으면 꺼진 것이라도</b> 집는다.
+                //
+                // 여태 꺼진 모델을 건너뛰었다. 소품을 갈아 끼우며 옛것을 꺼서 남겨 두는
+                // 일이 흔해서 그것을 피하자는 뜻이었는데, 정작 <b>손에 드는 소품은 늘
+                // 꺼져 있다</b> — HeldToolModel 이 도구를 들기 전까지 감춰 두기 때문이다.
+                // 그래서 이 부품은 씬에 멀쩡히 달린 돋보기를 한 번도 못 찾았고,
+                // 못 찾을 때마다 제가 흉내를 빚어 눈앞에 띄웠다.
+                // 켜진 것을 먼저 보되, 하나도 없으면 꺼진 것을 집는다 — 옛것을 피하려던
+                // 뜻은 살고, 정상인 경우도 걸린다.
+                Renderer spare = null;
+                Transform spareHolder = null;
                 foreach (var h in _eye.GetComponentsInChildren<HeldToolModel>(true))
                 {
                     if (h.transform.IsChildOf(transform) || h.ToolId != _toolId) continue;
 
-                    // 꺼 둔 모델은 건너뛴다. 소품을 갈아 끼우면서 옛것을 꺼서 남겨 두는 일이
-                    // 흔한데, 그것을 집으면 새 소품은 손에 들려 있고 유리는 옛것에 붙는다.
                     // 스킨메시도 받는다 — 술을 흔들려면 뼈가 있어야 하고, 뼈가 있으면
                     // MeshFilter 가 아니라 SkinnedMeshRenderer 다.
-                    Renderer pick = null;
+                    Renderer on = null, off = null;
                     foreach (var r in h.GetComponentsInChildren<Renderer>(true))
                     {
                         if (!(r is MeshRenderer || r is SkinnedMeshRenderer)) continue;
-                        if (!r.gameObject.activeInHierarchy) continue;
-                        pick = r; break;
+                        if (r.gameObject.activeInHierarchy) { on = r; break; }
+                        if (off == null) off = r;
                     }
-                    if (pick != null) { _prop = pick.transform; _holder = h.transform; break; }
+                    if (on != null) { _prop = on.transform; _holder = h.transform; break; }
+                    if (off != null && spare == null) { spare = off; spareHolder = h.transform; }
                 }
+                if (_prop == null && spare != null) { _prop = spare.transform; _holder = spareHolder; }
             }
             if (_prop == null) return;
 
@@ -484,7 +495,10 @@ namespace IMUNROK.Common
 
             // 소품이 동작을 들고 왔으면 그것도 같이 쥔다. 인스펙터로 따로 안 이어도 된다.
             // 동작은 대개 소품 <b>뿌리</b>에 붙는다(메시는 그 자식이다). 위아래로 다 찾는다.
-            if (_propAnimator == null) _propAnimator = _prop.GetComponentInParent<Animator>();
+            // <b>꺼진 것도 찾는다</b>. GetComponentInParent 는 기본이 켜진 것만 본다 —
+            // 손에 드는 소품은 들기 전까지 꺼져 있으므로, 그냥 부르면 동작을 못 찾아
+            // 술이 영영 안 흔들린다. 소품을 못 찾던 것과 같은 함정이다.
+            if (_propAnimator == null) _propAnimator = _prop.GetComponentInParent<Animator>(true);
             if (_propAnimator == null) _propAnimator = _prop.GetComponentInChildren<Animator>(true);
             if (_propAnimator != null && _propAnimator.runtimeAnimatorController == null)
             {
