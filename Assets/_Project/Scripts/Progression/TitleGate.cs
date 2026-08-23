@@ -96,10 +96,13 @@ namespace IMUNROK.Common
         [SerializeField] private string _skipHint = "(누르면 건너뛰기)";
         [Tooltip("연출이 다 끝나고 <b>기다릴 때</b> 뜨는 말. 이걸 눌러야 어명이 시작된다")]
         [SerializeField] private string _startPrompt = "누르면 어전에 든다";
+        [Tooltip("저장이 있을 때의 기다림 문구. 짧게 누르면 처음부터라는 것을 밝혀 둔다 — " +
+                 "이어할 것이 있는 사람에게 '누르면 어전에 든다'는 어느 쪽인지 알 수 없는 말이다")]
+        [SerializeField] private string _startPromptFresh = "누르면 처음부터";
         [Tooltip("저장이 있을 때 제목 아래에 덧붙는 말. 꾹 누르기는 VR 에서 배우기 어려운 방식이라 " +
                  "— 눌러도 한참 아무 일이 없다가 갑자기 되니 — 되돌릴 수 없는 일에나 쓴다. " +
                  "여기서는 별도의 글줄로 알리고, 누르는 시간도 짧게 잡는다")]
-        [SerializeField] private string _continueHint = "(길게 누르면 하던 데부터)";
+        [SerializeField] private string _continueHint = "길게 누르면 이어하기";
         [SerializeField] private float _holdSeconds = 0.7f;
         [SerializeField] private string _hubSceneName = "HubScene";
 
@@ -297,8 +300,11 @@ namespace IMUNROK.Common
 
             if (_hintText != null)
             {
-                string s = _startPrompt;
-                if (SaveSystem.HasSave && !string.IsNullOrEmpty(_continueHint)) s += "   " + _continueHint;
+                // 이어할 것이 있으면 두 길을 나란히 밝힌다. 한쪽만 적어 두면 나머지
+                // 한쪽은 있는 줄도 모른다 — 이어하기가 여태 그랬다.
+                bool has = SaveSystem.HasSave;
+                string s = has && !string.IsNullOrEmpty(_startPromptFresh) ? _startPromptFresh : _startPrompt;
+                if (has && !string.IsNullOrEmpty(_continueHint)) s += "      " + _continueHint;
                 _hintText.text = s;
             }
             MakePressTarget();
@@ -365,13 +371,21 @@ namespace IMUNROK.Common
             }
         }
 
-        /// <summary>표제를 끝내고 어명을 연다. 건너뛸 때도 여기로 온다.</summary>
+        /// <summary>
+        /// 표제를 끝내고 어명을 연다. 건너뛸 때도 여기로 온다.
+        ///
+        /// 여기로 오는 것은 <b>처음부터 하는 사람</b>이다 — 이어하기는 꾹 눌러
+        /// <see cref="ContinueSaved"/> 로 빠진다. 그래서 지금 판을 비우고 시작한다.
+        /// 같은 실행 안에서 복명까지 보고 표제로 돌아왔을 때, 지난 판의 단서가
+        /// 그대로 남아 있으면 새 판의 수첩이 처음부터 차 있다.
+        /// </summary>
         private void Finish()
         {
             if (_done) return;
             _done = true;
             _running = false;
             _waiting = false;
+            Autosave.BeginNewGame();
             if (_pressTarget != null) Destroy(_pressTarget);
             StopAllCoroutines();
 
