@@ -516,6 +516,16 @@ namespace IMUNROK.Common
         /// <summary>자막을 닫으면 익히기도 접는다 — 눈앞의 물건만 남아 있으면 갇힌 꼴이 된다.</summary>
         private void OnNoticeClosed()
         {
+            // 과제를 기다리다 그만두었다면 쥐여 준 종이도 함께 거둔다. 안 그러면
+            // 내려놓을 수도 없는 종이가 손에 남아 어느 쪽으로도 못 나간다.
+            if (_awaiting)
+            {
+                StopAwaiting();
+                if (_example != null) { DocumentView.Hide(); }
+                DocumentView.SetCanPutDown(true);
+                if (_busy == this) _busy = null;
+                return;
+            }
             if (_phase == Phase.익히는중) GoHome();
         }
 
@@ -527,7 +537,14 @@ namespace IMUNROK.Common
             WorldHudAnchor.StowAll = false;
             SubtitleView.SetReadingDistance(1.3f, -0.28f);
             SubtitleView.SetPinned(false);   // 방을 둘러보는 동안에는 도로 늦게 따라온다
-            DocumentView.SetCanPutDown(true);
+
+            // 받은 종이는 익히기가 <b>끝날 때까지</b> 내려놓을 것이 아니다.
+            //
+            // 여기서 늘 되돌려 놓았던 것이 화근이었다. 과제를 낼 때 종이를 펴 주고
+            // 곧바로 물건을 문갑으로 돌려보내는데(GoHome), 그 길에 이 줄이 지나가며
+            // 방금 막아 둔 내려놓기를 도로 열었다 — 쥐여 준 종이에 내려놓기 표가
+            // 다시 붙던 것이 이것이다. 기다리는 중이면 손대지 않는다.
+            if (!_awaiting) DocumentView.SetCanPutDown(true);
             if (_moving != null) StopCoroutine(_moving);
             _moving = StartCoroutine(HomeRoutine());
         }

@@ -140,7 +140,10 @@ namespace IMUNROK.Common
         {
             ReadingFocus.Release(ReadingFocus.Panel.Document);
             if (_instance != null && _instance._anchor != null)
+            {
+                _instance._anchor.Frozen = false;   // 세워 둔 채로 걷어 버리면 다음 종이도 못 박힌다
                 _instance._anchor.SetDistance(_instance._holdDistance, _instance._holdDrop);
+            }
             if (_instance == null) return;
             _instance.SetVisible(false);
             _instance._onRead = null;
@@ -353,7 +356,8 @@ namespace IMUNROK.Common
                 ? "끌어서 돌려 볼 수 있다 · 잔글씨는 오른쪽 단추를 <b>누른 채</b> 종이를 들여다본다"
                 : hasLit
                 ? "끌어서 돌려 볼 수 있다 · 불빛 앞에 대면 겹 사이가 비친다"
-                : "끌어서 돌려 볼 수 있다 · (Esc — 내려놓기)";
+                : _canPutDown ? "끌어서 돌려 볼 수 있다 · (Esc — 내려놓기)"
+                : "끌어서 돌려 볼 수 있다";
 
             if (_closeRt != null) _closeRt.gameObject.SetActive(_canPutDown);
 
@@ -420,9 +424,21 @@ namespace IMUNROK.Common
         {
             if (!IsOpen) return;
 
+            // ── 들여다보는 동안 종이를 <b>세워 둔다</b> ──
+            //
+            // 렌즈는 눈에 붙어 있다. 그러니 겨누는 일이 곧 고개를 움직이는 일인데,
+            // 종이도 고개를 따라오면 <b>겨눈 자리가 영영 안 바뀐다</b> — 제 얼굴에 붙은
+            // 것을 들여다보려는 꼴이라, 아무리 고개를 움직여도 늘 같은 데만 보인다.
+            // 게다가 종이는 늘 조금씩 숨을 쉬고 손목도 흔들리니 글자가 계속 미끄러진다.
+            // 눈에 대는 동안만 종이를 세계에 못 박고 숨도 멈춘다. 그러면 움직인 만큼
+            // 렌즈가 종이 위를 지나간다 — 그것이 들여다보는 일이다.
+            bool peering = MagnifierLens.Peering;
+            if (_anchor != null && _anchor.Frozen != peering) _anchor.Frozen = peering;
+
             // 손에 든 것은 가만히 있지 않는다. 아주 조금 흔들려야 종이로 보인다.
             float t = Time.time;
-            float breathe = Mathf.Sin(t * 0.9f) * 0.7f + Mathf.Sin(t * 2.3f) * 0.25f;
+            float breathe = peering ? 0f
+                          : Mathf.Sin(t * 0.9f) * 0.7f + Mathf.Sin(t * 2.3f) * 0.25f;
 
             // 끌면 <b>손에 쥔 채로 돌린다</b> — 앞뒤 어느 쪽이든 볼 수 있다.
             // 놓으면 그 자세 그대로 남는다. 손에 든 물건은 놓는다고 제자리로 돌아가지 않는다.
@@ -477,8 +493,10 @@ namespace IMUNROK.Common
                            + "%  (똑바로 마주 댈수록 빠르다)";
 
 #if ENABLE_INPUT_SYSTEM
+            // 내려놓을 수 없는 종이는 <b>Esc 로도</b> 못 내려놓는다. 단추만 감추고 키는
+            // 열어 두면, 받은 종이가 슬그머니 사라져 과제가 끝나지 않는다.
             var kb = UnityEngine.InputSystem.Keyboard.current;
-            if (kb != null && kb.escapeKey.wasPressedThisFrame) Hide();
+            if (kb != null && kb.escapeKey.wasPressedThisFrame && _canPutDown) Hide();
 #endif
         }
 

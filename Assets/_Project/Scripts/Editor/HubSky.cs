@@ -44,7 +44,13 @@ namespace IMUNROK.Common.EditorTools
         private const string FieldName = "조사청_들판";
         private const string FogRoot = "조사청_안개";
 
-        private const string SkySrc = "Assets/SkySeries Freebie/CoriolisNight4k.mat";
+        // <b>왜 코리올리스가 아니라 이것인가</b>: 처음에 건 CoriolisNight4k 는 달빛에
+        // 갈라진 밤하늘이라 곱기는 한데 <b>어디서 본 하늘</b>이다 — 창밖을 내다본 느낌이
+        // 나지 신비롭지가 않았다. CosmicCoolCloud 는 별이 박힌 쪽빛 성운이라, 올려다보면
+        // 하늘인지 <b>깊은 물속인지</b> 잠깐 헷갈린다. 조사청이 세상 끝 안개에 둘러싸인
+        // 방이라는 것과 그 헷갈림이 맞물린다. 바다를 그린 것(UnderTheSea4k)은 쓰지 않는다 —
+        // 진짜 물이면 헷갈릴 것이 없고, 그저 물에 잠긴 집이 된다.
+        private const string SkySrc = "Assets/SkySeries Freebie/CosmicCoolCloud_Eq.mat";
         private const string SkyMat = "Assets/_Project/Art/Materials/M_하늘_조사청밤.mat";
         private const string FogShader = "이문록/안개벽";
         private const string MatDir = "Assets/_Project/Art/Materials";
@@ -71,9 +77,49 @@ namespace IMUNROK.Common.EditorTools
         // 그러면 40m 밖의 땅이 아직 4할밖에 안 흐려서 땅과 하늘이 맞닿는 곧은 금이
         // 그대로 남았다 — 안개를 두르고도 지평선이 보였다. 48m 에서 다 묻히게 하면
         // 고리에 닿기 전에 땅이 먼저 안개가 된다.
-        private static readonly Color FogColor = new Color(0.37f, 0.41f, 0.48f);
+        // 잿빛이던 것을 <b>쪽빛</b>으로 내렸다. 하늘을 성운으로 갈아 끼우고도 안개가
+        // 옛 잿빛이면, 밤은 푸른데 땅 끝만 허옇게 떠서 둘이 딴 세상이 된다.
+        private static readonly Color FogColor = new Color(0.20f, 0.28f, 0.40f);
         private const float FogStart = 9f;
         private const float FogEnd = 30f;
+
+        // ── 하늘 손질 ──
+        private static readonly Color SkyTint = new Color(0.72f, 0.80f, 0.95f);
+        private const float SkyExposure = 1.30f;
+        private const float SkyRotation = 240f;
+
+        /// <summary>
+        /// <b>하늘과 안개 빛깔만</b> 다시 잡는다 — 땅도 고리도 경계도 건드리지 않는다.
+        ///
+        /// 위의 전체 메뉴는 평지를 조사청 밑으로 옮기고 고리를 새로 세운다. 배치를
+        /// 맞춰 둔 뒤에는 그것을 돌릴 수가 없으므로, 하늘만 갈아 끼우고 싶을 때 쓸
+        /// 좁은 문을 따로 낸다.
+        /// </summary>
+        [MenuItem("이문록/조사청/하늘 빛깔만 다시 잡기")]
+        private static void SkyOnly()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("[하늘] 플레이를 멈추고 다시 실행하세요.");
+                return;
+            }
+            var log = new StringBuilder();
+            Sky(log);
+            DistanceFog(log);
+            foreach (var pair in new[] { new[] { "안개_안", "0.30,0.42,0.55" }, new[] { "안개_밖", "0.17,0.26,0.40" } })
+            {
+                var m = AssetDatabase.LoadAssetAtPath<Material>(MatDir + "/M_" + pair[0] + ".mat");
+                if (m == null) { log.AppendLine("   ✘ " + pair[0] + " 재질 없음"); continue; }
+                var c = pair[1].Split(',');
+                m.SetColor("_Color", new Color(float.Parse(c[0]), float.Parse(c[1]), float.Parse(c[2])));
+                EditorUtility.SetDirty(m);
+                log.AppendLine("   " + pair[0] + " 빛깔을 하늘에 맞췄습니다");
+            }
+            AssetDatabase.SaveAssets();
+            var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
+            Debug.Log("[하늘 빛깔]\n" + log);
+        }
 
         [MenuItem("이문록/조사청/하늘과 안개 두르기")]
         private static void Run()
@@ -121,16 +167,26 @@ namespace IMUNROK.Common.EditorTools
 
                 // 밤이되 새까맣지는 않게. 노출을 조금 올려 구름의 결이 보이게 하고,
                 // 푸른 쪽으로 살짝 기울여 달빛(Directional Light)과 같은 색온도로 맞춘다.
-                mat.SetColor("_Tint", new Color(0.62f, 0.66f, 0.78f));
-                mat.SetFloat("_Exposure", 1.15f);
-                // 구름이 갈라진 자리가 남쪽 마당 위로 오게 돌린다. 문을 열고 나서면
-                // 정면이 트여 있어야 "하늘 구경"이 된다.
-                mat.SetFloat("_Rotation", 205f);
+                mat.SetColor("_Tint", SkyTint);
+                mat.SetFloat("_Exposure", SkyExposure);
+                // 성운의 밝은 물길이 남쪽 마당 위로 오게 돌린다. 문을 열고 나서면
+                // 정면이 트여 있어야 "하늘 구경"이 된다. 240도에서 그 물길이
+                // 시작 방향(163도)의 오른쪽 위를 가로지른다.
+                mat.SetFloat("_Rotation", SkyRotation);
 
                 AssetDatabase.CreateAsset(mat, SkyMat);
                 AssetDatabase.SaveAssets();
                 log.AppendLine("   하늘 재질을 만들었습니다 → " + SkyMat);
             }
+
+            // 이미 만들어 둔 재질이라도 빛깔은 다시 잡는다 — 하늘을 갈아 끼울 때
+            // 재질만 남고 옛 노출·기울기가 그대로 붙어 있으면 갈아 낀 뜻이 없다.
+            var srcMat = AssetDatabase.LoadAssetAtPath<Material>(SkySrc);
+            if (srcMat != null && srcMat.HasProperty("_Tex")) mat.SetTexture("_Tex", srcMat.GetTexture("_Tex"));
+            mat.SetColor("_Tint", SkyTint);
+            mat.SetFloat("_Exposure", SkyExposure);
+            mat.SetFloat("_Rotation", SkyRotation);
+            EditorUtility.SetDirty(mat);
 
             RenderSettings.skybox = mat;
             // ambientMode 는 손대지 않는다 — WorldStateController 가 Flat 모드의
@@ -204,11 +260,11 @@ namespace IMUNROK.Common.EditorTools
             // 그래도 <b>속이 비쳐서는 안 된다</b>. 0.62 로 두었더니 안개 너머의 지평선이
             // 그대로 읽혔다 — 가리라고 세운 것이 무늬가 되어 버린다.
             Shell(root.transform, mesh, shader, "안개_안", InnerR, InnerH,
-                  new Color(0.55f, 0.60f, 0.67f), 1.0f, 1.6f, 0.030f, 0.38f);
+                  new Color(0.30f, 0.42f, 0.55f), 1.0f, 1.6f, 0.030f, 0.38f);
             // 바깥은 짙게 — 여기가 세상의 끝이다. 너머가 비쳐 보이면 안 된다.
             // 결(무늬)도 약하게 준다. 짙은 벽에 결이 세면 안개가 아니라 커튼이 된다.
             Shell(root.transform, mesh, shader, "안개_밖", OuterR, OuterH,
-                  new Color(0.44f, 0.49f, 0.57f), 1.0f, 1.25f, 0.018f, 0.30f);
+                  new Color(0.17f, 0.26f, 0.40f), 1.0f, 1.25f, 0.018f, 0.30f);
 
             log.AppendLine("   안개 고리 두 겹: 반지름 " + InnerR + "m(옅게) · " + OuterR + "m(짙게)");
         }

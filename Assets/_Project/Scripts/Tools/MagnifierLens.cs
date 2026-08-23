@@ -64,7 +64,14 @@ namespace IMUNROK.Common
         // 0 이면 문갑에 놓였던 기울기 그대로 눈앞에 온다 — 유리가 비스듬히 서서
         // 들여다보는 자세가 안 나오고, 각도가 이상하다는 말이 그것이었다.
         // 눈에 댈 때만은 유리가 <b>눈을 마주 보아야</b> 한다.
-        [Range(0f, 1f)] [SerializeField] private float _eyeStraighten = 0.85f;
+        // 세우는 방법이 문제였다. 여태 <b>LookRotation</b> 으로 자세를 통째로 새로
+        // 지었는데, 그러면 유리를 눈으로 돌리는 김에 <b>자루가 향하는 쪽</b>까지 같이
+        // 정해진다. 그 기준으로 삼은 것이 머리의 위쪽이라, 고개를 숙여 종이를 볼 때마다
+        // 기준이 함께 기울어 어느 순간 자루가 반대로 뒤집혔다 — 내밀 때 돋보기가
+        // 홱 도는 것이 이것이었다.
+        // 이제 <b>가장 짧은 길로</b> 돌린다(FromToRotation): 유리 면이 눈을 향하도록
+        // 딱 그만큼만 돌고, 자루가 감긴 방향은 건드리지 않는다. 뒤집힐 여지가 없다.
+        [Range(0f, 1f)] [SerializeField] private float _eyeStraighten = 1f;
 
         [Header("드는 자세 — 맞춰 둔 자세를 안 쓸 때만")]
         [Tooltip("평소 — 눈 아래 비껴 들고 있다. 앞이 안 가린다")]
@@ -615,15 +622,17 @@ namespace IMUNROK.Common
             _holder.localPosition = _holderRestPos;
             if (_eyeStraighten > 0f && t > 0f)
             {
+                // 유리 면이 지금 향한 쪽과, 향해야 할 쪽(눈).
                 Vector3 nrm = _flipProp ? -_propNormalLocal : _propNormalLocal;
-                Quaternion from = Quaternion.LookRotation(nrm, _propHandleLocal);
+                Vector3 facing = _propRoot.TransformDirection(nrm);
                 Vector3 toEye = _eye.position - _propRoot.TransformPoint(_propGlassLocal);
-                if (toEye.sqrMagnitude > 1e-6f)
+                if (facing.sqrMagnitude > 1e-6f && toEye.sqrMagnitude > 1e-6f)
                 {
-                    Quaternion faceEye = Quaternion.LookRotation(-toEye.normalized, _eye.up)
-                                       * Quaternion.Inverse(from);
+                    // <b>가장 짧은 길</b>로만 돌린다. 자세를 통째로 새로 지으면
+                    // 자루가 감긴 방향까지 정해져 버려, 고개를 숙일 때 그 기준이
+                    // 함께 기울다 어느 순간 홱 뒤집힌다.
+                    Quaternion delta = Quaternion.FromToRotation(facing.normalized, toEye.normalized);
                     // 소품 뿌리가 아니라 매단 자리를 돌린다 — 뿌리를 돌리면 다음 프레임에 어긋난다.
-                    Quaternion delta = faceEye * Quaternion.Inverse(_propRoot.rotation);
                     _holder.rotation = Quaternion.Slerp(_holder.rotation, delta * _holder.rotation,
                                                         _eyeStraighten * t);
                 }

@@ -190,6 +190,9 @@ namespace IMUNROK.Common
                 return;
             }
 
+            // 세워 둔 동안에는 손을 대지 않는다 — 지금 있는 그 자리 그대로.
+            if (Frozen) return;
+
             // 데드존: 고개를 충분히 돌렸을 때만 목표 방향을 새로 잡는다.
             if (Vector3.Angle(_anchorForward, look) > _recenterAngle)
                 _anchorForward = look;
@@ -224,6 +227,26 @@ namespace IMUNROK.Common
         /// 그래서 시선과 벌어진 각이 정해진 값을 넘으면 넘은 만큼만 끌어온다.
         /// 평소처럼 고개를 조금 움직이는 동안에는 예전과 똑같이 가만히 있는다.
         /// </summary>
+        /// <summary>보고 선 쪽의 <b>수평</b> 방향. 천장이나 바닥을 정면으로 볼 때는 머리 위쪽을 쓴다.</summary>
+        private static Vector3 Level(Transform head)
+        {
+            Vector3 v = head.forward;
+            v.y = 0f;
+            if (v.sqrMagnitude < 0.0001f) { v = head.up; v.y = 0f; }
+            if (v.sqrMagnitude < 0.0001f) return Vector3.forward;
+            return v.normalized;
+        }
+
+        /// <summary>
+        /// <b>세워 둔다</b> — 지금 있는 자리에 그대로 두고 아예 따라오지 않는다.
+        ///
+        /// 돋보기가 그렇다. 렌즈는 눈에 붙어 있으므로 겨누는 일이 곧 <b>고개를 움직이는</b>
+        /// 일인데, 종이까지 고개를 따라오면 겨눈 자리가 영영 안 바뀐다 — 제 얼굴에 붙은
+        /// 것을 들여다보려는 꼴이라 아무리 움직여도 같은 데만 보인다. 들여다보는 동안
+        /// 종이를 세계에 못 박아 두면, 고개를 움직인 만큼 렌즈가 종이 위를 지나간다.
+        /// </summary>
+        [System.NonSerialized] public bool Frozen;
+
         private Vector3 ViewDirection(Transform head)
         {
             Vector3 dir = _anchorForward;
@@ -235,7 +258,8 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// <b>눈앞에 붙박는다</b> — 고개를 어디로 돌리든 늘 시야 한가운데.
+        /// <b>일자 앞에 붙박는다</b> — 보고 선 쪽의 <b>수평 정면</b>. 고개를 숙이든 들든
+        /// 글은 그 자리에 그대로 있고, 몸을 돌리면 같이 돈다.
         ///
         /// 평소 이 창은 <b>일부러 늦게</b> 따라온다. 머리에 붙은 판이 아니라 앞에 놓인
         /// 판처럼 보이게 하려고, 제 방향을 들고 있다가 시선이 <see cref="_maxOffAxis"/>
@@ -245,7 +269,12 @@ namespace IMUNROK.Common
         /// 그런데 <b>설명을 읽는 동안</b>에는 정반대다. 물건은 아래에 두고 글은 눈앞에
         /// 두었는데, 물건을 보려고 고개를 숙이면 글이 저만치 뒤에 남는다 — 읽으려고
         /// 다시 들면 이번엔 글이 따라오느라 흔들린다. 읽는 글은 <b>붙박여</b> 있어야 한다.
-        /// 그동안만 켠다.
+        ///
+        /// 한 번은 시선을 <b>그대로</b>(head.forward) 따라 붙였는데, 그러면 늘 시야
+        /// 한가운데라 <b>고개를 숙여도 글이 따라 내려와 물건을 덮는다</b> — 아래를 봐도
+        /// 물건이 안 보이니 겹치지 않게 위아래로 나눈 뜻이 없어진다. 붙박는 것은
+        /// <b>수평 방향</b>이라야 한다: 글은 일자 앞에 서 있고, 물건을 보려면 고개를
+        /// 숙이고, 읽으려면 고개를 든다. 그 두 자세가 곧 살피기와 읽기다.
         /// </summary>
         [System.NonSerialized] public bool Pinned;
 
@@ -267,15 +296,17 @@ namespace IMUNROK.Common
             _stow = Mathf.MoveTowards(_stow, want, _stowSpeed * Time.deltaTime);
             drop -= _stowDrop * Mathf.SmoothStep(0f, 1f, _stow);
 
-            // 붙박은 동안에는 <b>시선 그대로</b>다. 들고 있던 방향도 같이 끌어 두어야
-            // 풀었을 때 홱 돌아가지 않는다.
+            // 붙박은 동안에는 <b>수평 정면</b>이다 — 고개의 위아래는 안 따라간다.
+            // 들고 있던 방향도 같이 끌어 두어야 풀었을 때 홱 돌아가지 않는다.
             Vector3 dir;
-            if (Pinned) { dir = head.forward; _anchorForward = dir; }
+            if (Pinned) { dir = Level(head); _anchorForward = dir; }
             else dir = ViewDirection(head);
 
             // 아래로 치우치는 양은 시선 기준이라야 한다. 세계의 아래로 내리면
             // 고개를 숙였을 때 창이 발밑으로 파고든다.
-            Vector3 down = _placement == Placement.Waist ? Vector3.up : head.up;
+            // 붙박은 동안만은 세계 기준이다 — 방향부터 수평이라, 여기서 고개를 따라가면
+            // 숙일 때마다 글이 도로 아래로 쓸려 내려간다.
+            Vector3 down = (_placement == Placement.Waist || Pinned) ? Vector3.up : head.up;
 
             Vector3 target = head.position
                              + dir * d
@@ -283,8 +314,10 @@ namespace IMUNROK.Common
 
             // Waist는 아래를 보고 있으므로 살짝 눕혀서 정면으로 마주 보게 한다.
             Vector3 toHead = head.position - target;
-            Quaternion targetRot = _placement == Placement.Waist
-                ? Quaternion.LookRotation(-toHead.normalized, Vector3.up)
+            // 붙박은 동안에는 <b>똑바로 선 판</b>이다. 눈을 마주 보게 눕히면 고개를 든
+            // 정도만큼 판이 뒤로 젖혀져, 글자가 사다리꼴로 찌그러져 보인다.
+            Quaternion targetRot = Pinned
+                ? Quaternion.LookRotation(dir, Vector3.up)
                 : Quaternion.LookRotation(-toHead.normalized, Vector3.up);
 
             if (instant || Pinned)
