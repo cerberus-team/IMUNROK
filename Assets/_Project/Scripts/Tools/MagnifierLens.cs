@@ -783,7 +783,17 @@ namespace IMUNROK.Common
         private bool RaiseHeld()
         {
 #if ENABLE_INPUT_SYSTEM
-            if (_alsoRightButton && Mouse.current != null && Mouse.current.rightButton.isPressed) return true;
+            // 오른쪽 단추는 <b>종이를 쥐고 있는 동안</b>에만 렌즈를 올린다.
+            //
+            // 여태 이 단추를 막아 두었다. 걸어 다닐 때 오른쪽 단추가 시점 회전이라
+            // 둘이 겹치기 때문이다. 그런데 안내는 어디서나 "(오른쪽 단추)" 라고
+            // 적혀 있었다 — 시킨 대로 눌러도 아무 일이 없으니, 등불은 되는데
+            // 돋보기만 안 되는 것으로 보였다.
+            // 종이를 쥐고 있는 동안에는 어차피 방을 짚지도 걷지도 않으므로(방을
+            // 짚는 손은 이미 물러나 있다) 그때만 이 단추를 렌즈에 내준다.
+            // 겹칠 일이 없어지고, 안내대로 하면 된다.
+            bool byButton = _alsoRightButton || DocumentView.IsOpen;
+            if (byButton && Mouse.current != null && Mouse.current.rightButton.isPressed) return true;
 
             var kb = Keyboard.current;
             if (kb == null) return _raiseLatch;

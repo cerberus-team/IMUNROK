@@ -291,6 +291,12 @@ namespace IMUNROK.Common
             if (!_awaiting || _tool == null || toolId != _tool.id) return;
             StopAwaiting();
             _learned = true;
+
+            // 해냈으면 종이를 <b>거둔다</b>. 다 본 종이가 눈앞에 그대로 떠 있으면
+            // 무엇이 끝난 것인지가 안 보인다 — 치우는 것이 곧 "됐다"는 말이다.
+            // 치운 뒤에 한마디 하는 것도 그래서다. 종이 뒤에서 하는 말은 안 읽힌다.
+            if (_example != null) DocumentView.Hide();
+
             SubtitleView.Show(_tool.displayName,
                               string.Format(_practiceDone, _tool.displayName), "(닫기)");
         }

@@ -45,12 +45,30 @@ namespace IMUNROK.Common
                  "없으면 문서가 어둑한 채로 남고, 눌러도 \"아직 오지 않았다\"고만 한다")]
         [SerializeField] private string _caseSceneName = "";
 
-        [Header("상태별 색")]
-        [SerializeField] private Color _notStartedColor = new Color(0.5f, 0.5f, 0.5f);   // 회색
-        [SerializeField] private Color _inProgressColor = new Color(1f, 0.55f, 0.1f);    // 주황
-        [SerializeField] private Color _completedColor  = new Color(1f, 0.84f, 0.0f);    // 금색
-        [Tooltip("씬이 아직 빌드 목록에 없는 사건. 손이 닿지 않는다는 것이 먼저 눈에 보여야 한다")]
-        [SerializeField] private Color _notReadyColor   = new Color(0.20f, 0.19f, 0.17f); // 어둑한 먹빛
+        // ── 상태별 빛깔 ──
+        //
+        // 회색·주황·금색으로 칠해 두었더니 벽에 신호등을 걸어 둔 꼴이었다. 종이가
+        // 주황색이면 그것은 종이가 아니라 <b>표시</b>다 — 조사청에 어울리지 않고,
+        // 무엇보다 무슨 뜻인지 아무도 못 알아본다(빨강이 시작 전인지 진행 중인지
+        // 알 길이 없다).
+        //
+        // 그래서 빛깔을 <b>종이 안에서</b>만 움직인다. 넉 자리 다 한지 빛이고,
+        // 다른 것은 <b>얼마나 빛을 받는가</b>뿐이다:
+        //   · 손이 닿지 않는 것 — 그늘에 든 종이. 어둑하고 푸르다.
+        //   · 아직 안 뜯은 것   — 갓 걸어 둔 흰 한지. 제일 밝다.
+        //   · 보고 있는 것     — 등불빛을 먹어 누렇다. 손을 많이 탄 종이다.
+        //   · 끝난 것          — 오래된 종이처럼 바래고 조금 어둡다. 할 일이 끝났다.
+        // 진하고 옅고가 아니라 <b>밝고 어둡고</b>로 갈리므로, 어느 것이 지금 손에
+        // 잡히는지가 한눈에 보이면서도 벽에 걸린 것은 여전히 종이로 보인다.
+        [Header("상태별 빛깔 — 한지 안에서만 움직인다")]
+        [Tooltip("아직 안 뜯은 봉서 — 갓 걸어 둔 흰 한지")]
+        [SerializeField] private Color _notStartedColor = new Color(0.96f, 0.93f, 0.85f);
+        [Tooltip("보고 있는 사건 — 등불빛을 먹어 누렇다")]
+        [SerializeField] private Color _inProgressColor = new Color(0.98f, 0.86f, 0.62f);
+        [Tooltip("끝난 사건 — 바랜 종이")]
+        [SerializeField] private Color _completedColor  = new Color(0.64f, 0.58f, 0.48f);
+        [Tooltip("씬이 아직 빌드 목록에 없는 사건. 그늘에 든 종이 — 손이 닿지 않는다는 것이 먼저 눈에 보여야 한다")]
+        [SerializeField] private Color _notReadyColor   = new Color(0.30f, 0.31f, 0.33f);
 
         [Header("아직 오지 않은 사건")]
         [Tooltip("열리지 않는 문서를 눌렀을 때의 한 마디. 비우면 아무 말도 안 한다")]

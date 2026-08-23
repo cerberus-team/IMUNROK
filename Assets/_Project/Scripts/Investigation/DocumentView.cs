@@ -119,9 +119,11 @@ namespace IMUNROK.Common
         public static void Hide()
         {
             ReadingFocus.Release(ReadingFocus.Panel.Document);
+            SubtitleView.SetReadingDistance(1.3f, -0.28f);   // 비켜 세웠던 자막을 제자리로
             if (_instance == null) return;
             _instance.SetVisible(false);
             _instance._onRead = null;
+            _instance._onLit = null;
             IsOpen = false;
         }
 
@@ -307,6 +309,14 @@ namespace IMUNROK.Common
             SetVisible(true);
             IsOpen = true;
             if (_anchor != null) _anchor.Recenter();
+
+            // 자막을 종이 <b>위로</b> 올린다.
+            //
+            // 종이는 눈에서 0.6m, 자막은 1.3m 다. 종이가 앞이라 자막 한가운데를
+            // 통째로 덮는다 — "예시로 한 장 드리겠소…" 의 가운데 토막이 종이에 가려
+            // 앞뒤만 읽혔다. 둘 다 눈앞에 있어야 하는 것이니 하나를 끄는 대신
+            // 자막을 종이 머리 위로 비켜 세운다. 내려놓으면 제자리로 돌아간다.
+            SubtitleView.SetReadingDistance(1.3f, 0.30f);
         }
 
         /// <summary>
