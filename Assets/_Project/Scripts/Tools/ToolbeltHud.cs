@@ -115,6 +115,22 @@ namespace IMUNROK.Common
             return true;
         }
 
+        /// <summary>
+        /// 도구를 벨트에서 <b>도로 뺀다</b>.
+        ///
+        /// 조사청에서 쓴다. 거기서 도구를 손에 쥐는 것은 <b>써 보라는 뜻</b>이지
+        /// 가지라는 뜻이 아니다 — 익히고 나면 물건은 문갑에 도로 놓고 손은 빈 채로
+        /// 나선다. 가져가고 말고는 나중에 따로 물을 일이다.
+        /// 빼면 맨손으로 돌아간다.
+        /// </summary>
+        public bool Revoke(ToolDef def)
+        {
+            if (def == null || !_tools.Remove(def)) return false;
+            _index = 0;                 // 손에 든 것이 사라졌으니 맨손이다
+            OnChanged?.Invoke();
+            return true;
+        }
+
         /// <summary>슬롯을 직접 고른다(0 = 맨손). 범위를 벗어나면 순환한다.</summary>
         public void Select(int slot)
         {

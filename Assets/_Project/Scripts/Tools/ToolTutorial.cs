@@ -166,13 +166,26 @@ namespace IMUNROK.Common
 
         private void Start()
         {
-            // 이미 익힌 도구라면 문갑에 그대로 두되 다시 익힐 수는 있게 둔다.
-            if (_tool != null && ToolbeltHud.Instance != null && ToolbeltHud.Instance.Has(_tool))
-                _learned = true;
+            // 익힌 표는 남기지 않는다 — 조사청에서는 도구를 가져가지 않으므로
+            // 벨트를 보고 "이미 익혔다" 를 가릴 수가 없고, 가릴 까닭도 없다.
+            // 몇 번이고 다시 눌러 익힐 수 있는 것이 튜토리얼이다.
         }
 
         /// <summary>지금 누군가 도구를 익히는 중인가. 방을 짚는 손이 이것을 보고 물러난다.</summary>
         public static bool Learning { get; private set; }
+
+        /// <summary>
+        /// 지금 <b>어느 도구든</b> 익히는 차례가 돌고 있나 — 떠오르는 중이든, 말을
+        /// 하는 중이든, 과제를 기다리는 중이든, 내려놓는 중이든.
+        ///
+        /// <see cref="Learning"/> 은 말을 하는 그 동안만 참이라, 물건이 떠오르는 새나
+        /// 과제를 하는 새에 옆의 도구를 누르면 <b>둘이 한꺼번에 떠올랐다</b>.
+        /// 한 손에 하나다.
+        /// </summary>
+        private static ToolTutorial _busy;
+
+        /// <summary>지금 차례를 쥔 익히기가 있나.</summary>
+        public static bool Busy => _busy != null;
 
         private void Update()
         {
@@ -213,6 +226,10 @@ namespace IMUNROK.Common
         {
             _phase = p;
             Learning = (p == Phase.익히는중);
+
+            // 차례를 쥐고 있는 동안은 놓임이 아니거나 과제를 기다리는 중이다.
+            if (p != Phase.놓임) _busy = this;
+            else if (_busy == this && !_awaiting) _busy = null;
         }
 
         /// <summary>
@@ -242,6 +259,9 @@ namespace IMUNROK.Common
 
         public void OnSelect()
         {
+            // 남이 익히는 중이면 손이 안 간다. 한 손에 하나다.
+            if (_busy != null && _busy != this) return;
+
             switch (_phase)
             {
                 case Phase.놓임:
@@ -349,7 +369,7 @@ namespace IMUNROK.Common
             // 무엇에 쓰는 물건인지 알아진다. 그래서 여기서 끝내지 않고 과제를 하나 낸다 —
             // 물건은 문갑으로 돌려보내고(이제 손에 든 것으로 해야 하니까), 해냈다는
             // 소식이 <see cref="ToolPractice"/> 로 올 때까지 기다린다.
-            if (!string.IsNullOrEmpty(_practice) && !_learned)
+            if (!string.IsNullOrEmpty(_practice))
             {
                 _awaiting = true;
                 ToolPractice.OnUsed += OnPracticed;
@@ -364,12 +384,13 @@ namespace IMUNROK.Common
                 // 물건에 눈이 따라가 종이가 펴진 것을 못 본다.
                 if (_example != null) _example.OpenNow();
 
-                // 물건은 <b>문갑으로 돌아가지 않는다</b>.
+                // 물건은 <b>문갑으로 돌아간다</b>.
                 //
-                // 받아서 쓰는 물건인데 도로 제자리로 날아가면, 준 것이 아니라 잠깐
-                // 보여 준 것이 된다. 손으로 건너간다 — 눈앞의 물건이 손에 드는 자리로
-                // 옮겨 가며 사라지고, 그 자리에 벨트의 도구가 들린다.
-                HandOver();
+                // 조사청은 도구를 <b>받아 가는</b> 방이 아니라 <b>익히는</b> 방이다.
+                // 손에 쥐여 주는 것은 그것으로 해 보라는 뜻이지 가지라는 뜻이 아니고,
+                // 익히고 나면 물건은 제자리에 놓고 손은 빈 채로 나선다 — 다시 해 보고
+                // 싶으면 도로 눌러 처음부터 하면 된다. 가져갈지 말지는 따로 물을 일이다.
+                GoHome();
                 return;
             }
 
@@ -437,14 +458,14 @@ namespace IMUNROK.Common
             // 치운 뒤에 한마디 하는 것도 그래서다. 종이 뒤에서 하는 말은 안 읽힌다.
             if (_example != null) DocumentView.Hide();
 
-            // <b>손도 비운다</b>.
+            // <b>도구를 도로 내놓는다</b> — 손에서도, 벨트에서도.
             //
-            // 익히는 동안 손에 쥐여 주는 것은 그것으로 해 보라는 뜻이지 가지라는 뜻이
-            // 아니다. 다 익히고도 들린 채로 두면, 다음 도구를 익히러 가는 길에도
-            // 돋보기를 들고 걷게 되고 조사청이 도구를 든 채 서성이는 방이 된다.
-            // 익힌 것은 <b>벨트에 남는다</b> — 언제든 다시 꺼내면 된다.
+            // 조사청에서 손에 쥐는 것은 써 보라는 뜻이지 가지라는 뜻이 아니다.
+            // 여기서 받아 나가면 이 방이 창고가 되고, 무엇보다 <b>다시 해 볼 수가</b>
+            // 없다 — 이미 가진 도구를 또 익힐 까닭이 없어지기 때문이다.
+            // 익히기는 몇 번이고 되풀이할 수 있어야 한다.
             var belt = ToolbeltHud.Instance;
-            if (belt != null) belt.Select(0);   // 0 = 맨손
+            if (belt != null && _tool != null) belt.Revoke(_tool);
 
             SubtitleView.Show(_tool.displayName,
                               string.Format(_practiceDone, _tool.displayName), "(닫기)");
@@ -461,86 +482,6 @@ namespace IMUNROK.Common
         private void OnNoticeClosed()
         {
             if (_phase == Phase.익히는중) GoHome();
-        }
-
-        /// <summary>
-        /// 눈앞의 물건을 <b>손으로 넘긴다</b> — 문갑으로 되돌리지 않는다.
-        ///
-        /// 손에 드는 자리(HeldToolModel 이 붙은 곳)로 옮겨 가며 사라지고, 그 자리에
-        /// 벨트가 내준 진짜 도구가 들린다. 그래야 <b>받은</b> 것이 된다.
-        /// 문갑 위의 이 물건은 그 뒤로 없다 — 가져갔으니 없는 것이 맞다.
-        /// 다시 익히고 싶으면 벨트에서 꺼내 쓰면 된다.
-        /// </summary>
-        private void HandOver()
-        {
-            WorldHudAnchor.StowAll = false;
-            SubtitleView.SetReadingDistance(1.3f, -0.28f);
-            if (_moving != null) StopCoroutine(_moving);
-            _moving = StartCoroutine(HandOverRoutine());
-        }
-
-        private IEnumerator HandOverRoutine()
-        {
-            SetPhase(Phase.내려가는중);
-
-            // 손에 드는 소품이 이미 나타났으면 이 물건은 <b>그 자리에서 사라진다</b>.
-            //
-            // 여태 눈앞의 물건이 손 쪽으로 날아가는 동안, 손에서는 벨트가 내준 소품이
-            // 이미 나타나 있었다 — 같은 돋보기가 둘이 되어 하나는 잡히고 하나는
-            // 내려놓아지는 꼴이었다. 둘이 겹치면 날리지 않고 그냥 감춘다.
-            var cam0 = Camera.main;
-            bool alreadyInHand = false;
-            if (cam0 != null && _tool != null)
-                foreach (var h in cam0.GetComponentsInChildren<HeldToolModel>(true))
-                    if (h.ToolId == _tool.id) { alreadyInHand = true; break; }
-            if (alreadyInHand)
-            {
-                transform.position = _homePos;
-                transform.rotation = _homeRot;
-                Vanish();
-                SetPhase(Phase.놓임);
-                _moving = null;
-                yield break;
-            }
-
-            // 손에 드는 자리를 찾는다. 없으면 그냥 눈 아래로 내려 보낸다.
-            Vector3 target = transform.position;
-            var cam = Camera.main;
-            if (cam != null)
-            {
-                target = cam.transform.position + cam.transform.forward * 0.35f - cam.transform.up * 0.22f;
-                foreach (var h in cam.GetComponentsInChildren<HeldToolModel>(true))
-                    if (_tool != null && h.ToolId == _tool.id) { target = h.transform.position; break; }
-            }
-
-            Vector3 from = transform.position;
-            Vector3 fromScale = transform.localScale;
-            float t = 0f;
-            while (t < 1f)
-            {
-                t += Time.deltaTime / Mathf.Max(0.01f, _liftSeconds);
-                float e = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
-                transform.position = Vector3.Lerp(from, target, e);
-                transform.localScale = Vector3.Lerp(fromScale, fromScale * 0.15f, e);
-                yield return null;
-            }
-
-            // 자리는 제집으로 돌려놓되 <b>보이지 않게</b> 둔다. 지우지 않는 까닭은
-            // 익히기가 이 물건에 붙어 있고, 예시 증거도 여기서 붙들고 있기 때문이다.
-            transform.position = _homePos;
-            transform.rotation = _homeRot;
-            transform.localScale = fromScale;
-            Vanish();
-
-            SetPhase(Phase.놓임);
-            _moving = null;
-        }
-
-        /// <summary>문갑 위에서 감춘다 — 가져갔으니 없는 것이 맞다.</summary>
-        private void Vanish()
-        {
-            foreach (var r in _renderers) if (r != null) r.enabled = false;
-            var col = GetComponent<Collider>(); if (col != null) col.enabled = false;
         }
 
         private void GoHome()
