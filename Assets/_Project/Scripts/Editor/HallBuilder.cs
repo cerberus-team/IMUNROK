@@ -142,6 +142,39 @@ namespace IMUNROK.Common.EditorTools
             Debug.Log($"[조사청] 실내를 지었습니다 — 오브젝트 {root.GetComponentsInChildren<Transform>().Length}개, {tris} 삼각형.");
         }
 
+        /// <summary>
+        /// <b>남쪽 문만</b> 지우고 다시 짠다. 메뉴: [이문록 ▸ 조사청 ▸ 남쪽 문 다시 짜기]
+        ///
+        /// 방 전체를 다시 지으면 손으로 밀어 둔 창짝이며 옮겨 둔 세간이며 전부 사라진다.
+        /// 문 하나 고치자고 방을 헐 수는 없으므로, 구조 밑의 <b>문 무리만</b> 갈아 끼운다.
+        /// </summary>
+        [MenuItem("이문록/조사청/남쪽 문 다시 짜기")]
+        public static void RebuildDoors()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("[조사청] 플레이를 멈추고 다시 실행하세요.");
+                return;
+            }
+            if (!LoadMaterials()) return;
+
+            var room = GameObject.Find(RootName);
+            if (room == null) { Debug.LogWarning("[조사청] 지은 방이 없습니다."); return; }
+            var 구조 = room.transform.Find("구조");
+            if (구조 == null) { Debug.LogWarning("[조사청] 구조 무리를 못 찾았습니다."); return; }
+
+            var old = 구조.Find("문");
+            if (old != null) Undo.DestroyObjectImmediate(old.gameObject);
+
+            var g = Group(구조, "문");
+            Undo.RegisterCreatedObjectUndo(g.gameObject, "남쪽 문 다시 짜기");
+            BuildDoors(g);
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(room.scene);
+            Selection.activeGameObject = g.gameObject;
+            Debug.Log("[조사청] 남쪽 문을 여닫이 분합문으로 다시 짰습니다 — 한 면에 넉 짝, 밖으로 열립니다.");
+        }
+
         /// <summary>옆에 빼둘 때 원본에서 이만큼 떨어뜨린다(m).</summary>
         private const float AsideDistance = 24f;
 
@@ -464,57 +497,151 @@ namespace IMUNROK.Common.EditorTools
             // 문머리와 다르므로 여기서 같이 재면 어긋난다.
         }
 
+        /// <summary>
+        /// 남쪽 두 면에 <b>분합문</b>을 단다 — 한 칸(1.5m)에 두 짝씩, 한 면에 넉 짝.
+        ///
+        /// <b>왜 다시 짰나</b>: 처음엔 한 면을 종이 한 장으로 발라 두고 설주로 넉 짝처럼
+        /// 금만 그어 두었다. 보기에는 문인데 <b>열리지가 않는다</b>. 조사청은 사건을
+        /// 고르는 방이지 갇히는 방이 아니고, 문을 열고 마당에 나서서 하늘을 보는 것이
+        /// 이 방이 바깥을 가진 까닭이다. 그러자면 문짝이 진짜로 돌아야 한다.
+        ///
+        /// <b>지도리는 칸의 양 끝</b>에 있고 두 짝이 가운데서 만난다(창과 같다).
+        /// 밖으로 밀어 여는 여닫이라, 열면 마당 쪽으로 활짝 젖혀진다.
+        /// 짝마다 제 틀과 제 청판과 제 살을 지닌다 — 한 장으로 발라 놓고 나중에
+        /// 가르면 살이 짝 경계에서 끊겨 열 때마다 찢긴 무늬가 드러난다.
+        ///
+        /// 여닫는 일은 <see cref="DoorController"/> 가 맡는다. 그 부품이 이미
+        /// 여닫이·미닫이를 다 알고 클릭도 받으므로, 여기서는 짝만 제자리에 세우고
+        /// 지도리 목록을 넘겨 준다.
+        /// </summary>
         private static void BuildDoors(Transform g)
         {
-            // 한 짝 폭 0.75 — 한 칸(1.5)에 두 짝. 남쪽·서쪽·동쪽 세 면이 문이다.
-            float h = DoorTop - FloorTop;
-            float y = FloorTop + h * 0.5f;
+            Swing(g, "문_서방_남", WestX0, WestX1);
+            Swing(g, "문_중방_남", MidX0, MidX1);
+        }
 
-            // 남쪽 두 면만 문이다. 옆면은 창으로 바뀌었다(BuildWindows).
-            Leaves(g, "문_서방_남", WestX0, WestX1, y, h, RoomZMin, true);
-            Leaves(g, "문_중방_남", MidX0, MidX1, y, h, RoomZMin, true);
+        /// <summary>문 아래 청판(널)의 높이. 발이 닿고 치맛자락이 스치는 자리다.</summary>
+        private const float PanelH = 0.40f;
+
+        /// <summary>열었을 때 짝이 젖혀지는 각(도). 사람이 지나갈 만큼은 열려야 한다.</summary>
+        private const float DoorOpen = 78f;
+
+        /// <summary>한 면 — 붙박이 문틀과 여닫이 짝 넷.</summary>
+        private static void Swing(Transform g, string name, float a0, float a1)
+        {
+            float h = DoorTop - FloorTop;
+            float y0 = FloorTop, y1 = FloorTop + h, yc = FloorTop + h * 0.5f;
+            float span = a1 - a0, mid = (a0 + a1) * 0.5f;
+            const float outward = -1f;          // 남쪽 = -Z 가 바깥이다
+
+            var group = Group(g, name);
+
+            // ── 붙박이 문틀 ──
+            // 설주는 <b>칸 경계에만</b> 세운다. 여태처럼 0.75m 마다 세우면 그 기둥이
+            // 짝이 돌아 나갈 길을 막는다 — 문틀이 문을 가두는 꼴이다.
+            int pairs = Mathf.Max(1, Mathf.RoundToInt(span / PairW));
+            float pw = span / pairs;
+
+            Face(group, name + "_위틀", mid, y1 - FrameW * 0.5f, span, FrameW, 0.12f,
+                 RoomZMin, true, _beam, false, 0.6f);
+            // 문지방 — 낮게. 턱은 있되 걸려 넘어질 만큼은 아니어야 한다.
+            Face(group, name + "_문지방", mid, y0 + 0.03f, span, 0.06f, 0.14f,
+                 RoomZMin, true, _beam, false, 0.6f);
+            for (int k = 0; k <= pairs; k++)
+                Face(group, name + "_설주" + k, a0 + pw * k, yc, FrameW, h, 0.12f,
+                     RoomZMin, true, _beam, false, 0.6f);
+
+            // ── 짝 넷 ──
+            float lw = pw * 0.5f - FrameW * 0.5f;
+            var pivots = new System.Collections.Generic.List<Transform>();
+            var angles = new System.Collections.Generic.List<float>();
+
+            int idx = 0;
+            for (int p = 0; p < pairs; p++)
+                for (int side = 0; side < 2; side++, idx++)
+                {
+                    float hinge = a0 + pw * p + (side == 0 ? 0f : pw);
+                    float dir = side == 0 ? 1f : -1f;
+
+                    var leaf = new GameObject("짝_" + idx);
+                    leaf.transform.SetParent(group, false);
+                    leaf.transform.localPosition = new Vector3(hinge, yc, RoomZMin);
+
+                    DoorLeaf(leaf.transform, dir, lw, h, outward);
+
+                    pivots.Add(leaf.transform);
+                    // 자유단이 바깥(-Z)으로 나가려면 회전 부호가 dir 을 따라가야 한다.
+                    // 부호를 뒤집으면 문이 방 안쪽으로 열려 세간을 뚫는다.
+                    angles.Add(dir * DoorOpen);
+                }
+
+            Controller(group, pivots, angles);
         }
 
         /// <summary>
-        /// 한 면을 문짝으로 채운다. 창과 같은 숫대살을 짜되, <b>발치에는 널을 댄다</b>
-        /// (청판). 문은 드나드는 데라 아랫도리에 발이 닿고 치맛자락이 스치는데,
-        /// 거기까지 종이를 바르면 한 철을 못 간다.
-        ///
-        /// alongX 면 x 방향으로, 아니면 z 방향으로 늘어놓는다.
+        /// 짝 한 장. 지도리를 원점으로 x 방향 <paramref name="dir"/> 로 lw 만큼 뻗는다.
+        /// 아랫도리는 널(청판)이고 그 위만 살을 짜 종이를 바른다.
         /// </summary>
-        private static void Leaves(Transform g, string name, float a0, float a1,
-                                   float y, float h, float fixedCoord, bool alongX)
+        private static void DoorLeaf(Transform g, float dir, float lw, float h, float outward)
         {
-            const float LeafW = 0.75f;
-            const float PanelH = 0.40f;      // 아래 청판 높이
-            float y0 = y - h * 0.5f, y1 = y + h * 0.5f;
-            float span = a1 - a0, mid = (a0 + a1) * 0.5f;
+            float mid = dir * lw * 0.5f;
+            float y0 = -h * 0.5f, y1 = h * 0.5f;
+            float paperY0 = y0 + PanelH;                 // 종이가 시작하는 높이
+            float ph = y1 - paperY0;
 
-            var group = Group(g, name);
-            int n = Mathf.Max(1, Mathf.RoundToInt(span / LeafW));
-            float w = span / n;
+            // 청판 — 발치의 널. 클릭을 받아야 하므로 몸을 가진다.
+            Box(g, "청판", new Vector3(mid, y0 + PanelH * 0.5f, 0f),
+                new Vector3(lw, PanelH, 0.055f), _beam, true, null, 0.7f);
 
-            // 청판 — 발치
-            Face(group, name + "_청판", mid, y0 + PanelH * 0.5f, span, PanelH, 0.055f,
-                 fixedCoord, alongX, _beam, true, 0.7f);
+            // 짝틀 넷
+            Box(g, "틀_위", new Vector3(mid, y1 - FrameW * 0.5f, 0f),
+                new Vector3(lw, FrameW, 0.09f), _beam, false, null, 0.6f);
+            Box(g, "틀_허리", new Vector3(mid, paperY0 + FrameW * 0.5f, 0f),
+                new Vector3(lw, FrameW, 0.09f), _beam, false, null, 0.6f);
+            Box(g, "틀_지도리", new Vector3(dir * FrameW * 0.5f, 0f, 0f),
+                new Vector3(FrameW, h, 0.09f), _beam, false, null, 0.6f);
+            Box(g, "틀_자유단", new Vector3(dir * (lw - FrameW * 0.5f), 0f, 0f),
+                new Vector3(FrameW, h, 0.09f), _beam, false, null, 0.6f);
 
-            // 한지 — 청판 위. 살보다 바깥쪽 한 겹.
-            float ph = y1 - (y0 + PanelH);
-            Face(group, name + "_한지", mid, y0 + PanelH + ph * 0.5f, span, ph, 0.014f,
-                 fixedCoord, alongX, _paper, true, 1f);
-
-            // 문틀 — 위아래 가로대와 짝 사이 세로대
-            Face(group, name + "_위틀", mid, y1 - FrameW * 0.5f, span, FrameW, 0.10f,
-                 fixedCoord, alongX, _beam, false, 0.6f);
-            Face(group, name + "_아래틀", mid, y0 + PanelH + FrameW * 0.5f, span, FrameW, 0.10f,
-                 fixedCoord, alongX, _beam, false, 0.6f);
-            for (int i = 0; i <= n; i++)
-                Face(group, name + "_설주" + i, a0 + w * i, (y0 + y1) * 0.5f, FrameW, h, 0.10f,
-                     fixedCoord, alongX, _beam, false, 0.6f);
+            // 한지 — 살보다 <b>바깥쪽</b> 한 겹. 조선 창호는 밖에서 바르므로
+            // 방 안에서 보면 살이 도드라지고 밖에서 보면 종이만 희다.
+            Box(g, "한지", new Vector3(mid, paperY0 + ph * 0.5f, outward * 0.020f),
+                new Vector3(lw - FrameW, ph - FrameW, 0.012f), _paper, true, null, 1f);
 
             // 살 — 창과 같은 숫대살
-            Sal(Group(group, "살"), fixedCoord, a0 + FrameW * 0.5f, a1 - FrameW * 0.5f,
-                y0 + PanelH + FrameW, y1 - FrameW, !alongX);
+            float s0 = Mathf.Min(0f, dir * lw) + FrameW;
+            float s1 = Mathf.Max(0f, dir * lw) - FrameW;
+            Sal(Group(g, "살"), 0f, s0, s1, paperY0 + FrameW, y1 - FrameW, false);
+        }
+
+        /// <summary>
+        /// 여닫는 부품을 물린다. 사유 항목이라 <see cref="SerializedObject"/> 로 채운다 —
+        /// 에디터에서 손으로 끌어다 넣는 것과 같은 일을 코드로 하는 것이다.
+        /// </summary>
+        private static void Controller(Transform group,
+                                       System.Collections.Generic.List<Transform> pivots,
+                                       System.Collections.Generic.List<float> angles)
+        {
+            var dc = group.gameObject.AddComponent<DoorController>();
+            var so = new SerializedObject(dc);
+
+            var arr = so.FindProperty("_leaves");
+            arr.arraySize = pivots.Count;
+            for (int i = 0; i < pivots.Count; i++)
+            {
+                var e = arr.GetArrayElementAtIndex(i);
+                e.FindPropertyRelative("pivot").objectReferenceValue = pivots[i];
+                e.FindPropertyRelative("swingAngle").floatValue = angles[i];
+                e.FindPropertyRelative("slideOffset").vector3Value = Vector3.zero;
+            }
+            so.FindProperty("_motion").enumValueIndex = 0;      // 0 = Swing
+            so.FindProperty("_openDuration").floatValue = 1.1f;
+            so.FindProperty("_startOpen").boolValue = false;
+            so.FindProperty("_playerCanToggle").boolValue = true;
+            so.FindProperty("_locked").boolValue = false;
+            // 문 앞까지 와야 손이 닿는다. 방 건너에서 눌러 열리면 손이 아니라 마술이다.
+            so.FindProperty("_maxTouchDistance").floatValue = 3.2f;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>

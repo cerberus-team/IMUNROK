@@ -30,6 +30,9 @@ namespace IMUNROK.Common
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
+        /// <summary>덮는 빛깔. 기본은 검정이고, 안개 경계만 잿빛으로 바꿔 쓴다.</summary>
+        private Color _tint = Color.black;
+
         public static ScreenFade Instance
         {
             get
@@ -52,7 +55,24 @@ namespace IMUNROK.Common
         /// 완전히 어두운 순간에 옮기므로 플레이어는 이동 자체를 보지 못한다.
         /// </summary>
         public static void Blink(float outDuration, float inDuration, Action onBlack)
-            => Instance.StartBlink(outDuration, inDuration, onBlack);
+        {
+            Instance._tint = Color.black;
+            Instance.StartBlink(outDuration, inDuration, onBlack);
+        }
+
+        /// <summary>
+        /// 검정 말고 <b>다른 빛깔로</b> 덮었다 걷는다.
+        ///
+        /// 안개에 삼켜져 돌아 나오는 자리에 쓴다. 거기서 검게 꺼지면 기절한 것이 되고,
+        /// 기절은 이 게임이 하는 말이 아니다 — 흐린 잿빛으로 덮이면 <b>안개에 묻혔다</b>가
+        /// 된다. 같은 순간이동인데 뜻이 달라진다.
+        /// 다음 번 <see cref="Blink(float,float,Action)"/> 는 도로 검정으로 돌아간다.
+        /// </summary>
+        public static void Blink(float outDuration, float inDuration, Action onBlack, Color tint)
+        {
+            Instance._tint = tint;
+            Instance.StartBlink(outDuration, inDuration, onBlack);
+        }
 
         /// <summary>목표 어둡기(0=밝음, 1=완전 검정)로 서서히 바꾼다.</summary>
         public static void To(float target, float duration) => Instance.StartTo(target, duration);
@@ -113,7 +133,7 @@ namespace IMUNROK.Common
         private void SetAlpha(float a)
         {
             _alpha = Mathf.Clamp01(a);
-            if (_mat != null) _mat.SetColor(BaseColorId, new Color(0f, 0f, 0f, _alpha));
+            if (_mat != null) _mat.SetColor(BaseColorId, new Color(_tint.r, _tint.g, _tint.b, _alpha));
             if (_quad != null) _quad.gameObject.SetActive(_alpha > 0.001f);
         }
 
