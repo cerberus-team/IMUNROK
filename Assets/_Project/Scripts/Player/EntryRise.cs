@@ -30,8 +30,9 @@ namespace IMUNROK.Common
         [SerializeField] private Transform _lookAt;
         [SerializeField] private string _lookAtPath = "조사청_실내/구조/창/창_중방_동";
 
-        [Tooltip("선 눈높이에서 이만큼 내려앉는다(m). 보료에 앉은 눈높이가 대략 1.1m 다")]
-        [SerializeField] private float _seatedDrop = 0.52f;
+        [Tooltip("일어서면서 이만큼 올라선다(m). 내려앉지는 않는다 — " +
+                 "씬에 잡아 둔 시작 자리가 곧 앉은 자리다. 거기서 더 내리면 마루에 드러누운 눈높이가 된다")]
+        [SerializeField] private float _riseHeight = 0.50f;
         [Tooltip("고개를 다 돌리는 데 걸리는 시간(초)")]
         [SerializeField] private float _turnSeconds = 3.2f;
         [Tooltip("다 보고 잠깐 머무는 시간(초). 이 사이가 없으면 보자마자 일어난 꼴이 된다")]
@@ -70,11 +71,13 @@ namespace IMUNROK.Common
             var fly = GetComponent<DebugFlyCamera>();
             if (fly != null) fly.enabled = false;      // 도는 동안 손을 뗀다
 
-            // ① 앉는다 — 눈높이를 내린다. 한 프레임에 내려앉아도 되는 것이,
-            //    아직 화면이 열리기 전이라 이 자리가 곧 <b>처음 보는 자리</b>다.
-            Vector3 stand = transform.position;
-            Vector3 seat = stand - Vector3.up * _seatedDrop;
-            transform.position = seat;
+            // ① 앉은 자리는 <b>씬에 잡아 둔 그 자리</b>다.
+            //
+            // 처음엔 여기서 눈높이를 0.52m 더 내렸다. 그런데 시작 자리는 이미
+            // 보료에 앉은 눈높이로 잡아 두신 것이라, 거기서 또 내리니 마루에
+            // 드러누운 꼴이 되었다. 내리지 않고, 나중에 <b>올라서기만</b> 한다.
+            Vector3 seat = transform.position;
+            Vector3 stand = seat + Vector3.up * _riseHeight;
 
             // ② 고개를 돌린다
             Quaternion from = transform.rotation;

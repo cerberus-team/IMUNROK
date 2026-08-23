@@ -51,12 +51,33 @@ namespace IMUNROK.Common
     {
         // ── 싱글톤 (GameState와 동일 패턴) ──
         private static Journal _instance;
+        /// <summary>지금 게임이 끝나거나 씬이 닫히는 중인가. 이때는 싱글턴을 새로 세우지 않는다.</summary>
+        private static bool Quitting;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetQuitFlag()
+        {
+            Quitting = false;
+            Application.quitting -= MarkQuitting;
+            Application.quitting += MarkQuitting;
+        }
+
+        private static void MarkQuitting() { Quitting = true; }
+
         public static Journal Instance
         {
             get
             {
                 if (_instance == null)
                 {
+                    // 씬을 닫는 중에는 <b>새로 만들지 않는다</b>.
+                    //
+                    // 끝내거나 씬을 갈아 끼우는 동안 남의 OnDestroy·OnDisable 이 이 값을
+                    // 물어보는데, 그때 하나를 새로 세우면 그것이 정리 뒤에 태어난 것이라
+                    // 치울 사람이 없다 — "Some objects were not cleaned up when closing
+                    // the scene" 이 그 소리다. 닫는 중이면 없는 대로 null 을 돌려준다.
+                    if (Quitting) return null;
+
                     _instance = FindFirstObjectByType<Journal>();
                     if (_instance == null)
                     {

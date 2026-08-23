@@ -203,6 +203,8 @@ namespace IMUNROK.Common
             if (_renderer == null) return;
             if (_mpb == null) _mpb = new MaterialPropertyBlock();
             if (_state == null) _state = GameState.Instance;
+            // 씬을 닫는 중이면 GameState 가 null 을 돌려준다 — 그때는 칠할 것도 없다.
+            if (_state == null) return;
 
             bool ready = Openable;
             Color c = !ready ? _notReadyColor : _state.GetStatus(_caseId) switch
