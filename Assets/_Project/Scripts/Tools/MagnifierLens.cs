@@ -86,7 +86,9 @@ namespace IMUNROK.Common
 
         [Header("들여다보기")]
         [Tooltip("한곳을 이만큼(초) 들여다보면 읽은 것으로 친다")]
-        [SerializeField] private float _readSeconds = 0.8f;
+        // 0.8초는 <b>너무 빨랐다</b>. 대자마자 다 읽혀서, 무엇을 보고 있었는지 알기도
+        // 전에 넘어간다. 들여다보는 것은 순간이 아니라 자세이므로 그만한 시간이 든다.
+        [SerializeField] private float _readSeconds = 2.4f;
         [Tooltip("렌즈로 짚을 수 있는 거리(m)")]
         [SerializeField] private float _reach = 6f;
 

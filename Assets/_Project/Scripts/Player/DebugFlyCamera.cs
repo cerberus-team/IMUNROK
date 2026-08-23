@@ -31,8 +31,9 @@ namespace IMUNROK.Common
         [SerializeField] private float _sprintMultiplier = 3f;
         [Tooltip("걷기 모드로 시작할지")]
         [SerializeField] private bool _walkMode = false;
-        [Tooltip("걷기/바닥내려서기 시 눈높이(바닥으로부터)")]
-        [SerializeField] private float _eyeHeight = 1.6f;
+        [Tooltip("걷기/바닥내려서기 시 눈높이(바닥으로부터). 선 사람의 눈높이다 — " +
+                 "몸으로 막는 캡슐도 이 값에서 나오므로, 이것만 맞으면 눈과 몸이 어긋나지 않는다")]
+        [SerializeField] private float _eyeHeight = 1.7f;
 
         [Header("몸 — 통과하지 않게")]
         [Tooltip("끄면 예전처럼 벽이고 문이고 다 통과한다(배치 확인용)")]
@@ -209,8 +210,11 @@ namespace IMUNROK.Common
             for (int pass = 0; pass < 3 && step.sqrMagnitude > 1e-8f; pass++)
             {
                 // 몸통 캡슐 — 넘어설 수 있는 턱보다 위부터 눈 바로 아래까지
+                // 캡슐은 <b>눈높이에서 나온다</b>. 발밑에서 넘어설 수 있는 턱만큼 띄운
+                // 자리가 밑이고, 눈이 곧 정수리 언저리이므로 그 바로 아래가 위다.
+                // 두 값이 다른 데서 오면 눈은 벽 너머를 보는데 몸은 안 지나가는 일이 난다.
                 Vector3 low = new Vector3(transform.position.x, feetY + _stepUp + _bodyRadius, transform.position.z);
-                Vector3 high = new Vector3(transform.position.x, transform.position.y - 0.05f, transform.position.z);
+                Vector3 high = new Vector3(transform.position.x, feetY + _eyeHeight - _bodyRadius, transform.position.z);
                 if (high.y < low.y) high = low;
 
                 float dist = step.magnitude;

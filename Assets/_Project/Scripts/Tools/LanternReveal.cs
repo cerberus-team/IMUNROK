@@ -28,7 +28,9 @@ namespace IMUNROK.Common
         private const string ToolId = "lantern";
 
         /// <summary>다 배어 나오기까지 걸리는 시간(초).</summary>
-        private const float Seconds = 1.6f;
+        /// 배어 나오는 것은 <b>천천히</b>라야 배어 나온 것이 된다. 1.6초는 들자마자
+        /// 나타나는 꼴이라, 빛에 드러난 것인지 그냥 켜진 것인지 구별이 안 됐다.
+        private const float Seconds = 3.0f;
 
         /// <summary>등불을 내리면 이 빠르기로 도로 식는다(초당). 켤 때보다 느리다.</summary>
         private const float Cool = 0.45f;

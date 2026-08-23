@@ -46,10 +46,17 @@ namespace IMUNROK.Common
         [SerializeField] private string _practiceDone = "됐다. 이만하면 {0}은 손에 익었다.";
 
         [Header("들어 올리기")]
-        [Tooltip("눈에서 이만큼 앞에 들어 올린다(m)")]
-        [SerializeField] private float _readDistance = 0.42f;
-        [Tooltip("눈높이에서 이만큼 내려 잡는다(m)")]
-        [SerializeField] private float _readDrop = 0.08f;
+        // 물건과 글이 <b>겹치면 안 된다</b>. 0.42m 앞 눈높이 아래에 들면 손바닥만 한
+        // 물건이 화면의 절반을 먹는데, 자막은 1.3m 뒤 한가운데 있으니 글자가 물건에
+        // 통째로 가린다 — "돋보기다, 작은 것을 크게 본다" 가 돋보기에 덮여 안 읽혔다.
+        // 그래서 물건은 <b>눈 위로</b> 올려 들고, 자막은 아래로 내려 세운다.
+        // 둘이 위아래로 갈라서면 어느 쪽도 서로를 가리지 않는다.
+        [Tooltip("눈에서 이만큼 앞에 들어 올린다(m). 멀수록 작아지고 자막과 덜 겹친다")]
+        [SerializeField] private float _readDistance = 0.58f;
+        [Tooltip("눈높이에서 이만큼 내려 잡는다(m). <b>음수면 눈 위로</b> 든다")]
+        [SerializeField] private float _readDrop = -0.15f;
+        [Tooltip("익히는 동안 자막을 이만큼 내려 세운다(m). 물건과 갈라서는 값이다")]
+        [SerializeField] private float _subtitleDrop = -0.46f;
         [SerializeField] private float _liftSeconds = 0.5f;
         [Tooltip("들고 있는 동안 천천히 돈다 — 어느 쪽에서 봐도 무엇인지 알게")]
         [SerializeField] private float _spinSpeed = 25f;
@@ -68,6 +75,16 @@ namespace IMUNROK.Common
         private Coroutine _moving;
         private bool _learned;
         private bool _awaiting;   // 낸 과제를 기다리는 중
+        private float _stepShownAt;   // 이 마디를 띄운 때
+
+        /// <summary>
+        /// 한 마디를 띄우고 이만큼(초)은 넘기지 않는다.
+        ///
+        /// 어디를 눌러도 넘어가게 해 두었더니 <b>확확 넘어갔다</b> — 무엇을 읽고 있었는지
+        /// 알기도 전에 끝나 버린다. 손이 두 번 튀거나 끌던 손을 놓기만 해도 두 마디가
+        /// 지나간다. 읽을 시간은 주고 넘겨야 읽은 것이 된다.
+        /// </summary>
+        private const float StepGuard = 0.9f;
 
         /// <summary>생성기가 씬을 짤 때 채운다.</summary>
         public ToolDef Tool { get => _tool; set => _tool = value; }
@@ -175,8 +192,10 @@ namespace IMUNROK.Common
             // 어디를 눌러도 넘어가는 것이 맞다.
 #if ENABLE_INPUT_SYSTEM
             var mouse = UnityEngine.InputSystem.Mouse.current;
-            if (mouse != null && mouse.leftButton.wasPressedThisFrame && !PointerOnCloseTab())
-                NextStep();
+            if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
+            if (Time.unscaledTime - _stepShownAt < StepGuard) return;   // 아직 읽는 중이다
+            if (PointerOnCloseTab()) return;                            // 그만두려는 손이다
+            NextStep();
 #endif
         }
 
@@ -249,6 +268,9 @@ namespace IMUNROK.Common
             // 벨트가 아니다. 수첩을 펼 때 쓰던 것과 같은 장치다.
             WorldHudAnchor.StowAll = true;
 
+            // 자막을 아래로 내려 세운다 — 눈 위로 든 물건과 위아래로 갈라서게.
+            SubtitleView.SetReadingDistance(1.3f, _subtitleDrop);
+
             Tint(0f);
             _step = -1;
             if (_moving != null) StopCoroutine(_moving);
@@ -292,6 +314,7 @@ namespace IMUNROK.Common
             string name = _tool != null ? _tool.displayName : "";
             string hint = (_step == _steps.Length - 1) ? "(눌러서 손에 쥔다)" : "(눌러서 다음)";
             SubtitleView.Show(name, _steps[_step], hint);
+            _stepShownAt = Time.unscaledTime;
         }
 
         private void Finish()
@@ -380,9 +403,11 @@ namespace IMUNROK.Common
 
         private void GoHome()
         {
-            // 도중에 그만두었을 수도 있다. 어느 길로 끝나든 벨트는 도로 올린다 —
-            // 안 그러면 익히기를 접은 뒤로 벨트가 영영 내려가 있다.
+            // 도중에 그만두었을 수도 있다. 어느 길로 끝나든 벨트는 도로 올리고
+            // 자막도 제자리로 돌린다 — 안 그러면 익히기를 접은 뒤로 벨트가 영영
+            // 내려가 있고 자막도 발치에 깔린 채로 남는다.
             WorldHudAnchor.StowAll = false;
+            SubtitleView.SetReadingDistance(1.3f, -0.28f);
             if (_moving != null) StopCoroutine(_moving);
             _moving = StartCoroutine(HomeRoutine());
         }

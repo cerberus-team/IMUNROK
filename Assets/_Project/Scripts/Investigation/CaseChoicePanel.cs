@@ -78,6 +78,22 @@ namespace IMUNROK.Common
             _instance.OpenInternal(title, subtitle, brief, hasProgress, onFresh, onContinue);
         }
 
+        /// <summary>
+        /// 어느 화면이든 <b>빠져나올 길이 둘은 있어야 한다</b>.
+        ///
+        /// 물러나기 단추 하나만 두었더니, 그 단추가 안 먹던 동안(씬에 EventSystem 이
+        /// 없어서 조사청의 모든 단추가 죽어 있었다) 이 창에 갇혔다. 단추가 본길이되
+        /// Esc 를 곁길로 둔다 — 곁길은 UI 를 거치지 않으므로 같은 까닭으로 함께
+        /// 죽지 않는다.
+        /// </summary>
+        private void Update()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null && kb.escapeKey.wasPressedThisFrame) Close();
+#endif
+        }
+
         public static void Close()
         {
             if (_instance != null) _instance.SetVisible(false);

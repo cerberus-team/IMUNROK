@@ -61,6 +61,15 @@ namespace IMUNROK.Common
             _instance.OpenInternal(owner);
         }
 
+        /// <summary>Esc 로도 덮는다 — 단추가 안 먹는 날에도 빠져나올 길은 있어야 한다.</summary>
+        private void Update()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null && kb.escapeKey.wasPressedThisFrame) Close();
+#endif
+        }
+
         public static void Close()
         {
             ReadingFocus.Release(ReadingFocus.Panel.Journal);
