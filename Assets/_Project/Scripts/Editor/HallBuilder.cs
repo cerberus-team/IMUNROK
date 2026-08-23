@@ -34,7 +34,16 @@ namespace IMUNROK.Common.EditorTools
         // ── 광풍각에서 잰 치수(로컬 m) ─────────────────
         private const float Bay = 1.5f;                    // 기둥 한 칸
         private const float XMin = -4.54f, XMax = 4.46f;   // 정면 9m (일곱 줄)
-        private const float ZMin = -3.04f, ZMax = 2.96f;   // 측면 6m (다섯 줄)
+        // 측면 9m (일곱 줄) — <b>광풍각 기와를 도로 얹기 위해</b> 6m 에서 늘렸다.
+        //
+        // 조사청은 광풍각 자리에 광풍각의 자리와 방향을 받아 지었는데, 몸통만 9×6 으로
+        // 지어 놓아 원본 지붕(11.2×11.1)이 안 맞았다 — 얹으면 처마가 마당까지 덮는다.
+        // 앞뒤로 1.5m 씩 늘려 9×9 로 만들면 광풍각과 같은 네모가 되어 기와가 그대로 맞다.
+        //
+        // <b>방은 그대로다</b>. 늘어난 것은 <see cref="RoomZMin"/>~<see cref="RoomZMax"/>
+        // 바깥, 곧 툇마루다. 세간도 창도 문도 제자리에 남고 앞뒤로 마루가 넓어질 뿐이다 —
+        // 툇마루가 넓은 것은 정자에 가까운 광풍각의 본래 모습이기도 하다.
+        private const float ZMin = -4.54f, ZMax = 4.46f;
 
         private const float GidanTop = 0.25f;    // 기단 윗면
         private const float StoneTop = 0.41f;    // 주춧돌 윗면 = 기둥이 앉는 자리
