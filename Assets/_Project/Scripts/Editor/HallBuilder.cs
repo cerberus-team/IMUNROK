@@ -631,13 +631,14 @@ namespace IMUNROK.Common.EditorTools
 
             // 높이를 헤아려 보면 이렇다(방 기준):
             //   마당 -0.78 · 기단 윗면 0.25 · 마루 0.71
-            // 마당에서 기단까지 1.03m 를 한 번에 오를 수는 없다. 그래서 기단 앞에
-            // 두 단을 놓아 세 걸음으로 나눈다 — 0.36 · 0.33 · 0.34.
-            // 기단에서 마루로 오르는 0.46m 는 한 걸음으로 둔다. 문지방을 넘어서는
-            // 자리라 오히려 턱이 있어야 <b>들어선다</b>는 느낌이 난다.
+            //
+            // 한 단을 <b>0.26m 로 잘게</b> 나눈다. 두 단으로 끝내면 한 걸음이 0.35m 라
+            // 오르기는 하지만, 걷는 부품은 "올라설 수 있는 턱"을 <b>몸이 뚫고 가는 높이</b>로도
+            // 쓴다 — 그 값이 크면 경상이며 문갑 위로도 걸어 올라간다. 계단을 잘게 놓아
+            // 그 값을 낮출 수 있게 하는 것이, 밟고 오를 것과 부딪힐 것을 가르는 길이다.
             float front = ZMin - 0.70f;              // 기단 앞면
-            float[] tops = { -0.42f, -0.09f };
-            float[] depth = { 0.72f, 0.58f };
+            float[] tops = { -0.52f, -0.26f, 0.00f };
+            float[] depth = { 0.66f, 0.56f, 0.48f };
 
             float outer = front;
             for (int i = tops.Length - 1; i >= 0; i--)   // 위 단부터 기단에 붙여 나간다
@@ -650,9 +651,14 @@ namespace IMUNROK.Common.EditorTools
 
                 Box(group, "댓돌_" + i,
                     new Vector3(mid, bottom + h * 0.5f, z),
-                    new Vector3(width - i * 0.14f, h, depth[i]),
+                    new Vector3(width - i * 0.12f, h, depth[i]),
                     _stone, true, null, 0.5f);
             }
+
+            // 섬돌 — 기단(0.25)에서 마루(0.71)로 오르는 0.46m 를 반으로 가른다.
+            // 문 바로 앞에 놓이는 넓적한 돌이고, 조선 집에서 신을 벗어 두는 자리다.
+            Box(group, "섬돌", new Vector3(mid, 0.25f + 0.115f, RoomZMin - 0.42f),
+                new Vector3(width - 0.30f, 0.23f, 0.62f), _stone, true, null, 0.6f);
 
             // 옛 디딤돌 하나를 걷는다.
             //
@@ -735,19 +741,26 @@ namespace IMUNROK.Common.EditorTools
         private static string Blocked(System.Collections.Generic.List<Furniture> furniture,
                                       float hinge, float dir, float lw, float y0, float y1)
         {
-            // 여유는 아주 조금만 준다. 0.12m 를 주었더니 문갑 모서리에서 4cm 가 겹쳐
-            // 멀쩡히 드나들 수 있는 짝까지 잠겼다. 한 짝이 0.72m 인데 0.12 는 육분의 일이다.
-            float x0 = Mathf.Min(hinge, hinge + dir * lw) - 0.04f;
-            float x1 = Mathf.Max(hinge, hinge + dir * lw) + 0.04f;
+            // 여유를 <b>넓히지 않고</b>, 대신 얼마나 겹치는지를 본다.
+            //
+            // 처음엔 짝의 폭을 0.12m 늘려 잡았다가 0.04m 로 줄였는데, 그래도
+            // 문_서방_남의 짝_2 가 잠겼다. 재어 보니 보료서안이 그 칸을 <b>1cm</b> 물고
+            // 있었다(x -4.24~-3.07 대 -3.08~-2.29). 스치는 것은 막은 것이 아니다.
+            // 짝 너비의 사분의 일은 가려야 사람이 그 앞에 못 서는 것으로 친다.
+            float x0 = Mathf.Min(hinge, hinge + dir * lw);
+            float x1 = Mathf.Max(hinge, hinge + dir * lw);
+            float need = (x1 - x0) * 0.25f;
             float z0 = RoomZMin - 0.06f, z1 = RoomZMin + BlockDepth;
 
             foreach (var f in furniture)
             {
                 var b = f.box;
-                if (b.max.x < x0 || b.min.x > x1) continue;
                 if (b.max.z < z0 || b.min.z > z1) continue;
                 if (b.max.y < y0 + 0.10f || b.min.y > y1) continue;
-                return f.name;
+
+                float overlap = Mathf.Min(b.max.x, x1) - Mathf.Max(b.min.x, x0);
+                if (overlap < need) continue;
+                return f.name + " (" + (overlap * 100f).ToString("F0") + "cm 겹침)";
             }
             return null;
         }

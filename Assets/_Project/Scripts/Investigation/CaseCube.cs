@@ -23,10 +23,10 @@ namespace IMUNROK.Common
     /// 열린다</b>. 지금은 옹고집전 하나뿐이고, 팀원이 제 씬을 넣는 날 그 문서는
     /// 저절로 살아난다 — 여기를 다시 고칠 일이 없다.
     ///
-    /// <b>차례가 있다</b>: 봉서 셋을 한꺼번에 받았어도 아무 것이나 먼저 펼 수는 없다.
-    /// 앞선 사건을 매듭지어야 다음 봉서가 열린다. 차례는 <see cref="CaseId"/> 에
-    /// 적힌 순서를 그대로 쓴다 — 여기에 1·2·3 을 따로 적어 두면 둘이 어긋날 자리가
-    /// 하나 더 생긴다.
+    /// <b>차례는 없다</b>: 봉서 셋은 이어지는 이야기가 아니라 나란히 걸린 셋이다.
+    /// 어느 것을 먼저 집든 상관없다. 한때 앞선 사건을 매듭져야 다음이 열리게 해
+    /// 두었는데, 그러면 <b>씬이 없어서 어둑한 것</b>과 <b>차례가 아니라 어둑한 것</b>이
+    /// 눈으로 구별되지 않는다 — 지금 둘이 어둑한 것은 오로지 씬이 아직 없어서다.
     ///
     /// <b>누르면 곧바로 들어가지 않는다</b>: 사건에 드는 것은 되돌리기 어려운 일이라
     /// 한 번은 묻는다. <see cref="CaseChoicePanel"/> 이 눈앞에 봉서로 풀려 내려와
@@ -140,19 +140,16 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// 차례가 왔나 — 앞선 사건을 매듭지었나. 첫 사건은 늘 열려 있다.
+        /// 차례가 왔나.
+        ///
+        /// <b>차례는 없다.</b> 한때 앞선 사건을 매듭지어야 다음이 열리게 해 두었는데,
+        /// 세 사건은 서로 이어지는 이야기가 아니라 <b>나란히 걸린 세 봉서</b>다.
+        /// 어느 것을 먼저 집든 상관이 없고, 오히려 골라 짚는 것이 조사청의 뜻에 맞는다.
+        ///
+        /// 지금 둘이 어둑한 것은 차례를 기다려서가 아니라 <b>아직 그 씬이 없어서</b>다
+        /// (<see cref="Ready"/>). 만들어 빌드 목록에 넣는 날 저절로 밝아진다.
         /// </summary>
-        public bool Unlocked
-        {
-            get
-            {
-                int i = Order(_caseId);
-                if (i <= 0) return true;
-                var all = System.Enum.GetValues(typeof(CaseId));
-                var prev = (CaseId)all.GetValue(i - 1);
-                return GameState.Instance.GetStatus(prev) == CaseStatus.Completed;
-            }
-        }
+        public bool Unlocked => true;
 
         /// <summary>지금 이 문서를 펼 수 있나.</summary>
         public bool Openable => Ready && Unlocked;

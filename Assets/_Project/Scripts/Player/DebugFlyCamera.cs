@@ -34,9 +34,19 @@ namespace IMUNROK.Common
         [Tooltip("걷기/바닥내려서기 시 눈높이(바닥으로부터)")]
         [SerializeField] private float _eyeHeight = 1.6f;
 
+        [Header("몸 — 통과하지 않게")]
+        [Tooltip("끄면 예전처럼 벽이고 문이고 다 통과한다(배치 확인용)")]
+        [SerializeField] private bool _solid = true;
+        [Tooltip("몸의 굵기(반지름 m). 이보다 좁은 틈은 못 지나간다")]
+        [SerializeField] private float _bodyRadius = 0.26f;
+
         [Header("턱 오르내림")]
-        [Tooltip("한 번에 올라설 수 있는 턱 높이(m). 한옥 마루는 마당보다 0.56m 높다. 이보다 높으면 막힌 것으로 친다")]
-        [SerializeField] private float _stepUp = 0.62f;
+        [Tooltip("한 번에 올라설 수 있는 턱 높이(m).\n" +
+                 "이 값은 <b>몸이 무엇을 뚫고 가는지</b>도 함께 정한다 — 윗면이 이 안에 드는 것은 " +
+                 "걸음이 넘어설 수 있는 턱으로 보아 막지 않는다. 0.62 로 두었더니 경상이며 " +
+                 "문갑 위로 걸어 올라갔다. 댓돌을 잘게 나누고 이 값을 낮춰, 밟고 오를 것과 " +
+                 "부딪힐 것을 갈랐다")]
+        [SerializeField] private float _stepUp = 0.40f;
         [Tooltip("발밑을 얼마나 아래까지 훑을지(m). 계단을 내려갈 때 쓴다")]
         [SerializeField] private float _stepDown = 2.0f;
         [Tooltip("턱을 오르내리는 속도(m/s). 즉시 붙으면 화면이 튄다")]
@@ -139,7 +149,7 @@ namespace IMUNROK.Common
                 if (kb.dKey.isPressed) move += right;
                 if (kb.aKey.isPressed) move -= right;
 
-                transform.position += move.normalized * speed * Time.deltaTime;
+                transform.position += Slide(move.normalized * speed * Time.deltaTime);
 
                 // 발밑에서 "짧게" 아래로 쏴서 바닥을 따라감(지붕·처마로 튀지 않게).
                 // 광선을 발보다 _stepUp 만큼만 위에서 시작한다 — 그보다 높은 턱은 아예 안 보이므로
@@ -169,6 +179,63 @@ namespace IMUNROK.Common
                 transform.Translate(dir.normalized * speed * Time.deltaTime, Space.Self);
             }
 #endif
+        }
+
+        /// <summary>
+        /// 한 걸음을 <b>몸으로 막고 벽을 따라 미끄러뜨린다</b>.
+        ///
+        /// <b>여태 몸이 없었다.</b> 걸음은 그냥 transform.position 에 더해지고 있었고,
+        /// 아래로 쏘는 광선은 <b>발밑 높이</b>를 따라갈 뿐 앞을 막지 않았다. 벽이며
+        /// 문이며 세간이며 다 통과하던 것이 이것이다 — 콜라이더를 아무리 붙여도
+        /// 그것을 물어보는 데가 없었으니 아무 일도 일어나지 않았다.
+        ///
+        /// 사람 굵기의 캡슐을 걸음 방향으로 쓸어 본다. 무언가에 닿으면 그 벽면을 따라
+        /// 걸음을 눕혀(투영) 미끄러진다 — 벽에 비스듬히 부딪혔을 때 멈춰 서지 않고
+        /// 벽을 훑으며 나아가는 것이 걷는 느낌이다. 세 번까지 되풀이하는 까닭은
+        /// 구석에서 두 벽에 동시에 닿기 때문이다.
+        ///
+        /// <b>낮은 턱은 몸으로 치지 않는다</b>. 윗면이 발에서 <see cref="_stepUp"/> 안에
+        /// 드는 것은 걸음이 넘어설 수 있는 것이므로 그냥 지나가게 두고, 높이 따라가기가
+        /// 알아서 올려 준다. 이 값이 너무 크면 경상이며 문갑 위로 걸어 올라가게 되고,
+        /// 너무 작으면 댓돌에 걸려 못 오른다.
+        /// </summary>
+        private Vector3 Slide(Vector3 step)
+        {
+            if (!_solid || step.sqrMagnitude < 1e-8f) return step;
+
+            float feetY = transform.position.y - _eyeHeight;
+            const float Skin = 0.02f;
+
+            for (int pass = 0; pass < 3 && step.sqrMagnitude > 1e-8f; pass++)
+            {
+                // 몸통 캡슐 — 넘어설 수 있는 턱보다 위부터 눈 바로 아래까지
+                Vector3 low = new Vector3(transform.position.x, feetY + _stepUp + _bodyRadius, transform.position.z);
+                Vector3 high = new Vector3(transform.position.x, transform.position.y - 0.05f, transform.position.z);
+                if (high.y < low.y) high = low;
+
+                float dist = step.magnitude;
+                var hits = Physics.CapsuleCastAll(low, high, _bodyRadius, step.normalized,
+                                                  dist + Skin, ~0, QueryTriggerInteraction.Ignore);
+                if (hits.Length == 0) break;
+
+                RaycastHit best = default;
+                float bestD = float.MaxValue;
+                foreach (var h in hits)
+                {
+                    if (h.collider == null) continue;
+                    if (h.collider.transform.IsChildOf(transform)) continue;   // 손에 든 것
+                    // 바닥·천장은 걸음을 막지 않는다. 막는 것은 <b>서 있는 면</b>이다.
+                    Vector3 n = h.normal; n.y = 0f;
+                    if (n.sqrMagnitude < 0.04f) continue;
+                    if (h.distance < bestD) { bestD = h.distance; best = h; }
+                }
+                if (bestD == float.MaxValue) break;
+
+                Vector3 wall = best.normal; wall.y = 0f;
+                if (wall.sqrMagnitude < 1e-6f) return Vector3.zero;
+                step = Vector3.ProjectOnPlane(step, wall.normalized);
+            }
+            return step;
         }
 
         private void OnGUI()
