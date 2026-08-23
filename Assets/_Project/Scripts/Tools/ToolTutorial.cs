@@ -79,6 +79,61 @@ namespace IMUNROK.Common
             _mpb = new MaterialPropertyBlock();
             _homePos = transform.position;
             _homeRot = transform.rotation;
+            FitCollider();
+        }
+
+        /// <summary>
+        /// 손이 닿는 상자를 <b>보이는 크기에 맞춘다</b>.
+        ///
+        /// 이 도구들은 문갑 밑에 달려 있는데 그 모델이 2.9배로 커져 있다. 상자는
+        /// 제 좌표로 적히므로 그 배율이 그대로 곱해져, 돋보기는 보이기로는
+        /// 0.27×0.05×0.26 인데 손에 닿는 상자는 <b>1.15×0.81×1.00</b> 이었다.
+        ///
+        /// 그 상자가 두 가지를 망가뜨렸다:
+        ///   · <b>옆의 도구를 삼킨다</b>. 등불과 돋보기는 0.42m 떨어져 있는데 상자가
+        ///     1m 를 넘으니, 등불을 정확히 겨눠도 돋보기가 1cm 앞에서 먼저 잡혔다 —
+        ///     등불을 누르면 자꾸 돋보기가 떠오르던 까닭이 이것이다.
+        ///   · <b>눈앞에 들어 올리면 카메라를 삼킨다</b>. 콜라이더 안에서 출발한 레이는
+        ///     그 콜라이더에 맞은 것으로 치지 않으므로 물건이 아예 안 눌렸다.
+        ///
+        /// 보이는 크기로 줄이되 너무 얇아지지는 않게 한다 — 돋보기는 두께가 5cm 라
+        /// 그대로 두면 겨누기가 바늘 끝을 겨누는 일이 된다.
+        /// </summary>
+        private void FitCollider()
+        {
+            var box = GetComponent<BoxCollider>();
+            if (box == null || _renderers == null || _renderers.Length == 0) return;
+
+            // 보이는 것이 <b>제 좌표에서</b> 차지한 상자. 월드 상자를 쓰면 방이 140도
+            // 돌아앉은 만큼 부풀어, 줄이려다 도로 키우게 된다.
+            var inv = transform.worldToLocalMatrix;
+            bool first = true;
+            var acc = new Bounds();
+            foreach (var r in _renderers)
+            {
+                var mf = r != null ? r.GetComponent<MeshFilter>() : null;
+                if (mf == null || mf.sharedMesh == null) continue;
+                var mat = inv * mf.transform.localToWorldMatrix;
+                var c = mf.sharedMesh.bounds.center; var e = mf.sharedMesh.bounds.extents;
+                for (int i = 0; i < 8; i++)
+                {
+                    var p = mat.MultiplyPoint3x4(new Vector3(
+                        c.x + ((i & 1) == 0 ? -e.x : e.x),
+                        c.y + ((i & 2) == 0 ? -e.y : e.y),
+                        c.z + ((i & 4) == 0 ? -e.z : e.z)));
+                    if (first) { acc = new Bounds(p, Vector3.zero); first = false; }
+                    else acc.Encapsulate(p);
+                }
+            }
+            if (first) return;
+
+            // 겨누기 쉬우라고 주는 최소 두께 — 월드에서 12cm 가 되도록 제 좌표로 환산한다.
+            var s = transform.lossyScale;
+            Vector3 min = new Vector3(0.12f / Mathf.Max(0.0001f, Mathf.Abs(s.x)),
+                                      0.12f / Mathf.Max(0.0001f, Mathf.Abs(s.y)),
+                                      0.12f / Mathf.Max(0.0001f, Mathf.Abs(s.z)));
+            box.center = acc.center;
+            box.size = Vector3.Max(acc.size, min);
         }
 
         private void OnEnable() => SubtitleView.OnClosed += OnNoticeClosed;
@@ -296,6 +351,15 @@ namespace IMUNROK.Common
             // 무엇이 끝난 것인지가 안 보인다 — 치우는 것이 곧 "됐다"는 말이다.
             // 치운 뒤에 한마디 하는 것도 그래서다. 종이 뒤에서 하는 말은 안 읽힌다.
             if (_example != null) DocumentView.Hide();
+
+            // <b>손도 비운다</b>.
+            //
+            // 익히는 동안 손에 쥐여 주는 것은 그것으로 해 보라는 뜻이지 가지라는 뜻이
+            // 아니다. 다 익히고도 들린 채로 두면, 다음 도구를 익히러 가는 길에도
+            // 돋보기를 들고 걷게 되고 조사청이 도구를 든 채 서성이는 방이 된다.
+            // 익힌 것은 <b>벨트에 남는다</b> — 언제든 다시 꺼내면 된다.
+            var belt = ToolbeltHud.Instance;
+            if (belt != null) belt.Select(0);   // 0 = 맨손
 
             SubtitleView.Show(_tool.displayName,
                               string.Format(_practiceDone, _tool.displayName), "(닫기)");
