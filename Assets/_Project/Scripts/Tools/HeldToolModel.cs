@@ -35,6 +35,21 @@ namespace IMUNROK.Common
 
         private bool _shown;
 
+        [Tooltip("끄면 씬에 맞춰 둔 자리를 그대로 쓴다. 켜져 있으면 공통 자세(HeldRig)를 받아 앉는다")]
+        [SerializeField] private bool _useCommonPose = true;
+
+        /// <summary>
+        /// 손에 드는 자리를 <b>공통</b>에서 받아 앉는다(HeldRig).
+        ///
+        /// Start 가 아니라 Awake 인 까닭: 돋보기 렌즈 장치(<see cref="MagnifierLens"/>)가
+        /// 씬이 올라온 뒤 이 매단 자리를 <b>재어 두고</b> 그것을 드는 자세로 삼는다.
+        /// Start 에서 옮기면 이미 잰 뒤라 옛 자리가 그대로 굳는다.
+        /// </summary>
+        private void Awake()
+        {
+            if (_useCommonPose) HeldRig.Apply(transform, _toolId);
+        }
+
         private void Start()
         {
             if (_model != null) _model.SetActive(false);

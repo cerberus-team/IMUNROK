@@ -51,6 +51,9 @@ namespace IMUNROK.Common
                  "조사청에서 도구는 두고 가는 것이다 — 그 규칙이 말로 한 번 나와야 한다")]
         [SerializeField] private string _putDownWord = "{0}은 여기 두고 간다. 사건에 나설 때 따로 챙겨 드리리다.";
 
+        [Tooltip("쥐여 줄 때 물건이 날아가 앉을 자리(카메라 기준, m). 손에 든 모델이 서는 그 자리다")]
+        [SerializeField] private Vector3 _handLocal = new Vector3(-0.17f, -0.185f, 0.40f);
+
         [Tooltip("몇 번째 마디에서 손에 쥐여 줄지(0부터). -1이면 마지막에. " +
                  "첫 마디는 '이것이 무엇이다' 라 물건을 눈앞에 띄워 놓고 보는 것이 맞고, " +
                  "그다음 마디부터는 '들면 이러하다' 라 손에 든 채로 들어야 말이 된다")]
@@ -203,9 +206,20 @@ namespace IMUNROK.Common
         {
             if (_phase != Phase.익히는중) return;
 
-            // 손에 들어간 뒤에는 안 돌린다 — 그 물건은 이미 제자리로 미끄러지는 중이다
+            // 손에 들어간 뒤에는 안 돌린다 — 그 물건은 이미 손자리로 건너갔다
             if (_spinSpeed != 0f && !_inHand)
                 transform.Rotate(Vector3.up, _spinSpeed * Time.deltaTime, Space.World);
+
+            // <b>마지막 마디에 이르면 여기는 손을 뗀다.</b>
+            //
+            // 끝 마디는 손에 든 채로 읽는 것이라 '익히는중' 이 그대로 이어진다.
+            // 그런데 그 사이에도 이 줄이 살아 있으면, 내려놓으려고 누른 그 한 번이
+            // <b>다음 마디로도</b> 세어져 Finish 가 다시 돌고, 또 끝 마디가 뜨고,
+            // 또 눌러도 다시 뜬다 — 익히기가 영영 안 끝난다.
+            //
+            // 그동안 <see cref="Learning"/> 이 참으로 남아 방을 짚는 손이 물러나 있으므로,
+            // <b>문을 눌러도 안 열린다</b>. 조사청에 갇힌다. 누름은 내려놓기 한 군데로.
+            if (_hefting) return;
 
             // ── 다음 한 마디로 넘기기 ──
             //
@@ -312,6 +326,7 @@ namespace IMUNROK.Common
             Tint(0f);
             _step = -1;
             _inHand = false;
+            Show(true);
             if (_moving != null) StopCoroutine(_moving);
             _moving = StartCoroutine(LiftRoutine());
         }
@@ -388,16 +403,24 @@ namespace IMUNROK.Common
             _inHand = true;
             _hefting = true;          // 이제 내려놓을 것이 생겼다
 
-            // 물건만 조용히 제자리로 보낸다. 여기서 <see cref="GoHome"/> 를 부르면
-            // <b>익히는중이 끝나 버려</b> 눌러도 다음 마디로 안 넘어간다 —
-            // 손에는 쥐여 주고 말은 멎는 꼴이 된다.
+            // 물건은 <b>손으로 건너간다</b>. 문갑으로 돌려보내면 안 된다 —
+            // "손에 들면 앞이 밝아진다" 를 읽는 그 순간에 물건이 도로 문갑에 가
+            // 앉으면, 든 것이 아니라 <b>내려놓은</b> 것으로 보인다.
+            //
+            // 그래서 손자리로 날아가 앉은 다음 <b>거기서 모습을 감춘다</b>. 같은
+            // 자리에 손에 든 모델이 이미 서 있으므로, 보기에는 하나가 계속 이어진다.
+            // 자리는 여기서 몰래 제집으로 돌려 둔다(안 보이는 동안).
+            //
+            // 여기서 <see cref="GoHome"/> 를 부르면 안 된다 — <b>익히는중이 끝나 버려</b>
+            // 눌러도 다음 마디로 안 넘어간다. 손에는 쥐여 주고 말은 멎는 꼴이 된다.
             if (_sliding != null) StopCoroutine(_sliding);
-            _sliding = StartCoroutine(SlideHome());
+            _sliding = StartCoroutine(SlideToHand());
         }
 
-        /// <summary>물건만 제자리로. 상태(마디 도는 중)는 건드리지 않는다.</summary>
-        private IEnumerator SlideHome()
+        /// <summary>손자리로 날아가 앉고, 거기서 모습을 감춘다. 상태(마디 도는 중)는 건드리지 않는다.</summary>
+        private IEnumerator SlideToHand()
         {
+            var cam = Camera.main;
             Vector3 from = transform.position;
             Quaternion fromRot = transform.rotation;
             float t = 0f;
@@ -405,13 +428,35 @@ namespace IMUNROK.Common
             {
                 t += Time.deltaTime / Mathf.Max(0.01f, _liftSeconds);
                 float e = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
-                transform.position = Vector3.Lerp(from, _homePos, e);
+                Vector3 to = cam != null ? cam.transform.TransformPoint(HandLocal()) : _homePos;
+                transform.position = Vector3.Lerp(from, to, e);
                 transform.rotation = Quaternion.Slerp(fromRot, _homeRot, e);
                 yield return null;
             }
-            transform.position = _homePos;
+            Show(false);                       // 손에 든 모델이 이어받는다
+            transform.position = _homePos;     // 안 보이는 동안 제집으로
             transform.rotation = _homeRot;
             _sliding = null;
+        }
+
+        /// <summary>
+        /// 물건이 날아가 앉을 손자리. <b>공통 자세</b>(HeldRig)를 먼저 본다 —
+        /// 손에 든 모델이 서는 그 자리라야 하나가 이어지는 것으로 보인다.
+        /// 모르는 도구면 이 컴포넌트에 적어 둔 자리를 쓴다.
+        /// </summary>
+        private Vector3 HandLocal()
+        {
+            HeldRig.Pose p;
+            if (_tool != null && HeldRig.TryGet(_tool.id, out p))
+                return HudSide.LeftHanded ? new Vector3(-p.position.x, p.position.y, p.position.z) : p.position;
+            return _handLocal;
+        }
+
+        /// <summary>물건을 보이게/안 보이게. 자리는 건드리지 않는다.</summary>
+        private void Show(bool on)
+        {
+            if (_renderers == null) return;
+            foreach (var r in _renderers) if (r != null) r.enabled = on;
         }
 
         private void Finish()
@@ -477,7 +522,8 @@ namespace IMUNROK.Common
             if (!string.IsNullOrEmpty(_endWord))
                 SubtitleView.Show(nm, string.Format(_endWord, nm), "(눌러서 내려놓는다)");
 
-            GoHome(release: false);   // 글은 아직 눈앞에 붙박여 있어야 한다
+            // 여기서 GoHome 을 부르지 않는다 — 마지막 한 마디도 <b>손에 든 채로</b>
+            // 읽는 것이다. 내려놓는 것은 그 한 마디를 읽고 눌렀을 때다.
             StartCoroutine(HeftThenPutDown());
         }
 
@@ -525,6 +571,12 @@ namespace IMUNROK.Common
             SubtitleView.SetPinned(false);
             SubtitleView.SetReadingDistance(1.3f, -0.28f);
 
+            // 감춰 두었던 물건을 도로 보이게 한다 — 손에서 놓았으니 문갑 위에 다시 있어야 맞다.
+            Show(true);
+            if (_sliding != null) { StopCoroutine(_sliding); _sliding = null; }
+            transform.position = _homePos;
+            transform.rotation = _homeRot;
+
             // 그만두려고 자막을 닫은 사람에게 다시 자막을 띄우지는 않는다.
             if (speak)
             {
@@ -533,6 +585,7 @@ namespace IMUNROK.Common
                 StartCoroutine(DismissOnClick());
             }
 
+            if (_phase == Phase.익히는중) GoHome();   // 손에 든 채로 끝났다면 마디도 접는다
             if (_busy == this && _phase == Phase.놓임) _busy = null;
         }
 
@@ -686,6 +739,8 @@ namespace IMUNROK.Common
             // 방금 막아 둔 내려놓기를 도로 열었다 — 쥐여 준 종이에 내려놓기 표가
             // 다시 붙던 것이 이것이다. 기다리는 중이면 손대지 않는다.
             if (!_awaiting) DocumentView.SetCanPutDown(true);
+            Show(true);                                     // 감춰 둔 것이 있으면 도로 보이게
+            if (_sliding != null) { StopCoroutine(_sliding); _sliding = null; }
             if (_moving != null) StopCoroutine(_moving);
             _moving = StartCoroutine(HomeRoutine());
         }

@@ -44,13 +44,15 @@ namespace IMUNROK.Common.EditorTools
         private const string FieldName = "조사청_들판";
         private const string FogRoot = "조사청_안개";
 
-        // <b>왜 코리올리스가 아니라 이것인가</b>: 처음에 건 CoriolisNight4k 는 달빛에
-        // 갈라진 밤하늘이라 곱기는 한데 <b>어디서 본 하늘</b>이다 — 창밖을 내다본 느낌이
-        // 나지 신비롭지가 않았다. CosmicCoolCloud 는 별이 박힌 쪽빛 성운이라, 올려다보면
-        // 하늘인지 <b>깊은 물속인지</b> 잠깐 헷갈린다. 조사청이 세상 끝 안개에 둘러싸인
-        // 방이라는 것과 그 헷갈림이 맞물린다. 바다를 그린 것(UnderTheSea4k)은 쓰지 않는다 —
-        // 진짜 물이면 헷갈릴 것이 없고, 그저 물에 잠긴 집이 된다.
-        private const string SkySrc = "Assets/SkySeries Freebie/CosmicCoolCloud_Eq.mat";
+        // <b>성운은 너무 멀리 갔다</b>. 신비롭게 하려고 CosmicCoolCloud 를 걸었더니
+        // 별이 박힌 쪽빛 구름이 곱기는 한데 <b>딴 별에 온 집</b>이 되었다 —
+        // 조선의 밤이 아니라 우주가 되어 버렸다. 신비로움은 <b>여기 아닌 곳</b>이
+        // 아니라 <b>여기인데 낯선 것</b>에서 온다.
+        //
+        // 그래서 달빛에 구름이 갈라진 밤(CoriolisNight)으로 돌아오되, 처음처럼
+        // 어둡게 두지 않는다. 노출을 올려 구름의 결이 보이게 하고 빛깔을 푸른 쪽으로
+        // 더 기울인다 — 달이 밝은 밤은 원래 낮보다 <b>더</b> 낯설다.
+        private const string SkySrc = "Assets/SkySeries Freebie/CoriolisNight4k.mat";
         private const string SkyMat = "Assets/_Project/Art/Materials/M_하늘_조사청밤.mat";
         private const string FogShader = "이문록/안개벽";
         private const string MatDir = "Assets/_Project/Art/Materials";
@@ -79,14 +81,17 @@ namespace IMUNROK.Common.EditorTools
         // 고리에 닿기 전에 땅이 먼저 안개가 된다.
         // 잿빛이던 것을 <b>쪽빛</b>으로 내렸다. 하늘을 성운으로 갈아 끼우고도 안개가
         // 옛 잿빛이면, 밤은 푸른데 땅 끝만 허옇게 떠서 둘이 딴 세상이 된다.
-        private static readonly Color FogColor = new Color(0.20f, 0.28f, 0.40f);
+        private static readonly Color FogColor = new Color(0.30f, 0.37f, 0.48f);
         private const float FogStart = 9f;
         private const float FogEnd = 30f;
 
         // ── 하늘 손질 ──
-        private static readonly Color SkyTint = new Color(0.72f, 0.80f, 0.95f);
-        private const float SkyExposure = 1.30f;
-        private const float SkyRotation = 240f;
+        // 달빛보다 조금 더 푸르게. 밝히되 허옇게는 안 되게 — 붉은 쪽을 눌러 두면
+        // 노출을 올려도 낮처럼 보이지 않는다.
+        private static readonly Color SkyTint = new Color(0.60f, 0.72f, 0.95f);
+        private const float SkyExposure = 1.50f;
+        // 구름이 갈라진 자리가 남쪽 마당 위로 오게. 문을 열고 나서면 정면이 트여 있어야 한다.
+        private const float SkyRotation = 205f;
 
         /// <summary>
         /// <b>하늘과 안개 빛깔만</b> 다시 잡는다 — 땅도 고리도 경계도 건드리지 않는다.
@@ -106,7 +111,7 @@ namespace IMUNROK.Common.EditorTools
             var log = new StringBuilder();
             Sky(log);
             DistanceFog(log);
-            foreach (var pair in new[] { new[] { "안개_안", "0.30,0.42,0.55" }, new[] { "안개_밖", "0.17,0.26,0.40" } })
+            foreach (var pair in new[] { new[] { "안개_안", "0.42,0.50,0.62" }, new[] { "안개_밖", "0.28,0.36,0.48" } })
             {
                 var m = AssetDatabase.LoadAssetAtPath<Material>(MatDir + "/M_" + pair[0] + ".mat");
                 if (m == null) { log.AppendLine("   ✘ " + pair[0] + " 재질 없음"); continue; }
@@ -260,11 +265,11 @@ namespace IMUNROK.Common.EditorTools
             // 그래도 <b>속이 비쳐서는 안 된다</b>. 0.62 로 두었더니 안개 너머의 지평선이
             // 그대로 읽혔다 — 가리라고 세운 것이 무늬가 되어 버린다.
             Shell(root.transform, mesh, shader, "안개_안", InnerR, InnerH,
-                  new Color(0.30f, 0.42f, 0.55f), 1.0f, 1.6f, 0.030f, 0.38f);
+                  new Color(0.42f, 0.50f, 0.62f), 1.0f, 1.6f, 0.030f, 0.38f);
             // 바깥은 짙게 — 여기가 세상의 끝이다. 너머가 비쳐 보이면 안 된다.
             // 결(무늬)도 약하게 준다. 짙은 벽에 결이 세면 안개가 아니라 커튼이 된다.
             Shell(root.transform, mesh, shader, "안개_밖", OuterR, OuterH,
-                  new Color(0.17f, 0.26f, 0.40f), 1.0f, 1.25f, 0.018f, 0.30f);
+                  new Color(0.28f, 0.36f, 0.48f), 1.0f, 1.25f, 0.018f, 0.30f);
 
             log.AppendLine("   안개 고리 두 겹: 반지름 " + InnerR + "m(옅게) · " + OuterR + "m(짙게)");
         }
