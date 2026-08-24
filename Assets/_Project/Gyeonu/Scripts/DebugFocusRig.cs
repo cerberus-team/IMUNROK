@@ -25,6 +25,7 @@ namespace IMUNROK.Gyeonu
         Quaternion fromRot, toRot, savedRot;
         float t;       // 보간 진행 0~1
         float dim;     // 현재 비네트 강도
+        float savedFov, toFov;   // 화각 확대 (FocusInteractable.FocusFov)
         Renderer vignetteQuad;   // 카메라 앞 쿼드 — OnGUI가 아니라 3D 렌더 (VR·캡처에서도 보인다)
         MaterialPropertyBlock vignetteMpb;
         // ⚠️ static 캐시 금지 (2026-08-14 실측): 도메인 리로드가 꺼진 프로젝트에서 static 참조가
@@ -55,6 +56,9 @@ namespace IMUNROK.Gyeonu
             fromPos = savedPos; fromRot = savedRot;
             t = 0f;
             phase = Phase.Enter;
+            var camIn = GetComponent<Camera>();
+            savedFov = camIn != null ? camIn.fieldOfView : 60f;
+            toFov = target.FocusFov > 0.1f ? target.FocusFov : savedFov;
             EnsureVignette();
             target.OnFocusChanged(true);
         }
@@ -80,6 +84,10 @@ namespace IMUNROK.Gyeonu
                 float s = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
                 transform.SetPositionAndRotation(Vector3.LerpUnclamped(fromPos, toPos, s),
                     Quaternion.SlerpUnclamped(fromRot, toRot, s));
+                var camL = GetComponent<Camera>();
+                if (camL != null && !Mathf.Approximately(savedFov, toFov))
+                    camL.fieldOfView = Mathf.Lerp(phase == Phase.Enter ? savedFov : toFov,
+                                                  phase == Phase.Enter ? toFov : savedFov, s);
                 dim = target.dimStrength * (phase == Phase.Enter ? s : 1f - s);
                 if (t >= 1f)
                 {
@@ -88,6 +96,8 @@ namespace IMUNROK.Gyeonu
                     {
                         if (walk != null) walk.enabled = true;
                         if (interactor != null) interactor.enabled = true;
+                        var camE = GetComponent<Camera>();
+                        if (camE != null && !Mathf.Approximately(savedFov, toFov)) camE.fieldOfView = savedFov;
                         target = null;
                         phase = Phase.Idle;
                         dim = 0f;
@@ -118,8 +128,14 @@ namespace IMUNROK.Gyeonu
             if (mouse.leftButton.isPressed)
             {
                 Vector2 d = mouse.delta.ReadValue();
-                if (d.sqrMagnitude > 0.0001f) target.HandleDrag(d);
+                if (d.sqrMagnitude > 0.0001f)
+                {
+                    var camD = GetComponent<Camera>();
+                    if (camD != null) target.HandleDrag(camD.ScreenPointToRay(mouse.position.ReadValue()), d);
+                    else target.HandleDrag(d);
+                }
             }
+            if (mouse.leftButton.wasReleasedThisFrame) target.HandleRelease();
             float sc = mouse.scroll.ReadValue().y;
             if (Mathf.Abs(sc) > 0.01f) target.HandleScroll(sc);
         }
@@ -153,7 +169,9 @@ namespace IMUNROK.Gyeonu
             go.transform.localPosition = new Vector3(0f, 0f, 0.4f);
             go.transform.localRotation = Quaternion.identity;
             var cam = GetComponent<Camera>();
-            float fov = cam != null ? cam.fieldOfView : 60f;
+            // ⚠️ 화각을 좁히는 대상(FocusFov)이면 **좁아진 화각**으로 크기를 잡아야 한다.
+            //    원래 화각으로 만들면 비네트가 화면 밖까지 커져 어두운 가장자리가 안 보인다.
+            float fov = toFov > 0.1f ? toFov : (cam != null ? cam.fieldOfView : 60f);
             float hgt = 2f * 0.4f * Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad) * 1.25f;   // 여유 25%
             float asp = cam != null ? cam.aspect : 1.78f;
             go.transform.localScale = new Vector3(hgt * asp, hgt, 1f);

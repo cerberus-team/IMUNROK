@@ -44,6 +44,11 @@ namespace IMUNROK.Gyeonu
         public const string F_촛대소지 = "lantern_held";
         /// <summary>혼상에 불을 넣었다 (점등 시퀀스를 시작한 시점).</summary>
         public const string F_혼상점등 = "honsang_lit";
+        /// <summary>집무실 문갑 상판의 쌍학월도 렌즈 퍼즐을 풀었다 — 이때 문갑 잠금이 풀린다 (2026-08-24).</summary>
+        public const string F_렌즈퍼즐 = "lens_puzzle_solved";
+        /// <summary>문갑 서랍에서 수령의 비밀 열쇠를 꺼냈다 — 비밀문이 이 플래그를 본다.
+        /// 소지품 쪽에서 <see cref="InventoryItem.worldFlag"/>로 세운다.</summary>
+        public const string F_수령열쇠 = "suryeong_key_held";
         /// <summary>집무실 비밀문의 잠금이 풀렸다.</summary>
         public const string F_비밀문_해제 = "secret_door_unlocked";
         /// <summary>집무실 병풍을 치워 뒀다.</summary>

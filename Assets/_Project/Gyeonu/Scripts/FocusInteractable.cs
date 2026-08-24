@@ -58,6 +58,25 @@ namespace IMUNROK.Gyeonu
         /// <summary>포커스 중 드래그 입력 (픽셀 단위 델타). 대상별 조작은 여기서.</summary>
         public abstract void HandleDrag(Vector2 delta);
 
+        /// <summary>
+        /// 드래그 입력 + **그 프레임의 포인터 레이** (2026-08-24, 렌즈 퍼즐).
+        /// 돌려 보는 대상은 델타만 있으면 되지만, **무언가를 끌어다 놓는 대상**은
+        /// 지금 어디를 가리키고 있는지를 알아야 한다(델타를 적분하면 어긋남이 쌓인다).
+        /// 기본 구현은 델타판으로 넘긴다 — 혼상·혼천의·암문은 무수정.
+        /// VR 리그로 갈아끼울 때는 컨트롤러 포인터 레이를 그대로 넘기면 된다.
+        /// </summary>
+        public virtual void HandleDrag(Ray ray, Vector2 delta) => HandleDrag(delta);
+
+        /// <summary>드래그를 놓았다 (버튼 뗌). 놓는 순간의 연출·소리가 있는 대상만 구현한다.</summary>
+        public virtual void HandleRelease() { }
+
+        /// <summary>
+        /// 포커스 중 쓸 카메라 화각(도). 0이면 그대로 둔다.
+        /// 20cm짜리 음각판처럼 **작은 것을 화면 가득 보아야 하는 대상**은 다가서는 대신
+        /// 화각을 좁힌다 — 코앞까지 다가가면 원근 왜곡이 심해 판이 사다리꼴로 늘어진다.
+        /// </summary>
+        public virtual float FocusFov => 0f;
+
         /// <summary>포커스 중 스크롤/보조 입력 (부호 = 방향). 부품 전환 등에 쓴다 — 기본 무시.</summary>
         public virtual void HandleScroll(float direction) { }
 

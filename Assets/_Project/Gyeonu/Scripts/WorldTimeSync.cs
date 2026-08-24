@@ -40,6 +40,15 @@ namespace IMUNROK.Gyeonu
         [Tooltip("켜면 이 씬의 저장된 시간대를 '기준'으로 삼아 세계 상태에 올려보낸다 (성하리 마을 전용)")]
         public bool isReference = false;
 
+        [Header("단독 Play 기본값")]
+        [Tooltip("씬을 혼자 열고 Play했을 때(=아직 아무도 세계 시간대를 정하지 않았을 때)만 " +
+                 "아래 값으로 세계를 시드한다. 마을에서 넘어온 경우에는 그 시간대를 그대로 따른다.\n" +
+                 "기준 씬(isReference)과 달리 '세계의 기준'을 자처하지 않는다 — 검증 편의용 기본값일 뿐이다.")]
+        public bool seedIfUnseeded = false;
+        [Tooltip("단독 Play 기본 시간대")]
+        public bool seedNight = true;
+        public bool seedRain = false;
+
         [Header("날씨 고정 (견우마을)")]
         [Tooltip("켜면 비가 와도 이 씬만은 항상 맑음. 낮/밤은 그대로 따라간다.\n" +
                  "세계가 낮_비 → 이 씬 낮_맑음 / 밤_비 → 밤_맑음")]
@@ -84,6 +93,14 @@ namespace IMUNROK.Gyeonu
                 GyeonuWorld.Night = sceneNight;
                 GyeonuWorld.Rain = sceneRain;
                 GyeonuWorld.TimeSeeded = true;
+            }
+            else if (seedIfUnseeded && !GyeonuWorld.TimeSeeded)
+            {
+                // 단독 Play — 아무도 정해 주지 않았으니 이 씬의 기본값으로 시작한다.
+                // ⚠️ TimeSeeded는 세우지 않는다. 나중에 진짜 기준 씬(마을)이 열리면
+                //    그쪽이 세계를 정하도록 자리를 비워 둔다.
+                GyeonuWorld.Night = seedNight;
+                GyeonuWorld.Rain = seedRain;
             }
 
             GyeonuWorld.Changed += Apply;

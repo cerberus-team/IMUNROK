@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 194906f6a2bfdf04ea57ad6baefede6d, type: 3}
+  m_Name: "Item_SURYEONG_KEY_\uC218\uB839\uC758\uBE44\uBC00\uC5F4\uC1E0"
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.InventoryItem
+  itemId: SURYEONG_KEY
+  displayName: "\uC218\uB839\uC758 \uBE44\uBC00 \uC5F4\uC1E0"
+  pickupVerb: "\uAEBC\uB0B4\uAE30"
+  description: "\uBB38\uAC11 \uC11C\uB78D \uBC14\uB2E5\uC5D0 \uC624\uB798 \uB20C\uB824
+    \uC788\uB358 \uC790\uAD6D\uC774 \uB0A8\uC740 \uC5F4\uC1E0\uB2E4.\n\n\uC190\uC7A1\uC774\uC5D0\uB294
+    \uD559 \uB450 \uB9C8\uB9AC\uAC00 \uB2EC\uC744 \uC0AC\uC774\uC5D0 \uB450\uACE0
+    \uB9C8\uC8FC \uC120 \uBB34\uB2AC\uAC00 \uC0C8\uACA8\uC838 \uC788\uB2E4. \uC0C1\uD310\uC5D0
+    \uC0C8\uACA8\uC9C4 \uADF8\uB9BC\uACFC \uAC19\uC740 \uC190\uC774\uB2E4.\n\n\uB0A0\uC740
+    \uAC70\uC758 \uB2F3\uC9C0 \uC54A\uC558\uB2E4. \uC790\uC8FC \uC4F0\uB294 \uC5F4\uC1E0\uAC00
+    \uC544\uB2C8\uB77C, \uD55C \uACF3\uB9CC \uC5EC\uB294 \uC5F4\uC1E0\uB2E4."
+  modelPrefab: {fileID: 4838147942679528967, guid: 71e726696ee2c6f4690f3e0b969af60a, type: 3}
+  previewEuler: {x: -78, y: 0, z: 10}
+  previewZoom: 1.05
+  usable: 0
+  useLabel: "\uC0AC\uC6A9\uD558\uAE30"
+  useNotReadyHint: "\uC544\uC9C1 \uC5EC\uAE30\uC11C \uC4F8 \uC218 \uC5C6\uB2E4."
+  autoShowOnPickup: 1
+  journalKey: suryeong_key
+  journalText: "\uC218\uB839\uC758 \uBB38\uAC11 \uC11C\uB78D\uC5D0\uC11C \uB098\uC628
+    \uC5F4\uC1E0. \uD559\uACFC \uB2EC \uBB34\uB2AC\uAC00 \uC0C8\uACA8\uC838 \uC788\uB2E4."
+  worldFlag: suryeong_key_held

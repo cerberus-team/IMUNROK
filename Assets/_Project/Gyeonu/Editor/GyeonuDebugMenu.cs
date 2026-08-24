@@ -229,6 +229,39 @@ namespace IMUNROK.Gyeonu.Editor
             Debug.Log("[디버그] 소지품 비움");
         }
 
+        // ── 집무실 쌍학월도 렌즈 퍼즐 (2026-08-24) ────────
+
+        [MenuItem(Root + "집무실 ① 렌즈 퍼즐 풀린 것으로 (문갑 열림)", priority = 416)]
+        static void SolveLensPuzzle()
+        {
+            GyeonuWorld.Set(GyeonuWorld.F_렌즈퍼즐);
+            foreach (var f in Object.FindObjectsByType<FurnitureParts>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (f.unlockFlag == GyeonuWorld.F_렌즈퍼즐) f.SetOpen(true);
+            Debug.Log("[디버그] 렌즈 퍼즐 통과 — 문갑이 열렸다. 서랍 속 열쇠를 꺼낼 수 있다");
+        }
+
+        [MenuItem(Root + "집무실 ② 수령의 열쇠까지 손에 넣은 것으로", priority = 417)]
+        static void GrantSuryeongKey()
+        {
+            SolveLensPuzzle();
+            var it = Inventory.Find("SURYEONG_KEY");
+            if (it == null) { Debug.LogWarning("[디버그] Resources/GyeonuItems 에 SURYEONG_KEY 가 없다"); return; }
+            Inventory.Add(it);
+            Debug.Log("[디버그] 수령의 비밀 열쇠 획득 — 병풍 뒤 비밀문을 클릭하면 열린다");
+        }
+
+        [MenuItem(Root + "집무실 렌즈 퍼즐 되돌리기", priority = 418)]
+        static void ResetLensPuzzle()
+        {
+            GyeonuWorld.Set(GyeonuWorld.F_렌즈퍼즐, false);
+            GyeonuWorld.Set(GyeonuWorld.F_수령열쇠, false);
+            GyeonuWorld.Set(GyeonuWorld.F_비밀문_해제, false);
+            GyeonuWorld.Set(GyeonuWorld.F_비밀문_열림, false);
+            var it = Inventory.Find("SURYEONG_KEY");
+            if (it != null) Inventory.Remove(it);
+            Debug.Log("[디버그] 렌즈 퍼즐·열쇠 해제 — Play를 다시 시작해야 구슬이 서안으로 돌아간다");
+        }
+
         // ── 별 길 안내 ────────────────────────────────────
 
         [MenuItem(Root + "별 길 켜기/끄기 (비밀지도)", priority = 440)]

@@ -23,6 +23,14 @@ namespace IMUNROK.Gyeonu
         [TextArea]
         public string firstOpenMessage = "문 너머로 아래로 내려가는 계단이 보인다.";
 
+        [Header("열쇠 (2026-08-24 — 비우면 예전 그대로 '늘 잠김')")]
+        [Tooltip("이 GyeonuWorld 플래그를 지니고 있으면 클릭 한 번에 풀리고 그대로 열린다. " +
+                 "소지품 쪽은 InventoryItem.worldFlag로 이 플래그를 세운다 — " +
+                 "문은 소지품 시스템을 몰라도 된다")]
+        public string keyFlag = "";
+        [TextArea]
+        public string keyUnlockMessage = "열쇠가 자물쇠에 꼭 맞는다. 빗장이 풀리고, 문 너머로 아래로 내려가는 계단이 보인다.";
+
         [Header("경첩")]
         public Vector3 pivotInParent;
         public float openAngle = 95f;
@@ -71,20 +79,23 @@ namespace IMUNROK.Gyeonu
 
         public override void Interact(GameObject actor)
         {
+            bool byKey = false;
             if (locked)
             {
-                DebugToast.ShowPinned(lockedMessage);
-                return;
+                // 열쇠를 지녔으면 그 자리에서 풀고 **그대로 연다** — 잠금을 푸는 클릭과 여는 클릭을
+                // 따로 요구하면 "열쇠가 맞았다"는 순간이 두 번으로 쪼개져 김이 샌다.
+                if (!string.IsNullOrEmpty(keyFlag) && GyeonuWorld.Has(keyFlag)) { Unlock(); byKey = true; }
+                else { DebugToast.ShowPinned(lockedMessage); return; }
             }
 
             open = !open;
             GyeonuWorld.Set(openKey, open);
 
-            if (open && !announced)
+            if (open && (!announced || byKey))
             {
                 announced = true;
                 GyeonuWorld.Set(announcedKey);
-                DebugToast.ShowPinned(firstOpenMessage);
+                DebugToast.ShowPinned(byKey ? keyUnlockMessage : firstOpenMessage);
             }
         }
 

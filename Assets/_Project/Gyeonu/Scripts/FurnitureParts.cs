@@ -36,30 +36,79 @@ namespace IMUNROK.Gyeonu
         [Tooltip("여닫는 시간(초)")]
         public float duration = 0.9f;
 
+        [Header("잠금 (비우면 잠기지 않는다 — 기존 가구는 무영향)")]
+        [Tooltip("이 GyeonuWorld 플래그가 서야 열린다. 비우면 늘 열린다")]
+        public string unlockFlag = "";
+        [Tooltip("잠겨 있을 때 뜨는 안내")]
+        [TextArea] public string lockedMessage = "잠겨 있다.";
+
         public bool IsOpen => open;
+
+        /// <summary>지금 잠겨 있는가 — 플래그가 없으면 늘 열린다.</summary>
+        public bool Locked => !string.IsNullOrEmpty(unlockFlag) && !GyeonuWorld.Has(unlockFlag);
 
         float t;          // 0=닫힘, 1=열림
         bool open;
 
-        public override string Prompt => open ? "닫기" : "열기";
+        public override string Prompt => Locked ? "살펴보기" : (open ? "닫기" : "열기");
 
-        void Awake()
+        void Awake() => CaptureClosed();
+
+        /// <summary>
+        /// 닫힌 자세 원장을 잡는다 (씬은 닫힌 상태로 저장된다).
+        ///
+        /// ⚠️ **Awake 한 번으로는 못 믿는다** (2026-08-24 Play 실측).
+        ///    <see cref="Part"/> 는 중첩 [Serializable] 클래스이고 closedPos/closedRot은
+        ///    NonSerialized라, 에디터가 컴포넌트를 다시 역직렬화하면 Awake가 채운 값이
+        ///    **0으로 되돌아간다.** 그 상태로 열면 문짝이 원점 기준으로 회전해 가구 밖으로 날아간다
+        ///    (문갑 서랍이 0.33m 튀어나오고 열쇠가 허공에 떴다).
+        ///    w까지 0인 사원수는 실제 회전일 수 없으므로 그것을 "안 잡힘" 표시로 삼고,
+        ///    **닫혀 있을 때만** 다시 잡는다 — 여닫는 도중에 잡으면 중간 자세가 닫힌 자세가 된다.
+        /// </summary>
+        void CaptureClosed()
         {
             foreach (var p in parts)
             {
                 if (p.node == null) continue;
-                p.closedPos = p.node.localPosition;   // 씬은 닫힌 상태로 저장됨
+                p.closedPos = p.node.localPosition;
                 p.closedRot = p.node.localRotation;
             }
         }
 
+        static bool Uncaptured(Part p)
+        {
+            var q = p.closedRot;
+            return q.x == 0f && q.y == 0f && q.z == 0f && q.w == 0f;
+        }
+
+        void EnsureCaptured()
+        {
+            if (open || t > 0f) return;          // 닫혀 있을 때만
+            foreach (var p in parts)
+                if (p.node != null && Uncaptured(p))
+                {
+                    p.closedPos = p.node.localPosition;
+                    p.closedRot = p.node.localRotation;
+                }
+        }
+
         public override void Interact(GameObject actor)
         {
+            if (Locked) { DebugToast.ShowPinned(lockedMessage); return; }
+            EnsureCaptured();
             open = !open;
+        }
+
+        /// <summary>퍼즐·연출 쪽에서 부르는 진입점 — 잠금을 묻지 않고 그대로 여닫는다.</summary>
+        public void SetOpen(bool value)
+        {
+            EnsureCaptured();
+            open = value;
         }
 
         void Update()
         {
+            EnsureCaptured();
             float target = open ? 1f : 0f;
             if (Mathf.Approximately(t, target)) return;
             t = Mathf.MoveTowards(t, target, Time.deltaTime / Mathf.Max(0.05f, duration));
