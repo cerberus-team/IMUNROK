@@ -290,7 +290,8 @@ namespace IMUNROK.Gyeonu
             if (showUse)
             {
                 useSpot.interactable = true;
-                useLabel.text = item.useLabel;
+                // 문구도 ItemUse에 물어본다 — 하는 일이 상황에 따라 달라지는 물건이 있다
+                useLabel.text = ItemUse.LabelFor(item);
                 useLabel.color = InventorySkin.Hanji;
                 useFrame.color = InventorySkin.Vermilion;
                 useSpot.idleColor = useFrame.color;
@@ -437,10 +438,12 @@ namespace IMUNROK.Gyeonu
                     if (!Back()) CloseRequested?.Invoke();
                     break;
                 case InventoryHotspot.Kind.사용:
-                    // ⚠️ 아직 동작이 없다 — 지도 등이 붙을 자리. 여기 한 줄만 바꾸면 연결된다.
-                    if (Viewing != null)
-                        DebugToast.Show(string.IsNullOrEmpty(Viewing.useNotReadyHint)
-                            ? "아직 여기서 쓸 수 없다." : Viewing.useNotReadyHint, 2.5f);
+                    // 무엇을 할지는 판이 알 바가 아니다 — ItemUse가 물건 id로 갈라 보낸다.
+                    // 맡은 데가 없으면(아직 동작이 안 붙은 물건) 그 물건의 안내 문구만 띄운다.
+                    if (Viewing == null) break;
+                    if (ItemUse.Try(Viewing, () => CloseRequested?.Invoke())) break;
+                    DebugToast.Show(string.IsNullOrEmpty(Viewing.useNotReadyHint)
+                        ? "아직 여기서 쓸 수 없다." : Viewing.useNotReadyHint, 2.5f);
                     break;
             }
         }

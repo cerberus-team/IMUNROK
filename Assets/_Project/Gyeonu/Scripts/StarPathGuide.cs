@@ -43,7 +43,12 @@ namespace IMUNROK.Gyeonu
         [Tooltip("플레이어가 이만큼 움직이면 경로를 다시 계산한다(m)")]
         public float rebuildDistance = 1.5f;
 
-        [Header("디버그 (지도 아이템 생기기 전까지)")]
+        [Header("디버그")]
+        // 2026-08-23 — **정식 경로가 생겼다.** 이제 소지품에서 타공 비밀지도를 「펼쳐보기」하면
+        // 켜지고 「접기」하면 꺼진다 (SecretMapUse). 선행 조건은 관측실에서 길을 밝혔을 것.
+        // 이 키는 지도 없이 길만 확인할 때 쓰는 **디버그 수단으로만** 남겨 둔다.
+        // 조건을 안 보므로 실제 진행 상태를 확인할 때는 이것 말고 지도로 켜 볼 것.
+        [Tooltip("디버그 전용 즉시 토글 — 조건을 보지 않는다. Key.None으로 두면 꺼진다")]
         public Key debugKey = Key.M;
         public bool showOnStart = false;
 

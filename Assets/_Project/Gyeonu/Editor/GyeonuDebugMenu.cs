@@ -93,6 +93,37 @@ namespace IMUNROK.Gyeonu.Editor
             Debug.Log("[디버그] 암문 자물쇠 되잠금 — 다시 풀어야 한다");
         }
 
+        // 관측실 사슬: 혼천의 성공 → 혼상 회전 → 촛대 → 점등. 한 칸씩 건너뛸 수 있게 나눠 뒀다.
+        [MenuItem(Root + "관측실 ① 혼천의 퍼즐 풀린 것으로", priority = 413)]
+        static void SolveHoncheonui()
+        {
+            GyeonuWorld.Set(GyeonuWorld.F_혼천의메모);
+            GyeonuWorld.Set(GyeonuWorld.F_혼천의퍼즐);
+            foreach (var p in Object.FindObjectsByType<HoncheonuiPuzzle>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (p.rings != null) p.rings.Locked = true;
+            Debug.Log("[디버그] 혼천의 통과 — 이제 **혼상을 돌릴 수** 있다 (촛대는 아직 잠겨 있다)");
+        }
+
+        [MenuItem(Root + "관측실 ② 혼상 회전까지 끝난 것으로", priority = 414)]
+        static void TurnHonsang()
+        {
+            SolveHoncheonui();
+            GyeonuWorld.Set(GyeonuWorld.F_혼상회전);
+            IMUNROK.Gyeonu.LanternPickup.PickupAllowed = true;
+            Debug.Log("[디버그] 혼상 회전 통과 — 작업실 촛대를 집을 수 있다");
+        }
+
+        [MenuItem(Root + "관측실 사슬 되돌리기 (혼천의·혼상·촛대)", priority = 415)]
+        static void ResetObservatoryChain()
+        {
+            GyeonuWorld.Set(GyeonuWorld.F_혼천의퍼즐, false);
+            GyeonuWorld.Set(GyeonuWorld.F_혼상회전, false);
+            GyeonuWorld.Set(GyeonuWorld.F_촛대소지, false);
+            GyeonuWorld.Set(GyeonuWorld.F_혼상점등, false);
+            IMUNROK.Gyeonu.LanternPickup.PickupAllowed = false;
+            Debug.Log("[디버그] 관측실 사슬 해제 — Play를 다시 시작해야 고리·촛대가 처음으로 돌아간다");
+        }
+
         [MenuItem(Root + "관아 개구멍 이야기 들음", priority = 408)]
         static void GrantGapHoleStory()
         {
@@ -151,6 +182,35 @@ namespace IMUNROK.Gyeonu.Editor
                 return;
             }
             if (Inventory.Add(item)) Debug.Log("[디버그] 소지품에 넣음: " + item.displayName + " (Play 중 I 키로 열어 볼 것)");
+            else Debug.Log("[디버그] 이미 지니고 있다: " + item.displayName);
+        }
+
+        // 견우 대화가 아직 없다 — 원래는 견우에게서 "받기"로 얻는 물건이다 (2026-08-23).
+        [MenuItem(Root + "소지품 — 비밀지도 받기 (A1)", priority = 429)]
+        static void GrantSecretMap()
+        {
+            var item = UnityEditor.AssetDatabase.LoadAssetAtPath<InventoryItem>(
+                "Assets/_Project/Gyeonu/Resources/GyeonuItems/Item_A1_타공비밀지도.asset");
+            if (item == null)
+            {
+                Debug.LogWarning("[디버그] 비밀지도가 아직 없다 — Tools ▸ 이문록 ▸ 소지품 ▸ 비밀지도 만들기 먼저");
+                return;
+            }
+            if (Inventory.Add(item)) Debug.Log("[디버그] 소지품에 넣음: " + item.displayName + " (Play 중 I 키)");
+            else Debug.Log("[디버그] 이미 지니고 있다: " + item.displayName);
+        }
+
+        [MenuItem(Root + "소지품 — 선아의 관측 수기 살피기 (혼천의 메모)", priority = 428)]
+        static void GrantHoncheonMemo()
+        {
+            var item = UnityEditor.AssetDatabase.LoadAssetAtPath<InventoryItem>(
+                "Assets/_Project/Gyeonu/Resources/GyeonuItems/Item_HONCHEON_MEMO_선아의관측수기.asset");
+            if (item == null)
+            {
+                Debug.LogWarning("[디버그] 관측 수기가 아직 없다 — Tools ▸ 이문록 ▸ 소지품 ▸ 혼천의 퍼즐 준비 먼저");
+                return;
+            }
+            if (Inventory.Add(item)) Debug.Log("[디버그] 소지품에 넣음: " + item.displayName + " (혼천의 퍼즐이 열린다)");
             else Debug.Log("[디버그] 이미 지니고 있다: " + item.displayName);
         }
 

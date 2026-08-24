@@ -27,6 +27,23 @@ namespace IMUNROK.Gyeonu
         public const string F_비밀지도획득 = "secret_map_obtained";
         /// <summary>관측실에서 타공 지도로 길을 밝혔다.</summary>
         public const string F_타공지도_길밝힘 = "map_path_lit";
+        /// <summary>선아의 관측 수기를 손에 넣었다 — 혼천의 고리를 어떻게 맞추는지 알게 된다.
+        /// 이것이 없으면 혼천의를 조사해도 퍼즐이 시작되지 않는다 (2026-08-23).</summary>
+        public const string F_혼천의메모 = "honcheonui_memo";
+        /// <summary>혼천의 여섯 고리를 여덟 방위에 맞췄다 — 이때부터 **혼상을 돌릴 수** 있다.
+        /// 한 번 서면 다시 풀 필요가 없다.</summary>
+        public const string F_혼천의퍼즐 = "honcheonui_solved";
+
+        // ── 관측실 진행 사슬 (2026-08-23) ─────────────────
+        //   혼천의 성공 → 혼상 회전 → 촛대 소지 → 점등
+        //   한 단계씩만 열린다. 앞 단계를 건너뛰면 다음 단계는 조준해도 반응이 없다.
+
+        /// <summary>혼상을 충분히 돌려 어디에 불을 넣어야 하는지 알아냈다 — 이때 촛대 잠금이 풀린다.</summary>
+        public const string F_혼상회전 = "honsang_turned";
+        /// <summary>작업실 촛대를 손에 들고 있다. 씬을 나갔다 와도 손에 남기려고 둔다.</summary>
+        public const string F_촛대소지 = "lantern_held";
+        /// <summary>혼상에 불을 넣었다 (점등 시퀀스를 시작한 시점).</summary>
+        public const string F_혼상점등 = "honsang_lit";
         /// <summary>집무실 비밀문의 잠금이 풀렸다.</summary>
         public const string F_비밀문_해제 = "secret_door_unlocked";
         /// <summary>집무실 병풍을 치워 뒀다.</summary>

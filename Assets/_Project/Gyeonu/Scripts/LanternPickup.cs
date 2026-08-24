@@ -19,8 +19,19 @@ namespace IMUNROK.Gyeonu
         /// <summary>지금 손에 들려 있는 것 (없으면 null).</summary>
         public static LanternPickup Held { get; private set; }
 
-        /// <summary>혼상 안내가 뜨기 전까지 집기를 막는 게이트 — HonsangFocusOrb가 연다.</summary>
+        /// <summary>
+        /// 집기를 막는 게이트. **혼상을 충분히 돌려 촛대 자리를 알아냈을 때** 열린다
+        /// (<see cref="HonsangFocusOrb"/> → <see cref="GyeonuWorld.F_혼상회전"/>).
+        ///
+        /// ⚠️ 2026-08-23 한때 혼천의 퍼즐(F_혼천의퍼즐)이 바로 열게 해 뒀는데, 그러면
+        ///    **혼상을 돌리는 단계가 통째로 사라진다.** 같은 날 한 칸 뒤로 물렸다.
+        /// </summary>
         public static bool PickupAllowed;
+
+        /// <summary>지금 집을 수 있는 상태인가 — 혼상을 다 돌렸거나, 이번 세션에 이미 열렸거나.</summary>
+        static bool Gate => PickupAllowed
+                         || GyeonuWorld.Has(GyeonuWorld.F_혼상회전)
+                         || GyeonuWorld.DebugIgnoreConditions;
 
         static LanternPickup consumed;   // 혼상에 넣어 사라진 것 — 소등 시 복귀
 
@@ -39,7 +50,7 @@ namespace IMUNROK.Gyeonu
         public override string Prompt => "집어 들기";
 
         public override bool CanInteract(GameObject actor) =>
-            PickupAllowed && Held == null && consumed != this;
+            Gate && Held == null && consumed != this;
 
         void Awake()
         {
@@ -52,11 +63,34 @@ namespace IMUNROK.Gyeonu
         public override void Interact(GameObject actor)
         {
             if (Held != null) return;
+            TakeInto(actor.transform);
+            GyeonuWorld.Set(GyeonuWorld.F_촛대소지);
+        }
+
+        /// <summary>손에 든 자세로 붙인다 (집을 때·씬을 다시 들어와 되살릴 때 공용).</summary>
+        void TakeInto(Transform hand)
+        {
             Held = this;
             if (aimCollider != null) aimCollider.enabled = false;
-            transform.SetParent(actor.transform, false);   // actor = 워커 카메라
+            transform.SetParent(hand, false);              // hand = 워커 카메라
             transform.localPosition = heldLocalPos;
             transform.localRotation = Quaternion.Euler(0f, 12f, 0f);
+        }
+
+        /// <summary>
+        /// 씬을 나갔다 들어왔을 때 **손에 들고 있던 상태를 되살린다.**
+        /// static <see cref="Held"/> 는 세션을 넘겨 살아남지만 가리키던 오브젝트는 씬과 함께
+        /// 파괴되므로(가짜 null), 플래그가 없으면 촛대가 탁자로 되돌아가 다시 집히게 된다.
+        /// Awake가 아니라 Start인 까닭 — 그때라야 워커가 씬에 서 있다.
+        /// </summary>
+        void Start()
+        {
+            if (Held != null || consumed == this) return;
+            if (!GyeonuWorld.Has(GyeonuWorld.F_촛대소지)) return;
+            var walk = FindFirstObjectByType<DebugWalkController>(FindObjectsInactive.Exclude);
+            if (walk == null || walk.eye == null) return;
+            TakeInto(walk.eye);
+            Debug.Log("[촛대] 들고 있던 상태로 되살림");
         }
 
         /// <summary>혼상에 불을 넣어 소모됨 — 숨겼다가 소등 때 되살린다.</summary>
@@ -64,6 +98,7 @@ namespace IMUNROK.Gyeonu
         {
             if (Held == this) Held = null;
             consumed = this;
+            GyeonuWorld.Set(GyeonuWorld.F_촛대소지, false);   // 더는 손에 없다
             gameObject.SetActive(false);
         }
 
