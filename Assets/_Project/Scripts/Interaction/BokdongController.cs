@@ -97,6 +97,11 @@ namespace IMUNROK.Common
         [Header("사랑방에 앉기")]
         [Tooltip("이 상태를 '거꾸로' 돌려 앉는 동작으로 쓴다(일어서기 애니 역재생). 마름과 같은 수")]
         [SerializeField] private string _sitDownReverseState = "Stand_Up3";
+
+        [Tooltip("위 동작이 <b>앉는 동작 그대로</b>인가. 켜면 앞으로 긁고, 끄면 거꾸로 긁는다 — " +
+                 "앉는 클립이 없던 시절에는 일어서기를 거꾸로 돌려 앉혔다. " +
+                 "진짜 앉는 클립(Sit_Down)이 있으면 켠다")]
+        [SerializeField] private bool _sitPlaysForward = false;
         [Tooltip("앉을 자리(보료 위). 비우면 선 자리에서 그대로 앉는다")]
         [SerializeField] private Transform _sitSpot;
 
@@ -109,6 +114,13 @@ namespace IMUNROK.Common
         [SerializeField] private float _sitYOffset = 0f;
         [Tooltip("앉는 속도 배수. 일어서기 클립이 6초라 그대로 거꾸로 돌리면 느릿하다")]
         [SerializeField] private float _sitSpeed = 1.4f;
+        [Tooltip("<b>일어서는</b> 속도 배수. 앉기와 따로 둔다 — 0 이하면 앉는 속도를 그대로 쓴다.\n\n" +
+                 "여태 둘이 한 값이었다. 그런데 앉는 것과 일어서는 것은 같은 짓의 앞뒤가 아니다: " +
+                 "앉을 때는 무게를 <b>버티며 내려놓고</b>, 일어설 때는 <b>밀어 올린다</b>. " +
+                 "한 클립을 거꾸로 돌려 쓰는 마당에 속도까지 같으면, 앉는 것이 " +
+                 "'일어서기를 되감은 것'으로 보인다 — 어색하다던 것이 이것이다. " +
+                 "앉기를 조금 느리게, 일어서기를 조금 빠르게 두면 같은 클립으로도 두 짓이 갈린다")]
+        [SerializeField] private float _standSpeed = 0f;
         [Tooltip("다 앉은 뒤에 틀 '앉아 있기' 클립. 비우면 앉은 자세로 굳는다. " +
                  "앉는 클립의 마지막 자세와 이 클립의 첫 자세가 같아야 어깨가 튀지 않는다")]
         [SerializeField] private string _sitIdleState = "";
@@ -140,6 +152,32 @@ namespace IMUNROK.Common
         [Tooltip("나갈 때 문 여는 동작. 비워 두면 손동작 없이 그냥 지나간다 — " +
                  "제대로 된 동작이 나오기 전까지는 어설픈 시늉을 넣는 것보다 없는 편이 낫다")]
         [SerializeField] private string _leaveOpenState = "";
+
+        [Tooltip("나가면서 <b>문을 닫는</b> 동작. 비우면 여는 동작을 그대로 쓴다. " +
+                 "한 손으로 미는 동작이 따로 있으면 그것을 넣는다(Door_CloseRight)")]
+        [SerializeField] private string _leaveCloseState = "";
+
+        [Tooltip("<b>한 손으로 미는가</b>. 켜면 문짝 <b>한 짝만</b> 열고 닫는다 — " +
+                 "손이 하나면 문짝도 하나다. 두 손으로 미는 동작(Door_OpenBoth)을 쓸 때만 끈다")]
+        [SerializeField] private bool _pushOneLeaf = true;
+
+        [Tooltip("어느 짝을 미는가. -1 이면 선 자리에서 가장 가까운 짝")]
+        [SerializeField] private int _pushLeafIndex = -1;
+
+        [Header("나가며 남기는 말")]
+        [Tooltip("누가 하는 말인지. 비우면 이름 없이 뜬다")]
+        [SerializeField] private string _leaveSpeaker = "옹덕구";
+        [TextArea(2, 3)]
+        [Tooltip("문을 닫기 직전에 한 마디. <b>이제부터 조용히 해야 한다</b>는 것을 " +
+                 "규칙으로 이르지 않고 사람의 말로 알린다 — 손대지 말라는 말은 곧 " +
+                 "손댈 것이 있다는 말이기도 하다. *별표*로 감싼 낱말은 도드라진다")]
+        [SerializeField] private string _leaveLine = "그럼 편히 쉬시오. …아, 방 안 물건은 *손대지 마시구려*. 오래된 것들이라.";
+
+        [Tooltip("문 앞에 서면 <b>문짝 한가운데를 마주 보게</b> 몸을 돌린다. " +
+                 "표식에 적어 둔 각도보다 이쪽이 맞다 — 표식은 손으로 놓은 것이라 문과 " +
+                 "몇 십 도씩 어긋나 있곤 했다(나갈 문에서 35° 어긋나 있었다). " +
+                 "끄면 표식에 적힌 각도를 그대로 쓴다")]
+        [SerializeField] private bool _faceDoorOnArrive = true;
         [Tooltip("문 앞에 서고 → 문에 손대기까지 뜸")]
         [SerializeField] private float _leaveOpenDelay = 0.4f;
         [Tooltip("문을 넘어가 설 자리(툇마루 쪽). 비우면 문간에서 사라진다")]
@@ -475,6 +513,7 @@ namespace IMUNROK.Common
                 if (_animator != null) _animator.speed = 0f;
                 _sitTimer -= Time.deltaTime;
                 float k = Mathf.Clamp01(_sitTimer / _sitLen);
+                if (_sitPlaysForward) k = 1f - k;      // 앉는 클립이면 앞으로 긁는다
                 if (_animator != null) { _animator.Play(_sitDownReverseState, 0, k); _animator.Update(0f); }
                 if (_sitTimer <= 0f)
                 {
@@ -515,6 +554,7 @@ namespace IMUNROK.Common
                 else if (_leaveDoorSpot == null || MoveTo(_leaveDoorSpot.position, _leaveDoorSpot.rotation))
                 {
                     if (_leaveDoorSpot != null) transform.rotation = _leaveDoorSpot.rotation;
+                    FaceDoor(_leaveDoor);
                     HoldStand();
                     if (_leaveDoor != null) Delay(_leaveOpenDelay, DoLeaveOpen);
                     else DoLeaveThrough();
@@ -559,8 +599,8 @@ namespace IMUNROK.Common
             // 문을 닫는 동작. 손이 닿는 대목에서 문짝이 닫힌다.
             if (_phase == Phase.ClosingExit)
             {
-                TickDoor(_leaveOpenState, _leaveDoor, true);
-                if (StateDone(_leaveOpenState)) DoLeaveAway();
+                TickDoor(LeaveCloseState, _leaveDoor, true);
+                if (StateDone(LeaveCloseState)) DoLeaveAway();
                 return;
             }
 
@@ -635,6 +675,7 @@ namespace IMUNROK.Common
             else if (_arriveSpot == null || MoveTo(_arriveSpot.position, _arriveSpot.rotation))
             {
                 if (_arriveSpot != null) transform.rotation = _arriveSpot.rotation;
+                FaceDoor(_door);
                 if (_door != null)
                 {
                     // 걷다가 문 앞에 서서 뜸 들이지 않는다. 복동에게는 서 있는 클립이 없어서
@@ -695,9 +736,10 @@ namespace IMUNROK.Common
 
             _phase = Phase.StandingUp;
             if (_animator == null || string.IsNullOrEmpty(_standUpState)) { DoLeaveWalk(); return; }
-            _animator.speed = Mathf.Max(0.1f, _sitSpeed);
+            float rise = _standSpeed > 0f ? _standSpeed : _sitSpeed;
+            _animator.speed = Mathf.Max(0.1f, rise);
             CrossTo(_standUpState);
-            _animator.speed = Mathf.Max(0.1f, _sitSpeed);   // CrossTo 가 1로 되돌려 놓는다
+            _animator.speed = Mathf.Max(0.1f, rise);        // CrossTo 가 1로 되돌려 놓는다
         }
 
         private void DoLeaveWalk()
@@ -745,7 +787,13 @@ namespace IMUNROK.Common
         {
             // 돌아볼 곳을 따로 안 줘도 된다 — 나가면서 연 그 문이 곧 볼 곳이다.
             // 그 문은 실내 씬에 살아서 인스펙터로는 못 잇고 SarangbangBinder 가 물려 준다.
-            if (_leaveFaceDoorSpot == null && _leaveDoor != null) _leaveFaceDoorSpot = _leaveDoor.transform;
+            //
+            // 다만 <b>문의 트랜스폼 자리를 바라보면 안 된다</b>. 그 자리는 경첩이고,
+            // 경첩은 문설주 밑동에 있다 — 쪽문을 재 보니 트랜스폼은 (4.60, -0.80, -12.63)
+            // 인데 문짝 한가운데는 (4.60, 0.03, -12.18) 로 <b>0.95m 떨어져</b> 있었다.
+            // 그래서 甲은 문을 안 보고 문설주 밑동을 마주 보고 섰다. 바라볼 것은 <b>문짝</b>이다.
+            if (_leaveFaceDoorSpot == null && _leaveDoor != null)
+                _leaveFaceDoorSpot = DoorFacePoint(_leaveDoor);
             if (_leaveFaceDoorSpot == null) { DoCloseGesture(); return; }
             HoldStand();
             _phase = Phase.TurningToClose;
@@ -754,10 +802,53 @@ namespace IMUNROK.Common
         /// <summary>문에 손을 뻗어 닫는다. 문짝은 손이 닿는 대목에서 움직인다.</summary>
         private void DoCloseGesture()
         {
+            // 문을 닫기 직전에 한 마디 남긴다. 이 말 뒤로 방은 손님 혼자다.
+            if (!string.IsNullOrEmpty(_leaveLine)) SubtitleView.Show(_leaveSpeaker, _leaveLine, "");
             _doorFired = false;
-            if (_animator == null || string.IsNullOrEmpty(_leaveOpenState)) { DoLeaveClose(); return; }
-            CrossTo(_leaveOpenState);
+            if (_animator == null || string.IsNullOrEmpty(LeaveCloseState)) { DoLeaveClose(); return; }
+            CrossTo(LeaveCloseState);
             _phase = Phase.ClosingExit;
+        }
+
+        /// <summary>
+        /// <b>문짝을 마주 보게 몸을 돌린다.</b>
+        ///
+        /// 문 앞 표식에 적어 둔 각도를 그대로 쓰면 어긋난다 — 표식은 사람이 손으로 놓은
+        /// 것이라, 자리는 맞아도 <b>바라보는 쪽</b>이 몇 십 도씩 틀어져 있다. 실제로
+        /// 나갈 문 앞 표식(甲_나갈문앞)은 서쪽 270°를 보고 있었는데 문짝 한가운데는
+        /// 305° 쪽이라 <b>35°</b> 어긋나 있었다. 그 각으로 미는 동작을 틀면 손이 문이
+        /// 아니라 문설주를 민다.
+        ///
+        /// 자리는 표식이 정하고 <b>방향은 문이 정한다</b>. 닫을 때 이미 그렇게 하고
+        /// 있었으니(TurningToClose), 열 때도 같은 규칙을 쓴다.
+        /// </summary>
+        private void FaceDoor(DoorController door)
+        {
+            if (!_faceDoorOnArrive || door == null) return;
+            var look = DoorFacePoint(door);
+            if (look == null) return;
+            Vector3 flat = look.position - transform.position; flat.y = 0f;
+            if (flat.sqrMagnitude < 0.0004f) return;
+            transform.rotation = Quaternion.LookRotation(flat.normalized, Vector3.up);
+        }
+
+        /// <summary>
+        /// 문을 마주 볼 때 <b>바라볼 자리</b>. 경첩이 아니라 문짝 한가운데다.
+        ///
+        /// 표식을 하나 만들어 문에 매달아 둔다 — 문이 열리고 닫히며 움직여도 그 자리를
+        /// 따라간다. 매번 겉을 다시 재면 문이 도는 동안 바라볼 곳이 흔들린다.
+        /// </summary>
+        private static Transform DoorFacePoint(DoorController door)
+        {
+            if (door == null) return null;
+            var had = door.transform.Find("_바라볼자리");
+            if (had != null) return had;
+
+            if (!ModelBounds.TryGet(door.transform, out var b)) return door.transform;
+            var go = new GameObject("_바라볼자리");
+            go.transform.SetParent(door.transform, true);
+            go.transform.position = b.center;
+            return go.transform;
         }
 
         /// <summary>닫는 동작이 없을 때의 갈래 — 그냥 닫고 물러간다.</summary>
@@ -828,9 +919,20 @@ namespace IMUNROK.Common
             var st = _animator.GetCurrentAnimatorStateInfo(0);
             if (!st.IsName(state)) return;
             if (st.normalizedTime < _doorMovesAt) return;
-            if (close) door.Close(); else door.Open();
+
+            // <b>손이 하나면 문짝도 하나다.</b> 한 손으로 미는 동작을 틀어 놓고 두 짝이
+            // 함께 열리면, 손은 왼짝에 있는데 오른짝이 저 혼자 열린다.
+            if (_pushOneLeaf)
+            {
+                int leaf = _pushLeafIndex >= 0 ? _pushLeafIndex : door.NearestLeaf(transform.position);
+                if (close) door.CloseOnly(leaf); else door.OpenOnly(leaf);
+            }
+            else { if (close) door.Close(); else door.Open(); }
             _doorFired = true;
         }
+
+        /// <summary>닫는 동작 이름. 따로 없으면 여는 동작을 그대로 쓴다.</summary>
+        private string LeaveCloseState => string.IsNullOrEmpty(_leaveCloseState) ? _leaveOpenState : _leaveCloseState;
 
         private bool StateDone(string state)
         {

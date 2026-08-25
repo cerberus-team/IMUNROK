@@ -74,10 +74,13 @@ namespace IMUNROK.Onggojip
             if (_phase != Phase.Revealed) return false;   // G는 출도 후에만
             switch (c.key)
             {
-                case "G01": case "G02": case "G04": return Has("J09"); // 필적 차이가 있어야 문서고에서 뭘 찾을지 앎
-                case "G05": return Has("J09");                          // 아내 추궁
+                // 번호를 씬에 맞춰 고쳤다. 옛 번호(J09=필적, J15=별급문기)는 다른 뜻이 되었고,
+                // J15 는 아예 아무도 주지 않는 번호였다 — G06 이 영영 안 열렸다.
+                case "G01": case "G02": case "G04": return Has("J06"); // 필적이 바뀐 것을 알아야 문서고에서 뭘 찾을지 안다
+                case "G05": return Has("J06");                          // 아내 추궁
                 case "G03": return Has("G05");                          // 아내 증언 → 입안 대장
-                case "G06": return Has("J15");                          // 속량 문서 → 하인 추궁
+                case "G06": return Has("J11");                          // 별급문기 → 하인 추궁(속량)
+                case "G07": return Has("G01");                          // 대장을 봐야 유척으로 견줄 수가 있다
                 default: return true;
             }
         }
