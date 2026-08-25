@@ -281,6 +281,12 @@ namespace IMUNROK.Common.EditorTools
         /// 바깥이 비친다.
         ///
         /// 문 위를 가로지르는 인방(引枋) 하나를 얹는 셈이라 생김새로도 맞다.
+        ///
+        /// <b>다만 문서고에는 이미 인방이 있다</b>(문서고/판문/인방, 3.06~3.31).
+        /// 벽이 3.05 에서 끊기니 그 사이 <b>1cm</b> 가 여태 하늘이었다. 그래서 이 널은
+        /// 그 인방을 없애는 것이 아니라 <b>속에 끼워</b> 1cm 만 덮는 것이다.
+        /// 두께를 인방보다 <b>얇게</b>(0.12 &lt; 0.16) 잡는 까닭이 여기 있다 — 앞뒤 면이
+        /// 겹치면 둘이 서로 어른거린다. 재질도 인방 것을 가져다 쓴다.
         /// </summary>
         private static void SeogoBand(Scene scene, System.Text.StringBuilder log)
         {
@@ -295,7 +301,11 @@ namespace IMUNROK.Common.EditorTools
                 log.AppendLine("  · 문서고 문 위에 인방을 얹었다 — 3.05 에서 끊겨 하늘이 비쳤다");
             }
             // 앞면은 z=-5.30, 벽이 3.05 에서 끊기고 지붕 밑동이 3.30 이다. 넉넉히 겹친다.
-            Band(go, new Vector3(-2.0f, 3.20f, -5.30f), new Vector3(12.10f, 0.34f, 0.16f));
+            // 두께는 이미 선 인방(0.16)보다 얇게 — 앞뒤 면이 겹치면 어른거린다.
+            Band(go, new Vector3(-2.0f, 3.20f, -5.30f), new Vector3(12.10f, 0.34f, 0.12f));
+            var beam = Beam(scene);
+            var gomr = go.GetComponent<MeshRenderer>();
+            if (beam != null && gomr != null) gomr.sharedMaterial = beam;
 
             // <b>옆·뒤도 같은 병이다.</b> 벽은 3.30 에서 반듯하게 끊기는데 지붕은
             // 처마에서 용마루로 <b>비스듬히</b> 올라간다. 그래서 벽 윗선과 지붕 밑동
@@ -306,6 +316,14 @@ namespace IMUNROK.Common.EditorTools
             Skirt(scene, "문서고_윗벽_서", new Vector3(-8.00f, 3.60f, -8.30f), new Vector3(0.22f, 0.72f, 6.10f), plaster, log);
             Skirt(scene, "문서고_윗벽_동", new Vector3( 4.00f, 3.60f, -8.30f), new Vector3(0.22f, 0.72f, 6.10f), plaster, log);
             Skirt(scene, "문서고_윗벽_뒤", new Vector3(-2.00f, 3.60f, -11.30f), new Vector3(12.10f, 0.72f, 0.22f), plaster, log);
+        }
+
+        /// <summary>이미 선 인방의 재질. 새로 얹는 널을 나무빛에 맞춘다.</summary>
+        private static Material Beam(Scene scene)
+        {
+            foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (r.name == "인방" && r.gameObject.scene == scene) return r.sharedMaterial;
+            return null;
         }
 
         /// <summary>벽 위에 덧대는 널 하나. 손 닿을 데가 아니라 콜라이더는 안 붙인다.</summary>
@@ -332,7 +350,7 @@ namespace IMUNROK.Common.EditorTools
             go.transform.rotation = Quaternion.identity;
             go.transform.localScale = size;
             var mr = go.GetComponent<MeshRenderer>();
-            var wood = AssetDatabase.LoadAssetAtPath<Material>(StoneMat);
+            var wood = AssetDatabase.LoadAssetAtPath<Material>(WallMat);
             if (mr != null && mr.sharedMaterial == null && wood != null) mr.sharedMaterial = wood;
             var col = go.GetComponent<Collider>();
             if (col != null) Object.DestroyImmediate(col);   // 손 닿을 데가 아니다 — 값만 든다
