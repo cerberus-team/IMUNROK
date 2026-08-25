@@ -131,6 +131,24 @@ namespace IMUNROK.Common
             return true;
         }
 
+        /// <summary>
+        /// 이름으로 골라 든다. 벨트에 없으면 아무 일도 없고 거짓을 돌려준다.
+        ///
+        /// 등경에서 등불을 <b>도로 집을 때</b> 쓴다. 칸 번호는 도구를 받은 차례에 따라
+        /// 달라지므로 밖에서 셀 수 있는 값이 아니다 — 이름으로 물어야 한다.
+        /// </summary>
+        public bool SelectTool(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return false;
+            for (int i = 0; i < _tools.Count; i++)
+            {
+                if (_tools[i] == null || _tools[i].id != id) continue;
+                Select(i + 1);          // 0 은 맨손이라 한 칸 민다
+                return true;
+            }
+            return false;
+        }
+
         /// <summary>슬롯을 직접 고른다(0 = 맨손). 범위를 벗어나면 순환한다.</summary>
         public void Select(int slot)
         {
