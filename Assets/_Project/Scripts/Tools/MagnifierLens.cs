@@ -60,6 +60,11 @@ namespace IMUNROK.Common
         [Tooltip("눈에 댔을 때 시선 한가운데에서 이만큼 아래로 비껴 둔다(m)")]
         [Range(-0.1f, 0.15f)] [SerializeField] private float _eyeDrop = 0.03f;
 
+        [Tooltip("눈에 댔을 때 돋보기가 이만큼 커진다. 1이면 평소 크기 그대로. " +
+                 "<b>들여다보라고 든 것이니 들여다볼 만해야 한다</b> — 눈에 댄 돋보기가 " +
+                 "엄지손톱만 하면 알 안을 볼 수가 없다")]
+        [Range(1f, 2.5f)] [SerializeField] private float _eyeScale = 1.5f;
+
         [Tooltip("눈에 댈 때 맞춰 둔 기울기를 이만큼 바로 세운다. 0이면 그 각도 그대로 들여다본다")]
         // 0 이면 문갑에 놓였던 기울기 그대로 눈앞에 온다 — 유리가 비스듬히 서서
         // 들여다보는 자세가 안 나오고, 각도가 이상하다는 말이 그것이었다.
@@ -112,9 +117,33 @@ namespace IMUNROK.Common
         // 0.82 는 <b>넘쳤다</b>. 테를 재는 셈이 술과 목까지 걸려 실제보다 크게 잡히는
         // 일이 있어서, 그 위에 0.82 를 곱해도 알이 테 밖으로 비어져 나왔다 —
         // 동그라미 너머까지 유리가 있는 것처럼 보이던 것이 이것이다. 넉넉히 줄인다.
-        [Range(0.4f, 1f)] [SerializeField] private float _glassInset = 0.62f;
+        // 0.62 는 <b>모자랐다</b>. 넘치는 것을 고치려다 반대로 갔다 — 알이 테 지름의
+        // 62% 라 동그라미 안이 휑하니 비고, 테와 그림 사이에 빈 띠가 돌았다.
+        // 재는 셈(테 정점까지 거리의 9할)이 이미 술·목을 걸러 내므로, 여기서는 유리가
+        // 테에 닿을 만큼만 살짝 줄인다.
+        [Range(0.4f, 1.1f)] [SerializeField] private float _glassInset = 0.94f;
         [Tooltip("소품의 앞뒤가 뒤집혀 보이면 켠다(유리 법선이 반대인 모델)")]
         [SerializeField] private bool _flipProp = false;
+
+        [Header("손으로 맞추기 — 잰 값이 어긋날 때")]
+        // 소품을 <b>재서</b> 유리 자리를 잡는 것이 여기 원칙이다. 모델을 바꿔도 따라오니
+        // 대개는 맞는다. 그런데 테에 술이 달렸거나 알이 두 겹이거나 자루가 굽은 소품에서는
+        // 재는 셈이 몇 mm 씩 어긋나고, 그때마다 재는 규칙을 고치면 다른 소품이 어긋난다.
+        // 그래서 <b>잰 값 위에 손으로 더하는 자리</b>를 따로 둔다 — 규칙은 그대로 두고
+        // 이 소품만 밀어 맞춘다. 0이면 잰 그대로다.
+        [Tooltip("잰 유리 자리에서 이만큼 옮긴다(소품 기준 로컬, m). " +
+                 "알이 테 한가운데서 밀려 보일 때 1mm(0.001)씩 준다")]
+        [SerializeField] private Vector3 _glassNudge = Vector3.zero;
+
+        [Tooltip("잰 유리 크기에 이만큼 곱한다. 알이 테보다 크면 1보다 작게, 안쪽이 비면 크게")]
+        [Range(0.3f, 2f)] [SerializeField] private float _glassScaleTweak = 1f;
+
+        [Tooltip("끄면 소품을 <b>재지 않는다</b> — 위의 '유리 반지름'과 아래 자리를 그대로 쓴다. " +
+                 "재는 셈이 이 소품에서만 자꾸 어긋날 때, 한 번 손으로 맞춰 두고 잠근다")]
+        [SerializeField] private bool _measureProp = true;
+
+        [Tooltip("재지 않을 때 쓸 유리 한가운데(소품 뿌리 기준 로컬 좌표)")]
+        [SerializeField] private Vector3 _glassCenterManual = Vector3.zero;
 
         [Header("소품 동작")]
         [Tooltip("소품에 붙은 동작 이름. 눈에 대는 정도에 맞춰 이 클립을 <b>긁어</b> 돌린다 — " +
@@ -168,10 +197,18 @@ namespace IMUNROK.Common
         private Transform _holder;       // 소품을 매단 자리(HeldToolModel). 여기 자세가 곧 드는 자세다
         private Vector3 _holderRestPos;  // 씬에서 맞춰 둔 자리
         private Quaternion _holderRestRot;
+        private Vector3 _holderRestScale = Vector3.one;
+
+        /// <summary>원판을 소품의 알보다 눈 쪽으로 이만큼(m) 당겨 놓는다. 겹치면 소품 알이 이겨 가린다.</summary>
+        private const float GlassPush = 0.025f;
+        private float _glassRadiusBase = -1f;   // 잰 그대로의 유리 반지름(키우기 전)
         private bool _raiseLatch;
         private Vector3 _propGlassLocal; // 그 소품에서 유리 한가운데
         private Vector3 _propNormalLocal;
         private Vector3 _propHandleLocal;
+
+        /// <summary>테의 <b>두께 절반</b>(소품 메시 기준). 유리를 얼마나 앞으로 빼야 하는지 여기서 나온다.</summary>
+        private float _propHalfThick;
         private Transform _focus;
         private Canvas[] _canvases = new Canvas[0];
         private float _canvasAge;
@@ -237,7 +274,7 @@ namespace IMUNROK.Common
             glassGo.transform.localScale = Vector3.one * _glassRadius;
             // 소품의 유리 알보다 눈 쪽으로 조금 — 같은 자리에 겹치면 소품의 알이 이겨서
             // 렌즈 그림이 시커멓게 가려진다
-            if (_propRoot != null) glassGo.transform.localPosition = new Vector3(0f, 0f, -0.025f);
+            if (_propRoot != null) glassGo.transform.localPosition = new Vector3(0f, 0f, -GlassPush);
 
             _rt = new RenderTexture(_texSize, _texSize, 24, RenderTextureFormat.DefaultHDR);
             _rt.name = "돋보기_렌즈그림";
@@ -286,10 +323,19 @@ namespace IMUNROK.Common
 
                 _lensCam.farClipPlane = main.farClipPlane;
             }
+            // <b>눈이 보는 방식 그대로 찍는다.</b>
+            //
+            // 여태 렌즈 카메라는 맨 Camera 하나였다. URP 에서 후처리를 태우려면
+            // UniversalAdditionalCameraData 가 있어야 하는데 그것이 없으니, 이 카메라만
+            // <b>노출·톤매핑을 안 거친 날것</b>을 찍었다. 밤 씬은 후처리로 밝히는 씬이라
+            // 날것은 거의 검다 — 눈으로 보는 방은 훤한데 <b>알 안만 캄캄하던</b> 것이
+            // 이것이었다. 간간이가 아니라 어두운 데서는 늘 그랬다.
+            CopyCameraLook(main, _lensCam);
+
             _lensCam.aspect = 1f;
             _lensCam.targetTexture = _rt;
-            _lensCam.depth = -10f;         // 눈보다 먼저 찍어야 이번 프레임 그림이 유리에 오른다
-            _lensCam.enabled = false;   // 손으로 찍는다(찍기 직전에 떠 있는 창을 치우려고)
+            _lensCam.depth = -10f;      // 눈보다 먼저 찍어야 이번 프레임 그림이 유리에 오른다
+            _lensCam.enabled = false;   // 손에 들 때만 켠다(SetShown). 켜 두면 URP 가 알아서 그린다
         }
 
         /// <summary>
@@ -369,6 +415,7 @@ namespace IMUNROK.Common
             {
                 _holderRestPos = _holder.localPosition;
                 _holderRestRot = _holder.localRotation;
+                _holderRestScale = _holder.localScale;
             }
 
             var mesh = MeshOf(_prop);
@@ -522,12 +569,16 @@ namespace IMUNROK.Common
             _propGlassLocal = center;
             _propNormalLocal = normal;
             _propHandleLocal = handle;
-            _glassRadius = rim * Mathf.Abs(_prop.lossyScale[lng]) * _glassInset;
+            _propHalfThick = b.size[flat] * 0.5f;
+            // 손으로 잠가 둔 경우에는 <b>잰 값으로 덮지 않는다</b> — 인스펙터에 적어 둔
+            // 반지름과 자리가 그대로 산다.
+            if (_measureProp) _glassRadius = rim * Mathf.Abs(_prop.lossyScale[lng]) * _glassInset;
 
             PaintPropOnTop();
 
-            Debug.Log("[돋보기] 소품 " + _prop.name + " 의 유리를 쟀다 — 반지름 " +
-                      _glassRadius.ToString("F3") + "m, 한가운데 " + center.ToString("F4"), _prop);
+            Debug.Log("[돋보기] 소품 " + _prop.name + " 의 유리를 " + (_measureProp ? "쟀다" : "재지 않고 손값을 쓴다")
+                      + " — 반지름 " + _glassRadius.ToString("F3") + "m, 잰 한가운데 " + center.ToString("F4")
+                      + ", 실제로 쓰는 한가운데 " + GlassLocal.ToString("F4"), _prop);
         }
 
         /// <summary>
@@ -611,11 +662,18 @@ namespace IMUNROK.Common
                 Quaternion from0 = Quaternion.LookRotation(nrm0, _propHandleLocal);
                 Quaternion to0 = Quaternion.LookRotation(-_lens.forward, -_lens.up);
                 _propRoot.rotation = to0 * Quaternion.Inverse(from0);
-                _propRoot.position += _lens.position - _propRoot.TransformPoint(_propGlassLocal);
+                _propRoot.position += _lens.position - _propRoot.TransformPoint(GlassLocal);
                 return;
             }
 
             float t = Mathf.SmoothStep(0f, 1f, _raise);
+
+            // 0) 크기 — 눈에 댈수록 커진다. 유리 원판과 배율 셈에 쓰는 반지름도 같이 키워야
+            //    알 그림이 테 안에 그대로 앉는다(따로 놀면 그림이 테를 넘거나 안에서 논다).
+            if (_glassRadiusBase < 0f) _glassRadiusBase = _glassRadius;
+            float s = Mathf.Lerp(1f, Mathf.Max(1f, _eyeScale), t);
+            _holder.localScale = _holderRestScale * s;
+            _glassRadius = _glassRadiusBase * s;
 
             // 1) 기울기 — 맞춰 둔 그대로. 눈에 댈 때만 시킨 만큼 바로 세운다.
             _holder.localRotation = _holderRestRot;
@@ -625,7 +683,7 @@ namespace IMUNROK.Common
                 // 유리 면이 지금 향한 쪽과, 향해야 할 쪽(눈).
                 Vector3 nrm = _flipProp ? -_propNormalLocal : _propNormalLocal;
                 Vector3 facing = _propRoot.TransformDirection(nrm);
-                Vector3 toEye = _eye.position - _propRoot.TransformPoint(_propGlassLocal);
+                Vector3 toEye = _eye.position - _propRoot.TransformPoint(GlassLocal);
                 if (facing.sqrMagnitude > 1e-6f && toEye.sqrMagnitude > 1e-6f)
                 {
                     // <b>가장 짧은 길</b>로만 돌린다. 자세를 통째로 새로 지으면
@@ -639,7 +697,7 @@ namespace IMUNROK.Common
             }
 
             // 2) 자리 — 유리 한가운데를 옮긴다. 맞춰 둔 자리에서 지금 어디 있는지 먼저 잰다.
-            Vector3 rest = _eye.InverseTransformPoint(_propRoot.TransformPoint(_propGlassLocal));
+            Vector3 rest = _eye.InverseTransformPoint(_propRoot.TransformPoint(GlassLocal));
 
             float floor = (Camera.main != null ? Camera.main.nearClipPlane : 0.05f) + 0.06f;
             Vector3 ready = rest + new Vector3(0f, 0f, _readyPush);
@@ -652,10 +710,13 @@ namespace IMUNROK.Common
             _holder.position += _eye.TransformVector(want - rest);
 
             // 3) 렌즈 자리를 소품의 유리에 맞춘다. 원판은 늘 눈을 마주 보므로 자리만 맞으면 된다.
-            _lens.position = _propRoot.TransformPoint(_propGlassLocal);
+            _lens.position = _propRoot.TransformPoint(GlassLocal);
             Vector3 away = _lens.position - _eye.position;
             if (away.sqrMagnitude > 1e-6f) _lens.rotation = Quaternion.LookRotation(away, _eye.up);
         }
+
+        /// <summary>유리 한가운데(소품 기준). 잰 자리에 손으로 준 값을 더한 것.</summary>
+        private Vector3 GlassLocal => (_measureProp ? _propGlassLocal : _glassCenterManual) + _glassNudge;
 
         /// <summary>반지름 1의 원판. UV는 (-1,1) 을 (0,1) 로 편다.</summary>
         private static Mesh Disc(int seg)
@@ -664,6 +725,16 @@ namespace IMUNROK.Common
             var v = new Vector3[seg + 1];
             var uv = new Vector2[seg + 1];
             var tri = new int[seg * 3];
+            // <b>세로를 뒤집지 않는다.</b>
+            //
+            // 한동안 여기서 v 를 (0.5 - y/2) 로 뒤집어 붙였다. "찍어 둔 그림은 위아래가
+            // 뒤집혀 들어온다"고 여겼기 때문인데, <b>그것이 틀린 짐작이었다</b>.
+            // 카메라가 RenderTexture 에 그린 그림은 어느 기계에서든 UV (0,0) 이
+            // <b>왼쪽 아래</b>다 — 뒤집어 주는 일은 유니티가 이미 해 둔다.
+            // 그래서 여기서 한 번 더 뒤집으면 알 안에서만 세상이 물구나무를 섰다.
+            //
+            // 원판의 로컬 +Y 는 화면 위쪽이고(유리는 늘 눈을 마주 보게 돌려 둔다),
+            // 그 자리에 그림의 위쪽(uv.y = 1)이 와야 한다. 그러므로 그냥 편다.
             v[0] = Vector3.zero; uv[0] = new Vector2(0.5f, 0.5f);
             for (int i = 0; i < seg; i++)
             {
@@ -853,10 +924,55 @@ namespace IMUNROK.Common
                 zoom *= _pageZoomBoost;
 
             _lensCam.fieldOfView = Mathf.Clamp(2f * theta / Mathf.Max(1.01f, zoom), 0.5f, 120f);
-            _lensCam.nearClipPlane = dist + 0.06f;    // 제 유리·테·자루는 찍지 않는다
+
+            // <b>근평면을 유리 뒤로 밀지 않는다.</b>
+            //
+            // 여태 dist + 0.06 이었다. 제 유리·테·자루를 안 찍으려는 뜻이었는데, 그 값이
+            // 곧 <b>42cm 안쪽은 아무것도 안 찍힌다</b>는 말이 된다. 종이에 바짝 대는 순간
+            // 볼 것이 통째로 잘려 나가고, 남는 것은 배경색뿐이라 <b>알이 시커멓게</b> 된다 —
+            // 간간이 렌즈가 검어지던 것이 이것이다. 돋보기는 가까이 댈수록 잘 보여야 하는데
+            // 가까이 대면 안 보였다.
+            // 제 몸은 찍는 순간 <b>잠깐 감추면</b> 된다(Shoot). 창을 치우는 것과 같은 수법이다.
+            var mainCam = _eye != null ? _eye.GetComponent<Camera>() : null;
+            _lensCam.nearClipPlane = mainCam != null ? mainCam.nearClipPlane : 0.03f;
 
             // 유리는 늘 눈을 마주 본다(비스듬히 들어도 그림이 어긋나지 않게)
             _glass.transform.rotation = Quaternion.LookRotation(center - eye, _eye.up);
+
+            // <b>테가 유리를 뚫고 나오던 것</b> — 알 오른쪽이 검게 파여 보이던 까닭.
+            //
+            // 여태 원판을 소품의 알에서 <b>고정된 2.5cm</b>만 눈 쪽으로 당겨 두었다.
+            // 그런데 그 2.5cm 는 두 가지를 못 따라간다:
+            //   · 눈에 댈 때 소품이 1.5배로 <b>커진다</b> — 테도 같이 두꺼워진다.
+            //   · 돋보기는 늘 <b>비스듬히</b> 들린다 — 기울면 테의 한쪽이 그만큼 앞으로 나온다.
+            // 그래서 기울어 나온 쪽 테가 원판보다 눈에 가까워지고, 그 자리만 원판을
+            // 가려 <b>초승달 모양으로 검게</b> 파였다. 알이 반쯤 먹힌 것이 그것이다.
+            //
+            // 이제 그때그때 잰다. 테 두께 절반에, 기울어 나온 만큼(반지름 × sin)을 더하고,
+            // 손가락 한 마디쯤 여유를 둔다. 그러면 어떻게 기울여 들어도 안 먹힌다.
+            float push = GlassPush;
+            if (_propRoot != null)
+            {
+                Vector3 toEye = (eye - center).normalized;
+                Vector3 nrmW = _propRoot.TransformDirection(
+                    _flipProp ? -_propNormalLocal : _propNormalLocal).normalized;
+                float cosT = Mathf.Clamp(Mathf.Abs(Vector3.Dot(nrmW, toEye)), 0f, 1f);
+                float sinT = Mathf.Sqrt(Mathf.Max(0f, 1f - cosT * cosT));
+
+                int flatAx = Mathf.Abs(_propNormalLocal.x) > 0.5f ? 0
+                           : Mathf.Abs(_propNormalLocal.y) > 0.5f ? 1 : 2;
+                float halfW = _propHalfThick * Mathf.Abs(_propRoot.lossyScale[flatAx]);
+
+                push = halfW + _glassRadius * sinT + 0.012f;
+                _glass.transform.position = center + toEye * push;
+            }
+
+            // <b>당겨 놓은 만큼 줄인다.</b> 원판은 소품의 알보다 GlassPush 만큼 눈 쪽에
+            // 있다. 가까운 것은 커 보이므로, 반지름을 그대로 두면 알이 테를 넘어 비어져
+            // 나온다 — "동그라미 안에 안 맞는다"던 것의 나머지 절반이 이것이다.
+            // 눈에서 본 크기가 테와 같아지도록 (dist-push)/dist 를 곱한다.
+            float shrink = _propRoot != null ? Mathf.Max(0.05f, dist - push) / dist : 1f;
+            _glass.transform.localScale = Vector3.one * (_glassRadius * shrink * _glassScaleTweak);
         }
 
         /// <summary>
@@ -871,7 +987,48 @@ namespace IMUNROK.Common
         /// </summary>
         private void Shoot()
         {
-            if (_lensCam == null) return;
+            // <b>손으로 찍지 않는다.</b>
+            //
+            // 여태 여기서 _lensCam.Render() 를 불렀다. 그런데 URP 에서 그 부름은
+            // <b>URP 를 통째로 건너뛴다</b> — 옛 방식으로 한 장 그리고 마는 것이라
+            // 그림자도 후처리도 노출도 없다. 밤 씬은 후처리로 밝히는 씬이니 결과는
+            // 거의 검다. <b>알 안만 캄캄하던</b> 진짜 까닭이 이것이었다.
+            //
+            // 이제 렌즈 카메라를 <b>정상 렌더 흐름에 태운다</b>(enabled=true, depth 를
+            // 눈보다 앞에). 창을 치우고 제 몸을 감추는 일은 URP 가 이 카메라를 그리기
+            // 직전·직후에 끼워 넣는다(BeginLens/EndLens).
+            if (_lensCam != null) _lensCam.enabled = _held;
+        }
+
+        // ── 렌즈 카메라를 그리는 그 순간에만 끼어든다 ──
+        //
+        // 돋보기는 <b>물건</b>을 크게 보는 것이지 글자판을 크게 보는 것이 아니다. 그냥
+        // 찍으면 자막이며 수첩이며 눈앞에 떠 있는 창까지 함께 부풀어, 유리 안에 글자
+        // 몇 개가 산더미처럼 들어앉는다. 그래서 이 카메라를 그리는 동안만 창들을 꺼 둔다.
+        // 손에 쥔 <b>종이</b>만은 남긴다 — 그것이야말로 들여다보라고 든 것이다.
+        // 제 몸(유리·테·자루·술)도 함께 감춘다. 근평면으로 밀어내면 코앞의 것까지
+        // 잘려 나가지만, 이렇게 감추면 코앞도 찍힌다.
+
+        private readonly System.Collections.Generic.List<Canvas> _hiddenCanvases = new System.Collections.Generic.List<Canvas>();
+        private readonly System.Collections.Generic.List<Renderer> _hiddenRenderers = new System.Collections.Generic.List<Renderer>();
+
+        private void OnEnable()
+        {
+            UnityEngine.Rendering.RenderPipelineManager.beginCameraRendering += BeginLens;
+            UnityEngine.Rendering.RenderPipelineManager.endCameraRendering += EndLens;
+        }
+
+        private void OnDisable()
+        {
+            UnityEngine.Rendering.RenderPipelineManager.beginCameraRendering -= BeginLens;
+            UnityEngine.Rendering.RenderPipelineManager.endCameraRendering -= EndLens;
+            Restore();
+            if (_lensCam != null) _lensCam.enabled = false;
+        }
+
+        private void BeginLens(UnityEngine.Rendering.ScriptableRenderContext ctx, Camera cam)
+        {
+            if (cam != _lensCam || _lensCam == null) return;
 
             _canvasAge -= Time.deltaTime;
             if (_canvasAge <= 0f)
@@ -880,20 +1037,72 @@ namespace IMUNROK.Common
                 _canvasAge = 0.5f;
             }
 
-            var hidden = new System.Collections.Generic.List<Canvas>();
             foreach (var c in _canvases)
             {
                 if (c == null || !c.enabled) continue;
                 if (DocumentView.IsPageCanvas(c)) continue;   // 종이는 남긴다
                 c.enabled = false;
-                hidden.Add(c);
+                _hiddenCanvases.Add(c);
             }
             DocumentView.SetChromeVisible(false);
 
-            _lensCam.Render();
+            HideSelf(_holder != null ? _holder : _propRoot, _hiddenRenderers);
+            if (_glass != null && _glass.enabled) { _glass.enabled = false; _hiddenRenderers.Add(_glass); }
+        }
 
+        private void EndLens(UnityEngine.Rendering.ScriptableRenderContext ctx, Camera cam)
+        {
+            if (cam != _lensCam) return;
+            Restore();
+        }
+
+        private void Restore()
+        {
+            foreach (var r in _hiddenRenderers) if (r != null) r.enabled = true;
+            _hiddenRenderers.Clear();
+            if (_hiddenCanvases.Count == 0) return;
             DocumentView.SetChromeVisible(true);
-            foreach (var c in hidden) if (c != null) c.enabled = true;
+            foreach (var c in _hiddenCanvases) if (c != null) c.enabled = true;
+            _hiddenCanvases.Clear();
+        }
+
+        /// <summary>
+        /// 눈의 카메라가 그림을 만드는 방식을 렌즈 카메라에 그대로 옮긴다 —
+        /// 특히 <b>후처리</b>. 이것이 없으면 렌즈만 딴 세상처럼 어둡다.
+        /// </summary>
+        private static void CopyCameraLook(Camera from, Camera to)
+        {
+            if (from == null || to == null) return;
+            to.allowHDR = from.allowHDR;
+            to.allowMSAA = from.allowMSAA;
+
+            var src = from.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            var dst = to.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            if (dst == null) dst = to.gameObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            if (src == null) { dst.renderPostProcessing = true; return; }
+
+            dst.renderType = UnityEngine.Rendering.Universal.CameraRenderType.Base;
+            dst.renderPostProcessing = src.renderPostProcessing;
+            dst.volumeLayerMask = src.volumeLayerMask;
+            dst.volumeTrigger = src.volumeTrigger;
+            dst.requiresDepthOption = src.requiresDepthOption;
+            dst.requiresColorOption = src.requiresColorOption;
+            dst.renderShadows = src.renderShadows;
+
+            // 안티에일리어싱은 굳이 안 따라간다 — 알 하나 찍자고 비싸질 것 없다.
+            dst.antialiasing = UnityEngine.Rendering.Universal.AntialiasingMode.None;
+        }
+
+        /// <summary>찍는 한 순간만 돋보기 제 몸을 감춘다. 꺼 놓은 것을 돌려주어 도로 켠다.</summary>
+        private static void HideSelf(Transform root, System.Collections.Generic.List<Renderer> offed)
+        {
+            if (root == null) return;
+            foreach (var r in root.GetComponentsInChildren<Renderer>(false))
+            {
+                if (r == null || !r.enabled) continue;
+                r.enabled = false;
+                offed.Add(r);
+            }
         }
 
         /// <summary>렌즈 한가운데가 무엇을 짚고 있나. 오래 짚으면 읽은 것으로 친다.</summary>
