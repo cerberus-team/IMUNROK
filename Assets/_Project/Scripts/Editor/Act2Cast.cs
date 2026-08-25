@@ -1,0 +1,464 @@
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEditor.Animations;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+namespace IMUNROK.Common.EditorTools
+{
+    /// <summary>
+    /// <b>2막 사람들을 들인다.</b> 메뉴: [이문록 ▸ 관아 ▸ ⑱ 2막 사람 들이기]
+    ///
+    /// 새로 받은 다섯(서리·옹덕구·늙은하인·마름·복동)이 <b>다 같은 병</b>을 앓고 있다.
+    /// 아내 때와 한 글자도 다르지 않다:
+    ///
+    ///   · <b>아바타가 NoAvatar</b> — 애니메이터가 뼈를 못 찾아 아무 동작도 안 돈다.
+    ///   · 클립 이름에 <b>Armature| 이 붙어 있고</b> 도는 것이 하나도 없다.
+    ///   · 키가 <b>1.30 ~ 1.88</b> 로 제각각이다. 그대로 세우면 난쟁이와 거인이 나란히 선다.
+    ///   · 재질이 기본 <b>Lit</b> 이라 하얀 사람으로 뜬다.
+    ///
+    /// 손으로 고치면 사람마다 네 군데씩 스무 군데다. 한 번에 잰다.
+    ///
+    /// <b>키는 몸피로 재면 안 된다.</b> 바인드 자세는 팔이 벌어져 있어 참값이 아니고,
+    /// SkinnedMeshRenderer.bounds 는 갱신이 늦어 옛 값을 문다(아내 때 2.19 라고 나왔는데
+    /// 실제로는 1.76 이었다). <b>정수리 뼈와 발 뼈 사이</b>를 재야 한다.
+    ///
+    /// <b>서서 기다리나 앉아서 기다리나는 클립이 정한다.</b> 새로 받은 것 가운데
+    /// 옹덕구와 복동에는 선 자세(Idle)가 없고 {앉기·앉은 채·일어나기·걷기} 만 있다.
+    /// 그 넷은 <b>의자에 앉아 심문받는 사람</b>의 몸짓이다. 그래서 Idle 이 있는 사람은
+    /// 뜰에 서서 기다리고, 없는 사람은 뜰에 앉아서 기다린다 — 죄인이 뜰에 꿇려 앉아
+    /// 기다리는 것이 되레 옳으니 억지가 아니다. 나중에 Idle 을 뽑아 넣으면 이 도구가
+    /// 알아서 세운다.
+    ///
+    /// 마름·복동·서리는 아직 씬에 몸이 없다. <b>이미 선 사람을 통째로 베껴</b> 몸만
+    /// 갈아 끼운다 — 심문·부름·발붙임 같은 부품이 스무 칸씩 이어져 있어서, 새로 붙이면
+    /// 어느 한 칸을 빠뜨리기 십상이다.
+    ///
+    /// 두 번 눌러도 두 벌이 안 선다.
+    /// </summary>
+    public static class Act2Cast
+    {
+        private const string Art = "Assets/_Project/Onggojip/Art/Characters/";
+
+        /// <summary>뜰에서 기다리는 줄이 서는 x. 甲·乙 을 나란히 두어 <b>둘이 닮았음</b>을 눈으로 말한다.</summary>
+        private const float WaitX = 5.60f;
+
+        private class Who
+        {
+            public string 씬이름;      // 씬에 선 사람 오브젝트
+            public string fbx;         // Art 아래 상대 경로
+            public string 재질;        // Art 아래 상대 경로. 비면 그림으로 새로 만든다
+            public string 그림;        // 재질을 만들 때 쓸 텍스처
+            public float 키;           // 정수리~발
+            public float 대기z;        // 뜰에서 서는 자리. NaN 이면 뜰에 안 선다
+            public string 베낄것;      // 씬에 없을 때 베낄 사람
+        }
+
+        private static readonly Who[] Cast =
+        {
+            new Who { 씬이름 = "서리",        fbx = "서리/Seori_Merged.fbx",
+                      그림 = "서리/Meshy_AI_Seonbi_in_a_Hanbok_wi_0825101955_texture.png",
+                      키 = 1.66f, 대기z = float.NaN },
+            new Who { 씬이름 = "甲",      fbx = "옹덕구/Ongdeokgu_Act2.fbx", 재질 = "옹덕구/옹덕구_병합_Mat.mat",
+                      키 = 1.66f, 대기z = -4.50f },
+            new Who { 씬이름 = "乙", fbx = "옹덕구/Ongdeokgu_Act2.fbx", 재질 = "옹덕구/옹덕구_병합_Mat.mat",
+                      키 = 1.66f, 대기z = -2.70f },
+            new Who { 씬이름 = "아내",        fbx = "아내/Hanbok_Woman_Merged.fbx", 재질 = "아내/M_아내.mat",
+                      키 = 1.60f, 대기z = -0.90f },
+            new Who { 씬이름 = "늙은하인",     fbx = "늙은하인/Hain_Act2.fbx", 재질 = "늙은하인/M_늙은하인.mat",
+                      키 = 1.60f, 대기z = 0.90f },
+            new Who { 씬이름 = "마름",        fbx = "마름/Mareum_Act2.fbx", 재질 = "마름/마름_Mat.mat",
+                      키 = 1.68f, 대기z = 2.70f, 베낄것 = "늙은하인" },
+            new Who { 씬이름 = "복동",        fbx = "복동/Bokdong_Act2.fbx", 재질 = "복동/복동_보라_Mat.mat",
+                      키 = 1.62f, 대기z = 4.50f, 베낄것 = "늙은하인" },
+        };
+
+        /// <summary>돌아야 하는 클립.</summary>
+        private static readonly string[] Loops = { "Idle", "Walking", "Running", "Sitting_Idle" };
+
+        [MenuItem("이문록/관아/⑱ 2막 사람 들이기")]
+        public static void Run()
+        {
+            var scene = SceneManager.GetActiveScene();
+            if (!scene.name.Contains("Gwana"))
+            {
+                Debug.LogWarning("[관아] 관아 씬을 열고 누르십시오(지금은 " + scene.name + ").");
+                return;
+            }
+
+            var log = new System.Text.StringBuilder("[관아] 2막 사람들을 들인다\n");
+            foreach (var w in Cast)
+            {
+                log.AppendLine("── " + w.씬이름);
+                var path = Art + w.fbx;
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(path) == null)
+                { log.AppendLine("   ※ 모델이 없다: " + path); continue; }
+
+                Groom(path, w, log);
+                var mat = Skin(w, log);
+                var ac = Controller(path, w, log);
+                Stand(scene, w, path, mat, ac, log);
+            }
+            EditorSceneManager.MarkSceneDirty(scene);
+            Debug.Log(log.ToString());
+        }
+
+        // ── ㉠ 다듬기 ─────────────────────────────
+
+        /// <summary>아바타·클립 이름·도는 것·키를 한 번에 바로잡는다.</summary>
+        private static void Groom(string path, Who w, System.Text.StringBuilder log)
+        {
+            var mi = AssetImporter.GetAtPath(path) as ModelImporter;
+            if (mi == null) return;
+
+            bool dirty = false;
+            if (mi.avatarSetup != ModelImporterAvatarSetup.CreateFromThisModel)
+            {
+                mi.animationType = ModelImporterAnimationType.Generic;
+                mi.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+                dirty = true;
+                log.AppendLine("   · 아바타를 만들게 했다 — 없으면 애니메이터가 뼈를 못 찾는다");
+            }
+
+            var src = mi.clipAnimations;
+            if (src == null || src.Length == 0) src = mi.defaultClipAnimations;
+            var outc = new List<ModelImporterClipAnimation>();
+            bool renamed = false, looped = false;
+            foreach (var c in src)
+            {
+                string n = c.name;
+                int bar = n.LastIndexOf('|');
+                if (bar >= 0) { n = n.Substring(bar + 1); renamed = true; }
+                bool loop = System.Array.IndexOf(Loops, n) >= 0;
+                if (loop && !c.loopTime) looped = true;
+                var cc = new ModelImporterClipAnimation
+                {
+                    name = n, takeName = c.takeName,
+                    firstFrame = c.firstFrame, lastFrame = c.lastFrame,
+                    loopTime = loop, loopPose = loop,
+                    keepOriginalOrientation = c.keepOriginalOrientation,
+                    keepOriginalPositionY = c.keepOriginalPositionY,
+                    keepOriginalPositionXZ = c.keepOriginalPositionXZ,
+                };
+                outc.Add(cc);
+            }
+            // <b>선 자세가 없으면 일어서는 동작의 끝에서 빌린다.</b>
+            //
+            // 처음엔 Idle 이 없는 사람을 뜰에 <b>앉혀</b> 두었다. 그런데 Sitting_Idle 은
+            // <b>의자에 앉는</b> 몸짓이라, 아무것도 없는 맨땅에서 틀면 허공에 걸터앉은
+            // 꼴이 된다 — 실제로 넷이 그렇게 떠 있었다.
+            //
+            // Sit_To_Stand 는 <b>다 일어선 채로 끝난다</b>. 그 마지막 몇 칸을 잘라
+            // 돌리면 그것이 곧 선 자세다. 그림을 새로 뽑을 것도 없고, 나중에 진짜
+            // Idle 이 들어오면 이 대목은 저절로 안 돈다.
+            bool hasIdle = false;
+            ModelImporterClipAnimation stand = null;
+            foreach (var c in outc)
+            {
+                if (c.name == "Idle") hasIdle = true;
+                if (c.name == "Sit_To_Stand") stand = c;
+            }
+            if (!hasIdle && stand != null)
+            {
+                outc.Add(new ModelImporterClipAnimation
+                {
+                    name = "Idle", takeName = stand.takeName,
+                    firstFrame = Mathf.Max(stand.firstFrame, stand.lastFrame - 2f),
+                    lastFrame = stand.lastFrame,
+                    loopTime = true, loopPose = true,
+                });
+                dirty = true;
+                log.AppendLine("   · 선 자세가 없어 Sit_To_Stand 끝 세 칸을 잘라 만들었다");
+            }
+
+            if (renamed || looped || !hasIdle) { mi.clipAnimations = outc.ToArray(); dirty = true; }
+            if (renamed) log.AppendLine("   · 클립 이름에서 'Armature|' 를 뗐다");
+            if (looped) log.AppendLine("   · 선 채·걷기·앉은 채를 돌게 했다");
+
+            if (dirty) AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+
+            // 키를 맞춘다. 몸피가 아니라 <b>뼈</b>로, 그것도 <b>선 자세로</b> 잰다.
+            float now = StandingHeight(path);
+            if (now > 0.01f && Mathf.Abs(now - w.키) > 0.01f)
+            {
+                mi.globalScale *= w.키 / now;
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+                log.AppendLine("   · 키 " + now.ToString("F2") + "m → " + w.키.ToString("F2")
+                             + "m (배율 " + mi.globalScale.ToString("F4") + ")");
+            }
+        }
+
+        /// <summary>
+        /// <b>선 자세에서</b> 정수리 뼈와 발 뼈 사이.
+        ///
+        /// 바인드 자세로 재면 안 된다. 옹덕구와 복동은 <b>바인드 자세가 웅크린 것</b>이라
+        /// 1.30 · 1.39 로 나오는데, 그 값에 맞춰 키우면 실제로 서는 순간 2.30 · 2.18 이
+        /// 되어 거인이 된다 — 실제로 그렇게 세워 놓고 한 번 웃었다.
+        ///
+        /// 그래서 선 자세(Idle)를 <b>씌우고 나서</b> 잰다. 씬에 잠깐 세웠다가 지운다.
+        /// </summary>
+        private static float StandingHeight(string path)
+        {
+            var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (fbx == null) return -1f;
+
+            AnimationClip idle = null; Avatar av = null;
+            foreach (var o in AssetDatabase.LoadAllAssetsAtPath(path))
+            {
+                var c = o as AnimationClip;
+                if (c != null && c.name == "Idle") idle = c;
+                var a = o as Avatar;
+                if (a != null) av = a;
+            }
+
+            var inst = (GameObject)PrefabUtility.InstantiatePrefab(fbx);
+            try
+            {
+                var an = inst.GetComponent<Animator>();
+                if (an == null) an = inst.AddComponent<Animator>();
+                if (av != null) an.avatar = av;
+                if (idle != null) idle.SampleAnimation(inst, 0f);
+
+                var smr = inst.GetComponentInChildren<SkinnedMeshRenderer>(true);
+                if (smr == null || smr.bones == null || smr.bones.Length == 0) return -1f;
+                float lo = 9e9f, hi = -9e9f;
+                foreach (var b in smr.bones)
+                {
+                    if (b == null) continue;
+                    if (b.position.y < lo) lo = b.position.y;
+                    if (b.position.y > hi) hi = b.position.y;
+                }
+                return hi > lo ? hi - lo : -1f;
+            }
+            finally { Object.DestroyImmediate(inst); }
+        }
+
+        // ── ㉡ 살갗 ───────────────────────────────
+
+        /// <summary>재질을 찾거나, 없으면 그림 한 장으로 새로 만든다.</summary>
+        private static Material Skin(Who w, System.Text.StringBuilder log)
+        {
+            if (!string.IsNullOrEmpty(w.재질))
+            {
+                var m = AssetDatabase.LoadAssetAtPath<Material>(Art + w.재질);
+                if (m != null) return m;
+                log.AppendLine("   ※ 재질이 없다: " + w.재질);
+            }
+            if (string.IsNullOrEmpty(w.그림)) return null;
+
+            string made = Art + System.IO.Path.GetDirectoryName(w.그림).Replace('\\', '/') + "/M_" + w.씬이름 + ".mat";
+            var have = AssetDatabase.LoadAssetAtPath<Material>(made);
+            if (have != null) return have;
+
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(Art + w.그림);
+            if (tex == null) { log.AppendLine("   ※ 그림도 없다: " + w.그림); return null; }
+            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            mat.SetTexture("_BaseMap", tex);
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.12f);
+            AssetDatabase.CreateAsset(mat, made);
+            log.AppendLine("   · 재질이 없어 그림 한 장으로 만들었다 — " + made);
+            return mat;
+        }
+
+        // ── ㉢ 몸짓 ───────────────────────────────
+
+        /// <summary>
+        /// <b>기다리다 · 걸어가다 · 앉다</b> 세 마디짜리 컨트롤러.
+        ///
+        /// <see cref="CourtSummon"/> 이 부르는 값 두 개에 맞춘다 — 걸을 때 <c>Walking</c>,
+        /// 자리에 닿으면 <c>Sitting</c>. 그래서 이 그림만 그려 두면 부름·심문 쪽 코드는
+        /// 한 줄도 안 고쳐도 된다.
+        /// </summary>
+        private static AnimatorController Controller(string path, Who w, System.Text.StringBuilder log)
+        {
+            var clips = new Dictionary<string, AnimationClip>();
+            foreach (var o in AssetDatabase.LoadAllAssetsAtPath(path))
+            {
+                var c = o as AnimationClip;
+                if (c != null && !c.name.StartsWith("__")) clips[c.name] = c;
+            }
+
+            // <b>몸짓표는 사람이 아니라 <i>몸</i>을 따라 만든다.</b> 甲 과 乙 은 같은 옹덕구
+            // 모델을 쓴다 — 그것이 이 사건의 핵심이다(둘이 똑같이 생겼다). 사람 이름으로
+            // 만들면 같은 몸에 똑같은 표가 두 벌 생긴다.
+            string dir = Art + System.IO.Path.GetDirectoryName(w.fbx).Replace('\\', '/');
+            string acPath = dir + "/" + System.IO.Path.GetFileNameWithoutExtension(w.fbx) + "_AC.controller";
+            var ac = AssetDatabase.LoadAssetAtPath<AnimatorController>(acPath);
+            if (ac == null)
+            {
+                ac = AnimatorController.CreateAnimatorControllerAtPath(acPath);
+                log.AppendLine("   · 몸짓표를 새로 만들었다 — " + acPath);
+            }
+            foreach (var p in new[] { "Walking", "Sitting" })
+            {
+                bool has = false;
+                foreach (var q in ac.parameters) if (q.name == p) has = true;
+                if (!has) ac.AddParameter(p, AnimatorControllerParameterType.Bool);
+            }
+
+            var sm = ac.layers[0].stateMachine;
+            // 서 있는 클립이 있으면 서서 기다리고, 없으면 앉아서 기다린다.
+            bool stands = clips.ContainsKey("Idle");
+            string rest = stands ? "Idle" : "Sitting_Idle";
+
+            var made = new Dictionary<string, AnimatorState>();
+            int col = 0;
+            foreach (var name in new[] { rest, "Walking", "Stand_To_Sit", "Sitting_Idle", "Sit_To_Stand" })
+            {
+                if (!clips.ContainsKey(name) || made.ContainsKey(name)) continue;
+                AnimatorState st = null;
+                foreach (var s in sm.states) if (s.state.name == name) st = s.state;
+                if (st == null) st = sm.AddState(name, new Vector3(260f, 60f + 70f * col, 0f));
+                st.motion = clips[name];
+                made[name] = st;
+                col++;
+            }
+            if (!made.ContainsKey(rest)) { log.AppendLine("   ※ 쉬는 자세 클립이 없다"); return ac; }
+            sm.defaultState = made[rest];
+
+            // 옛 전이는 다 걷어내고 새로 긋는다 — 그래야 두 번 눌러도 겹치지 않는다.
+            foreach (var s in sm.states)
+                while (s.state.transitions.Length > 0) s.state.RemoveTransition(s.state.transitions[0]);
+
+            Link(made, rest, "Walking", "Walking", true);
+            Link(made, "Walking", rest, "Walking", false);
+            Link(made, rest, "Stand_To_Sit", "Sitting", true);
+            Link(made, "Walking", "Stand_To_Sit", "Sitting", true);
+            Exit(made, "Stand_To_Sit", "Sitting_Idle");
+            Link(made, "Sitting_Idle", "Sit_To_Stand", "Sitting", false);
+            Exit(made, "Sit_To_Stand", rest);
+
+            if (!stands)
+                log.AppendLine("   ※ 선 자세를 끝내 못 만들었다 — 뜰에서도 앉아 기다린다");
+
+            EditorUtility.SetDirty(ac);
+            AssetDatabase.SaveAssets();
+            return ac;
+        }
+
+        private static void Link(Dictionary<string, AnimatorState> s, string from, string to, string flag, bool on)
+        {
+            if (!s.ContainsKey(from) || !s.ContainsKey(to) || from == to) return;
+            var t = s[from].AddTransition(s[to]);
+            t.hasExitTime = false; t.duration = 0.16f;
+            t.AddCondition(on ? AnimatorConditionMode.If : AnimatorConditionMode.IfNot, 0f, flag);
+        }
+
+        /// <summary>동작이 끝나면 저절로 넘어간다(앉는 짓·일어나는 짓은 한 번만 돈다).</summary>
+        private static void Exit(Dictionary<string, AnimatorState> s, string from, string to)
+        {
+            if (!s.ContainsKey(from) || !s.ContainsKey(to)) return;
+            var t = s[from].AddTransition(s[to]);
+            t.hasExitTime = true; t.exitTime = 0.92f; t.duration = 0.12f;
+        }
+
+        // ── ㉣ 세우기 ─────────────────────────────
+
+        private static void Stand(Scene scene, Who w, string path, Material mat,
+                                  AnimatorController ac, System.Text.StringBuilder log)
+        {
+            var host = FindDeep(scene, w.씬이름);
+            if (host == null && !string.IsNullOrEmpty(w.베낄것))
+            {
+                var seed = FindDeep(scene, w.베낄것);
+                if (seed == null) { log.AppendLine("   ※ 베낄 사람(" + w.베낄것 + ")이 없다"); return; }
+                var made = Object.Instantiate(seed.gameObject, seed.parent);
+                made.name = w.씬이름;
+                Undo.RegisterCreatedObjectUndo(made, "2막 사람");
+                host = made.transform;
+                log.AppendLine("   · 씬에 없어 " + w.베낄것 + " 을 베껴 세웠다 — 부품이 그대로 이어진다");
+            }
+            if (host == null) { log.AppendLine("   ※ 씬에 없고 베낄 것도 안 정했다"); return; }
+
+            // 뜰에 서는 자리
+            if (!float.IsNaN(w.대기z))
+            {
+                var spot = Spot(scene, "뜰_대기_" + w.씬이름, new Vector3(WaitX, 0f, w.대기z));
+                host.SetPositionAndRotation(spot.position, spot.rotation);
+                Wire(host, spot);
+            }
+
+            // 몸을 갈아 끼운다
+            Transform old = null;
+            foreach (Transform ch in host)
+                if (ch.GetComponentInChildren<SkinnedMeshRenderer>(true) != null) { old = ch; break; }
+            var lp = old != null ? old.localPosition : Vector3.zero;
+            var lr = old != null ? old.localRotation : Quaternion.identity;
+            if (old != null) Object.DestroyImmediate(old.gameObject);
+
+            var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            var body = (GameObject)PrefabUtility.InstantiatePrefab(fbx, host);
+            PrefabUtility.UnpackPrefabInstance(body, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            body.name = w.씬이름 + "_모델";
+            body.transform.localPosition = lp;
+            body.transform.localRotation = lr;
+            body.transform.localScale = Vector3.one;
+
+            var an = body.GetComponent<Animator>();
+            if (an == null) an = body.AddComponent<Animator>();
+            an.runtimeAnimatorController = ac;
+            foreach (var o in AssetDatabase.LoadAllAssetsAtPath(path))
+            { var av = o as Avatar; if (av != null) an.avatar = av; }
+            an.applyRootMotion = false;
+            an.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+
+            foreach (var smr in body.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (mat != null) smr.sharedMaterial = mat;
+                smr.updateWhenOffscreen = true;
+            }
+
+            // 부름 쪽에 앉는 값을 일러 둔다. 이름이 안 맞으면 앉는 짓이 조용히 안 돈다.
+            var summon = host.GetComponent<CourtSummon>();
+            if (summon != null)
+                Set(summon, so =>
+                {
+                    so.FindProperty("_animator").objectReferenceValue = an;
+                    so.FindProperty("_walkBool").stringValue = "Walking";
+                    so.FindProperty("_kneelBool").stringValue = "Sitting";
+                });
+
+            log.AppendLine("   · 몸을 갈아 끼웠다 (재질 " + (mat != null ? mat.name : "없음") + ")");
+        }
+
+        /// <summary>대기 자리 표. 어사 쪽(+x)을 본다.</summary>
+        private static Transform Spot(Scene scene, string name, Vector3 pos)
+        {
+            var t = FindDeep(scene, name);
+            if (t == null)
+            {
+                var go = new GameObject(name);
+                SceneManager.MoveGameObjectToScene(go, scene);
+                Undo.RegisterCreatedObjectUndo(go, "대기 자리");
+                t = go.transform;
+            }
+            t.SetPositionAndRotation(pos, Quaternion.Euler(0f, 90f, 0f));
+            return t;
+        }
+
+        /// <summary>부름 쪽에 제 대기 자리를 다시 일러 둔다.</summary>
+        private static void Wire(Transform host, Transform spot)
+        {
+            var summon = host.GetComponent<CourtSummon>();
+            if (summon == null) return;
+            Set(summon, so => so.FindProperty("_waitSpot").objectReferenceValue = spot);
+        }
+
+        private static void Set(Object target, System.Action<SerializedObject> edit)
+        {
+            var so = new SerializedObject(target);
+            edit(so);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(target);
+        }
+
+        private static Transform FindDeep(Scene scene, string name)
+        {
+            foreach (var root in scene.GetRootGameObjects())
+                foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                    if (t.name == name) return t;
+            return null;
+        }
+    }
+}
