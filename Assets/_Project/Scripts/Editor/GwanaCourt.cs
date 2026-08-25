@@ -81,7 +81,7 @@ namespace IMUNROK.Common.EditorTools
             var seatSpot = Spot(scene, "어사_자리", Seat, 270f, log);      // 뜰(-x)을 본다
 
             Daises(scene, log);
-            Cushion(scene, log);
+            Chair(scene, log);
             Sit(scene, seatSpot.transform, front.transform, log);
             Bench(scene, seatSpot.transform, log);
 
@@ -115,7 +115,7 @@ namespace IMUNROK.Common.EditorTools
             }
 
             EditorSceneManager.MarkSceneDirty(scene);
-            log.AppendLine("  어사 눈 " + (Maru + Dais + 1.05f).ToString("F2") + "  ·  마주 선 사람과 "
+            log.AppendLine("  어사 눈 " + (Maru + Dais + 1.24f).ToString("F2") + "  ·  마주 선 사람과 "
                          + Vector3.Distance(Seat, Front).ToString("F1") + "m");
             Debug.Log(log.ToString());
         }
@@ -149,44 +149,113 @@ namespace IMUNROK.Common.EditorTools
         }
 
         /// <summary>
-        /// 어사가 앉을 방석. 누를 것이 있어야 앉는다.
+        /// <b>교의(交椅)</b> — 어사가 앉는 의자.
         ///
-        /// <b>권해 주는 사람이 없는 자리</b>라 처음부터 앉을 수 있게 열어 둔다.
-        /// 사랑방 방석은 주인이 권해야 앉는 자리지만, 동헌은 어사가 제 발로 올라가
-        /// 제 자리에 앉는 데다 — 거기서 누가 권하기를 기다리면 영영 못 앉는다.
+        /// 여태 마루에 방석 하나였다. 그런데 방석에 앉으면 <b>눈이 바닥에서 한 자</b>
+        /// 남짓이라, 마주 선 사람을 한참 올려다보게 된다. 그리고 마루에 퍼져 앉은
+        /// 사람은 재판을 하는 것이 아니라 <b>손님으로 앉은 것</b>으로 보인다.
+        ///
+        /// 조선의 수령이 동헌에서 앉는 것도 방석이 아니라 교의다 — 등받이와 팔걸이가
+        /// 있는 높은 의자. 앉는 자리가 높으면 그것만으로 자리가 갈린다.
+        ///
+        /// <b>널조각을 짜 맞춰 만든다.</b> 의자 모델이 아직 없고, 이 물건은 다리 넷과
+        /// 좌판·등받이·팔걸이로 다 되는 모양이라 상자 열 개면 선다. 나중에 진짜 모델이
+        /// 오면 이 밑에 넣고 이것만 끄면 된다.
+        ///
+        /// <b>누를 것은 좌판</b>이다. 좌판에만 트리거를 두고 나머지 조각은 콜라이더를
+        /// 뗀다 — 안 그러면 일어서서 걷다가 의자 다리에 걸린다.
         /// </summary>
-        private static void Cushion(Scene scene, System.Text.StringBuilder log)
+        private static void Chair(Scene scene, System.Text.StringBuilder log)
         {
-            var go = Find(scene, "어사_방석");
-            if (go == null)
+            // 예전에 놓았던 방석은 걷는다 — 이제 좌판이 그 일을 한다
+            var oldCushion = Find(scene, "어사_방석");
+            if (oldCushion != null && oldCushion.transform.parent == null)
             {
-                go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                go.name = "어사_방석";
-                SceneManager.MoveGameObjectToScene(go, scene);
-                Undo.RegisterCreatedObjectUndo(go, "동헌 자리");
-                log.AppendLine("  · 단 위에 방석을 놓았다 — 눌러 앉는다");
+                Undo.DestroyObjectImmediate(oldCushion);
+                log.AppendLine("  · 마루에 놓았던 방석을 걷었다 — 교의가 대신한다");
             }
-            go.transform.position = new Vector3(Seat.x, Seat.y + Dais + 0.035f, Seat.z);
-            go.transform.rotation = Quaternion.Euler(0f, 270f, 0f);
-            go.transform.localScale = new Vector3(0.62f, 0.07f, 0.62f);
 
-            var mr = go.GetComponent<MeshRenderer>();
-            if (mr != null) mr.sharedMaterial = EnsureCushionMat(log);
+            var root = Find(scene, "어사_교의");
+            bool made = root == null;
+            if (made)
+            {
+                root = new GameObject("어사_교의");
+                SceneManager.MoveGameObjectToScene(root, scene);
+                Undo.RegisterCreatedObjectUndo(root, "어사 교의");
+            }
+            root.transform.position = new Vector3(Seat.x, Seat.y + Dais, Seat.z);
+            root.transform.rotation = Quaternion.Euler(0f, 270f, 0f);   // 뜰(-x)을 본다
 
-            var col = go.GetComponent<Collider>();
-            if (col != null) col.isTrigger = true;   // 밟고 올라서는 물건이 아니다
+            var wood = AssetDatabase.LoadAssetAtPath<Material>(StoneMat);
+            var red = EnsureCushionMat(log);
 
-            var cush = go.GetComponent<SeatCushion>();
-            if (cush == null) cush = Undo.AddComponent<SeatCushion>(go);
+            // 이 의자는 제 앞(local +z)이 뜰 쪽이다. 등받이는 뒤(-z)에 선다.
+            const float SeatH = 0.46f;   // 좌판 밑까지
+            const float SeatW = 0.54f, SeatD = 0.50f, Plank = 0.06f;
+            const float Leg = 0.06f;
+
+            Part(root, "다리_앞왼", new Vector3(-SeatW * 0.5f + Leg * 0.5f, SeatH * 0.5f,  SeatD * 0.5f - Leg * 0.5f), new Vector3(Leg, SeatH, Leg), wood);
+            Part(root, "다리_앞오", new Vector3( SeatW * 0.5f - Leg * 0.5f, SeatH * 0.5f,  SeatD * 0.5f - Leg * 0.5f), new Vector3(Leg, SeatH, Leg), wood);
+            Part(root, "다리_뒤왼", new Vector3(-SeatW * 0.5f + Leg * 0.5f, SeatH * 0.5f, -SeatD * 0.5f + Leg * 0.5f), new Vector3(Leg, SeatH, Leg), wood);
+            Part(root, "다리_뒤오", new Vector3( SeatW * 0.5f - Leg * 0.5f, SeatH * 0.5f, -SeatD * 0.5f + Leg * 0.5f), new Vector3(Leg, SeatH, Leg), wood);
+
+            Part(root, "가로대", new Vector3(0f, SeatH * 0.45f, -SeatD * 0.5f + Leg * 0.5f), new Vector3(SeatW - Leg, 0.045f, 0.035f), wood);
+
+            // 등받이 — 뒤에 서서 어깨 높이까지
+            Part(root, "등받이", new Vector3(0f, SeatH + 0.30f, -SeatD * 0.5f + 0.03f), new Vector3(SeatW, 0.60f, 0.05f), wood);
+            Part(root, "등마루", new Vector3(0f, SeatH + 0.62f, -SeatD * 0.5f + 0.03f), new Vector3(SeatW + 0.08f, 0.07f, 0.09f), wood);
+
+            // 팔걸이 — 앞 기둥에 얹는다
+            Part(root, "팔기둥_왼", new Vector3(-SeatW * 0.5f + 0.03f, SeatH + 0.11f,  SeatD * 0.5f - 0.06f), new Vector3(0.05f, 0.22f, 0.05f), wood);
+            Part(root, "팔기둥_오", new Vector3( SeatW * 0.5f - 0.03f, SeatH + 0.11f,  SeatD * 0.5f - 0.06f), new Vector3(0.05f, 0.22f, 0.05f), wood);
+            Part(root, "팔걸이_왼", new Vector3(-SeatW * 0.5f + 0.03f, SeatH + 0.24f, -0.02f), new Vector3(0.055f, 0.05f, SeatD - 0.04f), wood);
+            Part(root, "팔걸이_오", new Vector3( SeatW * 0.5f - 0.03f, SeatH + 0.24f, -0.02f), new Vector3(0.055f, 0.05f, SeatD - 0.04f), wood);
+
+            // <b>좌판이 곧 앉는 자리다.</b> 여기만 눌린다.
+            var seat = Part(root, "좌판", new Vector3(0f, SeatH + Plank * 0.5f, 0f), new Vector3(SeatW, Plank, SeatD), red);
+            var col = seat.GetComponent<Collider>();
+            if (col == null) col = seat.AddComponent<BoxCollider>();
+            col.isTrigger = true;      // 걸어 다니다 걸리지 않게. 클릭 레이는 트리거도 짚는다
+            col.enabled = true;
+
+            var cush = seat.GetComponent<SeatCushion>();
+            if (cush == null) cush = Undo.AddComponent<SeatCushion>(seat);
             Set(cush, so =>
             {
-                so.FindProperty("_title").stringValue = "어사 자리";
+                so.FindProperty("_title").stringValue = "어사 교의";
                 so.FindProperty("_idleBody").stringValue = "동헌 대청. 앞이 트여 뜰이 내다보인다.";
                 so.FindProperty("_offeredBody").stringValue = "동헌 대청. 앞이 트여 뜰이 내다보인다.";
                 so.FindProperty("_hint").stringValue = "(눌러 앉기)";
                 so.FindProperty("_offeredAtStart").boolValue = true;
                 so.FindProperty("_maxTouchDistance").floatValue = 3f;
+                so.FindProperty("_hoverRise").floatValue = 0f;   // 좌판이 들썩이면 의자가 부서진 것처럼 보인다
             });
+
+            if (made) log.AppendLine("  · 어사 교의를 짜 넣었다 — 좌판 " + (Seat.y + Dais + SeatH + Plank).ToString("F2")
+                                   + ", 앉으면 눈 " + (Seat.y + Dais + 1.24f).ToString("F2"));
+        }
+
+        /// <summary>의자 조각 하나. 콜라이더는 뗀다 — 좌판만 남긴다.</summary>
+        private static GameObject Part(GameObject root, string name, Vector3 lp, Vector3 size, Material mat)
+        {
+            var t = root.transform.Find(name);
+            GameObject go;
+            if (t == null)
+            {
+                go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                go.name = name;
+                go.transform.SetParent(root.transform, false);
+                var c = go.GetComponent<Collider>();
+                if (c != null) Object.DestroyImmediate(c);   // 좌판만 나중에 도로 붙인다
+            }
+            else go = t.gameObject;
+
+            go.transform.localPosition = lp;
+            go.transform.localRotation = Quaternion.identity;
+            go.transform.localScale = size;
+            var mr = go.GetComponent<MeshRenderer>();
+            if (mr != null && mat != null) mr.sharedMaterial = mat;
+            return go;
         }
 
         /// <summary>어사를 앉힐 채비. 카메라에 붙는다.</summary>
@@ -202,7 +271,7 @@ namespace IMUNROK.Common.EditorTools
             {
                 so.FindProperty("_seatSpot").objectReferenceValue = seat;
                 so.FindProperty("_lookAt").objectReferenceValue = look;      // 앉으면서 앞자리를 본다
-                so.FindProperty("_seatedEyeHeight").floatValue = 1.05f;
+                so.FindProperty("_seatedEyeHeight").floatValue = 1.24f;   // 교의에 앉은 눈(단 위에서)
                 // <b>동헌에서는 제 발로 일어선다.</b> 물러가 줄 사람이 없다.
                 //
                 // Key 는 새 입력 꾸러미의 열거인데 이 편집기 어셈블리는 그것을 참조하지
@@ -210,7 +279,7 @@ namespace IMUNROK.Common.EditorTools
                 var rise = so.FindProperty("_riseKey");
                 int idx = System.Array.IndexOf(rise.enumNames, "Space");
                 if (idx >= 0) rise.enumValueIndex = idx;
-                so.FindProperty("_seatedLine").stringValue = "대청에 앉았다.   (*Space* 일어서기)";
+                so.FindProperty("_seatedLine").stringValue = "교의에 앉았다.   (*Space* 일어서기)";
             });
         }
 

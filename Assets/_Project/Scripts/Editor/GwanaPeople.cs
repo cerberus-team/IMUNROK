@@ -279,7 +279,23 @@ namespace IMUNROK.Common.EditorTools
             {
                 var feet = go.GetComponent<GroundFeet>();
                 if (feet == null) feet = Undo.AddComponent<GroundFeet>(go);
-                Set(feet, so => so.FindProperty("_fallbackY").floatValue = 0f);
+                Set(feet, so =>
+                {
+                    so.FindProperty("_fallbackY").floatValue = 0f;
+
+                    // <b>계단을 오르다 떨어지던 것.</b> 이 사람들은 뜰(0.00)에서 동헌
+                    // 대청(2.21)까지 계단을 밟고 올라온다. 그런데 발 높이가 정해진
+                    // 빠르기로만 따라가므로(_followSpeed) 걸음보다 뒤처지고, 뒤처진
+                    // 만큼 <b>다음 계단이 넘을 수 있는 턱(_maxStepUp)을 넘어서</b>
+                    // 바닥으로 안 쳐진다. 한 번 놓치면 마루가 통째로 거부되어 마당
+                    // 높이로 떨어지고, 그 뒤로는 영영 못 올라온다 — 실제로 몸이 마루
+                    // 밑 y=-0.07 에 선 채로 머리만 마루 위로 나와 있었다.
+                    //
+                    // 계단 한 칸이 0.27 이니 턱은 넉넉히 두고, 따라가는 속도는 걸음
+                    // (1.25 m/s)보다 빠르게 준다. 그러면 뒤처질 일이 없다.
+                    so.FindProperty("_maxStepUp").floatValue = 1.40f;
+                    so.FindProperty("_followSpeed").floatValue = 4f;
+                });
             }
         }
 

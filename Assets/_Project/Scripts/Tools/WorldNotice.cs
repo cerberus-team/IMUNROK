@@ -28,7 +28,9 @@ namespace IMUNROK.Common
         public static void Show(string key, string message, float verticalOffset)
         {
             var n = Get(key, verticalOffset);
-            n._text.text = message;
+            // 별표로 감싼 낱말은 도드라지게 — 자막은 이걸 하는데 알림판은 안 해서,
+            // 상태창에 "*문서고*" 가 <b>별표째로</b> 찍히고 있었다.
+            n._text.text = Emphasis.Rich(message ?? "", Emphasis.OnDark);
             n._text.gameObject.SetActive(true);
             n._image.gameObject.SetActive(false);
             n._bg.enabled = true;
@@ -46,7 +48,7 @@ namespace IMUNROK.Common
             bool hasCaption = !string.IsNullOrEmpty(caption);
             n._text.gameObject.SetActive(texture == null || hasCaption);
             if (texture == null) n._text.text = "(지도 그림이 없다)";
-            else if (hasCaption) n._text.text = caption;
+            else if (hasCaption) n._text.text = Emphasis.Rich(caption ?? "", Emphasis.OnDark);
             // 제목은 그림 위쪽으로 비켜 앉힌다
             ((RectTransform)n._text.transform).anchoredPosition =
                 (texture != null && hasCaption) ? new Vector2(0f, 230f) : Vector2.zero;

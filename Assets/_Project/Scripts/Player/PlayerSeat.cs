@@ -174,7 +174,7 @@ namespace IMUNROK.Common
             float floor = FloorY(new Vector3(xz.x, here.y, xz.z), here.y - _standingEyeHeight, spot);
 
             _to = new Vector3(xz.x, floor + _seatedEyeHeight, xz.z);
-            _toRot = FacingRotation();
+            _toRot = FacingRotation(_to);        // <b>앉을 자리</b>에서 잰다 — 서 있던 자리가 아니라
             _turn = true;
             Begin(_sitSeconds);
             _phase = Phase.SittingDown;
@@ -327,11 +327,18 @@ namespace IMUNROK.Common
             rig.position += d;
         }
 
-        /// <summary>바라볼 방향. 마주 앉을 상대가 있으면 그쪽, 없으면 보던 쪽 그대로.</summary>
-        private Quaternion FacingRotation()
+        /// <summary>
+        /// 바라볼 방향. 마주 앉을 상대가 있으면 그쪽, 없으면 보던 쪽 그대로.
+        ///
+        /// <b>서 있던 자리가 아니라 앉을 자리에서 잰다.</b> 여태 지금 서 있는 자리에서
+        /// 쟀는데, 자리 옆에서 눌러 앉으면 그 비스듬한 각도가 그대로 굳는다 —
+        /// 동헌 교의에서 실제로 33° 가 틀어져, 앉고 나니 마주 선 사람이 화면 왼쪽 끝에
+        /// 걸려 있었다. 사랑방은 방석 코앞에서 누르니 티가 안 났을 뿐이다.
+        /// </summary>
+        private Quaternion FacingRotation(Vector3 from)
         {
             if (_lookAt == null) return transform.rotation;
-            Vector3 to = _lookAt.position - transform.position;
+            Vector3 to = _lookAt.position - from;
             to.y = 0f;
             if (to.sqrMagnitude < 0.0001f) return transform.rotation;
             return Quaternion.LookRotation(to, Vector3.up);
