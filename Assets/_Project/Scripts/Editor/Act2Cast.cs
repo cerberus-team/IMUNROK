@@ -284,7 +284,25 @@ namespace IMUNROK.Common.EditorTools
             // 만들면 같은 몸에 똑같은 표가 두 벌 생긴다.
             string dir = Art + System.IO.Path.GetDirectoryName(w.fbx).Replace('\\', '/');
             string acPath = dir + "/" + System.IO.Path.GetFileNameWithoutExtension(w.fbx) + "_AC.controller";
+            // <b>남의 씬이 쓰는 표는 절대 안 건드린다.</b>
+            //
+            // 이 도구의 첫 판은 표를 <b>사람 이름</b>으로 찾았다(마름_AC). 그런데 그것은
+            // 1막이 쓰는 표였고, 이 도구는 상태끼리의 전이를 <b>죄 걷어내고</b> 새로
+            // 긋는다 — 1막 마름의 얼개를 그렇게 지웠다. 게다가 1막의 Walking 은
+            // Trigger 인데 여기서 Bool 로 알고 IfNot 을 걸어, 유니티가
+            // "uses parameter 'Walking' which is not compatible with condition type"
+            // 이라고 울었다.
+            //
+            // 지금은 표를 <b>몸(FBX) 이름</b>으로 찾으니 다시는 안 겹친다. 그래도 한 번
+            // 겪은 일이라 문을 하나 더 단다 — 만들려는 표를 <b>다른 씬이 이미 쥐고
+            // 있으면</b> 손대지 않고 물러난다.
             var ac = AssetDatabase.LoadAssetAtPath<AnimatorController>(acPath);
+            if (ac != null && HeldByAnotherScene(acPath, out string holder))
+            {
+                log.AppendLine("   ※ " + System.IO.Path.GetFileName(acPath) + " 는 " + holder
+                             + " 가 쓰고 있어 손대지 않는다 — 겹치면 그 씬이 망가진다");
+                return ac;
+            }
             if (ac == null)
             {
                 ac = AnimatorController.CreateAnimatorControllerAtPath(acPath);
@@ -335,6 +353,24 @@ namespace IMUNROK.Common.EditorTools
             EditorUtility.SetDirty(ac);
             AssetDatabase.SaveAssets();
             return ac;
+        }
+
+        /// <summary>관아 말고 다른 씬이 이 자산을 쥐고 있나.</summary>
+        private static bool HeldByAnotherScene(string assetPath, out string holder)
+        {
+            holder = null;
+            string guid = AssetDatabase.AssetPathToGUID(assetPath);
+            if (string.IsNullOrEmpty(guid)) return false;
+            foreach (var p in AssetDatabase.GetAllAssetPaths())
+            {
+                if (!p.EndsWith(".unity") || p.Contains("Gwana")) continue;
+                string txt;
+                try { txt = System.IO.File.ReadAllText(p); } catch { continue; }
+                if (!txt.Contains(guid)) continue;
+                holder = System.IO.Path.GetFileNameWithoutExtension(p);
+                return true;
+            }
+            return false;
         }
 
         private static void Link(Dictionary<string, AnimatorState> s, string from, string to, string flag, bool on)
