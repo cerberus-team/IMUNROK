@@ -97,6 +97,11 @@ namespace IMUNROK.Common
         [SerializeField] private float _expected = 0f;
         [Tooltip("이 안쪽이면 '맞다'고 본다(치). 두 치 남짓의 '남짓'이 이만큼이다")]
         [SerializeField] private float _tolerance = 0.35f;
+
+        [Tooltip("<b>잴 것이 아예 없을 때</b>의 말. 채워 두면 치수 대신 이 말이 나온다.\n" +
+                 "흉터가 없는 팔이 그렇다 — '영 치'는 치수가 아니라 <b>없다</b>는 뜻인데, " +
+                 "숫자로 적으면 잰 것처럼 보인다. 없는 것은 없다고 말해야 그것도 하나의 답이 된다")]
+        [TextArea(2, 3)] [SerializeField] private string _nothingLine = "";
         [Tooltip("견줄 문서를 아직 못 봤으면 대조하지 않는다. 비우면 늘 대조한다")]
         [SerializeField] private string _needsClueKey = "";
         [SerializeField] private CaseId _case = CaseId.Case1_Onggojip;
@@ -139,6 +144,8 @@ namespace IMUNROK.Common
         {
             string size = Chi(_chi);
             if (!Measured) return $"{_what} — 아직 재지 않았다.";
+            // 없는 것은 없다고 말한다. 이것도 대답이다 — 乙의 팔이 그렇다.
+            if (!string.IsNullOrEmpty(_nothingLine)) return _nothingLine;
             if (!HasCompare) return $"{_what}, {size}.";
             return Matched
                 ? $"{_what}, {size}. 적힌 것과 <b>같다</b>."
