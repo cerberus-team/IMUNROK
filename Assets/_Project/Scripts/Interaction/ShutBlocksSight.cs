@@ -32,29 +32,74 @@ namespace IMUNROK.Common
 
         private void Start() { _door = GetComponent<DoorController>(); }
 
+        /// <summary>
+        /// 이 세간의 겉을 <b>제 좌표로</b> 잰다.
+        ///
+        /// 월드에서 잰 상자(축에 나란하다)를 기울인 물건에 씌우면 가로세로가 뒤바뀐다.
+        /// 메시 정점을 이 트랜스폼의 좌표로 옮겨 담으면 기울기와 무관하게 맞는다.
+        /// </summary>
+        private static bool LocalBounds(Transform root, out Bounds local)
+        {
+            local = new Bounds();
+            bool first = true;
+            var w2l = root.worldToLocalMatrix;
+            foreach (var mf in root.GetComponentsInChildren<MeshFilter>(false))
+            {
+                var m = mf.sharedMesh;
+                if (m == null) continue;
+                var mb = m.bounds;
+                var mtx = w2l * mf.transform.localToWorldMatrix;
+                for (int i = 0; i < 8; i++)
+                {
+                    var corner = mb.center + Vector3.Scale(mb.extents,
+                        new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    var p = mtx.MultiplyPoint3x4(corner);
+                    if (first) { local = new Bounds(p, Vector3.zero); first = false; }
+                    else local.Encapsulate(p);
+                }
+            }
+            return !first;
+        }
+
         private void Build()
         {
             var go = new GameObject("닫힘가리개");
             go.transform.SetParent(transform, true);
 
+            // 세간의 <b>제 좌표</b>로 잰 겉. 손으로 적어 준 값이 있으면 그것을 쓴다.
             Bounds b;
-            if (_size != Vector3.zero) b = new Bounds(_center, _size);
-            else if (!ModelBounds.TryGet(transform, out b) || b.size.sqrMagnitude < 0.0001f)
+            if (_size != Vector3.zero) b = new Bounds(transform.InverseTransformPoint(_center), _size);
+            else if (!LocalBounds(transform, out b) || b.size.sqrMagnitude < 0.0001f)
             {
                 Object.Destroy(go);
                 return;
             }
 
-            go.transform.position = b.center;
-            go.transform.rotation = transform.rotation;
+            // <b>세워 놓고 재지 말고, 재 놓고 세운다.</b>
+            //
+            // 여태 월드에서 잰 겉치수(축에 나란한 상자)를 <b>세간과 같이 기울인</b> 상자에
+            // 그대로 적었다. 세간이 90도 돌아 있으면 가로와 세로가 뒤바뀐다 — 장롱은
+            // 폭 0.55·높이 1.92 인데 가리개는 <b>폭 1.90·높이 1.00</b> 으로 서서, 옆으로
+            // 드러누운 채 통로를 1.9m 나 가로막았다. 장롱을 지나 문갑으로 못 가던 것이 이것이다.
+            // 세간의 <b>제 좌표</b>로 재면 기울여도 어긋날 것이 없다.
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = Quaternion.identity;
+            go.transform.localScale = Vector3.one;
+
             _shell = go.AddComponent<BoxCollider>();
-            // 크기는 <b>제 자로</b> 적어야 한다. 받아온 세간은 뿌리에 1/100 짜리 배율이 걸려
-            // 있어서, 월드에서 잰 0.41m 를 그대로 적으면 4mm 짜리가 선다(실제로 0이 나왔다).
-            Vector3 ls = go.transform.lossyScale;
-            _shell.size = new Vector3(
-                Mathf.Max(0.02f, b.size.x - _shrink) / Mathf.Max(0.0001f, Mathf.Abs(ls.x)),
-                Mathf.Max(0.02f, b.size.y - _shrink) / Mathf.Max(0.0001f, Mathf.Abs(ls.y)),
-                Mathf.Max(0.02f, b.size.z - _shrink) / Mathf.Max(0.0001f, Mathf.Abs(ls.z)));
+            _shell.center = b.center;
+            _shell.size = new Vector3(Mathf.Max(0.02f, b.size.x - _shrink),
+                                      Mathf.Max(0.02f, b.size.y - _shrink),
+                                      Mathf.Max(0.02f, b.size.z - _shrink));
+
+            // <b>막는 것은 눈이지 몸이 아니다.</b>
+            //
+            // 이 상자가 하려는 일은 "닫힌 장 속을 광선으로 짚지 못하게" 하는 것뿐이다.
+            // 그런데 통짜 콜라이더로 두니 사람의 <b>걸음</b>까지 막았다. 트리거로 세우면
+            // 광선은 그대로 걸리고(Physics.queriesHitTriggers 가 켜져 있다) 몸은 지나간다 —
+            // 걸음 판정은 트리거를 무시한다(DebugFlyCamera.Slide).
+            _shell.isTrigger = true;
+
             _wasOpen = _door.IsOpen;
             _shell.enabled = !_wasOpen;
         }
