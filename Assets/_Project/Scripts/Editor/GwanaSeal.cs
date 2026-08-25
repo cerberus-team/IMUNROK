@@ -69,6 +69,7 @@ namespace IMUNROK.Common.EditorTools
 
             TwoSided(log);
             Walls(scene, log);
+            Seams(log);
             Gables(scene, log);
             SeogoBand(scene, log);
 
@@ -120,6 +121,138 @@ namespace IMUNROK.Common.EditorTools
         /// 눈에 보이는 그물은 LOD0 자식에 있으므로 그 몸피를 재어 상자를 만든다.
         /// LOD 자식마다 붙이지 않는다 — 같은 담이 네 겹이라 네 벌이 된다.
         /// </summary>
+        /// <summary>
+        /// <b>담 조각 사이가 5cm 씩 뚫려 있다.</b>
+        ///
+        /// 세트를 깔 때 조각을 <b>4.26m 간격</b>으로 놓았는데 조각 하나는 <b>4.21m</b> 다.
+        /// 그래서 이음매마다 5cm 가 빈다. 담 둘레를 도는 내내 4.2m 걸러 한 줄씩,
+        /// 땅에서 기와까지 하늘이 그대로 비친다.
+        ///
+        /// <b>여태 이것을 놓친 까닭</b>: 지난번에 1m 걸음으로 훑고는 "벌어진 데 3곳,
+        /// 5cm 이음매라 몸통 0.30 으로 밀면 다 막힌다"며 넘겼다. 걸어서 못 지나가는 것은
+        /// 맞다. 그런데 <b>눈은 몸통이 아니다</b> — 5cm 면 훤히 보인다. 문틈 때와 똑같은
+        /// 잘못을 한 번 더 했다. 이제 0.25m 걸음으로 훑는다.
+        ///
+        /// <b>옮기지 않고 늘인다.</b> 조각을 밀어 붙이면 이음매는 닫히지만 한쪽 끝이
+        /// 그만큼 짧아져 모퉁이나 대문 어귀에 40cm 짜리 큰 구멍이 생긴다. 조각을 제자리에
+        /// 둔 채 길이 쪽으로만 1.7% 늘이면 양옆으로 벌어진 데를 절반씩 나눠 메운다.
+        /// 4.2m 에서 7cm 라 눈에 안 띈다.
+        ///
+        /// <b>배율을 걸면 피벗을 기준으로 자란다.</b> 그래서 늘인 뒤에 몸피 한가운데를
+        /// 다시 재어 제자리로 옮긴다 — 겉문을 뒤집을 때와 같은 손질이다.
+        ///
+        /// 두 번 눌러도 두 번 안 늘어난다. 한 번 메우고 나면 이음매가 겹쳐서
+        /// 벌어진 데로 안 잡힌다.
+        /// </summary>
+        private static void Seams(System.Text.StringBuilder log)
+        {
+            // ── 담 조각을 줄별로 모은다 ──
+            var pieces = new List<Renderer>();
+            foreach (var lg in Object.FindObjectsByType<LODGroup>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (!lg.name.StartsWith("SM_StraightStronewall")) continue;
+                var lods = lg.GetLODs();
+                if (lods.Length == 0 || lods[0].renderers.Length == 0) continue;
+                var r = lods[0].renderers[0];
+                if (r != null) pieces.Add(r);
+            }
+            if (pieces.Count == 0) { log.AppendLine("  · 담 조각을 못 찾았다"); return; }
+
+            // 줄 이름: 어느 쪽으로 뻗은 담인가 + 그 담이 선 자리
+            var lines = new Dictionary<string, List<Renderer>>();
+            foreach (var r in pieces)
+            {
+                var b = r.bounds;
+                bool alongX = AlongX(r);
+                string key = (alongX ? "X@" : "Z@") + Mathf.RoundToInt((alongX ? b.center.z : b.center.x) * 4f);
+                if (!lines.ContainsKey(key)) lines[key] = new List<Renderer>();
+                lines[key].Add(r);
+            }
+
+            int filled = 0;
+            float widest = 0f;
+            foreach (var kv in lines)
+            {
+                bool alongX = kv.Key[0] == 'X';
+                var row = kv.Value;
+                row.Sort(delegate (Renderer a, Renderer b)
+                {
+                    float ka = alongX ? a.bounds.center.x : a.bounds.center.z;
+                    float kb = alongX ? b.bounds.center.x : b.bounds.center.z;
+                    return ka.CompareTo(kb);
+                });
+
+                // ① 벌어진 데를 다 재 둔다. 늘이면서 재면 값이 밀린다.
+                var lo = new float[row.Count];
+                var hi = new float[row.Count];
+                for (int i = 0; i + 1 < row.Count; i++)
+                {
+                    var a = row[i].bounds; var b = row[i + 1].bounds;
+                    float gap = (alongX ? b.min.x - a.max.x : b.min.z - a.max.z);
+                    if (gap <= 0.001f || gap > 0.15f) continue;      // 붙어 있거나, 대문 어귀처럼 원래 트인 데다
+                    hi[i] = gap * 0.5f + 0.01f;                      // 조금 겹치게 — 딱 맞추면 실금이 남는다
+                    lo[i + 1] = gap * 0.5f + 0.01f;
+                    filled++;
+                    if (gap > widest) widest = gap;
+                }
+
+                // ② 늘인다
+                for (int i = 0; i < row.Count; i++)
+                {
+                    if (lo[i] <= 0f && hi[i] <= 0f) continue;
+                    Stretch(row[i], alongX ? Vector3.right : Vector3.forward, lo[i], hi[i]);
+                }
+            }
+            log.AppendLine("  · 담 이음매 " + filled + "군데를 메웠다 (가장 넓은 데 "
+                         + widest.ToString("F3") + "m — 걸어선 못 지나가도 눈에는 훤했다)");
+        }
+
+        /// <summary>
+        /// <b>이 조각은 가로 담인가 세로 담인가.</b>
+        ///
+        /// 세계 몸피의 x 와 z 를 견주면 <b>모퉁이의 짧은 조각에서 틀린다</b> — 길이가
+        /// 0.25m 로 깎여 있어 두께(0.89m)보다 짧으니 가로 담인데도 세로로 잡힌다.
+        /// 그러면 제 이웃과 다른 줄에 들어가 이음매를 아예 못 재고, 실제로 두 군데가
+        /// 그렇게 남았다. 깎여도 <b>그물의 긴 축은 안 변하니</b> 그것을 세계로 옮겨 본다.
+        /// </summary>
+        private static bool AlongX(Renderer r)
+        {
+            var mf = r.GetComponent<MeshFilter>();
+            if (mf == null || mf.sharedMesh == null)
+                return r.bounds.size.x > r.bounds.size.z;
+            var lb = mf.sharedMesh.bounds.size;
+            Vector3 local = (lb.x >= lb.y && lb.x >= lb.z) ? Vector3.right
+                          : (lb.y >= lb.z ? Vector3.up : Vector3.forward);
+            var world = r.transform.TransformDirection(local);
+            return Mathf.Abs(world.x) > Mathf.Abs(world.z);
+        }
+
+        /// <summary>조각을 한 축으로만 늘인다. 피벗이 어디든 몸피가 제자리에 남게 한다.</summary>
+        private static void Stretch(Renderer r, Vector3 axis, float addLo, float addHi)
+        {
+            var t = r.transform.parent != null && r.transform.parent.GetComponent<LODGroup>() != null
+                  ? r.transform.parent : r.transform;
+            var before = r.bounds;
+            float len = Vector3.Dot(before.size, axis == Vector3.right ? Vector3.right : Vector3.forward);
+            if (len < 0.01f) return;
+            float factor = (len + addLo + addHi) / len;
+
+            // 세계의 그 축으로 향하는 로컬 축을 찾아 그것만 늘인다
+            var s = t.localScale;
+            float ax = Mathf.Abs(Vector3.Dot(t.right.normalized, axis));
+            float ay = Mathf.Abs(Vector3.Dot(t.up.normalized, axis));
+            float az = Mathf.Abs(Vector3.Dot(t.forward.normalized, axis));
+            if (ax >= ay && ax >= az) s.x *= factor;
+            else if (ay >= az) s.y *= factor;
+            else s.z *= factor;
+            Undo.RecordObject(t, "담 이음매");
+            t.localScale = s;
+
+            // 피벗을 기준으로 자랐으니 몸피 한가운데를 제자리로 되돌린다
+            Vector3 want = before.center + axis * ((addHi - addLo) * 0.5f);
+            t.position += want - r.bounds.center;
+        }
+
         private static void Walls(Scene scene, System.Text.StringBuilder log)
         {
             int stripped = 0, made = 0, redone = 0;
@@ -393,19 +526,26 @@ namespace IMUNROK.Common.EditorTools
 
             // <b>담은 네 군데만 찔러 보면 안 된다.</b> 조각마다 벌어질 수 있으므로
             // 둘레를 1m 걸음으로 다 훑는다. 대문 어귀(서쪽 z -6.4~6.4)는 원래 트인 데다.
+            //
+            // <b>1m 걸음으로는 못 잡는다.</b> 조각 사이 이음매가 5cm 인데 걸음이 1m 면
+            // 스무 번에 한 번 걸릴까 말까다. 실제로 그렇게 재고는 "벌어진 데 3곳,
+            // 몸통으로 밀면 다 막힌다"고 넘겼는데, 눈에는 담 둘레 내내 하늘이 비쳤다.
+            // 몸통은 못 지나가도 <b>눈은 지나간다</b>. 0.25m 로 좁힌다.
             int gap = 0;
             var holes = new List<string>();
-            for (float a = -14f; a <= 20f; a += 1f)
+            // 담이 끝나 모퉁이로 꺾이는 데(남 x=21, 서 z=13)까지 쏘면 담을 <b>따라</b> 나가는
+            // 광선이라 아무것도 안 맞는다 — 구멍이 아닌데 구멍이라 운다. 모퉁이 앞에서 멈춘다.
+            for (float a = -15f; a <= 20.5f; a += 0.25f)
             {
-                if (!Blocked(new Vector3(a, 1.6f, -11.5f), Vector3.back)) { gap++; holes.Add("남 x=" + a.ToString("F0")); }
-                if (!Blocked(new Vector3(a, 1.6f, 11.5f), Vector3.forward)) { gap++; holes.Add("북 x=" + a.ToString("F0")); }
+                if (!Blocked(new Vector3(a, 1.6f, -11f), Vector3.back)) { gap++; holes.Add("남 x=" + a.ToString("F2")); }
+                if (!Blocked(new Vector3(a, 1.6f, 11f), Vector3.forward)) { gap++; holes.Add("북 x=" + a.ToString("F2")); }
             }
-            for (float a = -12f; a <= 12f; a += 1f)
+            for (float a = -12.5f; a <= 12.5f; a += 0.25f)
             {
-                if (!Blocked(new Vector3(19.5f, 1.6f, a), Vector3.right)) { gap++; holes.Add("동 z=" + a.ToString("F0")); }
-                if (Mathf.Abs(a) > 6.5f && !Blocked(new Vector3(-14f, 1.6f, a), Vector3.left)) { gap++; holes.Add("서 z=" + a.ToString("F0")); }
+                if (!Blocked(new Vector3(19f, 1.6f, a), Vector3.right)) { gap++; holes.Add("동 z=" + a.ToString("F2")); }
+                if (Mathf.Abs(a) > 6.5f && !Blocked(new Vector3(-13.5f, 1.6f, a), Vector3.left)) { gap++; holes.Add("서 z=" + a.ToString("F2")); }
             }
-            sb.AppendLine("    담 둘레를 1m 걸음으로 훑음 — 벌어진 데 " + gap + "곳"
+            sb.AppendLine("    담 둘레를 0.25m 걸음으로 훑음 — 벌어진 데 " + gap + "곳"
                         + (gap == 0 ? "   (다 막혔다)" : "   → " + string.Join(", ", holes.ToArray())));
             return sb.ToString();
         }
