@@ -38,6 +38,15 @@ namespace IMUNROK.Common
         [Tooltip("추천 질문(대사 위 제안) 표시. VR(음성)에선 꺼서 '말로만' 진행 가능")]
         [SerializeField] private bool _showTopics = true;
 
+        [Tooltip("한 번에 보여 줄 추천 질문 수. 넷 다 늘어놓으면 고르는 것이 아니라 훑는 것이 된다 — " +
+                 "셋이면 한눈에 들어오고, 하나를 물으면 그 자리에 다음 것이 올라선다")]
+        [Range(1, 6)] [SerializeField] private int _topicsAtOnce = 3;
+
+        [Tooltip("켜면 다시 말을 걸어도 <b>앞서 한 이야기를 기억한다</b> — 이미 물은 질문은 다시 안 뜨고 " +
+                 "대화 기록도 이어진다. 동헌처럼 <b>불렀다 물렸다</b> 하는 자리에 쓴다. " +
+                 "끄면 말을 걸 때마다 처음부터다(1막 마당 사람들이 그렇다)")]
+        [SerializeField] private bool _rememberBetweenTalks = false;
+
         [Tooltip("이 거리(m) 안에서만 말을 걸 수 있음. 너무 멀면 클릭해도 안 열림")]
         [SerializeField] private float _maxTalkDistance = 3f;
 
@@ -86,6 +95,15 @@ namespace IMUNROK.Common
         private readonly List<string> _unlockedFacts = new List<string>();
         private readonly HashSet<string> _unlockedGateKeys = new HashSet<string>();
         private readonly HashSet<string> _grantedTopics = new HashSet<string>();
+
+        /// <summary>이미 물어본 추천 질문. 물은 것은 줄에서 내려가고 다음 것이 올라선다.</summary>
+        private readonly HashSet<string> _asked = new HashSet<string>();
+
+        /// <summary>지금 줄에 세울 질문(매번 새로 만들지 않으려고 담아 둔다).</summary>
+        private readonly List<TopicQuestion> _shown = new List<TopicQuestion>();
+
+        /// <summary>한 번이라도 말을 걸어 본 적이 있나(기억하는 인물의 초기화 판단).</summary>
+        private bool _everBegun;
 
         private string _npcLine = "";
         private bool _busy;
@@ -235,16 +253,27 @@ namespace IMUNROK.Common
                     if (!string.IsNullOrEmpty(gate.clueKey))
                         Journal.Instance.AddClue(_character.caseId, gate.clueKey, gate.clueText);
 
-            // 상태 초기화(다시 말 걸 때도 깨끗하게)
-            _transcript.Clear();
-            _unlockedFacts.Clear();
+            // 상태 초기화(다시 말 걸 때도 깨끗하게).
+            //
+            // 다만 <b>기억하는 인물은 안 지운다</b>. 동헌에서는 甲을 물렸다가 다시 부르는
+            // 일이 예사인데, 부를 때마다 처음으로 돌아가면 이미 캐낸 것을 또 캐야 하고
+            // 무엇보다 <b>이미 무너진 사람이 멀쩡한 얼굴로 다시 선다</b>.
+            bool fresh = !_rememberBetweenTalks || !_everBegun;
+            if (fresh)
+            {
+                _transcript.Clear();
+                _unlockedFacts.Clear();
+                _unlockedGateKeys.Clear();
+                _grantedTopics.Clear();
+                _asked.Clear();
+            }
             _lineIsKey = false;
-            _unlockedGateKeys.Clear();
-            _grantedTopics.Clear();
             _busy = false;
+            _everBegun = true;
 
             _responder = MakeResponder();
-            _npcLine = _character.openingLine;
+            _npcLine = (!fresh && !string.IsNullOrEmpty(_character.recallLine))
+                     ? _character.recallLine : _character.openingLine;
             _transcript.Add($"{_character.characterName}: {_npcLine}");
             _active = true;
             s_openCount++;
@@ -372,6 +401,11 @@ namespace IMUNROK.Common
             if (_busy || t == null) return;
             _lastPlayerLine = t.question;
             _transcript.Add($"{PlayerTitle}: {t.question}");
+
+            // 물은 것은 줄에서 내려간다 — 같은 말을 두 번 묻게 두면 셋이라는 칸이
+            // 있으나 마나다. 내려간 자리에는 아직 안 물은 것이 올라선다.
+            _asked.Add(t.question);
+            InterrogationPanel.Refresh();
 
             // 이 물음으로 무언가 캐냈나(한 번만). 수첩에 적지는 않는다 — 들은 말이다.
             // 대신 대사를 붉게 내보내고, 인물이 이후에도 그 사실을 아는 채로 말하도록
@@ -531,12 +565,60 @@ namespace IMUNROK.Common
         //  데스크탑에선 월드 UI와 겹쳐 보여 오히려 가렸다.
         // ─────────────────────────────────────────────
 
-        /// <summary>월드 패널이 읽는 추천 질문 목록. 끄면(_showTopics=false) 말로만 진행한다.</summary>
+        /// <summary>
+        /// 월드 패널이 읽는 추천 질문 목록. 끄면(_showTopics=false) 말로만 진행한다.
+        ///
+        /// <b>한 번에 셋까지만 내놓는다</b>(<see cref="_topicsAtOnce"/>). 넷을 한 줄에
+        /// 늘어놓으면 고르는 것이 아니라 훑는 것이 되고, 훑는 순간 물음이 아니라 목록이 된다.
+        /// 하나를 물으면 그 질문은 줄에서 <b>내려가고</b> 그 자리에 다음 것이 올라선다 —
+        /// 그래서 다 물을 수는 있되 한눈에 보이는 것은 늘 셋이다.
+        /// </summary>
         public IReadOnlyList<TopicQuestion> Topics
-            => (_showTopics && _character != null) ? _character.topics : null;
+        {
+            get
+            {
+                if (!_showTopics || _character == null) return null;
+                _shown.Clear();
+                int cap = Mathf.Max(1, _topicsAtOnce);
+                foreach (var t in _character.topics)
+                {
+                    if (t == null || string.IsNullOrEmpty(t.question)) continue;
+                    if (_asked.Contains(t.question)) continue;
+                    _shown.Add(t);
+                    if (_shown.Count >= cap) break;
+                }
+                return _shown;
+            }
+        }
+
+        /// <summary>이 인물에게 내릴 수 있는 명령들(소매 걷기 따위). 근거가 없으면 비어 있다.</summary>
+        public IEnumerable<InterrogationOrder> Orders => GetComponents<InterrogationOrder>();
+
+        /// <summary>지금 심문하는 인물의 데이터(이름·성격). 부르기 판이 이름표에 쓴다.</summary>
+        public InterrogationCharacter Character => _character;
+
+        /// <summary>
+        /// <b>부른다.</b> 뜰에 세워 둔 사람을 마루에서 불러 세우는 길 — 거리도 잠금도 안 본다.
+        ///
+        /// 클릭(<see cref="OnSelect"/>)과 달리 다가설 필요가 없다. 어사가 마루에서 이름을
+        /// 부르는데 몇 걸음 안에 있어야 한다면 그건 부르는 것이 아니다.
+        /// </summary>
+        public void CallUp()
+        {
+            _locked = false;
+            Begin();
+        }
 
         /// <summary>월드 패널의 추천 질문 버튼이 호출.</summary>
         public void AskTopicFromUi(TopicQuestion t) => AskTopic(t);
+
+        /// <summary>월드 패널의 명령 버튼이 호출.</summary>
+        public void RunOrderFromUi(InterrogationOrder o)
+        {
+            if (!_active || o == null || !o.Available) return;
+            o.Run(this);
+            InterrogationPanel.Refresh();   // 걷었으면 그 단추는 사라져야 한다
+        }
 
         /// <summary>월드 패널의 '잠시 멈추다' 버튼이 호출. 다시 말을 걸면 이어진다.</summary>
         public void CloseFromUi() => ClosePanel();

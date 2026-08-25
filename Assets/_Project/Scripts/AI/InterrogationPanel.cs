@@ -5,14 +5,24 @@ using UnityEngine.UI;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 심문의 조작부(마이크 · 추천 질문 · 닫기)를 월드 공간 Canvas로 그린다.
-    /// 대사 자체는 <see cref="SubtitleView"/>가 맡고, 여기는 "누를 것"만 담당한다.
+    /// 심문의 조작부를 월드 공간 Canvas로 그린다. 대사 자체는 <see cref="SubtitleView"/>가
+    /// 맡고, 여기는 "누를 것"만 담당한다.
     ///
     /// OnGUI로는 헤드셋에 아무것도 안 뜨므로, 이게 없으면 VR에서 심문을 시작하거나
     /// 끝낼 방법이 없다.
     ///
-    /// 씬에 미리 둘 필요 없다 — <see cref="InterrogationController"/>가 심문을 시작할 때
-    /// 스스로 만든다. 자막 바로 아래에 붙어 함께 따라다닌다.
+    /// <b>네 줄로 되어 있다</b>(위에서 아래로):
+    ///   ① 마이크 · 마치기 — 늘 있는 것
+    ///   ② <b>물음</b>   — 추천 질문. 한 번에 셋까지만(<see cref="InterrogationController.Topics"/>)
+    ///   ③ <b>명령</b>   — 묻는 것이 아니라 시키는 것(<see cref="InterrogationOrder"/>).
+    ///                     근거가 없으면 줄 자체가 안 뜬다
+    ///   ④ <b>사람</b>   — 동헌의 부르기 판(<see cref="InterrogationBench"/>). 이름을 누르면
+    ///                     있던 이가 물러나고 그 사람이 선다
+    ///
+    /// <b>아무도 안 불렀을 때</b>는 ④번 줄만 뜬다(<see cref="OpenRoster"/>). 마루에 앉아
+    /// 뜰을 내려다보는데 마이크며 마치기가 먼저 떠 있으면 누구에게 하는 말인지 알 수 없다.
+    ///
+    /// 씬에 미리 둘 필요 없다 — 심문이 시작될 때 스스로 만든다.
     /// </summary>
     [RequireComponent(typeof(Canvas))]
     public class InterrogationPanel : MonoBehaviour
@@ -22,11 +32,21 @@ namespace IMUNROK.Common
         [SerializeField] private Color _chipColor = new Color(0.06f, 0.06f, 0.07f, 0.85f);
         [SerializeField] private Color _micColor = new Color(0.20f, 0.35f, 0.28f, 0.9f);
         [SerializeField] private Color _micOnColor = new Color(0.72f, 0.20f, 0.16f, 0.95f);
-        [SerializeField] private Color _closeColor = new Color(0.28f, 0.10f, 0.09f, 0.9f);
         [Tooltip("되돌릴 수 없는 '마치기' 버튼")]
         [SerializeField] private Color _endColor = new Color(0.42f, 0.30f, 0.10f, 0.95f);
         [Tooltip("되물을 때의 색. 한 번 더 눌러야 끝난다는 것이 색으로도 보여야 한다")]
         [SerializeField] private Color _confirmColor = new Color(0.62f, 0.16f, 0.12f, 0.97f);
+
+        [Tooltip("명령 단추. 묻는 것과 <b>색으로 갈라 둔다</b> — 이 줄을 누르면 대답이 아니라 일이 벌어진다")]
+        [SerializeField] private Color _orderColor = new Color(0.46f, 0.11f, 0.09f, 0.95f);
+
+        [Tooltip("부를 사람 이름표")]
+        [SerializeField] private Color _seatColor = new Color(0.10f, 0.09f, 0.13f, 0.88f);
+        [Tooltip("지금 불려 나와 있는 사람")]
+        [SerializeField] private Color _seatUpColor = new Color(0.30f, 0.26f, 0.12f, 0.95f);
+        [Tooltip("아직 안 온 사람 — 자리는 있으나 사람이 없다")]
+        [SerializeField] private Color _seatEmptyColor = new Color(0.09f, 0.09f, 0.09f, 0.55f);
+
         [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
 
         private static InterrogationPanel _instance;
@@ -36,12 +56,20 @@ namespace IMUNROK.Common
         private WorldHudAnchor _anchor;
         private Image _micBg;
         private Text _micLabel;
+        private RectTransform _micRt;
         private readonly List<GameObject> _chips = new List<GameObject>();
+        private readonly List<GameObject> _orderChips = new List<GameObject>();
+        private readonly List<GameObject> _seatChips = new List<GameObject>();
         private RectTransform _chipRow;
+        private RectTransform _orderRow;
+        private RectTransform _seatRow;
         private RectTransform _endRt;
         private Image _endBg;
         private Text _endLabel;
         private float _confirmLeft;      // 되물은 뒤 남은 시간
+
+        /// <summary>아무도 안 불렀을 때 — 이름표 줄만 뜬 상태.</summary>
+        private bool _rosterOnly;
 
         private const string EndWord = "이만 마치겠소";
         private const string AskWord = "정말 마치겠소?";
@@ -75,18 +103,50 @@ namespace IMUNROK.Common
         /// <summary>심문이 시작될 때 호출 — 없으면 만들고, 이 심문에 맞춰 버튼을 다시 만든다.</summary>
         public static void Open(InterrogationController owner)
         {
-            if (_instance == null)
-            {
-                _instance = FindFirstObjectByType<InterrogationPanel>();
-                if (_instance == null)
-                {
-                    var go = new GameObject("VR_심문조작", typeof(Canvas));
-                    // 자막(-0.28)보다 아래 — 대사를 가리지 않게
-                    go.AddComponent<WorldHudAnchor>().Configure(WorldHudAnchor.Placement.Front);
-                    _instance = go.AddComponent<InterrogationPanel>();
-                }
-            }
+            Ensure();
             _instance.OpenInternal(owner);
+        }
+
+        /// <summary>
+        /// <b>이름표 줄만 띄운다</b> — 아직 아무도 안 불렀을 때.
+        ///
+        /// 동헌에 들어서면 부르기 판(<see cref="InterrogationBench"/>)이 이걸 부른다.
+        /// 마이크도 마치기도 안 뜬다 — 마주한 사람이 없는데 "이만 마치겠소" 가 떠 있으면
+        /// 무엇을 마치겠다는 것인지 알 수 없다.
+        /// </summary>
+        public static void OpenRoster()
+        {
+            if (InterrogationBench.Instance == null) return;
+            Ensure();
+            // <b>이미 떠 있으면 그대로 둔다.</b> 부르기 판이 매 프레임 이걸 부르는데,
+            // 그때마다 다시 지으면 단추를 초당 예순 번 부수고 새로 만든다 — 눌리지도 않고
+            // 값만 잔뜩 든다. 자리 상태가 바뀌면 Refresh 가 고쳐 그린다.
+            if (_instance._rosterOnly && _instance._group != null && _instance._group.alpha > 0f) return;
+            _instance.OpenRosterInternal();
+        }
+
+        /// <summary>지금 떠 있는 판을 다시 그린다(질문을 하나 물었거나 명령이 사라졌을 때).</summary>
+        public static void Refresh()
+        {
+            if (_instance == null || _instance._group == null || _instance._group.alpha <= 0f) return;
+            if (_instance._rosterOnly) _instance.BuildSeats();
+            else
+            {
+                _instance.RebuildChips(_instance._owner != null ? _instance._owner.Topics : null);
+                _instance.BuildOrders();
+                _instance.BuildSeats();
+            }
+        }
+
+        private static void Ensure()
+        {
+            if (_instance != null) return;
+            _instance = FindFirstObjectByType<InterrogationPanel>();
+            if (_instance != null) return;
+            var go = new GameObject("VR_심문조작", typeof(Canvas));
+            // 자막(-0.28)보다 아래 — 대사를 가리지 않게
+            go.AddComponent<WorldHudAnchor>().Configure(WorldHudAnchor.Placement.Front);
+            _instance = go.AddComponent<InterrogationPanel>();
         }
 
         /// <summary>제시한 증거 그림을 잠깐 띄운다("탁" 들이미는 연출).</summary>
@@ -97,7 +157,6 @@ namespace IMUNROK.Common
             _instance._evidenceTimer = seconds;
         }
 
-        /// <summary>심문이 끝날 때 호출.</summary>
         /// <summary>이 인물보다 앞에 서게 한다(상대 몸에 가리지 않게).</summary>
         public static void KeepInFrontOf(Transform target)
         {
@@ -105,9 +164,27 @@ namespace IMUNROK.Common
             if (p != null && p._anchor != null) p._anchor.KeepInFrontOf(target);
         }
 
+        /// <summary>심문이 끝날 때 호출.</summary>
         public static void Close()
         {
             if (_instance != null) _instance.SetVisible(false);
+        }
+
+        /// <summary>지금 이름표 줄만 떠 있나.</summary>
+        public static bool RosterShowing =>
+            _instance != null && _instance._rosterOnly && _instance._group != null && _instance._group.alpha > 0f;
+
+        /// <summary>
+        /// 이름표 줄을 내린다 — 동헌에서 걸어 나갔을 때.
+        ///
+        /// <b>내리는 쪽이 없어서 판이 따라다녔다.</b> 띄우는 일만 있고 내리는 일이 없으니,
+        /// 마루에서 내려와 문서고까지 걸어가도 부를 사람 이름표가 발밑에 그대로 붙어
+        /// 있었다 — 서가 앞에서 甲을 부를 수 있는 것처럼 보인다.
+        /// 심문 중인 판은 건드리지 않는다. 그건 심문이 제 손으로 닫는다.
+        /// </summary>
+        public static void CloseRoster()
+        {
+            if (RosterShowing) _instance.SetVisible(false);
         }
 
         private void Awake()
@@ -116,7 +193,7 @@ namespace IMUNROK.Common
             _instance = this;
             _anchor = GetComponent<WorldHudAnchor>();
             if (_anchor == null) _anchor = gameObject.AddComponent<WorldHudAnchor>();
-            _anchor.SetDistance(1.3f, -0.62f);   // 자막 바로 아래
+            ApplyPlacement();
 
             _font = UiFont.Resolve(_font);
             _group = gameObject.GetComponent<CanvasGroup>();
@@ -128,14 +205,58 @@ namespace IMUNROK.Common
 
         private void OnDestroy() { if (_instance == this) _instance = null; }
 
+        /// <summary>
+        /// 판과 자막이 서로를 밟지 않게 자리를 잡는다.
+        ///
+        /// <b>왜 두 곳을 한 자리에서 정하나.</b> 부르기 판이 있는 씬에서는 줄이 넷이라
+        /// 판이 아래로 0.36m 길어진다. 그대로 두면 <b>맨 아랫줄(사람 이름표)이 화면
+        /// 밖으로 나간다</b> — 시야 반각이 30° 인데 이름표가 30.2° 에 놓여, 부를 사람을
+        /// 고르라는 판이 정작 안 보였다.
+        ///
+        /// 그래서 판을 올린다. 그런데 올리면 이번엔 <b>자막을 밟는다</b>. 자막은 여태
+        /// 눈 아래 0.28m 에 있었는데, 그 자리는 판이 두 줄이던 시절에 잡은 자리다.
+        /// 판이 길어졌으면 자막도 함께 올라가야 한다 — 둘 중 하나만 고치면 반드시
+        /// 다른 하나가 밀린다.
+        /// </summary>
+        private void ApplyPlacement()
+        {
+            bool tall = InterrogationBench.Instance != null;     // 사람 줄이 붙는 씬인가
+            _anchor.SetDistance(1.3f, tall ? -0.42f : -0.55f);
+            SubtitleView.SetReadingDistance(1.3f, tall ? -0.13f : -0.28f);
+        }
+
         private void OpenInternal(InterrogationController owner)
         {
+            bool wasRoster = _rosterOnly || _group.alpha <= 0f;
             _owner = owner;
+            _rosterOnly = false;
             _confirmLeft = 0f;
             ResetEndLook();
+            ApplyPlacement();
+            _micRt.gameObject.SetActive(true);
+            _endRt.gameObject.SetActive(true);
             RebuildChips(owner != null ? owner.Topics : null);
+            BuildOrders();
+            BuildSeats();
             SetVisible(true);
-            if (_anchor != null) _anchor.Recenter();
+            if (wasRoster && _anchor != null) _anchor.Recenter();
+        }
+
+        private void OpenRosterInternal()
+        {
+            bool wasHidden = _group.alpha <= 0f;
+            _owner = null;
+            _rosterOnly = true;
+            _confirmLeft = 0f;
+            ResetEndLook();
+            ApplyPlacement();
+            _micRt.gameObject.SetActive(false);
+            _endRt.gameObject.SetActive(false);
+            RebuildChips(null);
+            BuildOrders();
+            BuildSeats();
+            SetVisible(true);
+            if (wasHidden && _anchor != null) { _anchor.KeepInFrontOf(null); _anchor.Recenter(); }
         }
 
         private void SetVisible(bool on)
@@ -174,13 +295,13 @@ namespace IMUNROK.Common
         private void BuildFixedParts()
         {
             // 마이크 — 가장 크게. VR에서 주된 입력 수단이다.
-            var micRt = NewRect("마이크", new Vector2(-250f, 60f), new Vector2(560f, 96f), transform);
-            _micBg = micRt.gameObject.AddComponent<Image>();
+            _micRt = NewRect("마이크", new Vector2(-250f, 88f), new Vector2(560f, 96f), transform);
+            _micBg = _micRt.gameObject.AddComponent<Image>();
             _micBg.color = _micColor;
-            var micBtn = micRt.gameObject.AddComponent<Button>();
+            var micBtn = _micRt.gameObject.AddComponent<Button>();
             micBtn.targetGraphic = _micBg;
             micBtn.onClick.AddListener(() => MicInput.Instance?.Toggle());
-            _micLabel = NewText("라벨", "🎤 눌러서 말하기", Vector2.zero, new Vector2(560f, 96f), micRt, _fontSize);
+            _micLabel = NewText("라벨", "🎤 눌러서 말하기", Vector2.zero, new Vector2(560f, 96f), _micRt, _fontSize);
 
             // 마치기 — 이건 되돌릴 수 없다. 상대가 자리를 뜬다.
             //
@@ -188,7 +309,7 @@ namespace IMUNROK.Common
             // 것을 막으려던 것인데, 마주 앉아 있는 자리에서 <b>대화를 잠시 치운다</b>는 것이
             // 무슨 뜻인지 애매했다 — 치워 놓고 할 일이 없다. 안전은 버튼을 하나 더 두어
             // 얻을 것이 아니라 <b>이 버튼 자신이</b> 두 번 물어 얻는 것이다.
-            _endRt = NewRect("마치기", new Vector2(300f, 60f), new Vector2(340f, 96f), transform);
+            _endRt = NewRect("마치기", new Vector2(300f, 88f), new Vector2(340f, 96f), transform);
             _endBg = _endRt.gameObject.AddComponent<Image>();
             _endBg.color = _endColor;
             var endBtn = _endRt.gameObject.AddComponent<Button>();
@@ -196,8 +317,11 @@ namespace IMUNROK.Common
             endBtn.onClick.AddListener(OnEndPressed);
             _endLabel = NewText("라벨", EndWord, Vector2.zero, new Vector2(340f, 96f), _endRt, _fontSize - 4);
 
-            // 추천 질문이 들어갈 줄
-            _chipRow = NewRect("질문줄", new Vector2(0f, -60f), new Vector2(1200f, 90f), transform);
+            // 물음 · 명령 · 사람 — 세 줄. 위에서 아래로 무거워진다:
+            // 묻는 것보다 시키는 것이, 시키는 것보다 사람을 갈아 세우는 것이 큰일이다.
+            _chipRow  = NewRect("물음줄", new Vector2(0f, -16f),  new Vector2(1200f, 90f), transform);
+            _orderRow = NewRect("명령줄", new Vector2(0f, -104f), new Vector2(1200f, 72f), transform);
+            _seatRow  = NewRect("사람줄", new Vector2(0f, -188f), new Vector2(1200f, 76f), transform);
 
             // 제시한 증거 그림 — 평소엔 꺼져 있다가 잠깐 뜬다
             var evRt = NewRect("증거그림", new Vector2(0f, 300f), new Vector2(420f, 300f), transform);
@@ -215,8 +339,7 @@ namespace IMUNROK.Common
             int n = topics.Count;
             const float gap = 16f;
             float w = Mathf.Min(380f, (1200f - gap * (n - 1)) / n);
-            float total = n * w + gap * (n - 1);
-            float x0 = -total * 0.5f + w * 0.5f;
+            float x0 = -(n * w + gap * (n - 1)) * 0.5f + w * 0.5f;
 
             for (int i = 0; i < n; i++)
             {
@@ -232,6 +355,79 @@ namespace IMUNROK.Common
                 var label = NewText("라벨", t.question, Vector2.zero, new Vector2(w - 24f, 84f), rt, _fontSize - 4);
                 label.horizontalOverflow = HorizontalWrapMode.Wrap;
                 _chips.Add(rt.gameObject);
+            }
+        }
+
+        /// <summary>
+        /// 명령 줄. <b>근거가 선 것만 뜬다</b> — 그래서 이 줄이 비어 있는 것 자체가
+        /// "아직 시킬 수 있는 것이 없다"는 말이 된다.
+        /// </summary>
+        private void BuildOrders()
+        {
+            foreach (var c in _orderChips) if (c != null) Destroy(c);
+            _orderChips.Clear();
+            if (_owner == null) return;
+
+            var live = new List<InterrogationOrder>();
+            foreach (var o in _owner.Orders)
+                if (o != null && o.enabled && o.Available) live.Add(o);
+            if (live.Count == 0) return;
+
+            const float gap = 16f;
+            float w = Mathf.Min(420f, (1200f - gap * (live.Count - 1)) / live.Count);
+            float x0 = -(live.Count * w + gap * (live.Count - 1)) * 0.5f + w * 0.5f;
+
+            for (int i = 0; i < live.Count; i++)
+            {
+                var o = live[i];
+                var rt = NewRect($"명령{i}", new Vector2(x0 + i * (w + gap), 0f), new Vector2(w, 66f), _orderRow);
+                var bg = rt.gameObject.AddComponent<Image>();
+                bg.color = _orderColor;
+                var btn = rt.gameObject.AddComponent<Button>();
+                btn.targetGraphic = bg;
+                var captured = o;
+                btn.onClick.AddListener(() => _owner?.RunOrderFromUi(captured));
+                var label = NewText("라벨", o.Label, Vector2.zero, new Vector2(w - 24f, 66f), rt, _fontSize - 6);
+                label.horizontalOverflow = HorizontalWrapMode.Wrap;
+                _orderChips.Add(rt.gameObject);
+            }
+        }
+
+        /// <summary>
+        /// 사람 줄 — 동헌의 부르기 판. 판이 없는 씬(1막 마당·사랑방)에서는 아예 안 그린다.
+        /// 거기서는 걸어가서 말을 거는 것이 옳다.
+        /// </summary>
+        private void BuildSeats()
+        {
+            foreach (var c in _seatChips) if (c != null) Destroy(c);
+            _seatChips.Clear();
+
+            var bench = InterrogationBench.Instance;
+            if (bench == null || bench.Seats == null || bench.Seats.Count == 0) return;
+
+            int n = bench.Seats.Count;
+            const float gap = 14f;
+            float w = Mathf.Min(280f, (1200f - gap * (n - 1)) / n);
+            float x0 = -(n * w + gap * (n - 1)) * 0.5f + w * 0.5f;
+
+            for (int i = 0; i < n; i++)
+            {
+                var s = bench.Seats[i];
+                if (s == null) continue;
+                bool up = bench.IsUp(s);
+                bool here = s.사람 != null;
+
+                var rt = NewRect($"사람{i}", new Vector2(x0 + i * (w + gap), 0f), new Vector2(w, 70f), _seatRow);
+                var bg = rt.gameObject.AddComponent<Image>();
+                bg.color = !here ? _seatEmptyColor : (up ? _seatUpColor : _seatColor);
+                var btn = rt.gameObject.AddComponent<Button>();
+                btn.targetGraphic = bg;
+                var captured = s;
+                btn.onClick.AddListener(() => { bench.Call(captured); Refresh(); });
+
+                string label = !here ? s.이름 + " (아직)" : (up ? "▶ " + s.이름 : s.이름);
+                NewText("라벨", label, Vector2.zero, new Vector2(w - 20f, 70f), rt, _fontSize - 6);
+                _seatChips.Add(rt.gameObject);
             }
         }
 

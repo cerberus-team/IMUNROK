@@ -75,6 +75,12 @@ namespace IMUNROK.Common
         [TextArea(2, 4)]
         public string openingLine = "무슨 일로 오셨소?";
 
+        [Tooltip("물러났다가 <b>다시 불려 나왔을 때</b>의 첫 대사. 비우면 첫 대사를 그대로 쓴다.\n" +
+                 "동헌처럼 불렀다 물렸다 하는 자리에서 쓴다 — 두 번째로 끌려 나온 사람이 " +
+                 "처음처럼 '무슨 일로 오셨소' 하면 그 사이의 일이 다 없던 것이 된다")]
+        [TextArea(2, 4)]
+        public string recallLine = "";
+
         [Tooltip("심문을 끝내고 돌아설 때 인물이 등 뒤로 던지는 한 마디. 비우면 그냥 닫힌다.\n" +
                  "무엇을 물었든 반드시 듣게 되므로, 다음에 갈 곳을 흘리는 자리로 쓰기 좋다")]
         [TextArea(2, 4)]
