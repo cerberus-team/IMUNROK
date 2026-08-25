@@ -77,6 +77,16 @@ namespace IMUNROK.Gyeonu
         /// </summary>
         public bool CanRotate => (CurrentMode == Mode.상세 || CurrentMode == Mode.조사) && preview.HasModel;
 
+        /// <summary>
+        /// 조사 화면에 물건과 **함께 띄울 특징 줄** (2026-08-24, 서고 장부).
+        /// 비워 두면 지금까지처럼 생김새만 보인다. <see cref="Open"/> 직전에 채운다.
+        ///
+        /// 왜 필요한가: 장부 기물은 홈 개수·눌린 자국·녹 위치 같은 **미세한 차이로만** 갈린다.
+        /// 화면에서 픽셀을 뒤지게 하면 추리가 아니라 눈싸움이 된다 — 본 것을 글로 함께 적어 주어
+        /// 세 후보를 **논리로 견주게** 한다(기획 요구).
+        /// </summary>
+        public string[] ExternalTraits { get; set; }
+
         /// <summary>판이 스스로 닫히길 원할 때(✕ 버튼 등). 입력 측이 걷기·조준 잠금까지 풀어야 한다.</summary>
         public event System.Action CloseRequested;
 
@@ -229,6 +239,7 @@ namespace IMUNROK.Gyeonu
             Hovered = null;
             Viewing = null;
             if (inspect != null) inspect.Hide();
+            ExternalTraits = null;   // 다음에 여는 물건이 남의 특징 줄을 물려받지 않게
             if (panelRoot != null) panelRoot.gameObject.SetActive(true);   // 다음에 열 때를 위해
             CurrentMode = Mode.목록;
             preview.Clear();
@@ -330,7 +341,7 @@ namespace IMUNROK.Gyeonu
             preview.SetRendering(true);
 
             panelRoot.gameObject.SetActive(false);   // 한지 판은 통째로 물러난다
-            inspect.Show(preview.Texture);
+            inspect.Show(preview.Texture, ExternalTraits);
             wheelReadyAt = Time.unscaledTime + 0.35f;
         }
 

@@ -130,18 +130,75 @@ namespace IMUNROK.Gyeonu
         void ResizeBoard()
         {
             if (boardRt == null) return;
-            float h = 2f * BoardZ * Mathf.Tan(FillDegrees * 0.5f * Mathf.Deg2Rad);
+            // ⚠️ 판 크기를 **지금 카메라의 화각**으로 잡는다 (2026-08-24).
+            //    포커스 퍼즐 도중에 조사를 열면 화각이 38°까지 좁아져 있는데, 52°에 맞춘
+            //    고정 크기를 쓰면 판이 화면보다 커져 **닫기(✕) 버튼과 조작 안내가 화면 밖으로
+            //    밀려난다** (서고 장부에서 실측). 평소(60°)에는 52°가 그대로 뽑힌다.
+            float fov = 60f;
+            var cam = GetComponentInParent<Camera>();
+            if (cam != null) fov = cam.fieldOfView;
+            float deg = Mathf.Min(FillDegrees, fov * 0.92f);
+            float h = 2f * BoardZ * Mathf.Tan(deg * 0.5f * Mathf.Deg2Rad);
             boardRt.localScale = Vector3.one * (h / CanvasUnits);
         }
 
-        public void Show(RenderTexture rt)
+        public void Show(RenderTexture rt, string[] traits = null)
         {
             gameObject.SetActive(true);
 
             ResizeBoard();
             image.texture = rt;
             image.enabled = rt != null;
+            ShowTraits(traits);
         }
+
+        /// <summary>
+        /// 물건에서 **본 것**을 왼쪽에 글로 적는다 (2026-08-24, 서고 장부).
+        /// 미세한 흔적으로만 갈리는 물건을 화면에서 찾아내게 하면 추리가 눈싸움이 된다 —
+        /// 본 것을 적어 주고, 어느 것이 기록과 맞는지 **고르는 일**만 남긴다.
+        ///
+        /// 판이 아니라 조사 화면에 두는 까닭: 돌려 보는 동안 늘 곁에 있어야 견줄 수 있다.
+        /// </summary>
+        void ShowTraits(string[] traits)
+        {
+            bool on = traits != null && traits.Length > 0;
+            if (traitPanel == null)
+            {
+                if (!on) return;
+                traitPanel = new GameObject("특징", typeof(RectTransform)).GetComponent<RectTransform>();
+                traitPanel.SetParent(boardRt, false);
+                Place(traitPanel, new Vector2(-470f, 60f), new Vector2(520f, 460f));
+
+                var bg = new GameObject("바탕", typeof(RectTransform), typeof(RawImage));
+                bg.transform.SetParent(traitPanel, false);
+                var bgi = bg.GetComponent<RawImage>();
+                bgi.texture = Texture2D.whiteTexture;
+                bgi.color = new Color(0f, 0f, 0f, 0.42f);
+                bgi.raycastTarget = false;
+                var bgr = (RectTransform)bg.transform;
+                bgr.anchorMin = Vector2.zero; bgr.anchorMax = Vector2.one;
+                bgr.offsetMin = Vector2.zero; bgr.offsetMax = Vector2.zero;
+
+                traitHead = MakeText("머리", 40, TextAnchor.UpperLeft, InventorySkin.Gold);
+                traitHead.transform.SetParent(traitPanel, false);
+                Place(traitHead.rectTransform, new Vector2(6f, 186f), new Vector2(480f, 52f));
+                traitHead.text = "살 펴 본  것";
+
+                traitBody = MakeText("줄", 36, TextAnchor.UpperLeft, new Color(0.90f, 0.86f, 0.78f, 0.95f));
+                traitBody.transform.SetParent(traitPanel, false);
+                Place(traitBody.rectTransform, new Vector2(6f, -32f), new Vector2(480f, 360f));
+                traitBody.lineSpacing = 1.35f;
+            }
+            traitPanel.gameObject.SetActive(on);
+            if (!on) return;
+
+            var sb = new System.Text.StringBuilder();
+            foreach (var t in traits) sb.Append("· ").Append(t).Append('\n');
+            traitBody.text = sb.ToString();
+        }
+
+        RectTransform traitPanel;
+        Text traitHead, traitBody;
 
         public void Hide() => gameObject.SetActive(false);
 

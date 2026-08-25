@@ -35,7 +35,7 @@ namespace IMUNROK.Gyeonu
                 //   닫힌 가구는 그대로 막는다 — 안이 안 보이는데 집히면 안 된다.
                 if (it is IOpenable openable && openable.IsOpen)
                 {
-                    var inner = PickupBehind(hits, hit.distance);
+                    var inner = InnerBehind(hits, hit.distance);
                     if (inner != null) { target = inner; break; }
                 }
 
@@ -48,16 +48,19 @@ namespace IMUNROK.Gyeonu
                 target.Interact(gameObject);
         }
 
-        /// <summary>주어진 거리보다 뒤에 있는 첫 ItemPickup — 열린 가구 속을 볼 때만 쓴다.
-        /// 집을 수 있는 물건에만 한정한다: 아무 Interactable이나 통과시키면 열린 문 너머
-        /// 엉뚱한 것이 조준되고, 궤를 다시 닫을 방법도 사라진다.</summary>
-        ItemPickup PickupBehind(RaycastHit[] sorted, float from)
+        /// <summary>주어진 거리보다 뒤에 있는 첫 **가구 속 대상** — 열린 가구를 들여다볼 때만 쓴다.
+        /// 집을 수 있는 물건(<see cref="ItemPickup"/>)과 안에서 조작하는 것(<see cref="IInnerTarget"/>)만
+        /// 한정한다: 아무 Interactable이나 통과시키면 열린 문 너머 엉뚱한 것이 조준되고,
+        /// 궤를 다시 닫을 방법도 사라진다.</summary>
+        Interactable InnerBehind(RaycastHit[] sorted, float from)
         {
             foreach (var h in sorted)
             {
                 if (h.distance <= from) continue;
                 var pick = h.collider.GetComponentInParent<ItemPickup>();
                 if (pick != null && pick.CanInteract(gameObject)) return pick;
+                var inner = h.collider.GetComponentInParent<Interactable>();
+                if (inner is IInnerTarget && inner.CanInteract(gameObject)) return inner;
             }
             return null;
         }

@@ -25,7 +25,7 @@ namespace IMUNROK.Gyeonu
         Quaternion fromRot, toRot, savedRot;
         float t;       // 보간 진행 0~1
         float dim;     // 현재 비네트 강도
-        float savedFov, toFov;   // 화각 확대 (FocusInteractable.FocusFov)
+        float savedFov, fromFov, toFov;   // 화각 확대 (FocusInteractable.FocusFov)
         Renderer vignetteQuad;   // 카메라 앞 쿼드 — OnGUI가 아니라 3D 렌더 (VR·캡처에서도 보인다)
         MaterialPropertyBlock vignetteMpb;
         // ⚠️ static 캐시 금지 (2026-08-14 실측): 도메인 리로드가 꺼진 프로젝트에서 static 참조가
@@ -50,6 +50,12 @@ namespace IMUNROK.Gyeonu
             interactor = GetComponent<DebugInteractor>();
             if (walk != null) walk.enabled = false;          // 이동·시선 잠금
             if (interactor != null) interactor.enabled = false; // 조준점·중복 클릭 잠금
+            // 커서를 창 안에 가두되 **하드웨어 커서는 숨긴다** — 소지품 판과 같은 규약이다.
+            // 대상이 자기 판 위에 조준점을 그린다(FocusInteractable.HandlePoint).
+            // ⚠️ 걷기 컨트롤러를 끄면 잠금이 None으로 풀리는데, 그 상태로 두면 커서가 창 밖으로
+            //    빠져나가 퍼즐을 겨눌 수 없다. 여기서 다시 잡아야 한다.
+            Cursor.lockState = CursorLockMode.Confined;
+            Cursor.visible = false;
             savedPos = transform.position;
             savedRot = transform.rotation;
             target.GetFocusPose(savedPos, out toPos, out toRot);
@@ -58,9 +64,33 @@ namespace IMUNROK.Gyeonu
             phase = Phase.Enter;
             var camIn = GetComponent<Camera>();
             savedFov = camIn != null ? camIn.fieldOfView : 60f;
+            fromFov = savedFov;
             toFov = target.FocusFov > 0.1f ? target.FocusFov : savedFov;
             EnsureVignette();
             target.OnFocusChanged(true);
+        }
+
+        /// <summary>
+        /// 포커스를 **유지한 채** 자세만 다시 잡는다 (2026-08-24).
+        ///
+        /// 왜 필요한가: 단계가 바뀌면서 대상이 보여 줄 범위가 달라지는 퍼즐이 있다
+        /// (서고 장부는 2단계에 아래 칸의 기록·대조대까지 담아야 한다). 진입할 때 한 번
+        /// 잡은 자세를 그대로 두면 새로 생긴 것들이 화면 밖에 남는다 — 실제로 대조대가
+        /// 통째로 안 보였다. 물러났다 다시 들어오게 만드는 대신 카메라만 미끄러뜨린다.
+        /// </summary>
+        public void Reframe()
+        {
+            // ⚠️ Hold 일 때만 받으면 안 된다 — **앞 단계의 재조준이 아직 미끄러지는 중**에
+            //    다음 단계가 끝나면(디버그로 연속 풀거나 아주 빨리 푸는 경우) 그 요청이
+            //    조용히 무시돼 카메라가 옛 자리에 남는다. 들어오는 중이어도 목표만 갈아 끼운다.
+            if (target == null || phase == Phase.Idle || phase == Phase.Exit) return;
+            fromPos = transform.position; fromRot = transform.rotation;
+            target.GetFocusPose(savedPos, out toPos, out toRot);
+            var cam = GetComponent<Camera>();
+            fromFov = cam != null ? cam.fieldOfView : savedFov;
+            toFov = target.FocusFov > 0.1f ? target.FocusFov : savedFov;
+            t = 0f;
+            phase = Phase.Enter;
         }
 
         /// <summary>복귀 시작 (Esc/우클릭, 테스트 코드에서도 호출 가능).</summary>
@@ -69,6 +99,8 @@ namespace IMUNROK.Gyeonu
             if (phase != Phase.Hold) return;
             fromPos = transform.position; fromRot = transform.rotation;
             toPos = savedPos; toRot = savedRot;
+            var camOut = GetComponent<Camera>();
+            fromFov = camOut != null ? camOut.fieldOfView : toFov;
             t = 0f;
             phase = Phase.Exit;
             target.OnFocusChanged(false);
@@ -85,9 +117,9 @@ namespace IMUNROK.Gyeonu
                 transform.SetPositionAndRotation(Vector3.LerpUnclamped(fromPos, toPos, s),
                     Quaternion.SlerpUnclamped(fromRot, toRot, s));
                 var camL = GetComponent<Camera>();
-                if (camL != null && !Mathf.Approximately(savedFov, toFov))
-                    camL.fieldOfView = Mathf.Lerp(phase == Phase.Enter ? savedFov : toFov,
-                                                  phase == Phase.Enter ? toFov : savedFov, s);
+                float endFov = phase == Phase.Enter ? toFov : savedFov;
+                if (camL != null && !Mathf.Approximately(fromFov, endFov))
+                    camL.fieldOfView = Mathf.Lerp(fromFov, endFov, s);
                 dim = target.dimStrength * (phase == Phase.Enter ? s : 1f - s);
                 if (t >= 1f)
                 {
@@ -110,6 +142,12 @@ namespace IMUNROK.Gyeonu
             // Hold — 드래그 조작 + 이탈 입력
             dim = target.dimStrength;
             ApplyVignette();
+
+            // 소지품 판(전체 화면 조사 포함)이 떠 있는 동안에는 입력을 통째로 내준다 (2026-08-24).
+            // 안 그러면 Esc가 두 곳에서 먹혀 조사만 닫으려다 포커스까지 함께 풀리고,
+            // 어두운 막 뒤에서 퍼즐 조각이 끌려다닌다 (서고 장부에서 실측).
+            if (InventoryUI.Instance != null && InventoryUI.Instance.IsOpen) return;
+
             var mouse = Mouse.current;
             var kb = Keyboard.current;
             if (mouse == null || kb == null) return;
@@ -138,11 +176,17 @@ namespace IMUNROK.Gyeonu
             if (mouse.leftButton.wasReleasedThisFrame) target.HandleRelease();
             float sc = mouse.scroll.ReadValue().y;
             if (Mathf.Abs(sc) > 0.01f) target.HandleScroll(sc);
+
+            // 누르지 않았어도 어디를 겨누는지 알려 준다 — 대상이 조준점을 그린다
+            var camP = GetComponent<Camera>();
+            if (camP != null) target.HandlePoint(camP.ScreenPointToRay(mouse.position.ReadValue()));
         }
 
         void OnGUI()
         {
             if (phase != Phase.Hold || target == null) return;
+            // 소지품 판·조사 화면이 떠 있으면 그쪽 안내가 화면을 맡는다 (2026-08-24)
+            if (InventoryUI.Instance != null && InventoryUI.Instance.IsOpen) return;
             var hint = new GUIStyle(GUI.skin.label) { fontSize = 14, alignment = TextAnchor.MiddleCenter };
             hint.normal.textColor = new Color(1f, 1f, 1f, 0.55f);
             string status = target.FocusStatus;

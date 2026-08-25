@@ -62,6 +62,22 @@ namespace IMUNROK.Gyeonu
         public const string F_암문단서 = "ammun_clue_found";
         /// <summary>오작교 암문의 돌 자물쇠(개미수열)를 풀었다 — 한 번 풀면 다시 풀 필요가 없다 (2026-08-23).</summary>
         public const string F_암문퍼즐 = "ammun_puzzle_solved";
+        // ── 종막 — 서고 장부 (2026-08-24) ─────────────────
+        //   C1·C3를 손에 넣어야 시작되고, 세 단계를 지나면 C2가 놓인 자리가 드러난다.
+
+        /// <summary>아버지의 검수 기록(C1)을 지녔다 — 2단계 대조의 전제.
+        /// 소지품 쪽에서 <see cref="InventoryItem.worldFlag"/>로 세운다.</summary>
+        public const string F_아버지검수기록 = "father_inspection_record";
+        /// <summary>선아의 풀이표(C3)를 지녔다 — 장부를 읽을 줄 알게 된다. 1단계의 전제.</summary>
+        public const string F_선아풀이표 = "seona_key_table";
+        /// <summary>1단계 — 수령의 장부 배열을 복원했다.</summary>
+        public const string F_장부복원 = "ledger_restored";
+        /// <summary>2단계 — 아버지 기록과 같은 기물 셋을 골라냈다.</summary>
+        public const string F_기물대조 = "ledger_matched";
+        /// <summary>3단계 — 셋이 모두 같은 손(崔)을 거쳐 같은 곳(後庫)으로 갔음이 드러났다.
+        /// 이때부터 서고 안쪽 창고방 서랍장을 뒤질 수 있다 — 게임은 어디로 가라 말하지 않는다.</summary>
+        public const string F_후고단서 = "backstore_lead";
+
         /// <summary>마을 아이들에게 관아 담장 개구멍 이야기를 들었다 — 밤에만, 이 단서가 있어야
         /// 개구멍이 그냥 담장이 아니라 밀어서 여는 자리라는 걸 알아본다 (2026-08-21).
         /// 조건 미달이면 커서를 올려도 아무 반응이 없다 — 문인 줄도 모르는 상태다.</summary>

@@ -44,6 +44,10 @@ namespace IMUNROK.Gyeonu
 
         public bool IsOpen => open;
 
+        /// <summary>여닫이 진행도 0~1 (0 = 완전히 닫힘). 문에 가려지는 순간을 골라
+        /// 무언가를 바꾸려는 쪽이 쓴다 — 예: 찬장 속 판의 재질 교체.</summary>
+        public float Progress => t;
+
         /// <summary>지금 잠겨 있는가 — 플래그가 없으면 늘 열린다.</summary>
         public bool Locked => !string.IsNullOrEmpty(unlockFlag) && !GyeonuWorld.Has(unlockFlag);
 

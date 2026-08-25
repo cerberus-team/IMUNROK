@@ -262,6 +262,72 @@ namespace IMUNROK.Gyeonu.Editor
             Debug.Log("[디버그] 렌즈 퍼즐·열쇠 해제 — Play를 다시 시작해야 구슬이 서안으로 돌아간다");
         }
 
+        // ── 종막 서고 장부 (2026-08-24) ───────────────────
+        //   C1(아버지 검수 기록)·C3(선아 풀이표)는 아직 얻을 길이 없다 —
+        //   관측실 조사와 선아 구출이 붙기 전까지 여기서 지급한다.
+
+        [MenuItem(Root + "서고 ① 단서 지급 (C3 풀이표 + C1 검수 기록)", priority = 450)]
+        static void GrantLedgerClues()
+        {
+            int n = 0;
+            foreach (var id in new[] { "C3", "C1" })
+            {
+                var it = FindItem(id);
+                if (it == null) { Debug.LogWarning("[디버그] " + id + " 정의가 없다 — 종막 장부 퍼즐 만들기 먼저"); continue; }
+                if (Inventory.Add(it)) n++;
+            }
+            Debug.Log("[디버그] 서고 단서 " + n + "개 지급 — 이제 찬장 장부를 읽을 수 있다");
+        }
+
+        [MenuItem(Root + "서고 ② C3만 지급 (1단계만 열기)", priority = 451)]
+        static void GrantLedgerC3()
+        {
+            var it = FindItem("C3");
+            if (it == null) { Debug.LogWarning("[디버그] C3 정의가 없다"); return; }
+            Inventory.Add(it);
+            Debug.Log("[디버그] 선아의 풀이표만 지급 — 1단계는 되고 2단계는 막힌다");
+        }
+
+        [MenuItem(Root + "서고 ③ 1단계(장부 배열) 풀린 것으로", priority = 452)]
+        static void SolveLedger1()
+        {
+            var puz = Object.FindFirstObjectByType<LedgerPuzzle>(FindObjectsInactive.Include);
+            if (puz == null) { Debug.LogWarning("[디버그] 이 씬에 서고 장부가 없다"); return; }
+            GrantLedgerClues();
+            puz.DebugSolveStage1();
+            Debug.Log("[디버그] 장부 배열 완료 — 2단계로 넘어갔다");
+        }
+
+        [MenuItem(Root + "서고 ④ 2단계(기물 대조)까지 풀린 것으로", priority = 453)]
+        static void SolveLedger2()
+        {
+            var puz = Object.FindFirstObjectByType<LedgerPuzzle>(FindObjectsInactive.Include);
+            if (puz == null) { Debug.LogWarning("[디버그] 이 씬에 서고 장부가 없다"); return; }
+            GrantLedgerClues();
+            puz.DebugSolveStage2();
+            Debug.Log("[디버그] 기물 대조 완료 — 창고방 서랍장에 표시가 뜬다");
+        }
+
+        [MenuItem(Root + "서고 장부 되돌리기", priority = 454)]
+        static void ResetLedger()
+        {
+            foreach (var f in new[] { GyeonuWorld.F_장부복원, GyeonuWorld.F_기물대조, GyeonuWorld.F_후고단서,
+                                      GyeonuWorld.F_아버지검수기록, GyeonuWorld.F_선아풀이표 })
+                GyeonuWorld.Set(f, false);
+            foreach (var id in new[] { "C1", "C2", "C3" })
+            {
+                var it = Inventory.Find(id);
+                if (it != null) Inventory.Remove(it);
+            }
+            Debug.Log("[디버그] 서고 장부 초기화 — Play를 다시 시작해야 기물이 무작위 자리로 돌아간다");
+        }
+
+        static InventoryItem FindItem(string id)
+        {
+            foreach (var it in Inventory.Catalog) if (it != null && it.Key == id) return it;
+            return null;
+        }
+
         // ── 별 길 안내 ────────────────────────────────────
 
         [MenuItem(Root + "별 길 켜기/끄기 (비밀지도)", priority = 440)]

@@ -154,6 +154,23 @@ namespace IMUNROK.Gyeonu
             return new Ray(transform.position, transform.forward);   // 마우스가 없으면 시선 조준
         }
 
+        /// <summary>
+        /// **소지품이 아닌 것**을 전체 화면 조사로 띄운다 (2026-08-24, 서고 장부).
+        ///
+        /// 장부 기물은 손에 넣는 물건이 아니라 선반 위에서 들여다보기만 하는 것이다. 그러나
+        /// 돌려 보기·확대·어두운 막은 조사 화면에 이미 다 있으므로, 목록을 거치지 않고
+        /// 그 화면만 연다. 닫으면(Esc·우클릭·✕) 판까지 함께 닫히고 원래 하던 일로 돌아간다 —
+        /// 획득 직후 화면(<c>PickupMode</c>)과 같은 규약이다.
+        ///
+        /// <paramref name="traits"/>를 주면 물건 곁에 "살펴본 것"이 함께 적힌다.
+        /// </summary>
+        public void InspectExternal(InventoryItem item, string[] traits = null)
+        {
+            if (item == null) return;
+            InventoryUI.Ensure().ExternalTraits = traits;
+            OpenUI(item, true);
+        }
+
         void OpenUI(InventoryItem showItem = null, bool pickup = false)
         {
             if (ui != null && ui.IsOpen) ui.Close();
@@ -179,7 +196,11 @@ namespace IMUNROK.Gyeonu
         void ReleaseLocks()
         {
             if (walk != null) { walk.uiOpen = false; walk.lookLocked = false; }
-            if (interactor != null) interactor.enabled = true;
+            // ⚠️ 포커스 퍼즐 도중에 조사 화면을 열었다 닫은 경우 — 조준을 되살리면 안 된다.
+            //    포커스 리그가 진입할 때 꺼 둔 것이고, 물러날 때 스스로 되살린다 (2026-08-24).
+            if (focus == null) focus = GetComponent<DebugFocusRig>();
+            bool focusing = focus != null && focus.IsFocusing;
+            if (interactor != null && !focusing) interactor.enabled = true;
             pressed = null;
             rotating = false;
             // 걷기로 복귀 — 커서를 다시 화면 중앙에 붙잡아 마우스가 시선이 된다
