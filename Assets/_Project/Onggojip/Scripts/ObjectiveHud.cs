@@ -9,8 +9,8 @@ namespace IMUNROK.Onggojip
     /// <summary>
     /// 1막 목표 안내 HUD — 화면 상단에 "지금 뭘 할지"를 보여준다(길 잃음 방지).
     /// 진행에 따라 문구가 바뀐다:
-    ///   · 필수 단서(J04·J09·J13·J15) 부족 → "집 안을 조사하라 (필수 N/4)"
-    ///   · 필수 단서 다 모음         → "출도하라! (F2 ▸ 출도)"
+    ///   · 필수 단서(OnggojipClues.RequiredForReveal) 부족 → "집 안을 조사하라 (필수 N/4)"
+    ///   · 필수 단서 다 모음         → "품속의 마패를 내보여라 (F 꾹 누르기)"
     /// H 키로 켜고 끌 수 있다. 아무 오브젝트(예: _OnggojipCase)에 붙이면 됨.
     /// 표시는 월드 공간 알림판(WorldNotice)이 맡는다.
     /// </summary>
@@ -19,7 +19,7 @@ namespace IMUNROK.Onggojip
         [SerializeField] private bool _show = true;
         [TextArea] [SerializeField] private string _introLine = "마을 어귀에 닿았다. 수첩(I)을 살피거나, 지나는 이에게 말을 걸어보자";
         [TextArea] [SerializeField] private string _investigateLine = "밤이다. 몰래 집 안을 조사하라";
-        [TextArea] [SerializeField] private string _readyLine = "증거를 충분히 모았다 — 출도하라!  (F2 ▸ 출도)";
+        [TextArea] [SerializeField] private string _readyLine = "증거를 다 모았다 — 품속의 마패를 내보여라  (F 꾹 누르기)";
 
         private const CaseId ThisCase = CaseId.Case1_Onggojip;
 
@@ -49,7 +49,7 @@ namespace IMUNROK.Onggojip
             var journal = Journal.Instance;
             if (hide || journal == null)
             {
-                if (_lastMain != null) { WorldNotice.Hide("목표"); _lastMain = null; _lastSub = null; }
+                if (_lastMain != null) { StatusPanel.Clear("목표"); _lastMain = null; _lastSub = null; }
                 return;
             }
 
@@ -82,7 +82,7 @@ namespace IMUNROK.Onggojip
 
             if (main == _lastMain && sub == _lastSub) return;
             _lastMain = main; _lastSub = sub;
-            WorldNotice.Show("목표", $"{main}\n{sub}", 0.42f);   // 시선보다 위 — 앞을 가리지 않게
+            StatusPanel.Set("목표", 0, $"{main}\n{sub}");   // 상태창 맨 윗줄
         }
     }
 }
