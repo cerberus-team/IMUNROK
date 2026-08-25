@@ -51,6 +51,15 @@ namespace IMUNROK.Common.Editor
             ("T_Doc_J12_Hojeok",   false, OnggojipFolder),   // J12 호적대장 — 관리의 손. 복동이 살아 있다
             ("T_Doc_J13_Hogu",     false, OnggojipFolder),   // J13 호구단자 — 집안 사람의 손. 복동이 죽었다
             ("T_Doc_J06_Yeonseup", false, OnggojipFolder),   // J06 보강 — 위조를 연습한 눌린 자국. 돋보기로만 보인다
+
+            // 제2막 공개 단서 — 관아 문서고의 대장 넷.
+            //
+            // 넷 다 <b>집에서 가져온 무엇과 짝</b>이다(CrossCheck 표를 볼 것).
+            // 혼자 보면 아무것도 아닌 종이고, 겹쳐 놓아야 비로소 말을 한다.
+            ("T_Doc_G01_Hojeok_Wonbon", false, OnggojipFolder),  // G01 호적대장 원본 — 파기(疤記) 한 줄이 더 있다
+            ("T_Doc_G02_Hogu_Wonbon",   false, OnggojipFolder),  // G02 관아가 받은 호구단자 — 집 것과 같은 손
+            ("T_Doc_G03_Ipan",          false, OnggojipFolder),  // G03 입안대장 — 별급문기 사본, 면천 기록 없음
+            ("T_Doc_G04_Hwansang",      false, OnggojipFolder),  // G04 환상대장 — 한 달간 소작료 인하
         };
 
         /// <summary>
