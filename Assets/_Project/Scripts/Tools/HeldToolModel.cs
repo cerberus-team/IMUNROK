@@ -47,7 +47,9 @@ namespace IMUNROK.Common
         /// </summary>
         private void Awake()
         {
-            if (_useCommonPose) HeldRig.Apply(transform, _toolId);
+            // 모델까지 넘긴다 — 크기도 공통이다. 돋보기가 40cm 나 되어 눈앞
+            // 32cm 에 들면 화면의 반을 가렸다.
+            if (_useCommonPose) HeldRig.Apply(transform, _toolId, _model != null ? _model.transform : null);
         }
 
         private void Start()
