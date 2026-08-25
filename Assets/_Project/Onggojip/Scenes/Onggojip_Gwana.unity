@@ -863,6 +863,57 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 103372374}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &107240464
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 107240466}
+  - component: {fileID: 107240465}
+  m_Layer: 0
+  m_Name: "_\uC720\uCC99\uC9C0\uAE09"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &107240465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 107240464}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb01b24b2903b704a8e6f282d7c281c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.ToolIssue
+  _tools:
+  - {fileID: 11400000, guid: 99d60f3f26e19854db11ef591a7ecd10, type: 2}
+  _onStart: 1
+  _waitForBelt: 5
+  _line: "\uD488\uC5D0\uC11C *\uC720\uCC99*\uC744 \uAEBC\uB0B8\uB2E4. \uC5EC\uAE30\uC11C\uB294
+    \uAC10\uCD9C \uAC83\uC774 \uC5C6\uB2E4."
+  _speaker: 
+--- !u!4 &107240466
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 107240464}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &120857628
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2780,6 +2831,11 @@ MonoBehaviour:
   _maxTouchDistance: 3
   _fineText: 
   _clueNeedsMagnifier: 0
+  _litPage: {fileID: 0}
+  _litText: 
+  _clueNeedsLantern: 0
+  _litGlyphs: 
+  _litClueText: 
   _title: "\uC785\uC548\uB300\uC7A5"
   _body: "\uBCC4\uAE09\uBB38\uAE30 \uC0AC\uBCF8 \u2014 \uC218\uCDE8\uC778 '\uC885
     \uBCF5\uB3D9'."
@@ -5353,6 +5409,11 @@ MonoBehaviour:
   _maxTouchDistance: 3
   _fineText: 
   _clueNeedsMagnifier: 0
+  _litPage: {fileID: 0}
+  _litText: 
+  _clueNeedsLantern: 0
+  _litGlyphs: 
+  _litClueText: 
   _title: "\uD638\uAD6C\uB2E8\uC790"
   _body: "\uB178 \uBCF5\uB3D9 \uC2E0\uBBF8\uB144 \uC0AC\uB9DD. \uD544\uCCB4\uAC00
     \uB2E4\uB974\uB2E4."
@@ -6998,6 +7059,11 @@ MonoBehaviour:
   _maxTouchDistance: 3
   _fineText: 
   _clueNeedsMagnifier: 0
+  _litPage: {fileID: 0}
+  _litText: 
+  _clueNeedsLantern: 0
+  _litGlyphs: 
+  _litClueText: 
   _title: "\uD638\uC801\uB300\uC7A5"
   _body: "\uB178 \uBCF5\uB3D9 \u2014 \uC67C\uD314 \uC548\uCABD \uB370\uC778 \uC790\uAD6D
     \uB450 \uCE58 \uB0A8\uC9D3."
@@ -7737,9 +7803,22 @@ MonoBehaviour:
   _sprintMultiplier: 3
   _walkMode: 0
   _eyeHeight: 1.6
+  _solid: 1
+  _bodyRadius: 0.26
   _stepUp: 0.62
   _stepDown: 2
   _stepSpeed: 4
+  _walkNoise: 0.18
+  _runNoise: 0.7
+  _stepInterval: 0.55
+  _woodSteps: []
+  _dirtSteps: []
+  _stoneSteps: []
+  _creakSounds: []
+  _creakChance: 0.14
+  _creakAdds: 0.28
+  _dirtQuieter: 0.55
+  _stoneQuieter: 0.8
 --- !u!81 &1351403329
 AudioListener:
   m_ObjectHideFlags: 0
@@ -10705,6 +10784,11 @@ MonoBehaviour:
   _maxTouchDistance: 3
   _fineText: 
   _clueNeedsMagnifier: 0
+  _litPage: {fileID: 0}
+  _litText: 
+  _clueNeedsLantern: 0
+  _litGlyphs: 
+  _litClueText: 
   _title: "\uD658\uACE1\uB300\uC7A5"
   _body: "\uD55C \uB2EC\uAC04 \uC18C\uC791\uB8CC\uAC00 \uC778\uD558\uB418\uC5B4 \uC788\uB2E4."
   _requiresMagnifier: 0
@@ -11816,3 +11900,4 @@ SceneRoots:
   - {fileID: 1736000309}
   - {fileID: 1216923150}
   - {fileID: 1030295774}
+  - {fileID: 107240466}
