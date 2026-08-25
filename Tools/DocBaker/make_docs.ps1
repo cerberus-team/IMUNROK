@@ -542,6 +542,34 @@ function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontHand, $fontAlt, $rng) {
         $ci++
     }
 
+    # ------------------------------------------------------------------
+    # A line that was scraped off and written over.
+    #
+    # 'hidden' on a ledger is not a whole second page - it is one column that
+    # used to be there. Backlit, the fibres under the scraped patch are thinner
+    # and the old ink that soaked in shows as a warm ghost beside the new entry.
+    # So it is painted faint, warm and slightly small, in the slot named by
+    # 'hiddenAt', nudged aside so both can be read at once.
+    #
+    # Bake this as a twin file (..._lit) of the same document - same seed, same
+    # entries - with these two fields added. The game cross-fades that file in
+    # over the plain one while the lantern is behind the paper.
+    $hidden = Get-Field $doc 'hidden' $null
+    $hAt    = [int](Get-Field $doc 'hiddenAt' -1)
+    if ($hidden -and $hAt -ge 0) {
+        $faint  = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(132, 96, 58, 28))
+        $faint2 = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(96, 112, 70, 36))
+        $hFont  = New-Face $fontName ($fontSize * 0.90) ([System.Drawing.FontStyle]::Regular)
+        $hx     = $rightX - ($hAt * $colStep) - ($colStep * 0.30)
+        $hi     = 0
+        foreach ($col in $hidden) {
+            Paint-Column $g $col $hFont ($hx - $hi * $colStep) ($gridTop + 40) ($charStep * 0.90) $faint $faint2 3 $rng | Out-Null
+            $hi++
+        }
+        $hFont.Dispose(); $faint.Dispose(); $faint2.Dispose()
+        Write-Host ("  {0}: + scraped line at entry {1}" -f $doc.file, $hAt)
+    }
+
     $titleFont.Dispose(); $fontA.Dispose(); $fontB.Dispose(); $fontC.Dispose(); $markFont.Dispose()
     $markBrush.Dispose(); $ink.Dispose(); $inkSoft.Dispose(); $ink2.Dispose(); $ink2Soft.Dispose()
 }

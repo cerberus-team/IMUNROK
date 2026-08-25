@@ -36,6 +36,10 @@ namespace IMUNROK.Common.EditorTools
         /// <summary>불꽃이 오는 높이. 마루에서 0.98 — 종이를 눈앞에 들면 그 너머에 온다.</summary>
         private const float Flame = 0.98f;
 
+        /// <summary>등불에 비추면 배어 나오는 면. 배커가 굽는다.</summary>
+        private const string LitPage =
+            "Assets/_Project/Onggojip/Art/Textures/T_Doc_G03_Ipan_lit.png";
+
         private const string LanternFbx =
             "Assets/_Project/Art/Tools/Lantern/Meshy_AI_Antique_Korean_Handhe_0811153903_texture.fbx";
 
@@ -213,6 +217,14 @@ namespace IMUNROK.Common.EditorTools
             if (note == null) { log.AppendLine("  ※ 입안대장을 못 찾았다"); return; }
 
             var so = new SerializedObject(note);
+
+            // <b>비친 면</b>. 같은 장부를 한 번 더 굽되 다섯째 줄 밑에 눌려 있던 글을
+            // 흐리게 얹은 것이다(docs.json 의 T_Doc_G03_Ipan_lit — hidden/hiddenAt).
+            // 등불을 뒤에 대면 이 면이 원래 종이 위로 배어 나온다.
+            var lit = AssetDatabase.LoadAssetAtPath<Texture2D>(LitPage);
+            if (lit != null) so.FindProperty("_litPage").objectReferenceValue = lit;
+            else log.AppendLine("  ※ 비친 면을 못 찾았다 — [이문록 ▸ 에셋: 사건 문서 텍스처 굽기] 를 먼저 누를 것");
+
             so.FindProperty("_fineText").stringValue =
                 "다섯째 줄만 먹빛이 옅다. 획 끝이 뭉개지고 종이 결이 일어나 있다 — *긁어내고 그 위에 덧쓴* 자리다.";
             so.FindProperty("_litGlyphs").stringValue = "免賤";
