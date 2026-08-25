@@ -103,6 +103,9 @@ namespace IMUNROK.Gyeonu
             fromFov = camOut != null ? camOut.fieldOfView : toFov;
             t = 0f;
             phase = Phase.Exit;
+            // 조준점은 포커스 중에만 있는 것이다. 여기서 치워야 한다 —
+            // OnFocusChanged는 대상마다 오버라이드하므로 base를 부른다는 보장이 없다.
+            target.HideReticle();
             target.OnFocusChanged(false);
         }
 

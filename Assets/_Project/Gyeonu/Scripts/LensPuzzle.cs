@@ -115,6 +115,11 @@ namespace IMUNROK.Gyeonu
             audioSrc.minDistance = 0.7f;
             audioSrc.maxDistance = 8f;
 
+            // 조준점 치수 — 판 크기에 맞춘다. 이 오브젝트의 바운즈는 문갑 전체라 저절로 잡으면 너무 크다.
+            // 구슬 위로 뜨게 충분히 띄운다 — 구슬 속에 파묻히면 조준점이 안 보인다.
+            if (reticleSize <= 0f) reticleSize = Mathf.Min(panelSize.x, panelSize.y) * 0.13f;
+            if (reticleLift <= 0.005f) reticleLift = 0.015f;
+
             if (GyeonuWorld.Has(solvedFlag))
             {
                 solved = true;
@@ -123,12 +128,13 @@ namespace IMUNROK.Gyeonu
             }
         }
 
-        void OnDestroy()
+        protected override void OnDestroy()
         {
             if (cPlace != null) Destroy(cPlace);
             if (cPick != null) Destroy(cPick);
             if (cClunk != null) Destroy(cClunk);
             if (cDrawer != null) Destroy(cDrawer);
+            base.OnDestroy();
         }
 
         public override void Interact(GameObject actor)
@@ -221,6 +227,27 @@ namespace IMUNROK.Gyeonu
             grabbed = null;
             Play(PlaceClip());
             CheckSolved();
+        }
+
+        /// <summary>
+        /// 조준점을 <b>음각판 위</b>에 얹는다 (2026-08-25).
+        ///
+        /// 여기는 구슬을 끌어다 놓는 곳이라 어디를 겨누는지가 곧 조작이다. 그런데 포커스에
+        /// 들어가면 하드웨어 커서가 숨겨져서, 그려 주지 않으면 <b>보이지 않는 커서로 조준</b>하게
+        /// 된다 — 실제로 그랬다. 서고 장부가 먼저 겪고 판 위에 그려 해결한 것과 같은 방식이다.
+        ///
+        /// ⚠️ 판 밖을 겨눠도 <b>가장자리에 붙잡는다</b>. 놓치면 조준점이 사라져 다시 길을 잃는다.
+        /// </summary>
+        protected override bool ReticleSurface(Ray ray, out Vector3 pos, out Vector3 normal, out Vector3 up)
+        {
+            var t = PanelTransform;
+            normal = t.up;          // 판 법선 = 보는 쪽
+            up = t.forward;         // 그림 세로축을 화면 위로
+            Vector2 p;
+            if (!RayToPanel(ray, out p)) { pos = t.position; return false; }
+            float hx = panelSize.x * 0.5f, hy = panelSize.y * 0.5f;
+            pos = PanelToWorld(new Vector2(Mathf.Clamp(p.x, -hx, hx), Mathf.Clamp(p.y, -hy, hy)));
+            return true;
         }
 
         bool RayToPanel(Ray ray, out Vector2 p)

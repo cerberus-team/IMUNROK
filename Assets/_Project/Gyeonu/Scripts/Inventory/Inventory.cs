@@ -67,6 +67,13 @@ namespace IMUNROK.Gyeonu
             // 문·힌트 쪽은 플래그만 보므로 소지품 시스템을 몰라도 된다.
             if (!string.IsNullOrEmpty(item.worldFlag)) GyeonuWorld.Set(item.worldFlag);
 
+            // 물건 단서를 사건 상태에도 올린다 (2026-08-25, 대화 시스템).
+            //   itemId가 곧 단서 코드다(A1·C4…). 이 다리가 없으면 물건은 소지품에만 있고
+            //   정보 단서는 GyeonuCase에만 있어 **제시 목록이 두 갈래로 갈린다** — 플레이어에게
+            //   둘 다 "내가 아는 것"인데 어디에 담겼는지에 따라 못 내미는 일이 생긴다.
+            //   증거도 가산·수첩 기록은 GyeonuCase.AddClue가 1회만 처리한다.
+            if (ClueTable.TryParse(item.Key, out var clue)) GyeonuCase.AddClue(clue);
+
             Debug.Log($"[소지품] 획득: {item.displayName} ({item.Key})");
             Added?.Invoke(item);
             Changed?.Invoke();

@@ -7129,6 +7129,8 @@ MonoBehaviour:
   sprintSpeed: 9
   mouseSensitivity: 0.12
   eye: {fileID: 1038479753}
+  uiOpen: 0
+  lookLocked: 0
 --- !u!143 &203960967
 CharacterController:
   m_ObjectHideFlags: 0
@@ -13414,8 +13416,91 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 426858234}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 426858233}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 426858232}
   m_SourcePrefab: {fileID: 100100000, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+--- !u!1 &426858231 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+  m_PrefabInstance: {fileID: 426858230}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &426858232
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 426858231}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4455dd990ca8859429e5df3117f89d67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcDialogue
+  displayName: "\uACAC\uC6B0"
+  focusDistance: 1.65
+  transitionTime: 0.55
+  dimStrength: 0.35
+  focusAnchor: {fileID: 0}
+  profile: {fileID: 11400000, guid: 2aacb6d0d59b2d94783ebf596ea2e145, type: 2}
+  faceAnchor: {fileID: 0}
+  turnToPlayer: 1
+  turnTime: 0.45
+  layout: 0
+  voiceAutoSend: 1
+  aimBelowFace: 0.1
+--- !u!136 &426858233
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 426858231}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.32
+  m_Height: 1.92
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.94, z: 0}
+--- !u!95 &426858234
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 426858231}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: d173829ca679aff4b8025f16a05ca40d, type: 2}
+  m_CullingMode: 1
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &426921678 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8008373742689008494, guid: cb9ec6b4a0be1d7419fd89120b566ac5, type: 3}
@@ -54456,6 +54541,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.WorldTimeSync
   kind: 0
   isReference: 1
+  seedIfUnseeded: 0
+  seedNight: 1
+  seedRain: 0
   forceClear: 0
   sun: {fileID: 0}
   "\uB0AE_\uB9D1\uC74C": {fileID: 11400000, guid: a81640dbe767694448c36a822baf6219, type: 2}

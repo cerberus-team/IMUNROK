@@ -90,6 +90,31 @@ namespace IMUNROK.Gyeonu
         /// <summary>판이 스스로 닫히길 원할 때(✕ 버튼 등). 입력 측이 걷기·조준 잠금까지 풀어야 한다.</summary>
         public event System.Action CloseRequested;
 
+        // ── 제시 모드 (2026-08-25, 대화 시스템) ─────────────────
+        /// <summary>
+        /// 지금 판이 <b>대화 중 증거를 고르는 화면</b>인가.
+        /// 켜지면 두 가지가 달라진다: 목록의 알맹이가 <see cref="ItemSource"/> 로 바뀌고,
+        /// 상세의 쓰임 버튼이 「제시하기」가 된다.
+        /// </summary>
+        public bool PresentMode { get; private set; }
+
+        /// <summary>
+        /// 목록에 무엇을 담을지. 비우면 지금까지처럼 <see cref="Inventory.Items"/> 그대로다.
+        ///
+        /// 왜 목록을 갈아 끼울 수 있게 했나: 제3사건의 단서는 <b>물건과 정보가 섞여 있다</b>
+        /// (A1 지도는 손에 쥐는 것, B3 증언은 들은 것). 플레이어에게는 둘 다 "내가 아는 것"이라
+        /// 한 판에서 골라야 하는데, 정보 단서는 소지품 목록에 담기지 않는다.
+        /// 그래서 판이 목록의 <b>출처</b>만 남에게 물어보게 했다 — 판은 여전히 물건만 그린다.
+        /// </summary>
+        public System.Func<IReadOnlyList<InventoryItem>> ItemSource;
+
+        /// <summary>제시 모드에서 「제시하기」를 눌렀다.</summary>
+        public event System.Action<InventoryItem> PresentRequested;
+
+        /// <summary>지금 목록이 보여 줄 것들.</summary>
+        IReadOnlyList<InventoryItem> Source => ItemSource != null ? ItemSource() : Inventory.Items;
+        int SourceCount => Source != null ? Source.Count : 0;
+
         readonly InventorySkin skin = new InventorySkin();
         readonly InventoryPreview preview = new InventoryPreview();
         readonly List<InventoryHotspot> slots = new List<InventoryHotspot>();
@@ -150,6 +175,21 @@ namespace IMUNROK.Gyeonu
             else if (showItem != null) ShowDetail(showItem);
             else ShowList();
             Inventory.Changed += OnInventoryChanged;
+        }
+
+        /// <summary>
+        /// 대화 중 <b>증거를 고르는 화면</b>으로 연다 (2026-08-25).
+        /// 판·칸·상세·3D 미리보기는 소지품과 완전히 같은 것을 쓴다 — 플레이어에게 새 화면을
+        /// 익히게 하지 않는다. 달라지는 건 목록의 출처와 버튼 문구뿐이다.
+        /// </summary>
+        public void OpenForPresent(Transform eyeTf, System.Func<IReadOnlyList<InventoryItem>> source,
+                                   System.Action<InventoryItem> onPresent)
+        {
+            PresentMode = true;
+            ItemSource = source;
+            PresentRequested = null;
+            if (onPresent != null) PresentRequested += onPresent;
+            Open(eyeTf);
         }
 
         /// <summary>
@@ -236,6 +276,9 @@ namespace IMUNROK.Gyeonu
             Inventory.Changed -= OnInventoryChanged;
             IsOpen = false;
             PickupMode = false;
+            PresentMode = false;
+            ItemSource = null;
+            PresentRequested = null;
             Hovered = null;
             Viewing = null;
             if (inspect != null) inspect.Hide();
@@ -269,8 +312,10 @@ namespace IMUNROK.Gyeonu
             listView.gameObject.SetActive(true);
             detailView.gameObject.SetActive(false);
             wheelReadyAt = Time.unscaledTime + 0.35f;
-            titleText.text = "소  지  품";
-            hintText.text = "바라보고 좌클릭 — 자세히 보기        휠 — 쪽 넘기기        I / Esc — 닫기";
+            titleText.text = PresentMode ? "무 엇 을  내 밀 까" : "소  지  품";
+            hintText.text = PresentMode
+                ? "바라보고 좌클릭 — 고르기        휠 — 쪽 넘기기        Esc / 우클릭 — 대화로"
+                : "바라보고 좌클릭 — 자세히 보기        휠 — 쪽 넘기기        I / Esc — 닫기";
             RefreshList();
         }
 
@@ -282,7 +327,7 @@ namespace IMUNROK.Gyeonu
             Hovered = null;
             listView.gameObject.SetActive(false);
             detailView.gameObject.SetActive(true);
-            titleText.text = PickupMode ? "새로  얻은  것" : "소 지 품  ▸  자세히";
+            titleText.text = PresentMode ? "내밀 것  ▸  살펴보기" : (PickupMode ? "새로  얻은  것" : "소 지 품  ▸  자세히");
 
             detailName.text = item.displayName;
             detailDesc.text = string.IsNullOrEmpty(item.description) ? "(적힌 것이 없다)" : item.description;
@@ -296,13 +341,14 @@ namespace IMUNROK.Gyeonu
             previewImage.enabled = preview.HasModel;
 
             // 쓰임 버튼은 **물건에 따라 있고 없다.** 서책·문서처럼 읽으면 끝인 것에는 아예 안 뜬다.
-            bool showUse = item.ShowUseButton;
+            // 다만 제시 모드에서는 무엇을 고르든 내밀 수 있어야 하므로 늘 띄운다.
+            bool showUse = PresentMode || item.ShowUseButton;
             useSpot.gameObject.SetActive(showUse);
             if (showUse)
             {
                 useSpot.interactable = true;
                 // 문구도 ItemUse에 물어본다 — 하는 일이 상황에 따라 달라지는 물건이 있다
-                useLabel.text = ItemUse.LabelFor(item);
+                useLabel.text = PresentMode ? "내 밀 기" : ItemUse.LabelFor(item);
                 useLabel.color = InventorySkin.Hanji;
                 useFrame.color = InventorySkin.Vermilion;
                 useSpot.idleColor = useFrame.color;
@@ -313,7 +359,7 @@ namespace IMUNROK.Gyeonu
             backLabel.text = PickupMode ? "✕   닫기" : "◀   목록으로";
             // 버튼이 하나뿐이면 가운데로 — 오른쪽에 홀로 치우쳐 있으면 빈 자리가 눈에 걸린다
             ((RectTransform)backSpot.transform).anchoredPosition = new Vector2(showUse ? 570f : 390f, -300f);
-            bool many = !PickupMode && Inventory.Count > 1;
+            bool many = !PickupMode && SourceCount > 1;
             prevSpot.gameObject.SetActive(many);
             nextSpot.gameObject.SetActive(many);
 
@@ -428,7 +474,7 @@ namespace IMUNROK.Gyeonu
             {
                 case InventoryHotspot.Kind.칸:
                     int i = page * PerPage + spot.index;
-                    if (i >= 0 && i < Inventory.Count) ShowDetail(Inventory.Items[i]);
+                    if (i >= 0 && i < SourceCount) ShowDetail(Source[i]);
                     break;
                 case InventoryHotspot.Kind.뒤로:
                     if (!Back()) CloseRequested?.Invoke();
@@ -449,9 +495,11 @@ namespace IMUNROK.Gyeonu
                     if (!Back()) CloseRequested?.Invoke();
                     break;
                 case InventoryHotspot.Kind.사용:
+                    if (Viewing == null) break;
+                    // 제시 모드에서는 이 버튼이 「제시하기」다 — 물건의 쓰임과 섞이지 않게 먼저 가른다.
+                    if (PresentMode) { PresentRequested?.Invoke(Viewing); break; }
                     // 무엇을 할지는 판이 알 바가 아니다 — ItemUse가 물건 id로 갈라 보낸다.
                     // 맡은 데가 없으면(아직 동작이 안 붙은 물건) 그 물건의 안내 문구만 띄운다.
-                    if (Viewing == null) break;
                     if (ItemUse.Try(Viewing, () => CloseRequested?.Invoke())) break;
                     DebugToast.Show(string.IsNullOrEmpty(Viewing.useNotReadyHint)
                         ? "아직 여기서 쓸 수 없다." : Viewing.useNotReadyHint, 2.5f);
@@ -462,11 +510,11 @@ namespace IMUNROK.Gyeonu
         /// <summary>상세에서 앞뒤 물건으로 넘어간다 (양 끝은 돌아 감는다).</summary>
         public void ShowNeighbour(int dir)
         {
-            int n = Inventory.Count;
+            int n = SourceCount;
             if (n <= 1 || Viewing == null) return;
             int cur = 0;
-            for (int i = 0; i < n; i++) if (Inventory.Items[i] == Viewing) { cur = i; break; }
-            ShowDetail(Inventory.Items[((cur + dir) % n + n) % n]);
+            for (int i = 0; i < n; i++) if (Source[i] == Viewing) { cur = i; break; }
+            ShowDetail(Source[((cur + dir) % n + n) % n]);
         }
 
         /// <summary>드래그 — 상세에서 모델을 돌린다 (버튼 위가 아닐 때만 입력 측이 부른다).</summary>
@@ -493,7 +541,7 @@ namespace IMUNROK.Gyeonu
 
         void SetPage(int p)
         {
-            int pages = Mathf.Max(1, Mathf.CeilToInt(Inventory.Count / (float)PerPage));
+            int pages = Mathf.Max(1, Mathf.CeilToInt(SourceCount / (float)PerPage));
             page = Mathf.Clamp(p, 0, pages - 1);
             RefreshList();
         }
@@ -510,7 +558,7 @@ namespace IMUNROK.Gyeonu
         // ── 목록 갱신 ─────────────────────────────────────────
         void RefreshList()
         {
-            int total = Inventory.Count;
+            int total = SourceCount;
             int pages = Mathf.Max(1, Mathf.CeilToInt(total / (float)PerPage));
             page = Mathf.Clamp(page, 0, pages - 1);
 
@@ -521,7 +569,7 @@ namespace IMUNROK.Gyeonu
                 bool on = idx < total;
                 spot.gameObject.SetActive(on);
                 if (!on) continue;
-                var item = Inventory.Items[idx];
+                var item = Source[idx];
                 spot.label.text = item.displayName;
                 var tex = preview.Thumbnail(item);
                 spot.icon.texture = tex;

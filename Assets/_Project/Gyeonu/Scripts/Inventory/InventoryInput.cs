@@ -171,13 +171,27 @@ namespace IMUNROK.Gyeonu
             OpenUI(item, true);
         }
 
-        void OpenUI(InventoryItem showItem = null, bool pickup = false)
+        /// <summary>
+        /// 대화 중 <b>증거를 고르는 화면</b>으로 판을 연다 (2026-08-25).
+        /// 여는 문이 하나여야 걷기·조준·커서 잠금이 갈라지지 않으므로 소지품과 같은 길로 낸다 —
+        /// <see cref="InspectExternal"/> 과 같은 규약이다.
+        /// </summary>
+        public void OpenPresent(System.Func<System.Collections.Generic.IReadOnlyList<InventoryItem>> source,
+                                System.Action<InventoryItem> onPresent)
+        {
+            OpenUI(null, false, source, onPresent);
+        }
+
+        void OpenUI(InventoryItem showItem = null, bool pickup = false,
+                    System.Func<System.Collections.Generic.IReadOnlyList<InventoryItem>> presentSource = null,
+                    System.Action<InventoryItem> onPresent = null)
         {
             if (ui != null && ui.IsOpen) ui.Close();
             ui = InventoryUI.Ensure();
             ui.CloseRequested -= CloseUI;      // 중복 구독 방지 (판은 씬을 넘겨 살아남는다)
             ui.CloseRequested += CloseUI;
-            ui.Open(transform, showItem, pickup);
+            if (presentSource != null) ui.OpenForPresent(transform, presentSource, onPresent);
+            else ui.Open(transform, showItem, pickup);
             if (walk != null) walk.uiOpen = true;   // 이동·시선 정지 (마우스를 조준에 내준다)
             if (interactor != null) interactor.enabled = false;   // 판 너머 세상은 잠시 못 만진다
 
@@ -186,6 +200,9 @@ namespace IMUNROK.Gyeonu
             Cursor.lockState = CursorLockMode.Confined;
             Cursor.visible = false;
         }
+
+        /// <summary>바깥에서 판을 닫는다 (증거를 골라 내민 뒤 등). 잠금 해제까지 같은 길로 처리된다.</summary>
+        public void ClosePanel() => CloseUI();
 
         void CloseUI()
         {

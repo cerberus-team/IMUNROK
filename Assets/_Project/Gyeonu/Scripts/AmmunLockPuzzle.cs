@@ -140,11 +140,12 @@ namespace IMUNROK.Gyeonu
             { finished = true; ApplyDepth(Full, Full); }
         }
 
-        void OnDestroy()
+        protected override void OnDestroy()
         {
             // 런타임 생성 클립은 직접 버린다 (static 캐시 금지 — 다음 세션에서 빈 소리가 된다)
             foreach (var c in new[] { genLatch, genDead, genClunk, genPop, genRelease })
                 if (c != null) Destroy(c);
+            base.OnDestroy();
         }
 
         float Full => answer.Length * notch;
@@ -170,6 +171,16 @@ namespace IMUNROK.Gyeonu
         }
 
         public override void HandleDrag(Vector2 delta) { }   // 이 대상은 돌리지 않는다
+
+        /// <summary>
+        /// 조준점은 <b>두 돌 사이</b>를 중심으로 맴돈다 (2026-08-25).
+        /// 여기는 돌을 정확히 눌러야 하는 곳이라 어디를 겨누는지 보여야 한다. 석축 전체를
+        /// 기준으로 잡으면 조준점이 담장만큼 넓게 돌아다녀 쓸모가 없다.
+        /// </summary>
+        protected override Vector3 ReticleCenter =>
+            buttonOne != null && buttonTwo != null
+                ? (buttonOne.position + buttonTwo.position) * 0.5f
+                : FocusPoint;
 
         // ── 입력 ──────────────────────────────────────────
 

@@ -80,14 +80,120 @@ namespace IMUNROK.Gyeonu
         /// <summary>포커스 중 스크롤/보조 입력 (부호 = 방향). 부품 전환 등에 쓴다 — 기본 무시.</summary>
         public virtual void HandleScroll(float direction) { }
 
+        // ─────────────────────────────────────────────────────────
+        //  조준점 — 포커스 중 "지금 어디를 겨누는가"
+        // ─────────────────────────────────────────────────────────
+
+        [Header("조준점")]
+        [Tooltip("포커스 중 겨누는 자리에 조준점을 그린다. 끄면 아무것도 안 그린다")]
+        public bool showReticle = true;
+
+        [Tooltip("조준점 지름(m). 0이면 대상 크기에 맞춰 저절로 잡는다")]
+        public float reticleSize = 0f;
+
+        [Tooltip("대상 표면에서 띄우는 거리(m) — 표면에 파묻히지 않게")]
+        public float reticleLift = 0.004f;
+
+        [Tooltip("겨눔 면을 대상 중심에서 얼마나 앞으로 낼지(m). 0이면 대상 두께에 맞춰 저절로. " +
+                 "돌려 보는 둥근 대상(혼상·혼천의)에서 조준점이 속에 파묻히지 않게 하는 값이다")]
+        public float reticleFront = 0f;
+
+        [Tooltip("조준점이 대상 중심에서 벗어날 수 있는 반경(m). 0이면 대상 크기에 맞춰 저절로")]
+        public float reticleRadius = 0f;
+
+        readonly FocusReticle _reticle = new FocusReticle();
+        Bounds _bounds;
+        bool _boundsDone;
+
         /// <summary>
         /// 누르지 않은 채 **가리키고만** 있는 매 프레임의 포인터 레이 (2026-08-25).
         ///
-        /// 끌어다 놓는 대상은 지금 어디를 겨누는지 보여 줘야 한다. 소지품 판이 그렇듯
-        /// 하드웨어 커서는 숨기고 **대상이 자기 판 위에 조준점을 그린다** — 그래야 VR에서도,
-        /// 스크린샷에서도 같은 것이 보인다. 돌려 보기만 하는 대상은 구현하지 않아도 된다.
+        /// <see cref="DebugFocusRig"/> 가 포커스에 들어가면서 하드웨어 커서를 감추므로,
+        /// <b>대상이 자기 몸 위에 조준점을 그려야</b> 어디를 겨누는지 알 수 있다. 그리지 않으면
+        /// 보이지 않는 커서로 조준하게 된다 — 렌즈 퍼즐에서 실제로 그랬다(2026-08-25).
+        /// 월드에 그리므로 스크린샷에도, 나중에 VR 헤드셋에도 그대로 보인다.
+        ///
+        /// 기본은 <b>시선을 마주 보는 면</b>에 찍는다. 판이 있는 대상(렌즈·암문)은
+        /// <see cref="ReticleSurface"/> 만 갈아 끼우면 제 판 위에 정확히 얹힌다.
         /// </summary>
-        public virtual void HandlePoint(Ray ray) { }
+        public virtual void HandlePoint(Ray ray)
+        {
+            if (!showReticle) { _reticle.Hide(); return; }
+            if (!ReticleSurface(ray, out var pos, out var normal, out var up)) { _reticle.Hide(); return; }
+            _reticle.Place(transform, pos + normal * reticleLift, normal, up, ResolvedReticleSize, 0.85f);
+        }
+
+        /// <summary>포커스에서 물러날 때 <see cref="DebugFocusRig"/> 가 부른다.</summary>
+        public void HideReticle() => _reticle.Hide();
+
+        protected virtual void OnDestroy() => _reticle.Dispose();
+
+        /// <summary>
+        /// 조준점을 어느 자리에 찍을까. 기본은 <b>대상 앞으로 나온, 시선과 마주 보는 면</b>이다.
+        /// 판이 정해진 대상은 이것만 오버라이드하면 된다 — 나머지(그리기·정리)는 베이스가 맡는다.
+        /// </summary>
+        /// <returns>겨눌 자리를 찾았으면 true. false면 조준점을 감춘다.</returns>
+        /// <summary>조준점이 맴돌 중심. 기본은 바라보는 지점 — 조작할 것이 한쪽에 몰려 있으면
+        /// (암문의 두 돌처럼) 그쪽으로 옮긴다.</summary>
+        protected virtual Vector3 ReticleCenter => FocusPoint;
+
+        protected virtual bool ReticleSurface(Ray ray, out Vector3 pos, out Vector3 normal, out Vector3 up)
+        {
+            Vector3 c = ReticleCenter;
+            normal = ray.origin - c;
+            if (normal.sqrMagnitude < 1e-6f) { pos = c; normal = Vector3.up; up = Vector3.forward; return false; }
+            normal.Normalize();
+
+            // ⚠️ 겨눔 면을 대상 두께만큼 앞으로 내되 **보는 사람을 넘어가면 안 된다**.
+            //    혼천의처럼 큰 대상은 바운즈 반지름이 카메라까지의 거리보다 커서, 막지 않으면
+            //    조준점이 카메라 자리(또는 등 뒤)에 놓여 통째로 사라진다(2026-08-25 실측).
+            float toViewer = Vector3.Distance(ray.origin, c);
+            float front = Mathf.Clamp(ResolvedFront(normal), 0f, Mathf.Max(0.02f, toViewer - 0.12f));
+
+            Vector3 center = c + normal * front;
+            up = Mathf.Abs(Vector3.Dot(normal, Vector3.up)) > 0.98f ? Vector3.forward : Vector3.up;
+
+            var plane = new Plane(normal, center);
+            if (!plane.Raycast(ray, out float d) || d <= 0f) { pos = center; return false; }
+            pos = ray.GetPoint(d);
+
+            // ⚠️ 대상 밖을 겨눠도 **가장자리에 붙잡는다**. 놓치면 조준점이 통째로 사라져
+            //    지금 어디를 겨누는지 다시 알 수 없게 된다 (소지품 판과 같은 규약).
+            //    반경도 보는 거리 안으로 묶는다 — 큰 대상에서 화면 밖까지 나가지 않게.
+            Vector3 rel = pos - center;
+            float r = Mathf.Min(ResolvedRadius, toViewer * 0.75f);
+            if (rel.magnitude > r) pos = center + rel.normalized * r;
+            return true;
+        }
+
+        /// <summary>대상 전체를 감싸는 바운즈 — 한 번만 재고 기억한다.</summary>
+        protected Bounds SelfBounds
+        {
+            get
+            {
+                if (_boundsDone) return _bounds;
+                _boundsDone = true;
+                var rends = GetComponentsInChildren<Renderer>();
+                if (rends.Length == 0) { _bounds = new Bounds(transform.position, Vector3.one * 0.2f); return _bounds; }
+                _bounds = rends[0].bounds;
+                for (int i = 1; i < rends.Length; i++) _bounds.Encapsulate(rends[i].bounds);
+                return _bounds;
+            }
+        }
+
+        float ResolvedFront(Vector3 n)
+        {
+            if (reticleFront > 0f) return reticleFront;
+            var b = SelfBounds;
+            float half = Mathf.Abs(b.extents.x * n.x) + Mathf.Abs(b.extents.y * n.y) + Mathf.Abs(b.extents.z * n.z);
+            return Vector3.Dot(b.center - ReticleCenter, n) + half + 0.02f;
+        }
+
+        float ResolvedRadius => reticleRadius > 0f ? reticleRadius : Mathf.Max(0.06f, SelfBounds.extents.magnitude);
+
+        float ResolvedReticleSize => reticleSize > 0f
+            ? reticleSize
+            : Mathf.Clamp(ResolvedRadius * 0.16f, 0.008f, 0.05f);
 
         /// <summary>
         /// 포커스 중 클릭 (화면 좌표에서 쏜 카메라 레이). **눌러서 조작하는 대상**만 구현한다

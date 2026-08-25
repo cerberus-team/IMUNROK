@@ -133,12 +133,13 @@ namespace IMUNROK.Gyeonu
             ApplyStageVisuals();
         }
 
-        void OnDestroy()
+        protected override void OnDestroy()
         {
             foreach (var c in new[] { sfxMetal, sfxGlass, sfxPaper, sfxPick, sfxChime, sfxReject })
                 if (c != null) Destroy(c);
             if (reticleTex != null) Destroy(reticleTex);
             if (reticleRend != null && reticleRend.sharedMaterial != null) Destroy(reticleRend.sharedMaterial);
+            base.OnDestroy();
         }
 
         // ── 조준·진입 ────────────────────────────────────────
