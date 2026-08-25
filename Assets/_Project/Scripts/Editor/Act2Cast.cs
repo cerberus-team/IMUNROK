@@ -409,6 +409,42 @@ namespace IMUNROK.Common.EditorTools
                 smr.updateWhenOffscreen = true;
             }
 
+            // <b>숨을 쉬게 한다.</b>
+            //
+            // 선 자세를 Sit_To_Stand 끝 세 칸에서 잘라 만들었으니 그것은 사실상 <b>언 자세</b>다.
+            // 그대로 두면 뜰에 인형 넷이 선다. BreathSway 는 애니메이터가 자세를 다 쓴 뒤에
+            // <b>등뼈만</b> 아주 조금 돌린다 — 다리와 발은 엉덩이뼈 반대쪽 가지라 안 움직이니
+            // 발이 미끄러지지도, 발붙임과 다투지도 않는다.
+            //
+            // 숨 박자를 사람마다 어긋나게 준다. 같은 박자로 쉬면 넷이 한 몸처럼 보인다.
+            var breath = body.GetComponent<BreathSway>();
+            if (breath == null) breath = Undo.AddComponent<BreathSway>(body);
+            Set(breath, so =>
+            {
+                so.FindProperty("_animator").objectReferenceValue = an;
+                so.FindProperty("_bones").arraySize = 0;          // 등뼈는 이름으로 스스로 찾는다
+                so.FindProperty("_facing").objectReferenceValue = host;
+                so.FindProperty("_phase").floatValue = Phase(w.씬이름);
+            });
+
+            // <b>발붙임에 새 몸을 일러 준다.</b>
+            //
+            // 이걸 빠뜨려서 아무도 계단을 못 올라갔다. GroundFeet 은 <b>_model 을 세로로
+            // 옮겨</b> 발을 땅에 붙이는데, 그 칸이 甲 의 경우 <c>왼팔_안쪽</c> 을 가리키고
+            // 있었다 — 손목 심문 때 만든 팔이다. 그러니 계단을 밟을 때마다 <b>팔만</b>
+            // 올라가고 몸은 뜰 높이에 남았고, 그대로 기단을 뚫고 걸어가 앞자리에 섰다.
+            //
+            // 발 뼈도 함께 비운다. 옛 몸의 뼈를 쥔 채로 두면 그 뼈는 이미 지워진 것이라
+            // 발을 못 찾는다. 비워 두면 GroundFeet 이 새 몸에서 이름으로 다시 찾는다.
+            var feet = host.GetComponent<GroundFeet>();
+            if (feet != null)
+                Set(feet, so =>
+                {
+                    so.FindProperty("_model").objectReferenceValue = body.transform;
+                    so.FindProperty("_bodyBone").objectReferenceValue = null;
+                    so.FindProperty("_footBones").arraySize = 0;
+                });
+
             // 부름 쪽에 앉는 값을 일러 둔다. 이름이 안 맞으면 앉는 짓이 조용히 안 돈다.
             var summon = host.GetComponent<CourtSummon>();
             if (summon != null)
@@ -420,6 +456,14 @@ namespace IMUNROK.Common.EditorTools
                 });
 
             log.AppendLine("   · 몸을 갈아 끼웠다 (재질 " + (mat != null ? mat.name : "없음") + ")");
+        }
+
+        /// <summary>이름에서 숨 박자를 뽑는다 — 사람마다 다르고, 다시 눌러도 같다.</summary>
+        private static float Phase(string name)
+        {
+            int h = 0;
+            foreach (var c in name) h = h * 31 + c;
+            return Mathf.Abs(h % 1000) / 1000f * 6.2831853f;
         }
 
         /// <summary>대기 자리 표. 어사 쪽(+x)을 본다.</summary>
