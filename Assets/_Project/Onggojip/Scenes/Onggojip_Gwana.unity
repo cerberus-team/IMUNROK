@@ -1512,7 +1512,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.GroundFeet
   _model: {fileID: 4502836695490669015}
-  _footBones: []
+  _footBones:
+  - {fileID: 4662058829489041444}
+  - {fileID: 7870940585196276992}
+  - {fileID: 423449963141353818}
+  - {fileID: 714785020572064837}
   _groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -1521,7 +1525,7 @@ MonoBehaviour:
   _sink: 0.01
   _soleOnGround: 1
   _pinHorizontally: 1
-  _bodyBone: {fileID: 0}
+  _bodyBone: {fileID: 630117775142199787}
   _followSpeed: 4
   _maxStepUp: 1.4
 --- !u!65 &109433627
@@ -5208,7 +5212,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.GroundFeet
   _model: {fileID: 5587013513216461233}
-  _footBones: []
+  _footBones:
+  - {fileID: 3694835022359515202}
+  - {fileID: 2220125000740367718}
+  - {fileID: 8508461128541729084}
+  - {fileID: 8799796306742901795}
   _groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -5217,7 +5225,7 @@ MonoBehaviour:
   _sink: 0.01
   _soleOnGround: 1
   _pinHorizontally: 1
-  _bodyBone: {fileID: 0}
+  _bodyBone: {fileID: 8884166005388018061}
   _followSpeed: 4
   _maxStepUp: 1.4
 --- !u!114 &420234577
@@ -7195,7 +7203,7 @@ MonoBehaviour:
   _bareLine: "\uC608. \u2026\uBCF4\uC2DC\uB2E4\uC2DC\uD53C \uC544\uBB34\uAC83\uB3C4
     \uC5C6\uC18C\uC774\uB2E4."
   _bareHint: "(\uC720\uCC99\uC744 \uB4E4\uACE0 \uC800 \uD314\uC744 \uACA8\uB208\uB2E4)"
-  _arm: {fileID: 1207619623}
+  _arm: {fileID: 912944951}
   _onBared:
     m_PersistentCalls:
       m_Calls: []
@@ -7230,7 +7238,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.GroundFeet
   _model: {fileID: 4041634611117439843}
-  _footBones: []
+  _footBones:
+  - {fileID: 5105246428581487248}
+  - {fileID: 7732889052454641588}
+  - {fileID: 255555237890606062}
+  - {fileID: 1117141667887140593}
   _groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -7239,7 +7251,7 @@ MonoBehaviour:
   _sink: 0.01
   _soleOnGround: 1
   _pinHorizontally: 1
-  _bodyBone: {fileID: 0}
+  _bodyBone: {fileID: 1068812828628366175}
   _followSpeed: 4
   _maxStepUp: 1.4
 --- !u!114 &603477280
@@ -7322,8 +7334,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1207619626}
   - {fileID: 4041634611117439843}
+  - {fileID: 912944954}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &604278921
@@ -7997,7 +8009,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.GroundFeet
   _model: {fileID: 2189196753353297852}
-  _footBones: []
+  _footBones:
+  - {fileID: 5748181294093277443}
+  - {fileID: 1720676836886041943}
+  - {fileID: 3552319478197405676}
+  - {fileID: 6984033263627778251}
+  - {fileID: 1430753969448404800}
+  - {fileID: 1691160764679596869}
   _groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -8006,7 +8024,7 @@ MonoBehaviour:
   _sink: 0.01
   _soleOnGround: 1
   _pinHorizontally: 1
-  _bodyBone: {fileID: 0}
+  _bodyBone: {fileID: 3027716087351164145}
   _followSpeed: 4
   _maxStepUp: 1.4
 --- !u!114 &632893996
@@ -11525,6 +11543,87 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &912944951
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 912944954}
+  - component: {fileID: 912944953}
+  - component: {fileID: 912944952}
+  m_Layer: 0
+  m_Name: "\uC67C\uD314_\uC548\uCABD"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &912944952
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 912944951}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 30777600}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.Measurable
+  _what: "\uC67C\uD314 \uC548\uCABD"
+  _chi: 0
+  _expected: 2.25
+  _tolerance: 0.35
+  _nothingLine: "\uC67C\uD314 \uC548\uCABD\uC774 \uB9D0\uB054\uD558\uB2E4. \uD749\uD130\uB784
+    \uAC83\uC774 \uC5C6\uB2E4 \u2014 \uB300\uC7A5\uC5D0 \uC801\uD78C \uB450 \uCE58\uB294
+    \uC774 \uD314\uC758 \uAC83\uC774 \uC544\uB2C8\uB2E4."
+  _needsClueKey: G01
+  _case: 0
+  _clueKey: G08
+  _clueText: "\u4E59 \uC758 \uC67C\uD314 \uC548\uCABD\uC5D0\uB294 \uD749\uD130\uAC00
+    \uC5C6\uB2E4 \u2014 \uB300\uC7A5\uACFC \uC5B4\uAE0B\uB09C\uB2E4"
+  _onMatched:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!65 &912944953
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 912944951}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!4 &912944954
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 912944951}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.22, y: 0.95, z: 0.06}
+  m_LocalScale: {x: 0.18, y: 0.34, z: 0.18}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 603477282}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &922777006
 GameObject:
   m_ObjectHideFlags: 0
@@ -14783,84 +14882,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.85778534, y: 2.0899515, z: 4.208182}
   m_Center: {x: 0, y: 1.0449758, z: 2.103625}
---- !u!1 &1207619623
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1207619626}
-  - component: {fileID: 1207619625}
-  - component: {fileID: 1207619624}
-  m_Layer: 0
-  m_Name: "\uC67C\uD314_\uC548\uCABD"
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!114 &1207619624
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1207619623}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1245856322}
-  m_Name: 
-  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.Measurable
-  _what: "\uD749\uD130"
-  _chi: 2.1
-  _expected: 0
-  _tolerance: 0.35
-  _nothingLine: 
-  _needsClueKey: 
-  _case: 0
-  _clueKey: 
-  _clueText: 
-  _onMatched:
-    m_PersistentCalls:
-      m_Calls: []
---- !u!65 &1207619625
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1207619623}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!4 &1207619626
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1207619623}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.22, y: 0.95, z: 0.06}
-  m_LocalScale: {x: 0.18, y: 0.34, z: 0.18}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 603477282}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &1208722294
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -15148,21 +15169,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1245142126}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!115 &1245856322
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: Measurable
-  m_Namespace: IMUNROK.Common
-  m_AssemblyName: IMUNROK.Common
 --- !u!1 &1249881395
 GameObject:
   m_ObjectHideFlags: 0
@@ -20898,7 +20904,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.GroundFeet
   _model: {fileID: 5543988229643253126}
-  _footBones: []
+  _footBones:
+  - {fileID: 3620766814674316405}
+  - {fileID: 2285096562181919057}
+  - {fileID: 8605565844282723595}
+  - {fileID: 8891817353171582996}
   _groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -20907,7 +20917,7 @@ MonoBehaviour:
   _sink: 0.01
   _soleOnGround: 1
   _pinHorizontally: 1
-  _bodyBone: {fileID: 0}
+  _bodyBone: {fileID: 8805620508776676794}
   _followSpeed: 4
   _maxStepUp: 1.4
 --- !u!114 &1672942575
@@ -23371,7 +23381,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.GroundFeet
   _model: {fileID: 1461823628850372132}
-  _footBones: []
+  _footBones:
+  - {fileID: 6198484098162706414}
+  - {fileID: 7153818171424881324}
+  - {fileID: 3924574674030223809}
+  - {fileID: 6975276669620039813}
   _groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -23380,7 +23394,7 @@ MonoBehaviour:
   _sink: 0.01
   _soleOnGround: 1
   _pinHorizontally: 1
-  _bodyBone: {fileID: 0}
+  _bodyBone: {fileID: 7792584719437717053}
   _followSpeed: 4
   _maxStepUp: 1.4
 --- !u!1001 &1859554857
