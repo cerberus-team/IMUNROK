@@ -86,8 +86,124 @@ namespace IMUNROK.Common
         {
             if (!Physics.Raycast(transform.position + Vector3.up * 0.2f, Vector3.down,
                                  out var floor, 200f, ~0, QueryTriggerInteraction.Ignore)) return;
+            StandAtFloor(floor.point.y);
+        }
+
+        /// <summary>선 사람의 눈높이(바닥에서 눈까지, m). 앉히는 쪽이 같은 값을 써야 한다.</summary>
+        public float EyeHeight => _eyeHeight;
+
+        [Header("발소리")]
+        [Tooltip("살살 걸을 때 나는 소리 크기(0~1)")]
+        [Range(0f, 1f)] [SerializeField] private float _walkNoise = 0.18f;
+        [Tooltip("뛸 때 나는 소리 크기(0~1). 남의 집 안방에서 뛰면 들려야 한다")]
+        [Range(0f, 1f)] [SerializeField] private float _runNoise = 0.7f;
+        [Tooltip("한 발짝 사이(초). 뛰면 이보다 촘촘해진다")]
+        [SerializeField] private float _stepInterval = 0.55f;
+
+        [Tooltip("<b>마루</b>를 딛는 소리. 널이 낮게 울린다. 여럿 넣으면 돌아가며 난다 — " +
+                 "하나면 걸음이 기계가 된다")]
+        [UnityEngine.Serialization.FormerlySerializedAs("_stepSounds")]
+        [SerializeField] private AudioClip[] _woodSteps;
+
+        [Tooltip("<b>흙</b>을 딛는 소리(마당·안뜰). 흙은 소리를 먹어 짧고 무디다. " +
+                 "비우면 마루 소리를 낮게 눌러 쓴다")]
+        [SerializeField] private AudioClip[] _dirtSteps;
+
+        [Tooltip("<b>돌</b>을 딛는 소리(기단·댓돌). 딱딱하고 짧게 울린다. " +
+                 "비우면 마루 소리를 쓴다")]
+        [SerializeField] private AudioClip[] _stoneSteps;
+
+        [Tooltip("<b>마루가 우는</b> 소리. 낡은 마루는 매 걸음 울지 않고 <b>가끔</b> 운다 — " +
+                 "그 가끔이 잠행에서 사람을 배신하는 대목이다. 발소리 위에 얹힌다.\n" +
+                 "<b>마루에서만</b> 난다 — 흙바닥과 댓돌에서는 아무리 걸어도 안 운다")]
+        [SerializeField] private AudioClip[] _creakSounds;
+        [Tooltip("한 발짝에 마루가 울 확률(0~1). 0.14 면 일곱 걸음에 한 번쯤")]
+        [Range(0f, 1f)] [SerializeField] private float _creakChance = 0.14f;
+        [Tooltip("마루가 울면 소리 크기가 이만큼 커진다. 삐걱은 발소리보다 멀리 간다")]
+        [Range(0f, 0.6f)] [SerializeField] private float _creakAdds = 0.28f;
+
+        [Tooltip("흙을 딛는 소리는 마루보다 이만큼 작다(배수). 흙은 <b>덜 들킨다</b> — " +
+                 "마당을 가로지르는 것과 남의 방 널을 밟는 것이 같은 값일 수는 없다")]
+        [Range(0.2f, 1f)] [SerializeField] private float _dirtQuieter = 0.55f;
+        [Tooltip("돌을 딛는 소리는 마루보다 이만큼 작다(배수)")]
+        [Range(0.2f, 1.4f)] [SerializeField] private float _stoneQuieter = 0.8f;
+
+        private float _stepPhase;
+        private int _stepTurn;
+
+        /// <summary>
+        /// 한 발짝마다 한 번씩. 매 프레임 알리면 소리가 끊기지 않고 눈금도 안 내려간다.
+        ///
+        /// <b>밟은 것에 따라 갈린다</b>: 여태는 발소리 한 벌과 삐걱 한 벌을 어디서나
+        /// 틀었다. 그래서 마당 흙바닥을 걸어도 마루가 끼익 울었다 — 낡은 널이 우는
+        /// 소리는 남의 방을 뒤질 때 <b>사람을 배신하는 대목</b>인데, 그것이 마당
+        /// 한복판에서도 나면 긴장이 아니라 잡음이다. 어디서나 나는 소리는 뜻이 없다.
+        ///
+        /// 이제 <see cref="FloorKindProbe"/> 로 발밑을 물어본다.
+        /// 흙은 무디게 울고 <b>안 운다</b>. 돌은 딱딱하게 울리고 역시 <b>안 운다</b>.
+        /// <b>마루만 운다.</b>
+        /// </summary>
+        private void Footstep(bool running)
+        {
+            float period = _stepInterval * (running ? 0.6f : 1f);
+            _stepPhase += Time.deltaTime;
+            if (_stepPhase < period) return;
+            _stepPhase = 0f;
+
+            Vector3 feet = new Vector3(transform.position.x, transform.position.y - _eyeHeight, transform.position.z);
+            FloorKind floor = FloorKindProbe.Under(feet);
+
+            float lv = running ? _runNoise : _walkNoise;
+            AudioClip[] set = _woodSteps;
+            string what = running ? "뛰는 발소리" : "발소리";
+
+            if (floor == FloorKind.흙)
+            {
+                if (_dirtSteps != null && _dirtSteps.Length > 0) set = _dirtSteps;
+                lv *= _dirtQuieter;
+                what = running ? "뛰는 발소리(흙)" : "발소리(흙)";
+            }
+            else if (floor == FloorKind.돌)
+            {
+                if (_stoneSteps != null && _stoneSteps.Length > 0) set = _stoneSteps;
+                lv *= _stoneQuieter;
+                what = running ? "뛰는 발소리(돌)" : "발소리(돌)";
+            }
+
+            NoiseMeter.Play(transform.position, Pick(set, ref _stepTurn), lv, what,
+                            1f + Random.Range(-0.07f, 0.07f));
+
+            // <b>삐걱은 마루의 일이다.</b> 흙과 돌은 아무리 밟아도 울지 않는다.
+            if (floor != FloorKind.마루) return;
+
+            // 뛰면 더 자주 운다 — 세게 디디니 그렇다
+            float chance = _creakChance * (running ? 2.2f : 1f);
+            if (_creakSounds == null || _creakSounds.Length == 0 || Random.value > chance) return;
+
+            var creak = _creakSounds[Random.Range(0, _creakSounds.Length)];
+            NoiseMeter.Play(transform.position, creak, Mathf.Clamp01(lv + _creakAdds),
+                            "마루가 운다", 1f + Random.Range(-0.06f, 0.06f));
+        }
+
+        /// <summary>돌아가며 고른다. 무작위로만 뽑으면 같은 것이 연달아 나 눈에 띈다.</summary>
+        private static AudioClip Pick(AudioClip[] set, ref int turn)
+        {
+            if (set == null || set.Length == 0) return null;
+            turn = (turn + 1) % set.Length;
+            return set[turn];
+        }
+
+        /// <summary>
+        /// <b>바닥 높이를 밖에서 받아</b> 그 위에 선다.
+        ///
+        /// 발밑을 제가 찾으면 안 되는 자리가 있다 — 방석 위에서 일어설 때다. 아래로
+        /// 쏘면 방석 윗면이 먼저 걸려, 방석 두께만큼 붕 뜬 키가 된다. 앉힌 쪽은 어느
+        /// 것이 방석인지 알고 있으므로, 그쪽이 잰 <b>마루</b> 높이를 그대로 받는다.
+        /// </summary>
+        public void StandAtFloor(float floorY)
+        {
             _walkMode = true;
-            _walkY = floor.point.y + _eyeHeight;
+            _walkY = floorY + _eyeHeight;
             Vector3 p = transform.position; p.y = _walkY; transform.position = p;
         }
 
@@ -180,6 +296,11 @@ namespace IMUNROK.Common
                 if (kb.aKey.isPressed) move -= right;
 
                 transform.position += Slide(move.normalized * speed * Time.deltaTime);
+
+                // <b>발소리</b> — 걸으면 조금, 뛰면 많이. 잠행 중에는 이것도 소리다.
+                // 매 프레임 알리지 않고 걸음새에 맞춰 한 발짝마다 한 번씩 낸다.
+                if (move.sqrMagnitude > 0.0001f) Footstep(kb.leftShiftKey.isPressed);
+                else _stepPhase = 0f;
 
                 // 발밑에서 "짧게" 아래로 쏴서 바닥을 따라감(지붕·처마로 튀지 않게).
                 // 광선을 발보다 _stepUp 만큼만 위에서 시작한다 — 그보다 높은 턱은 아예 안 보이므로
