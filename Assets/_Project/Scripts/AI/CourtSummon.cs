@@ -34,6 +34,11 @@ namespace IMUNROK.Common
         [Tooltip("불려 나와 서는 자리. 어사 앞")]
         [SerializeField] private Transform _frontSpot;
 
+        [Tooltip("가는 길에 <b>거쳐 갈 자리</b>. 나올 때는 적은 차례대로, 물러갈 때는 거꾸로 밟는다.\n" +
+                 "동헌 안까지 올라오려면 이것이 있어야 한다 — 기단은 앞면이 죄 1.65m 벽이고 " +
+                 "오를 수 있는 데는 한가운데 계단(z 폭 2.2m) 하나뿐이다. 똑바로 걸으면 벽에 붙어 선다")]
+        [SerializeField] private Transform[] _via;
+
         [Tooltip("다 서면 이쪽을 본다(어사 자리). 비우면 걸어온 쪽을 그대로 본다")]
         [SerializeField] private Transform _faceTarget;
 
@@ -84,10 +89,10 @@ namespace IMUNROK.Common
         {
             if (_up) return;
             _up = true;
-            _goal = _frontSpot;
             SetBool(_kneelBool, false);
             SetBool(_walkBool, true);
-            if (_frontSpot == null) Arrive();          // 갈 자리가 없으면 그 자리에 선 채로
+            _leg = 0;
+            Next();
         }
 
         /// <summary>물러간다.</summary>
@@ -95,17 +100,44 @@ namespace IMUNROK.Common
         {
             if (!_up) return;
             _up = false;
-            _goal = _waitSpot;
             SetBool(_kneelBool, false);
             SetBool(_walkBool, true);
-            if (_waitSpot == null) Arrive();
+            _leg = 0;
+            Next();
         }
+
+        /// <summary>
+        /// 다음 다리로. 경유점을 순서대로(물러갈 때는 거꾸로) 밟고 마지막에 목적지로 간다.
+        ///
+        /// <b>왜 곧장 못 가나</b>: 동헌 기단은 앞면이 죄 1.65m 벽이고 오를 수 있는 데는
+        /// 한가운데 계단뿐이다. 뜰의 대기 자리에서 마루로 직선을 그으면 그 선이 벽을
+        /// 지나므로, 걸어가서 <b>벽에 코를 박고 선다</b>. 계단 아래를 한 번 거쳐야 한다.
+        /// </summary>
+        private void Next()
+        {
+            int n = _via != null ? _via.Length : 0;
+
+            if (_leg < n)
+            {
+                // 나올 때는 앞에서부터, 물러갈 때는 뒤에서부터 밟는다
+                _goal = _up ? _via[_leg] : _via[n - 1 - _leg];
+                _leg++;
+                if (_goal != null) return;
+            }
+
+            _goal = _up ? _frontSpot : _waitSpot;
+            _leg = int.MaxValue;                        // 이제부터는 목적지다
+            if (_goal == null) Arrive();                // 갈 자리가 없으면 그 자리에 선 채로
+        }
+
+        private int _leg = int.MaxValue;
 
         /// <summary>연출 없이 제자리로(씬을 켤 때).</summary>
         public void SnapBack()
         {
             _up = false;
             _goal = null;
+            _leg = int.MaxValue;
             SetBool(_walkBool, false);
             SetBool(_kneelBool, false);
             Vector3 p = WaitAt; p.y = transform.position.y;
@@ -130,6 +162,10 @@ namespace IMUNROK.Common
 
         private void Arrive()
         {
+            // 아직 경유하는 중이면 멈추지 않고 다음 다리로 이어 걷는다
+            int n = _via != null ? _via.Length : 0;
+            if (_leg <= n) { Next(); return; }
+
             _goal = null;
             SetBool(_walkBool, false);
 
