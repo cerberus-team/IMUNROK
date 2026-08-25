@@ -34,11 +34,25 @@ namespace IMUNROK.Common
         [SerializeField] private float _pageSpan = 300f;
         [Tooltip("종이를 든 거리(m). 팔을 굽혀 든 만큼 — 돋보기(0.4m)보다 멀어야 그 너머로 보인다")]
         [SerializeField] private float _holdDistance = 0.6f;
+        [Tooltip("집은 자리에서 이만큼(m) 멀어지면 <b>도로 내려놓는다</b>. " +
+                 "한 방 안에서 몇 발짝 옮기는 것으로는 안 놓이고, 방을 나서면 놓인다. 0이면 안 놓는다")]
+        [SerializeField] private float _dropDistance = 3.5f;
         [Tooltip("눈높이보다 이만큼 아래(m). 종이는 내려다보는 것이다")]
         [SerializeField] private float _holdDrop = -0.06f;
         [SerializeField] private Color _paper = Color.white;
         [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
         [SerializeField] private Color _tabColor = new Color(0.28f, 0.10f, 0.09f, 0.9f);
+
+        [Header("옮긴 글")]
+        [Tooltip("읽어낸 것을 <b>종이 위에</b> 얹는다 — 한자 위에 우리말이 배어 나오듯. " +
+                 "끄면 예전처럼 종이 밖(아래)에만 적힌다")]
+        [SerializeField] private bool _translateOnPage = true;
+        [Tooltip("옮긴 글 밑에 까는 바탕의 짙기. <b>0이 기본이다</b> — 켜를 깔면 " +
+                 "밑의 한자가 통째로 가려져, 읽어낸 것이 아니라 <b>덧붙인 쪽지</b>가 된다")]
+        [Range(0f, 1f)] [SerializeField] private float _transPlateAlpha = 0f;
+        [Tooltip("옮긴 글의 짙기. 진하면 종이에 인쇄된 글로 보이고, 너무 옅으면 안 읽힌다. " +
+                 "0.6 안팎이면 <b>밑의 글자가 비쳐 보이면서도</b> 읽힌다")]
+        [Range(0.2f, 1f)] [SerializeField] private float _transAlpha = 0.62f;
 
         /// <summary>종이를 내려 두는 높이(m). 눈앞은 설명이 쓴다.</summary>
         private const float LowDrop = -0.34f;
@@ -55,6 +69,8 @@ namespace IMUNROK.Common
         private Image _edge;
         private Image _backdrop;     // 수첩에서 볼 때 뒤를 덮는 어둠
         private Image _backFace;     // 종이 뒷면 — 뒤집었을 때 글씨가 비치지 않게
+        private Image _transPlate;   // 옮긴 글이 앉는 바탕 — 종이 위에 한 켜
+        private Text _trans;         // 옮긴 글 — 한자 위에 얹히는 우리말
         private Image _slip;         // 종이에 붙은 표제 쪽지
         private Text _slipText;      // 그 위에 세로로 적힌 이름
         private Text _body;
@@ -87,6 +103,11 @@ namespace IMUNROK.Common
         private Vector2 _tilt;            // 손목으로 종이를 기울인 정도
         private Vector2 _spin;            // 끌어서 돌린 정도(가로·세로)
         private bool _dragging;
+        private bool _spinArmed;          // 집은 손을 한 번 뗐나 — 떼기 전에는 안 돌린다
+        private float _dragRun;           // 누른 뒤 움직인 거리(픽셀). 문턱을 넘어야 돌린다
+
+        /// <summary>이만큼(픽셀) 끌어야 돌리려는 손으로 친다. 겨누다 미끄러진 것과 가른다.</summary>
+        private const float DragThreshold = 26f;
 
         /// <summary>지금 문서를 쥐고 있나. 다른 UI가 참고한다(도구벨트 숨김 등).</summary>
         public static bool IsOpen { get; private set; }
@@ -135,6 +156,9 @@ namespace IMUNROK.Common
         }
 
         private static bool _canPutDown = true;
+
+        /// <summary>이 종이를 집은 자리(플레이어의 눈). 여기서 멀어지면 도로 내려놓는다.</summary>
+        private Vector3 _openedAt;
 
         public static void Hide()
         {
@@ -185,18 +209,42 @@ namespace IMUNROK.Common
             if (_instance._chrome.activeSelf != on) _instance._chrome.SetActive(on);
         }
 
+        /// <summary>
+        /// <b>옮긴 글이 글자 위로 배어 나온다</b>(0~1).
+        ///
+        /// 다 읽어야 나타나는 것이 아니라 <b>읽는 만큼</b> 짙어진다. 그래야 지금 하고 있는
+        /// 일이 눈에 보인다 — 유리를 대고 있으면 뜻이 배어 나오고, 떼면 도로 옅어진다.
+        /// </summary>
+        private void ShowTranslation(float progress)
+        {
+            if (!_translateOnPage || _trans == null || string.IsNullOrEmpty(_finePrint)) return;
+
+            float k = Mathf.Clamp01(_readDone ? 1f : progress);
+            var go = _transPlate.gameObject;
+            if (!go.activeSelf) go.SetActive(true);
+            if (_trans.text.Length == 0) _trans.text = Emphasis.Rich(_finePrint, Emphasis.OnPaper);
+
+            _transPlate.color = new Color(0.96f, 0.93f, 0.85f, _transPlateAlpha * k);
+            var c = _trans.color;
+            _trans.color = new Color(c.r, c.g, c.b, _transAlpha * k);
+        }
+
         /// <summary>돋보기가 종이를 들여다보는 중. 진행도가 1을 넘으면 다 읽은 것이다.</summary>
         public static void Reading(float progress)
         {
             if (_instance == null || !IsOpen) return;
             _instance._readProgress = progress;
             _instance._sinceRead = 0f;
+            _instance.ShowTranslation(progress);
             if (progress < 1f || _instance._readDone) return;
 
             _instance._readDone = true;
-            if (!string.IsNullOrEmpty(_instance._finePrint))
+            _instance.ShowTranslation(1f);
+            // 종이 위에 옮겨 놓았으면 아래에 또 적지 않는다 — 같은 말이 두 군데 있으면
+            // 눈이 어디를 봐야 할지 모른다.
+            if (!string.IsNullOrEmpty(_instance._finePrint) && !_instance._translateOnPage)
             {
-                _instance._fine.text = _instance._finePrint;
+                _instance._fine.text = Emphasis.Rich(_instance._finePrint, Emphasis.OnDark);
                 _instance._fine.gameObject.SetActive(true);
             }
             var cb = _instance._onRead;
@@ -245,7 +293,7 @@ namespace IMUNROK.Common
                 else line = d._litPrint;
 
                 bool on = !string.IsNullOrEmpty(line);
-                if (on) d._lit.text = line;
+                if (on) d._lit.text = Emphasis.Rich(line, Emphasis.OnDark);
                 if (d._lit.gameObject.activeSelf != on) d._lit.gameObject.SetActive(on);
             }
 
@@ -297,6 +345,10 @@ namespace IMUNROK.Common
             // 방에서 곧바로 짚은 것에는 어둠을 깔지 않는다 — 그때는 방도 함께 봐야 한다.
             if (_backdrop != null) _backdrop.enabled = dim;
 
+            // 집은 자리를 적어 둔다. 여기서 멀어지면 도로 내려놓는다(DropIfWalkedAway).
+            var camNow = Camera.main;
+            _openedAt = camNow != null ? camNow.transform.position : transform.position;
+
             // 종이 비율을 지켜 편다. 가로로 긴 문서를 정사각으로 늘이면 글자가 찌그러져
             // 읽을 수 있던 것도 못 읽게 된다.
             if (page != null)
@@ -318,12 +370,19 @@ namespace IMUNROK.Common
 
             // 요약은 <b>수첩</b>에서 읽는 것이다. 방에서 종이를 짚었을 때는 종이만 보인다 —
             // 그때는 아직 무엇인지 알아보는 중이지 정리하는 중이 아니다.
-            _body.text = string.IsNullOrEmpty(body) ? "" : body;
+            _body.text = string.IsNullOrEmpty(body) ? "" : Emphasis.Rich(body, Emphasis.OnDark);
             _body.gameObject.SetActive(!string.IsNullOrEmpty(body));
 
             bool hasFine = !string.IsNullOrEmpty(finePrint);
             _finePrint = hasFine ? finePrint : "";
             _fine.text = "";
+            if (_trans != null)
+            {
+                _trans.text = "";
+                _trans.color = new Color(0.07f, 0.06f, 0.06f, 0f);
+                _transPlate.color = new Color(0.96f, 0.93f, 0.85f, 0f);
+                _transPlate.gameObject.SetActive(false);
+            }
             _fine.gameObject.SetActive(false);
 
             _onRead = onRead;
@@ -333,6 +392,8 @@ namespace IMUNROK.Common
             _tilt = Vector2.zero;
             _spin = Vector2.zero;
             _dragging = false;
+            _spinArmed = false;   // 집은 그 누름이 그대로 돌리는 손이 되지 않게
+            _dragRun = 0f;
 
             _litPrint = string.IsNullOrEmpty(litPrint) ? "" : litPrint;
             _litGlyphs = string.IsNullOrEmpty(litGlyphs) ? "" : litGlyphs;
@@ -432,8 +493,14 @@ namespace IMUNROK.Common
             // 게다가 종이는 늘 조금씩 숨을 쉬고 손목도 흔들리니 글자가 계속 미끄러진다.
             // 눈에 대는 동안만 종이를 세계에 못 박고 숨도 멈춘다. 그러면 움직인 만큼
             // 렌즈가 종이 위를 지나간다 — 그것이 들여다보는 일이다.
+            // 그런데 <b>못 박는 것은 익히는 자리에서만</b>이다. 조사청에서 돋보기를
+            // 배울 때는 종이가 세계에 서 있어야 렌즈가 그 위를 지나가는 일이 배워지지만,
+            // 사건 한복판에서까지 종이가 허공에 붙박이면 조사하다 말고 종이를 찾아
+            // 고개를 돌리게 된다. 방에서 집은 종이는 늘 <b>눈앞</b>에 있어야 한다.
+            // 내려놓을 수 없는 종이(익히는 동안 쥐여 준 것)만 못 박는다.
             bool peering = MagnifierLens.Peering;
-            if (_anchor != null && _anchor.Frozen != peering) _anchor.Frozen = peering;
+            bool pinNow = peering && !_canPutDown;
+            if (_anchor != null && _anchor.Frozen != pinNow) _anchor.Frozen = pinNow;
 
             // 손에 든 것은 가만히 있지 않는다. 아주 조금 흔들려야 종이로 보인다.
             float t = Time.time;
@@ -442,7 +509,19 @@ namespace IMUNROK.Common
 
             // 끌면 <b>손에 쥔 채로 돌린다</b> — 앞뒤 어느 쪽이든 볼 수 있다.
             // 놓으면 그 자세 그대로 남는다. 손에 든 물건은 놓는다고 제자리로 돌아가지 않는다.
-            Vector2 drag = DragDelta();
+            //
+            // <b>저 혼자 빙빙 돌던 까닭</b>: 종이를 집는 것도 왼쪽 단추이고 돌리는 것도
+            // 왼쪽 단추였다. 그래서 물건을 눌러 종이가 펴진 <b>바로 그 누름</b>이 그대로
+            // 돌리는 손이 되어, 손을 떼기 전에 마우스가 조금만 움직여도 종이가 팽그르르
+            // 돌았다. 집은 손을 <b>한 번 뗀 뒤</b>부터 돌리는 손으로 친다.
+#if ENABLE_INPUT_SYSTEM
+            // 집은 손을 뗀 순간부터 돌리는 손이 된다
+            var m = UnityEngine.InputSystem.Mouse.current;
+            if (m != null && !m.leftButton.isPressed) { _spinArmed = true; _dragRun = 0f; }
+#else
+            _spinArmed = true;
+#endif
+            Vector2 drag = _spinArmed ? DragDelta() : Vector2.zero;
             _spin.x -= drag.x;
             _spin.y += drag.y;
             _spin.y = Mathf.Clamp(_spin.y, -85f, 85f);
@@ -469,6 +548,12 @@ namespace IMUNROK.Common
             }
 
             _sinceRead += Time.deltaTime;
+            // 유리를 떼면 옮긴 글도 도로 옅어진다 — 다 읽은 뒤에는 남는다
+            if (!_readDone && _sinceRead > 0.25f && _readProgress > 0f)
+            {
+                _readProgress = Mathf.MoveTowards(_readProgress, 0f, 0.8f * Time.deltaTime);
+                ShowTranslation(_readProgress);
+            }
             if (_readDone) _hint.text = "다 읽었다 — 수첩에 적어 두었다";
             else if (_sinceRead < 0.25f && _readProgress > 0.05f)
                 _hint.text = "읽는 중… " + Mathf.RoundToInt(Mathf.Clamp01(_readProgress) * 100f) + "%";
@@ -492,12 +577,34 @@ namespace IMUNROK.Common
                 _hint.text = "불빛에 비추는 중… " + Mathf.RoundToInt(Mathf.Clamp01(_litProgress) * 100f)
                            + "%  (똑바로 마주 댈수록 빠르다)";
 
+            DropIfWalkedAway();
+
 #if ENABLE_INPUT_SYSTEM
             // 내려놓을 수 없는 종이는 <b>Esc 로도</b> 못 내려놓는다. 단추만 감추고 키는
             // 열어 두면, 받은 종이가 슬그머니 사라져 과제가 끝나지 않는다.
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb != null && kb.escapeKey.wasPressedThisFrame && _canPutDown) Hide();
 #endif
+        }
+
+        /// <summary>
+        /// <b>걸어 나가면 손에서 놓는다.</b>
+        ///
+        /// 남의 집 문갑에서 꺼낸 문서를 든 채로 마당을 가로질러 대문 밖까지 나가는 것은
+        /// 조사가 아니라 훔치는 것이다. 그런데 여태 한 번 편 종이는 Esc 를 누르기 전까지
+        /// 눈앞에 붙어 다녔다 — 방을 나서도, 씬을 건너가도.
+        ///
+        /// 집은 자리에서 이만큼 멀어지면 <b>본 자리에 도로 두었다</b>고 친다. 수첩에 적힌
+        /// 단서는 그대로다 — 본 것이 없던 일이 되지는 않는다.
+        /// 내려놓을 수 없는 종이(익히는 동안 쥐여 준 것)는 건드리지 않는다.
+        /// </summary>
+        private void DropIfWalkedAway()
+        {
+            if (!_canPutDown || _dropDistance <= 0f) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+            if ((cam.transform.position - _openedAt).sqrMagnitude < _dropDistance * _dropDistance) return;
+            Hide();
         }
 
         /// <summary>왼쪽 단추를 누른 채 움직인 만큼(도). 누르지 않았으면 0.</summary>
@@ -509,6 +616,12 @@ namespace IMUNROK.Common
             if (!mouse.leftButton.isPressed) { _dragging = false; return Vector2.zero; }
             Vector2 d = mouse.delta.ReadValue();
             if (!_dragging) { _dragging = true; return Vector2.zero; }   // 누른 첫 프레임은 튀지 않게
+
+            // <b>문턱</b> — 겨누느라 손이 미끄러진 것과 돌리려고 끈 것을 가른다.
+            // 문턱을 넘기 전에는 0을 돌려주므로, 눌러서 무언가를 고르는 동안에는
+            // 종이가 꿈쩍도 하지 않는다.
+            _dragRun += d.magnitude;
+            if (_dragRun < DragThreshold) return Vector2.zero;
             return d * 0.35f;
 #else
             return Vector2.zero;
@@ -574,6 +687,29 @@ namespace IMUNROK.Common
             _pageLit.color = new Color(1f, 1f, 1f, 0f);
             _pageLit.raycastTarget = false;
             _pageLit.enabled = false;
+
+            // ── 옮긴 글 — <b>한자 위에 우리말이 얹힌다</b> ──
+            //
+            // 여태 읽어낸 바는 종이 <b>밖</b>에 적었다. 종이 위에 한글을 찍으면 문서가
+            // 아니라 자막이 된다는 까닭에서였다. 그런데 정작 읽는 사람에게는 그것이
+            // <b>종이와 자막을 번갈아 보는 일</b>이 되었다 — 눈이 글자에 가 있는데
+            // 뜻은 딴 데 적혀 있으니, 두 번 읽고 두 번 옮겨야 한다.
+            //
+            // 옛 문서를 읽는 사람이 실제로 하는 일은 <b>글자 위에 뜻을 겹쳐 보는</b>
+            // 것이다. 그래서 옮긴 글을 종이 위에 앉힌다. 다만 한 켜 얇은 바탕을 깔아
+            // 그것이 <b>원래 종이에 적힌 글이 아니라 내가 읽어낸 것</b>임을 보인다 —
+            // 배접 속에서 배어 나오는 글(등불)과는 빛깔도 자리도 다르다.
+            var transRt = NewRect("옮긴글", Vector2.zero, new Vector2(_pageSpan * 0.86f, _pageSpan * 0.42f), _pageRt);
+            _transPlate = transRt.gameObject.AddComponent<Image>();
+            _transPlate.color = new Color(0.96f, 0.93f, 0.85f, 0f);
+            _transPlate.raycastTarget = false;
+            _trans = NewText("옮긴글자", "", Vector2.zero, new Vector2(_pageSpan * 0.80f, _pageSpan * 0.38f),
+                             transRt, _fontSize - 8);
+            _trans.color = new Color(0.07f, 0.06f, 0.06f, 0f);
+            _trans.alignment = TextAnchor.MiddleCenter;
+            _trans.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _trans.verticalOverflow = VerticalWrapMode.Overflow;
+            transRt.gameObject.SetActive(false);
 
             // 표제 쪽지 — <b>종이의 자식</b>이다. 그래야 종이를 돌리면 같이 돌고,
             // 뒤집으면 뒷면에 함께 덮인다. 손 밑에 따로 달면 종이는 돌아가는데 이름만

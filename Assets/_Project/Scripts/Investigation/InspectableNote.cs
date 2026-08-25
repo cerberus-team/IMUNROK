@@ -47,6 +47,12 @@ namespace IMUNROK.Common
                  "끝까지 대야 뜻이 새겨진다. 그 가운데 켜에 쓴다")]
         [SerializeField] private string _litGlyphs = "";
 
+        [TextArea(2, 4)]
+        [Tooltip("불빛에 다 드러났을 때 <b>수첩의 그 단서를 이 문구로 고쳐 적는다</b>(비우면 안 고침). " +
+                 "단서 줄을 새로 늘리지 않는 까닭은, 같은 종이에서 나온 이야기가 " +
+                 "두 줄로 갈라지면 어느 것이 그 종이였는지 알 수 없게 되기 때문이다")]
+        [SerializeField] private string _litClueText = "";
+
         [SerializeField] private string _title = "";
         [TextArea]
         [SerializeField] private string _body = "";
@@ -164,7 +170,7 @@ namespace IMUNROK.Common
                                   _clueNeedsMagnifier ? new System.Action(Record) : null,
                                   false,
                                   _litPage, _litText,
-                                  _clueNeedsLantern ? new System.Action(Record) : null,
+                                  new System.Action(OnLitThrough),
                                   _litGlyphs);
             }
             else
@@ -177,6 +183,24 @@ namespace IMUNROK.Common
             // 잔글씨라야 아는 것이면 돋보기로 다 읽어야(위 onRead) 적힌다.
             // 배접 속에 숨긴 것이라야 아는 것이면 등불에 비춰야(위 onLit) 적힌다.
             if (!_clueNeedsMagnifier && !_clueNeedsLantern) Record();
+        }
+
+        /// <summary>
+        /// 불빛에 <b>다 배어 나왔을 때</b> 한 번.
+        ///
+        /// 둘을 여기서 함께 한다. 배접 속에 숨긴 것이라야 아는 물건이면 그때 비로소
+        /// 수첩에 오르고(<see cref="_clueNeedsLantern"/>), 맨눈으로도 아는 물건이면
+        /// 이미 적힌 줄을 <b>고쳐 적는다</b>(<see cref="_litClueText"/>) — 같은 종이에서
+        /// 나온 이야기이므로 줄을 늘리지 않는다.
+        /// </summary>
+        private void OnLitThrough()
+        {
+            if (_clueNeedsLantern) Record();
+
+            if (string.IsNullOrEmpty(_litClueText) || Journal.Instance == null) return;
+            string key = string.IsNullOrEmpty(_clueKey) ? _title : _clueKey;
+            if (!Journal.Instance.UpgradeClue(_clueCase, key, _litClueText))
+                Journal.Instance.AddClue(_clueCase, key, _litClueText, _clueImage);
         }
 
         // ── 돋보기로 들여다보기 ────────────────────

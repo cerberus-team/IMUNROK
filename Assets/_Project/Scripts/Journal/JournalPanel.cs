@@ -287,8 +287,9 @@ namespace IMUNROK.Common
         /// <summary>카드에 적을 짧은 이름. 문서가 있으면 그 제목, 없으면 단서 문구의 앞 토막.</summary>
         private static string ShortName(Journal.ClueDocument doc, ClueEntry c)
         {
-            if (doc != null && !string.IsNullOrEmpty(doc.title)) return doc.title;
-            string t = c.text ?? "";
+            if (doc != null && !string.IsNullOrEmpty(doc.title)) return Emphasis.Plain(doc.title);
+            // 카드 이름은 토막이라 강조 표시를 그대로 두면 별표가 글자로 남는다 — 걷어낸다
+            string t = Emphasis.Plain(c.text ?? "");
             int close = t.IndexOf(']');
             if (close >= 0 && close + 1 < t.Length) t = t.Substring(close + 1).Trim();
             if (t.Length > 22) t = t.Substring(0, 22) + "…";
