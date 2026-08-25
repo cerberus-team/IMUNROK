@@ -30,6 +30,11 @@ namespace IMUNROK.Common
         [SerializeField] private Vector3 _liftEuler;
         [Tooltip("다 빠졌을 때의 이동(m, 제 좌표). 서랍처럼 미끄러져 나오는 것에 쓴다")]
         [SerializeField] private Vector3 _liftOffset;
+
+        [Tooltip("<b>천처럼 휘어 들리는 것</b>(요·이불·보자기). 걸어 두면 경첩을 뻣뻣하게 " +
+                 "돌리는 대신 이쪽으로 들어 올린다 — 자리마다 다른 각도로 휘므로 널빤지가 " +
+                 "아니라 천으로 보인다. 비우면 예전처럼 통째로 돈다")]
+        [SerializeField] private SoftLift _soft;
         [Tooltip("잡고 있어야 하는 시간(초). 0이면 예전처럼 한 번 눌러 끝난다 — " +
                  "스쳐 지나가며 누른 것으로 증거가 손에 들어오면 조사한 것이 아니라 주운 것이다")]
         [SerializeField] private float _holdSeconds = 0.8f;
@@ -40,8 +45,20 @@ namespace IMUNROK.Common
         [Tooltip("이만큼(0~1) 넘게 들어 올려야 걸린다. 그 아래서 손을 놓으면 무게에 못 이겨 " +
                  "도로 떨어진다. 0이면 예전처럼 들리는 대로 들린다")]
         [Range(0f, 0.95f)] [SerializeField] private float _catchAt = 0.62f;
+
+        [Tooltip("켜면 <b>걸리는 데가 없다</b> — 손을 놓으면 언제나 도로 덮인다. " +
+                 "보료처럼 솜이 두툼해 놓는 순간 그대로 내려앉는 것에 쓴다. " +
+                 "다 들면 밑엣것이 드러나고 수첩에도 적히지만 그래도 놓으면 덮인다 — " +
+                 "들여다보는 내내 <b>한 손이 묶여 있다</b>")]
+        [SerializeField] private bool _holdToKeep = false;
         [Tooltip("걸리기 전까지 손끝에 느껴지는 무게. 들어 올리는 동안 조금씩 되끌린다")]
         [Range(0f, 0.6f)] [SerializeField] private float _weight = 0.28f;
+        [Tooltip("들어 올리는 동안 손끝이 떨리는 크기(0~1). <b>0이 기본이다</b> — " +
+                 "무겁다는 것을 떨림으로 알리려 했는데, 초당 열한 번 흔들리니 무거운 것이 " +
+                 "아니라 <b>덜컹거리는</b> 것이 되었다. 무게는 이미 느리게 올라가는 것으로 알린다")]
+        [Range(0f, 0.3f)] [SerializeField] private float _tremble = 0f;
+        [Tooltip("떨리는 빠르기(초당 회). 떨림을 쓸 때만")]
+        [SerializeField] private float _trembleHz = 4f;
         [Tooltip("켜면 잡고 있는 동안 이미 '헤집은 뒤' 모습이 보인다 — 서랍이 열리면서 " +
                  "안에 든 것이 같이 딸려 나와야 하기 때문이다")]
         [SerializeField] private bool _revealWhileHolding = true;
@@ -49,6 +66,27 @@ namespace IMUNROK.Common
         [SerializeField] private bool _canPutBack = true;
         [Tooltip("도로 내려놓고 다시 드는 데 걸리는 시간(초). 손으로 가만히 놓는 만큼")]
         [SerializeField] private float _putBackSeconds = 0.9f;
+        [Tooltip("들춘 뒤 제 콜라이더를 <b>경첩 쪽 이 몫만</b> 남기고 줄인다(0~1). " +
+                 "보료는 들려 올라가는데 콜라이더는 바닥에 그대로 누워 있어서, 밑에 깔린 " +
+                 "별급문기를 영영 가로막았다 — 눈에는 보이는데 눌러지지가 않는다. " +
+                 "1이면 안 줄인다")]
+        [Range(0.15f, 1f)] [SerializeField] private float _rakedColliderKeep = 0.40f;
+
+        [Tooltip("들춘 뒤 <b>들려 올라간 것 위에</b> 손댈 자리를 하나 둔다. " +
+                 "여태 손자리는 바닥에 눌린 채 남아 있어서, 들린 보료를 짚어도 아무 일이 " +
+                 "없었다 — '보료가 왜 안 떨어지지' 가 그 말이었다. 들린 것을 짚으면 " +
+                 "도로 내려놓는다")]
+        [SerializeField] private bool _grabLifted = true;
+
+        [Header("소리")]
+        [Tooltip("들추거나 빼는 동안 나는 소리 크기(0~1). 잠행 중에 누가 듣는다(NoiseMeter). " +
+                 "서랍은 나무가 긁혀 0.5, 솜 보료는 0.25 남짓, 재 헤집기는 0.2")]
+        [Range(0f, 1f)] [SerializeField] private float _noise = 0.35f;
+        [Tooltip("들추는 <b>동안 이어지는</b> 소리(서랍 긁힘·보료 스침·재 헤집기). " +
+                 "손을 놓으면 멎는다 — 끊기지 않고 이어져야 '내가 지금 소리를 내고 있다'가 된다")]
+        [SerializeField] private AudioClip _sound;
+        [Tooltip("그 소리가 되풀이되나. 잡는 시간보다 짧은 소리면 켠다")]
+        [SerializeField] private bool _soundLoops = true;
 
         [Header("두 가지 모습")]
         [Tooltip("헤집기 전 — 고르게 덮인 재")]
@@ -120,8 +158,53 @@ namespace IMUNROK.Common
         {
             _locked = _lockedAtStart;
             if (_hinge != null) { _restPos = _hinge.localPosition; _restRot = _hinge.localRotation; }
+
+            _box = GetComponent<BoxCollider>();
+            if (_box != null) { _boxCenter = _box.center; _boxSize = _box.size; }
+
             ShowState();
             ApplyLift();
+            ApplyColliderShrink();
+        }
+
+        private BoxCollider _box;
+        private Vector3 _boxCenter, _boxSize;
+
+        /// <summary>
+        /// <b>들린 쪽 콜라이더를 거둔다.</b>
+        ///
+        /// 보료는 경첩을 돌아 들려 올라가는데, 눌러 잡는 콜라이더는 이 오브젝트에 붙어
+        /// 있어 <b>바닥에 그대로 누워</b> 있었다. 그 상자가 1.2×0.3×2.6 이라 밑에 깔린
+        /// 별급문기(0.22×0.05×0.27)를 통째로 삼킨다 — 보료를 들춰 문서가 눈에 보이는데도
+        /// 광선은 늘 보료를 먼저 맞아, 아무리 눌러도 문서가 안 집혔다.
+        ///
+        /// 경첩 쪽 몫만 남긴다. 경첩 근처는 들려도 거의 안 움직이므로 거기가 곧
+        /// "보료를 도로 내려놓는" 손잡이가 되고, 들린 쪽은 밑이 훤히 열린다.
+        /// </summary>
+        private void ApplyColliderShrink()
+        {
+            if (_box == null) return;
+
+            bool lifted = Raked && !_lowered && _rakedColliderKeep < 0.999f && _hinge != null;
+            if (!lifted) { _box.center = _boxCenter; _box.size = _boxSize; return; }
+
+            // 경첩이 상자 어느 쪽에 있나 — 제 좌표로 옮겨 가장 뚜렷한 축을 고른다.
+            Vector3 toHinge = transform.InverseTransformPoint(_hinge.position) - _boxCenter;
+            int ax = 0;
+            float bestScore = -1f;
+            for (int i = 0; i < 3; i++)
+            {
+                float score = Mathf.Abs(toHinge[i]) / Mathf.Max(0.0001f, _boxSize[i]);
+                if (score > bestScore) { bestScore = score; ax = i; }
+            }
+
+            float sign = toHinge[ax] >= 0f ? 1f : -1f;
+            var size = _boxSize;
+            var center = _boxCenter;
+            size[ax] = _boxSize[ax] * _rakedColliderKeep;
+            center[ax] = _boxCenter[ax] + sign * (_boxSize[ax] - size[ax]) * 0.5f;
+            _box.size = size;
+            _box.center = center;
         }
 
         // ───────── 눌러 잡고 있기 ─────────
@@ -148,14 +231,79 @@ namespace IMUNROK.Common
             // 그래서 반쯤 들다 놓으면 도로 덮인다. 보료는 솜이 두툼한 요다.
             float pull = _hold < _catchAt ? _weight : 0f;
             _hold = Mathf.Clamp01(_hold + (1f - pull) * dt / _holdSeconds);
-            if (_hold >= _catchAt) _caught = true;
+            if (_hold >= _catchAt && !_holdToKeep) _caught = true;
 
             if (_revealWhileHolding && _hold > 0.02f) ShowState(true);
             ApplyLift();
-            if (_hold >= 1f) Rake();
+
+            // 들추는 <b>동안</b> 계속 난다. 다 들춘 순간에만 한 번 나면, 살살 반쯤 열다
+            // 마는 것이 소리 없는 짓이 되어 버린다 — 긁히는 소리는 움직이는 내내 난다.
+            if (_noise > 0f && _hold > 0.02f)
+            {
+                float lv = _noise * Mathf.Clamp01(_hold + 0.3f);
+                NoiseMeter.Report(NoiseAt(), lv, _title + " 뒤지는 소리");
+                Rasp(lv);
+            }
+
+            if (_hold < 1f) return;
+            if (_holdToKeep) RevealOnce();      // 드러나되 걸리지는 않는다
+            else Rake();
+        }
+
+        private AudioSource _rasp;
+
+        /// <summary>
+        /// 긁히는 소리를 <b>이어서</b> 낸다. 한 번 트는 것이 아니라 손이 움직이는
+        /// 동안 이어지고, 손을 놓으면 멎는다 — 그래야 살살 여는 것이 조용한 짓이 된다.
+        /// </summary>
+        private void Rasp(float level)
+        {
+            if (_sound == null) return;
+            if (_rasp == null)
+            {
+                var go = new GameObject("긁는소리");
+                go.transform.SetParent(_hinge != null ? _hinge : transform, false);
+                _rasp = go.AddComponent<AudioSource>();
+                _rasp.playOnAwake = false;
+                _rasp.spatialBlend = 1f;
+                _rasp.rolloffMode = AudioRolloffMode.Linear;
+                _rasp.dopplerLevel = 0f;
+                _rasp.minDistance = 1.2f;
+                _rasp.maxDistance = 14f;
+                _rasp.clip = _sound;
+                _rasp.loop = _soundLoops;
+            }
+            _rasp.volume = level;
+            if (!_rasp.isPlaying) _rasp.Play();
+            _raspOn = 0.12f;   // 이만큼 안 부르면 손을 놓은 것이다
+        }
+
+        private float _raspOn;
+
+        /// <summary>손이 멎으면 소리도 멎는다. 뚝 끊지 않고 잠깐 사이에 잦아든다.</summary>
+        private void RaspFade()
+        {
+            if (_rasp == null || !_rasp.isPlaying) return;
+            _raspOn -= Time.deltaTime;
+            if (_raspOn > 0f) return;
+            _rasp.volume = Mathf.MoveTowards(_rasp.volume, 0f, Time.deltaTime * 4f);
+            if (_rasp.volume <= 0.001f) _rasp.Stop();
+        }
+
+        /// <summary>소리가 나는 자리. 움직이는 것이 있으면 그쪽에서 난다.</summary>
+        private Vector3 NoiseAt()
+        {
+            if (_hinge != null) return _hinge.position;
+            return ModelBounds.TryGet(transform, out var b) ? b.center : transform.position;
         }
 
         public void OnHoldRelease() { _holdingNow = false; }
+
+        /// <summary>
+        /// 다 들춘 뒤에는 <b>잡을 일이 없다</b>. 그래야 누름이 톡 누르기로 흘러가
+        /// <see cref="OnSelect"/> 가 불리고, 도로 내려놓을 수 있다.
+        /// </summary>
+        public bool HoldReady => !Raked && !_locked && _holdSeconds > 0.01f;
 
         /// <summary>
         /// 움직일 것을 밖에서 물려 준다. 씬을 나눠 놓으면 인스펙터로는 못 잇는다 —
@@ -182,17 +330,70 @@ namespace IMUNROK.Common
             if (_hinge == null) return;
             float k = Raked ? _hold : Mathf.Max(_hold, _hovering && !_locked ? _hoverHint : 0f);
 
-            // 걸리기 전까지는 손끝이 떨린다 — 무거운 것을 들고 있다는 것은 눈으로 보인다
-            if (!Raked && !_caught && _holdingNow && _hold > 0.05f)
-                k -= _weight * 0.12f * (1f - _hold) * Mathf.Abs(Mathf.Sin(Time.time * 11f));
+            // 손끝 떨림 — 기본은 0이다. 켜 두면 오르내리는 길이 톱니처럼 되어
+            // "부드럽게 열리지 않는다"는 말이 나온다.
+            if (_tremble > 0f && !Raked && !_caught && _holdingNow && _hold > 0.05f)
+                k -= _tremble * (1f - _hold) * Mathf.Abs(Mathf.Sin(Time.time * _trembleHz * Mathf.PI * 2f));
 
             float e = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(k));
-            _hinge.localRotation = _restRot * Quaternion.Euler(_liftEuler * e);
+
+            // 천으로 휘어 들리는 것은 경첩을 돌리지 않는다 — 돌리면 그 위에 또 휘어
+            // 두 번 들린다. 휘는 쪽에 맡기고 여기서는 자리만 옮긴다.
+            if (_soft != null) _soft.SetLift(e);
+            else _hinge.localRotation = _restRot * Quaternion.Euler(_liftEuler * e);
             _hinge.localPosition = _restPos + _liftOffset * e;
+        }
+
+        /// <summary>들린 것 위에 붙는 손자리. 들춘 뒤에만 켜진다.</summary>
+        private BoxCollider _liftedGrab;
+
+        /// <summary>
+        /// <b>들린 것을 짚을 수 있게 한다.</b>
+        ///
+        /// 들춘 뒤 제 손자리는 경첩 쪽으로 줄어든다(<see cref="_rakedColliderKeep"/>) —
+        /// 바닥에 누운 콜라이더가 밑에서 나온 것을 가로막지 않게 하려고 그렇게 했다.
+        /// 그런데 그 바람에 <b>들려 올라간 물건 자체</b>에는 짚을 데가 없어졌다.
+        /// 보료가 비스듬히 서 있는데 아무리 눌러도 반응이 없으니, 내려놓는 법이 있는
+        /// 줄도 모르고 "왜 안 떨어지느냐"가 된다.
+        ///
+        /// 그래서 들린 동안만, 들린 것 위에 손자리를 하나 띄운다. 이 손자리는 <b>이
+        /// 오브젝트의 자식</b>이라 짚으면 부모의 이 부품이 잡힌다 — 경첩이 다른 가지에
+        /// 달려 있어도 상관없다.
+        /// </summary>
+        private void FollowLifted()
+        {
+            if (!_grabLifted || _hinge == null) return;
+            bool want = Raked && !_lowered && _hold > 0.35f;
+
+            if (_liftedGrab == null)
+            {
+                if (!want) return;
+                var go = new GameObject("들린것_손자리");
+                go.transform.SetParent(transform, false);
+                _liftedGrab = go.AddComponent<BoxCollider>();
+                _liftedGrab.isTrigger = true;
+            }
+            if (_liftedGrab.gameObject.activeSelf != want) _liftedGrab.gameObject.SetActive(want);
+            if (!want) return;
+
+            // 들린 것이 지금 어디 있나 — 눈에 보이는 몸피에 맞춘다. 다만 <b>윗면은 비운다</b>:
+            // 들린 보료 위에 깔려 있던 종이가 나와 있는데, 손자리가 그 위까지 덮으면
+            // 종이를 짚으려다 보료가 잡혀 도로 내려놓게 된다.
+            if (!ModelBounds.TryGet(_hinge, out var b)) return;
+            float keepY = Mathf.Max(0.05f, b.size.y * 0.55f);
+            _liftedGrab.transform.position = new Vector3(b.center.x, b.center.y - b.size.y * 0.22f, b.center.z);
+            Vector3 lossy = _liftedGrab.transform.lossyScale;
+            _liftedGrab.size = new Vector3(
+                Mathf.Abs(lossy.x) > 1e-4f ? b.size.x * 0.9f / Mathf.Abs(lossy.x) : b.size.x,
+                Mathf.Abs(lossy.y) > 1e-4f ? keepY / Mathf.Abs(lossy.y) : keepY,
+                Mathf.Abs(lossy.z) > 1e-4f ? b.size.z * 0.9f / Mathf.Abs(lossy.z) : b.size.z);
         }
 
         private void Update()
         {
+            RaspFade();
+            FollowLifted();
+
             // 헤집은 뒤 — 눌러서 도로 내려놓고, 다시 눌러서 들춘다. 뚝 떨어지지 않고
             // 손으로 가만히 놓는 만큼의 시간을 들여 오르내린다.
             if (Raked)
@@ -244,8 +445,20 @@ namespace IMUNROK.Common
 
         public string GetInspectBody()
         {
-            if (Raked) return _bodyAfter;
+            // 들춘 뒤에는 <b>도로 내려놓을 수 있다는 것</b>을 알려야 한다. 여태 아무 말이
+            // 없어서, 들린 보료를 어떻게 내리는지 알 길이 없었다.
+            if (Raked)
+                return _canPutBack
+                    ? _bodyAfter + "\n" + (_lowered ? "(눌러 다시 들추기)" : "(눌러 도로 내려놓기)")
+                    : _bodyAfter;
             if (_locked) return string.IsNullOrEmpty(_lockedBody) ? _bodyBefore : _lockedBody;
+
+            // <b>잡고 있어야 들리는 것</b>은 잡고 있는 동안에도 말이 달라야 한다.
+            // 이미 무엇이 있는지 봤는데 "들춰 보시오"가 계속 뜨면, 놓으면 덮인다는
+            // 것을 모른 채 손만 놓게 된다.
+            if (_holdToKeep && _hold > 0.5f)
+                return _bodyAfter + "\n" + "(손을 놓으면 *도로 덮인다*)";
+
             return string.IsNullOrEmpty(_hint) ? _bodyBefore : _bodyBefore + "\n" + _hint;
         }
 
@@ -270,6 +483,46 @@ namespace IMUNROK.Common
             if (!Raked) { if (_holdSeconds <= 0.01f) Rake(); return; }
             if (!_canPutBack) return;
             _lowered = !_lowered;
+            ApplyColliderShrink();
+        }
+
+        /// <summary>
+        /// <b>드러나되 걸리지는 않는다</b> — 다 들어 올린 그 순간 밑엣것이 보이고
+        /// 수첩에 적히지만, 물건은 여전히 손에 매달려 있다. 놓으면 도로 덮인다.
+        ///
+        /// <b>왜 이렇게 두나</b>: 보료는 걷어 놓는 물건이 아니다. 솜이 두툼한 요를
+        /// 한쪽으로 젖혀 놓으면 그대로 서 있지 않고 제 무게로 도로 내려앉는다.
+        /// 그리고 그 편이 놀이로도 낫다 — 밑엣것을 보는 <b>내내 한 손이 묶여</b>
+        /// 있으므로, 밖에서 발소리가 나면 놓고 일어설지 조금 더 볼지를 고르게 된다.
+        /// 한 번 젖혀 두면 그 뒤로는 아무 값도 치르지 않는다.
+        ///
+        /// <see cref="Rake"/> 와 달리 <see cref="Raked"/> 를 세우지 않는다. 그래서
+        /// 콜라이더도 안 줄고, 들린 것 손자리도 안 생기고, 도로 내려놓을 일도 없다 —
+        /// 손만 놓으면 저절로 덮이기 때문이다.
+        /// </summary>
+        private bool _revealed;
+
+        private void RevealOnce()
+        {
+            if (_revealed || _locked) return;
+            _revealed = true;
+
+            if (_puff != null) { _puff.Clear(true); _puff.Play(true); }
+            foreach (var ps in _stirUp)
+            {
+                if (ps == null) continue;
+                if (!ps.isPlaying) ps.Play(true);
+                ps.Emit(12);
+            }
+
+            if (_recordClue && !string.IsNullOrEmpty(_clueKey) && Journal.Instance != null)
+            {
+                Journal.Instance.AddClue(_clueCase, _clueKey, _clueText, _clueImage);
+                if (_cluePage != null)
+                    Journal.Instance.AttachDocument(_clueCase, _clueKey, _cluePage,
+                        string.IsNullOrEmpty(_clueName) ? _title : _clueName, _bodyAfter, _clueFine);
+            }
+            _onRaked?.Invoke();
         }
 
         private void Rake()
@@ -280,6 +533,7 @@ namespace IMUNROK.Common
 
             ShowState();
             ApplyLift();
+            ApplyColliderShrink();
 
             if (_puff != null) { _puff.Clear(true); _puff.Play(true); }
             foreach (var ps in _stirUp)
