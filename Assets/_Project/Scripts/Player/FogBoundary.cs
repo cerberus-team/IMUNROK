@@ -39,7 +39,7 @@ namespace IMUNROK.Common
         [Tooltip("여기서부터 안개가 조여 오기 시작한다")]
         [SerializeField] private float _soft = 34f;
         [Tooltip("여기를 넘으면 돌려보낸다")]
-        [SerializeField] private float _hard = 48f;
+        [SerializeField] private float _hard = 44f;
         [Tooltip("돌려보낼 자리. 안개 안쪽으로 넉넉히 들어온 곳이어야 한다")]
         [SerializeField] private float _returnTo = 30f;
 

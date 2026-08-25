@@ -289,7 +289,7 @@ namespace IMUNROK.Common
         private string OrderLabel()
         {
             if (!string.IsNullOrEmpty(_order)) return _order;
-            string[] n = { "제일", "제이", "제삼", "제사", "제오" };
+            string[] n = { "제1", "제2", "제3", "제4", "제5" };
             int i = Order(_caseId);
             return (i < n.Length ? n[i] : "제" + (i + 1)) + " 사건";
         }

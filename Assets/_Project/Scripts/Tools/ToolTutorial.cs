@@ -176,7 +176,7 @@ namespace IMUNROK.Common
         {
             SubtitleView.OnClosed -= OnNoticeClosed;
             StopAwaiting();   // 씬을 떠나며 남긴 구독은 다음 씬에서 유령이 된다
-            if (_hefting) { _hefting = false; _inHand = false; var b = ToolbeltHud.Instance; if (b != null && _tool != null) b.Revoke(_tool); }
+            if (_hefting) { _hefting = false; _awaitPutDown = false; _inHand = false; var b = ToolbeltHud.Instance; if (b != null && _tool != null) b.Revoke(_tool); }
         }
 
         private void Start()
@@ -210,16 +210,21 @@ namespace IMUNROK.Common
             if (_spinSpeed != 0f && !_inHand)
                 transform.Rotate(Vector3.up, _spinSpeed * Time.deltaTime, Space.World);
 
-            // <b>마지막 마디에 이르면 여기는 손을 뗀다.</b>
+            // <b>다 읽고 내려놓기를 기다리는 동안에는 여기가 손을 뗀다.</b>
             //
-            // 끝 마디는 손에 든 채로 읽는 것이라 '익히는중' 이 그대로 이어진다.
-            // 그런데 그 사이에도 이 줄이 살아 있으면, 내려놓으려고 누른 그 한 번이
-            // <b>다음 마디로도</b> 세어져 Finish 가 다시 돌고, 또 끝 마디가 뜨고,
-            // 또 눌러도 다시 뜬다 — 익히기가 영영 안 끝난다.
+            // 끝 마디는 손에 든 채로 읽는 것이라 '익히는중' 이 그대로 이어지고,
+            // 그 마디를 기다리는 <see cref="HeftThenPutDown"/> 이 따로 누름을 본다.
+            // 그동안 이 줄까지 살아 있으면 내려놓으려고 누른 그 한 번이 <b>다음
+            // 마디로도</b> 세어져 Finish 가 다시 돌고, 또 끝 마디가 뜨고, 또 눌러도
+            // 다시 뜬다 — 익히기가 영영 안 끝난다. 그동안 <see cref="Learning"/> 이
+            // 참이라 방을 짚는 손이 물러나 있으니 <b>문을 눌러도 안 열린다</b>.
             //
-            // 그동안 <see cref="Learning"/> 이 참으로 남아 방을 짚는 손이 물러나 있으므로,
-            // <b>문을 눌러도 안 열린다</b>. 조사청에 갇힌다. 누름은 내려놓기 한 군데로.
-            if (_hefting) return;
+            // 그러니 <b>누름을 보는 곳이 둘일 때만</b> 여기가 물러난다.
+            // 여태 <c>_hefting</c> 으로 막았는데 그것은 <b>손에 쥐여 준 그때부터</b>
+            // 참이라(등불은 둘째 마디, 돋보기도 둘째 마디), 마디를 도는 내내 누름이
+            // 죽었다 — 갇히는 자리가 '끝난 뒤'에서 '끝나기 직전'으로 옮겨갔을 뿐이다.
+            // 문지기는 마지막 한 마디에만 세운다.
+            if (_awaitPutDown) return;
 
             // ── 다음 한 마디로 넘기기 ──
             //
@@ -295,7 +300,10 @@ namespace IMUNROK.Common
                     Begin();
                     break;
                 case Phase.익히는중:
-                    NextStep();
+                    // 마지막 한 마디를 읽는 중이면 이 누름도 내려놓기 몫이다.
+                    // (방을 짚는 손은 익히는 동안 물러나 있어 여기까지 오는 일이
+                    //  드물지만, 문지기는 한 군데만 두지 않는다)
+                    if (!_awaitPutDown) NextStep();
                     break;
             }
         }
@@ -524,11 +532,21 @@ namespace IMUNROK.Common
 
             // 여기서 GoHome 을 부르지 않는다 — 마지막 한 마디도 <b>손에 든 채로</b>
             // 읽는 것이다. 내려놓는 것은 그 한 마디를 읽고 눌렀을 때다.
+            _awaitPutDown = true;     // 이제부터 누름은 내려놓기 한 군데로 간다
             StartCoroutine(HeftThenPutDown());
         }
 
         /// <summary>들어 보는 중인가. 그동안은 차례를 놓지 않는다 — 손에 하나다.</summary>
         private bool _hefting;
+
+        /// <summary>
+        /// 마지막 한 마디를 손에 든 채로 읽는 중인가 — <b>누름을 보는 곳이 둘인 동안</b>만 참이다.
+        ///
+        /// <see cref="HeftThenPutDown"/> 이 도는 그 사이에만 세우는 문지기다.
+        /// <c>_hefting</c> 과 헷갈리지 말 것: 그쪽은 손에 쥐여 준 그때부터 참이라
+        /// 마디를 도는 내내 참이고, 그것으로 막으면 <b>마디가 안 넘어간다</b>.
+        /// </summary>
+        private bool _awaitPutDown;
 
         /// <summary>손에 쥐여 준 뒤인가. 두 번 쥐여 주지 않으려고 둔다.</summary>
         private bool _inHand;
@@ -563,6 +581,7 @@ namespace IMUNROK.Common
         {
             if (!_hefting) return;
             _hefting = false;
+            _awaitPutDown = false;
             _inHand = false;
 
             var belt = ToolbeltHud.Instance;
@@ -726,7 +745,13 @@ namespace IMUNROK.Common
             // 내려가 있고 자막도 발치에 깔린 채로 남는다.
             WorldHudAnchor.StowAll = false;
             // 들어 보는 동안에는 아직 놓아 주지 않는다 — 손에 물건이 있고 읽을 글이 남았다.
-            if (release)
+            //
+            // <b>과제를 기다리는 동안도 마찬가지다.</b> 여기를 그냥 지나가며 붙박기를
+            // 풀어 버렸더니, "종이를 훑어 보시오" 도 "종이 아래에 적힌 것을 읽어 보시오" 도
+            // 늦게 따라오는 글이 되었다 — 그 두 마디야말로 <b>고개를 숙이고</b> 읽는
+            // 대목이라, 숙이는 순간 글이 뒤에 남아 안 보인다. 익히기가 다 끝나고
+            // (<see cref="PutDown"/>) 나서야 놓는다.
+            if (release && !_awaiting)
             {
                 SubtitleView.SetReadingDistance(1.3f, -0.28f);
                 SubtitleView.SetPinned(false);   // 방을 둘러보는 동안에는 도로 늦게 따라온다

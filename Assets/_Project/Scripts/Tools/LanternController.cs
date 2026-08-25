@@ -60,7 +60,9 @@ namespace IMUNROK.Common
         /// </summary>
         private void Awake()
         {
-            if (_useCommonPose) HeldRig.Apply(transform, _toolId);
+            // 모델까지 넘긴다 — 크기도 공통이다. 조사청의 등불이 옹고집전 것의
+            // 절반이었고(8 대 21), 같은 방 문갑에 놓인 등불보다도 작았다.
+            if (_useCommonPose) HeldRig.Apply(transform, _toolId, _model != null ? _model.transform : null);
         }
 
         private void Start()

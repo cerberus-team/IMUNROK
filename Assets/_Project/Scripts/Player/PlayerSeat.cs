@@ -184,12 +184,36 @@ namespace IMUNROK.Common
             }
 
             Vector3 here = transform.position;
-            float floor = FloorY(here, here.y - _seatedEyeHeight);
-            _to = new Vector3(here.x, floor + _standingEyeHeight, here.z);
+
+            // <b>방석은 바닥이 아니다.</b> 앉을 때는 방석을 빼고 쟀는데(FloorY 의 ignore)
+            // 일어설 때는 그냥 쟀다. 그래서 방석 윗면이 마루로 잡혀, 일어선 키가 방석
+            // 두께만큼 붕 떴다 — 일어나기 높이가 이상하다던 것이 이것이다.
+            float floor = FloorY(here, here.y - _seatedEyeHeight, _seatSpot);
+            _standFloorY = floor;
+            _to = new Vector3(here.x, floor + StandingEye, here.z);
             _toRot = transform.rotation;
             _turn = false;                  // 일어서면서 고개까지 돌려 주면 멀미가 난다
             Begin(_standSeconds);
             _phase = Phase.StandingUp;
+        }
+
+        private float _standFloorY;
+
+        /// <summary>
+        /// 선 사람의 눈높이. <b>카메라가 아는 값을 그대로 쓴다.</b>
+        ///
+        /// 여기에 따로 적어 두면 반드시 어긋난다 — 실제로 1.60 과 1.70 으로 갈라져 있었다.
+        /// 일어서면 1.60 에 세워 놓고, 한 발짝 걷는 순간 카메라가 1.70 으로 끌어올려
+        /// 키가 스르르 자랐다. 걷는 키를 아는 것은 걷는 쪽이다.
+        /// </summary>
+        private float StandingEye
+        {
+            get
+            {
+                var fly = Rig.GetComponentInChildren<DebugFlyCamera>();
+                if (fly == null) fly = GetComponent<DebugFlyCamera>();
+                return fly != null ? fly.EyeHeight : _standingEyeHeight;
+            }
         }
 
         /// <summary>앉을 자리와 마주 볼 것을 밖에서 물려 준다(실내가 다른 씬일 때).</summary>
@@ -252,6 +276,13 @@ namespace IMUNROK.Common
             else
             {
                 _phase = Phase.Standing;
+
+                // 카메라에게 <b>마루 높이를 알려 주고</b> 걸음을 푼다. 안 알려 주면
+                // 카메라가 제 발밑을 찾다가 방석을 딛고, 걸음을 뗄 때 키가 다시 흔들린다.
+                var fly = Rig.GetComponentInChildren<DebugFlyCamera>();
+                if (fly == null) fly = GetComponent<DebugFlyCamera>();
+                if (fly != null && Rig == transform) fly.StandAtFloor(_standFloorY);
+
                 SetMoveLock(false);
                 _onStood?.Invoke();
             }

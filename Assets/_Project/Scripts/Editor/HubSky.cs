@@ -81,15 +81,20 @@ namespace IMUNROK.Common.EditorTools
         // 고리에 닿기 전에 땅이 먼저 안개가 된다.
         // 잿빛이던 것을 <b>쪽빛</b>으로 내렸다. 하늘을 성운으로 갈아 끼우고도 안개가
         // 옛 잿빛이면, 밤은 푸른데 땅 끝만 허옇게 떠서 둘이 딴 세상이 된다.
-        private static readonly Color FogColor = new Color(0.30f, 0.37f, 0.48f);
+        // 하늘을 어둡게 내리면 안개도 같이 내려야 한다. 안 그러면 캄캄한 하늘 밑에
+        // 땅 끝만 허옇게 떠서, 가리라고 두른 것이 도리어 <b>흰 띠</b>가 된다.
+        private static readonly Color FogColor = new Color(0.16f, 0.21f, 0.30f);
         private const float FogStart = 9f;
         private const float FogEnd = 30f;
 
         // ── 하늘 손질 ──
         // 달빛보다 조금 더 푸르게. 밝히되 허옇게는 안 되게 — 붉은 쪽을 눌러 두면
         // 노출을 올려도 낮처럼 보이지 않는다.
-        private static readonly Color SkyTint = new Color(0.60f, 0.72f, 0.95f);
-        private const float SkyExposure = 1.50f;
+        // <b>밤은 밤이어야 한다.</b> 노출 1.50 으로 올려 두었더니 구름의 결은 보이는데
+        // 통째로 흐린 낮이 되었다 — 등불을 들 까닭이 없어진다. 0.80 으로 내리고
+        // 빛깔도 한 단 더 눌러, 달빛이 닿는 데만 밝고 나머지는 잠기게 한다.
+        private static readonly Color SkyTint = new Color(0.50f, 0.60f, 0.85f);
+        private const float SkyExposure = 0.80f;
         // 구름이 갈라진 자리가 남쪽 마당 위로 오게. 문을 열고 나서면 정면이 트여 있어야 한다.
         private const float SkyRotation = 205f;
 
@@ -111,7 +116,7 @@ namespace IMUNROK.Common.EditorTools
             var log = new StringBuilder();
             Sky(log);
             DistanceFog(log);
-            foreach (var pair in new[] { new[] { "안개_안", "0.42,0.50,0.62" }, new[] { "안개_밖", "0.28,0.36,0.48" } })
+            foreach (var pair in new[] { new[] { "안개_안", "0.22,0.27,0.36" }, new[] { "안개_밖", "0.14,0.19,0.27" } })
             {
                 var m = AssetDatabase.LoadAssetAtPath<Material>(MatDir + "/M_" + pair[0] + ".mat");
                 if (m == null) { log.AppendLine("   ✘ " + pair[0] + " 재질 없음"); continue; }
@@ -265,11 +270,11 @@ namespace IMUNROK.Common.EditorTools
             // 그래도 <b>속이 비쳐서는 안 된다</b>. 0.62 로 두었더니 안개 너머의 지평선이
             // 그대로 읽혔다 — 가리라고 세운 것이 무늬가 되어 버린다.
             Shell(root.transform, mesh, shader, "안개_안", InnerR, InnerH,
-                  new Color(0.42f, 0.50f, 0.62f), 1.0f, 1.6f, 0.030f, 0.38f);
+                  new Color(0.22f, 0.27f, 0.36f), 1.0f, 1.6f, 0.030f, 0.38f);
             // 바깥은 짙게 — 여기가 세상의 끝이다. 너머가 비쳐 보이면 안 된다.
             // 결(무늬)도 약하게 준다. 짙은 벽에 결이 세면 안개가 아니라 커튼이 된다.
             Shell(root.transform, mesh, shader, "안개_밖", OuterR, OuterH,
-                  new Color(0.28f, 0.36f, 0.48f), 1.0f, 1.25f, 0.018f, 0.30f);
+                  new Color(0.14f, 0.19f, 0.27f), 1.0f, 1.25f, 0.018f, 0.30f);
 
             log.AppendLine("   안개 고리 두 겹: 반지름 " + InnerR + "m(옅게) · " + OuterR + "m(짙게)");
         }
@@ -392,7 +397,7 @@ namespace IMUNROK.Common.EditorTools
             // 붙잡는 자리는 <b>두 고리 사이</b>다. 안쪽 고리(44m)를 지나 안개 속으로
             // 들어선 뒤라야 "홀려서 돌아 나왔다"가 되고, 바깥 고리(55m)에 닿기 전이라야
             // 세상의 끝을 눈으로 보지 않는다.
-            float hard = (InnerR + OuterR) * 0.5f;      // 49.5m
+            float hard = InnerR;                         // 44m — 안쪽 고리에 닿으면 바로 돌려보낸다
             float soft = InnerR - 10f;                  // 34m — 여기서부터 안개가 조여 온다
             float back = InnerR - 14f;                  // 30m — 되돌려 세우는 자리
             fb.Configure(center, soft, hard, back, new Vector2(FogStart, FogEnd));

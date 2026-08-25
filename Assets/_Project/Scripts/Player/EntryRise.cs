@@ -30,9 +30,18 @@ namespace IMUNROK.Common
         [SerializeField] private Transform _lookAt;
         [SerializeField] private string _lookAtPath = "조사청_실내/구조/창/창_중방_동";
 
-        [Tooltip("일어서면서 이만큼 올라선다(m). 내려앉지는 않는다 — " +
-                 "씬에 잡아 둔 시작 자리가 곧 앉은 자리다. 거기서 더 내리면 마루에 드러누운 눈높이가 된다")]
+        [Tooltip("일어서면서 이만큼 올라선다(m). 아래 '바닥에서 재기'를 끄면 이 값만 쓴다")]
         [SerializeField] private float _riseHeight = 0.50f;
+
+        [Header("앉은 키 · 선 키 — 바닥에서 잰다")]
+        [Tooltip("켜면 발밑 바닥을 찾아 <b>거기서부터</b> 앉은 키·선 키를 잡는다. " +
+                 "끄면 씬에 잡아 둔 자리를 앉은 자리로 삼고 위의 값만큼만 올라선다")]
+        [SerializeField] private bool _measureFromFloor = true;
+        [Tooltip("<b>앉은 눈높이</b>(바닥에서 눈까지, m). 방바닥에 책상다리로 앉으면 0.9 남짓이다 — " +
+                 "이보다 낮으면 마루에 드러누워 올려다보는 눈이 된다")]
+        [SerializeField] private float _seatEye = 0.92f;
+        [Tooltip("<b>선 눈높이</b>(m). 0이면 걷는 부품(DebugFlyCamera)이 쓰는 눈높이를 그대로 받아 쓴다")]
+        [SerializeField] private float _standEye = 0f;
         [Tooltip("고개를 다 돌리는 데 걸리는 시간(초)")]
         [SerializeField] private float _turnSeconds = 3.2f;
         [Tooltip("다 보고 잠깐 머무는 시간(초). 이 사이가 없으면 보자마자 일어난 꼴이 된다")]
@@ -48,6 +57,12 @@ namespace IMUNROK.Common
         {
             if (_done) return;
             if (GameObject.Find("조사청_실내") == null) return;   // 조사청에서만
+
+            // 헤드셋을 쓰고 있으면 <b>앉히지 않는다</b>. 앉은 눈높이는 카메라를 내려서
+            // 만드는 것인데, VR 에서 눈높이를 정하는 것은 쓰고 있는 사람의 <b>실제 키</b>다.
+            // 거기에 대고 카메라를 끌어내리면 몸은 서 있는데 눈만 꺼지는 꼴이 되어
+            // 곧바로 멀미가 난다. 앉은 채 시작하는 연출은 VR 용으로 따로 지어야 한다.
+            if (UnityEngine.XR.XRSettings.isDeviceActive) return;
             var cam = Camera.main;
             if (cam == null || cam.GetComponent<EntryRise>() != null) return;
             cam.gameObject.AddComponent<EntryRise>();
@@ -71,13 +86,31 @@ namespace IMUNROK.Common
             var fly = GetComponent<DebugFlyCamera>();
             if (fly != null) fly.enabled = false;      // 도는 동안 손을 뗀다
 
-            // ① 앉은 자리는 <b>씬에 잡아 둔 그 자리</b>다.
+
+            // ① 앉은 키와 선 키를 <b>바닥에서</b> 잡는다.
             //
-            // 처음엔 여기서 눈높이를 0.52m 더 내렸다. 그런데 시작 자리는 이미
-            // 보료에 앉은 눈높이로 잡아 두신 것이라, 거기서 또 내리니 마루에
-            // 드러누운 꼴이 되었다. 내리지 않고, 나중에 <b>올라서기만</b> 한다.
+            // 내력이 둘 있다. 처음엔 시작 자리에서 0.52m 를 더 내렸다가 마루에 드러누운
+            // 눈이 되었고, 그것을 고치느라 "씬에 잡아 둔 자리를 그대로 앉은 자리로 쓴다"고
+            // 했다. 그런데 씬의 그 자리가 바닥에 가까우면 <b>바닥에서 솟아오르는</b> 것이
+            // 되어, 앉았다 일어서는 사람이 아니라 마루를 뚫고 나오는 사람이 된다.
+            //
+            // 어느 쪽도 씬 값에 기대는 한 어긋난다. 발밑을 찾아 <b>거기서부터</b> 앉은 키
+            // 0.92m, 선 키 1.7m 를 잡는다. 그러면 시작 자리를 어디에 두든 앉은 눈은 늘
+            // 앉은 눈이고, 일어선 눈은 늘 선 눈이다.
             Vector3 seat = transform.position;
-            Vector3 stand = seat + Vector3.up * _riseHeight;
+            float standEye = _standEye;
+            if (standEye <= 0.01f) standEye = fly != null ? fly.EyeHeight : 1.7f;
+
+            if (_measureFromFloor &&
+                Physics.Raycast(transform.position + Vector3.up * 0.3f, Vector3.down,
+                                out var floor, 6f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                seat = new Vector3(seat.x, floor.point.y + _seatEye, seat.z);
+                transform.position = seat;                       // 앉은 눈높이에서 시작한다
+            }
+            Vector3 stand = _measureFromFloor
+                          ? new Vector3(seat.x, seat.y + Mathf.Max(0.05f, standEye - _seatEye), seat.z)
+                          : seat + Vector3.up * _riseHeight;
 
             // ② 고개를 돌린다
             Quaternion from = transform.rotation;
