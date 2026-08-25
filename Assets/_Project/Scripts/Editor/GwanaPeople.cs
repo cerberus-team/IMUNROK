@@ -94,6 +94,11 @@ namespace IMUNROK.Common.EditorTools
                 Set(서리.GetComponent<InterrogationController>(), so => so.FindProperty("_lockedAtStart").boolValue = true);
             }
 
+            // 2막 대사가 들어와 있으면 갈아 끼운다
+            Act2Lines(甲, "Gap", log);
+            Act2Lines(乙, "EulOng", log);
+            Act2Lines(하인, "Servant", log);
+
             // 소매 걷기 + 왼팔 — 甲과 乙 <b>둘 다</b>. 한쪽에만 대면 심문이 아니라 덫이다.
             Sleeve(甲, true, log);
             Sleeve(乙, false, log);
@@ -207,6 +212,38 @@ namespace IMUNROK.Common.EditorTools
             }
             Tune(go);
             return go;
+        }
+
+        /// <summary>
+        /// <b>2막 대사가 들어와 있으면 갈아 끼운다.</b>
+        ///
+        /// 1막에서 몸을 데려오면 <b>심문 데이터도 따라온다</b>. 그런데 그 대사는
+        /// 한밤중에 과객을 맞는 주인의 말이라, 아침에 관아 뜰에 끌려 나와 어사 앞에
+        /// 선 사람이 "허허… 이 밤중에 어인 일이시오" 하고 인사하게 된다.
+        ///
+        /// 1막 것을 고쳐 쓸 수는 없다 — 같은 에셋을 1막이 그대로 쓰고 있어, 여기를
+        /// 고치면 저쪽 사랑방이 무너진다. 애초에 1막의 甲은 주인 행세를 하는 사람이고
+        /// 2막의 甲은 잡혀 온 사람이라 <b>사실상 다른 인물</b>이다.
+        ///
+        /// 그래서 <c>&lt;이름&gt;_Gwana_Interrogation.asset</c> 이 있으면 그것을 집고,
+        /// 없으면 1막 것을 그대로 둔 채 <b>한 줄 일러 준다</b>. 파일을 넣고 이 메뉴를
+        /// 한 번 더 누르면 붙는다.
+        /// </summary>
+        private static void Act2Lines(GameObject who, string 밑이름, System.Text.StringBuilder log)
+        {
+            if (who == null) return;
+            var talk = who.GetComponent<InterrogationController>();
+            if (talk == null) return;
+
+            string path = DataDir + "/" + 밑이름 + "_Gwana_Interrogation.asset";
+            var ch = AssetDatabase.LoadAssetAtPath<InterrogationCharacter>(path);
+            if (ch == null)
+            {
+                log.AppendLine("  ※ " + who.name + " 은 아직 <b>1막 대사</b>를 쓴다 — " + path + " 를 넣고 다시 누르십시오");
+                return;
+            }
+            Set(talk, so => so.FindProperty("_character").objectReferenceValue = ch);
+            log.AppendLine("  · " + who.name + " 에 2막 대사를 물렸다 (" + ch.name + ")");
         }
 
         /// <summary>
