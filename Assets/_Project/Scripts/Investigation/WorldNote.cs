@@ -108,7 +108,7 @@ namespace IMUNROK.Common
         private void ShowInternal(Transform target, string line)
         {
             _target = target;
-            _text.text = line;
+            _text.text = Emphasis.Rich(line, Emphasis.OnDark);
             _left = _seconds;
             _worldTop = TopOf(target);
             Place(true);

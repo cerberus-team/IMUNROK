@@ -88,7 +88,8 @@ namespace IMUNROK.Common
 
             GUI.Box(new Rect(x, y, w, h), GUIContent.none);
             GUI.Label(new Rect(x + 14, y + 10, w - 28, 26), _current.GetInspectTitle(), _titleStyle);
-            GUI.Label(new Rect(x + 14, y + 42, w - 28, h - 52), _current.GetInspectBody(), _bodyStyle);
+            GUI.Label(new Rect(x + 14, y + 42, w - 28, h - 52),
+                      Emphasis.Rich(_current.GetInspectBody(), Emphasis.OnDark), _bodyStyle);
         }
 
         private void EnsureStyles()
@@ -101,7 +102,7 @@ namespace IMUNROK.Common
             };
             _bodyStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 14, wordWrap = true,
+                fontSize = 14, wordWrap = true, richText = true,   // 낱말 강조(Emphasis)를 살린다
                 normal = { textColor = Color.white }
             };
         }

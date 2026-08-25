@@ -54,7 +54,12 @@ namespace IMUNROK.Common
             // 지금 프레임에 가리키는 대상 찾기
             ISelectable hit = null;
             if (Physics.Raycast(ray, out RaycastHit info, _maxDistance, _mask))
+            {
                 hit = info.collider.GetComponentInParent<ISelectable>();
+                // <b>어디를 짚었는지</b>를 남겨 둔다. 두 짝 문처럼 한 물건 안에서도
+                // 짚은 자리에 따라 하는 일이 다른 것이 있다(DoorController).
+                Pointing.Set(info.point, info.collider != null ? info.collider.transform : null);
+            }
 
             // 도구를 익히는 동안에는 손이 방으로 가지 않는다.
             //
@@ -74,7 +79,11 @@ namespace IMUNROK.Common
             }
 
             // 눌러 잡고 있어야 되는 것 — 잡은 대상에서 손이 벗어나면 놓은 것으로 친다.
+            // 잡을 일이 끝난 것은 더 이상 "잡는 것"이 아니다 — 톡 누르기로 흘려보낸다.
+            // 안 그러면 다 들춘 보료를 도로 내려놓을 길이 없다(IHoldable.HoldReady 참고).
             var holdable = _current as IHoldable;
+            if (holdable != null && !holdable.HoldReady) holdable = null;
+
             if (holdable != null && mouse.leftButton.isPressed)
             {
                 // 마주 앉은 자리에서는 손이 먼저 제지당한다

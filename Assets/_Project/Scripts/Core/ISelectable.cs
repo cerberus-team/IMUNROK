@@ -37,5 +37,16 @@ namespace IMUNROK.Common
 
         /// <summary>다 채우기 전에 놓았을 때. 물건은 제자리로 돌아간다.</summary>
         void OnHoldRelease();
+
+        /// <summary>
+        /// <b>아직 잡을 일이 남았나.</b> 다 들춰 버린 뒤에는 거짓을 돌려준다.
+        ///
+        /// 왜 필요한가: 이것을 구현했다는 이유만으로 <see cref="ISelectable.OnSelect"/> 가
+        /// 영영 안 불렸다. 그래서 한 번 들춘 보료를 <b>도로 내려놓을 길이 없었다</b> —
+        /// 내려놓는 코드가 바로 그 OnSelect 안에 있는데, 누르면 잡기로 가로채이고
+        /// 잡기는 "이미 들췄다"며 곧장 돌아 나왔다. 아무 일도 안 일어난다.
+        /// 잡을 일이 끝나면 손을 놓아, 누름이 <b>톡 누르기</b>로 흘러가게 한다.
+        /// </summary>
+        bool HoldReady { get; }
     }
 }

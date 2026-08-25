@@ -158,7 +158,8 @@ namespace IMUNROK.Common
             if (hasName) _nameText.text = speaker;
 
             _lineText.color = key ? _keyColor : _textColor;
-            _lineText.text = line ?? "";
+            // 한 문장 안에서 한두 낱말만 도드라진다 — 별표로 감싼 것(Emphasis)
+            _lineText.text = Emphasis.Rich(line ?? "", Emphasis.OnDark);
             _hintText.text = hint ?? "";
 
             SetVisible(true);
