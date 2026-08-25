@@ -38,6 +38,12 @@ namespace IMUNROK.Common
         [Tooltip("이 거리(m) 안에서만 앉을 수 있다")]
         [SerializeField] private float _maxTouchDistance = 2.5f;
 
+        [Tooltip("켜면 <b>처음부터</b> 앉을 수 있다 — 권해 주는 사람이 없는 자리.\n" +
+                 "사랑방 방석은 주인이 권해야 앉는 자리라 꺼 두지만, 동헌 마루는 " +
+                 "어사가 제 발로 올라가 제 자리에 앉는 데다. 거기서 누가 권하기를 " +
+                 "기다리면 아무도 권하지 않아 영영 못 앉는다")]
+        [SerializeField] private bool _offeredAtStart = false;
+
         /// <summary>자리를 권했나. 권하기 전에는 눌러도 앉지 않는다.</summary>
         public bool Offered { get; private set; }
 
@@ -47,6 +53,7 @@ namespace IMUNROK.Common
         private void Awake()
         {
             _home = transform.position;
+            if (_offeredAtStart) Offered = true;
             if (GetComponent<Collider>() == null)
                 Debug.LogWarning($"[{name}] 콜라이더가 없어 눌러도 잡히지 않습니다.", this);
         }

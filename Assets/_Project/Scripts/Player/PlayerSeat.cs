@@ -1,5 +1,8 @@
 using UnityEngine;
 using UnityEngine.Events;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace IMUNROK.Common
 {
@@ -54,6 +57,17 @@ namespace IMUNROK.Common
         [Header("리그")]
         [Tooltip("비우면 카메라의 최상위 부모를 쓴다. 데스크탑 테스트에서는 카메라 자신이다")]
         [SerializeField] private Transform _rig;
+
+        [Header("일어서기")]
+        [Tooltip("앉은 채로 이 키를 누르면 <b>제 발로 일어선다</b>. None 이면 못 일어난다 — " +
+                 "사랑방처럼 상대가 물러가야 끝나는 자리는 None 으로 둔다. 동헌은 어사가 " +
+                 "제 볼일을 보고 제 발로 내려오는 자리라 키를 준다")]
+        [SerializeField] private Key _riseKey = Key.None;
+
+        [Tooltip("앉아 있는 동안 상태창에 남길 말. 비우면 아무것도 안 남긴다. " +
+                 "*Space* 처럼 별표로 감싼 낱말은 도드라진다")]
+        [TextArea(2, 3)]
+        [SerializeField] private string _seatedLine = "";
 
         [Header("이벤트")]
         [Tooltip("자리를 권한 순간(화면에서만). 주인이 '이리 앉으시오' 하는 자리")]
@@ -242,6 +256,8 @@ namespace IMUNROK.Common
 
         private void Update()
         {
+            RiseKey();
+
             // 자리를 권해 놓고 기다리는 중 — 헤드셋이면 <b>머리가 내려오는 것</b>을 본다.
             // 앉으라는 말을 듣고 실제로 앉는 것, 그것 말고는 진행시키지 않는다.
             if (_phase == Phase.Offered)
@@ -345,6 +361,50 @@ namespace IMUNROK.Common
         }
 
         /// <summary>걸음을 막거나 푼다. 둘러보기는 건드리지 않는다.</summary>
+        /// <summary>
+        /// 앉은 사람이 <b>제 발로</b> 일어선다.
+        ///
+        /// 여태 일어서는 길은 하나뿐이었다 — 마주 앉은 상대가 물러가면서 Stand() 를
+        /// 불러 주는 것. 사랑방에서는 그것이 옳았다. 심문하다 말고 일어나 방을 뒤지면
+        /// 그 다음에 벌어질 일이 무너지니까.
+        ///
+        /// 그런데 동헌은 <b>어사가 주인인 자리</b>다. 부를 사람을 다 부르고 나면
+        /// 일어나 서고로 가야 하는데, 물러가 줄 사람이 없으니 앉은 채로 갇힌다.
+        /// 그래서 키를 하나 준다 — 다만 <b>자리마다 따로</b> 준다. 기본은 None 이라
+        /// 사랑방은 여태대로다.
+        /// </summary>
+        private void RiseKey()
+        {
+#if ENABLE_INPUT_SYSTEM
+            if (_riseKey == Key.None) return;
+
+            bool seated = _phase == Phase.Seated;
+            if (seated != _wasSeated)
+            {
+                _wasSeated = seated;
+                if (!seated) StatusPanel.Clear("앉음");   // 일어섰으면 안내도 거둔다
+            }
+            if (!seated) return;
+
+            // <b>마주 앉은 동안에는 안내를 치운다.</b> 상태창은 눈 위 한가운데에 뜨는데,
+            // 심문 중에는 그 자리에 상대의 대사가 와야 한다. "Space 일어서기"가 상대
+            // 얼굴 위에 떠 있으면 지금 읽어야 할 것이 무엇인지 갈린다.
+            // 키는 그대로 산다 — 안내만 물러난다.
+            bool busy = InterrogationController.AnyOpen || JournalView.AnyOpen || DocumentView.IsOpen;
+            if (busy) StatusPanel.Clear("앉음");
+            else if (!string.IsNullOrEmpty(_seatedLine)) StatusPanel.Set("앉음", 3, _seatedLine);
+
+            var kb = Keyboard.current;
+            if (kb != null && kb[_riseKey].wasPressedThisFrame)
+            {
+                StatusPanel.Clear("앉음");
+                Stand();
+            }
+#endif
+        }
+
+        private bool _wasSeated;
+
         private void SetMoveLock(bool locked)
         {
             var fly = Rig.GetComponentInChildren<DebugFlyCamera>();

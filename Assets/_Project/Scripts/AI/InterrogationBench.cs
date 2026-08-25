@@ -70,8 +70,19 @@ namespace IMUNROK.Common
 
         private Vector3 Here => _from != null ? _from.position : transform.position;
 
-        /// <summary>지금 이 사람이 불려 나와 있나(이름표를 도드라지게 그리려고).</summary>
-        public bool IsUp(Seat s) => s != null && s.사람 != null && s.사람.IsOpen;
+        /// <summary>
+        /// 지금 이 사람이 불려 나와 있나(이름표를 도드라지게 그리려고).
+        ///
+        /// <b>심문창이 열렸나가 아니라 앞에 나와 있나로 본다.</b> 창을 잠시 닫아도
+        /// 사람은 아직 어사 앞에 서 있고, 부르자마자 창이 열리기 전에도 이미 걸어
+        /// 나오는 중이다. 이름표가 가리켜야 하는 것은 <b>뜰의 사정</b>이지 창의 사정이 아니다.
+        /// </summary>
+        public bool IsUp(Seat s)
+        {
+            if (s == null || s.사람 == null) return false;
+            var c = s.사람.GetComponent<CourtSummon>();
+            return c != null ? c.IsUp : s.사람.IsOpen;
+        }
 
         /// <summary>
         /// 이름표를 눌렀다.
@@ -90,9 +101,29 @@ namespace IMUNROK.Common
             if (s.사람.IsOpen) return;      // 이미 저 사람과 이야기하는 중이다
 
             var open = InterrogationController.Active;
-            if (open != null && open != s.사람) open.CloseFromUi();
+            if (open != null && open != s.사람)
+            {
+                open.CloseFromUi();
+                var back = open.GetComponent<CourtSummon>();
+                if (back != null) back.StepBack();     // 있던 이가 등을 보이고 물러난다
+            }
+
+            var come = s.사람.GetComponent<CourtSummon>();
+            if (come != null) come.StepForward();
 
             s.사람.CallUp();
+        }
+
+        /// <summary>씬을 켤 때 넷을 제 자리에 돌려 놓는다(연출 없이).</summary>
+        private void Start()
+        {
+            if (_seats == null) return;
+            foreach (var s in _seats)
+            {
+                if (s == null || s.사람 == null) continue;
+                var c = s.사람.GetComponent<CourtSummon>();
+                if (c != null) c.SnapBack();
+            }
         }
 
         /// <summary>
