@@ -134,12 +134,22 @@ namespace IMUNROK.Common
                 // 나올 때는 앞에서부터, 물러갈 때는 뒤에서부터 밟는다
                 _goal = _up ? _via[_leg] : _via[n - 1 - _leg];
                 _leg++;
-                if (_goal != null) return;
+                if (_goal != null) { MarkLeg(); return; }
             }
 
             _goal = _up ? _frontSpot : _waitSpot;
             _leg = int.MaxValue;                        // 이제부터는 목적지다
-            if (_goal == null) Arrive();                // 갈 자리가 없으면 그 자리에 선 채로
+            if (_goal == null) { Arrive(); return; }    // 갈 자리가 없으면 그 자리에 선 채로
+            MarkLeg();
+        }
+
+        /// <summary>이 다리의 출발 자리와 수평 길이를 적어 둔다. 높이는 이 몫으로 오른다.</summary>
+        private void MarkLeg()
+        {
+            _legFrom = transform.position;
+            if (_goal == null) { _legLen = 0f; return; }
+            Vector3 flat = _goal.position - _legFrom; flat.y = 0f;
+            _legLen = flat.magnitude;
         }
 
         private int _leg = int.MaxValue;
@@ -153,16 +163,15 @@ namespace IMUNROK.Common
             SetBool(_walkBool, false);
             SetBool(_sitBool, false);
             Doors(false);
-            Vector3 p = WaitAt; p.y = transform.position.y;
-            transform.position = p;
+            // 높이까지 제자리로. 심문이 동헌 <b>안</b>으로 들어간 뒤로는 대청(2.19)에
+            // 올라가 있을 수 있어, 여기서 y 를 그대로 두면 뜰 위 두 길에 뜬 채로 선다.
+            transform.position = WaitAt;
         }
 
         private void Update()
         {
             if (_goal == null) return;
 
-            // <b>수평만 움직인다.</b> 발 높이는 GroundFeet 몫이라, 여기서 y 까지
-            // 만지면 둘이 서로 밀어 몸이 위아래로 떤다.
             Vector3 here = transform.position;
             Vector3 to = _goal.position; to.y = here.y;
 
@@ -170,8 +179,50 @@ namespace IMUNROK.Common
             if (d.sqrMagnitude <= _arriveAt * _arriveAt) { Arrive(); return; }
 
             transform.position = Vector3.MoveTowards(here, to, _speed * Time.deltaTime);
+            Climb();
             Face(d);
         }
+
+        /// <summary>
+        /// <b>다리를 걷는 만큼 높이도 오른다.</b>
+        ///
+        /// 여태 여기서 y 를 아예 안 만졌다. 뜰이 평평했으니 그래도 됐고, 발 높이는
+        /// <see cref="GroundFeet"/> 가 맡는다고 적어 두었다. 그런데 심문이 동헌
+        /// <b>안</b>으로 들어가면서 뜰(0.00)에서 대청(2.19)까지 두 길을 올라야 하게 됐다.
+        ///
+        /// GroundFeet 은 이 일을 못 한다. 그것은 <b>모델</b>을 밀어 바닥에 붙이는
+        /// 부품이고, 발보다 한참 위에 있는 것은 아예 바닥으로 안 친다(<c>_maxStepUp</c>) —
+        /// 처마나 문짝을 바닥으로 잘못 짚어 사람이 솟구치는 일을 막으려고 그렇게 해 뒀다.
+        /// 그러니 대청 마루는 <b>바닥 후보에도 안 든다</b>. 불러 놓으면 甲 은 뜰 높이
+        /// 그대로 걸어와, 마루 밑 기단 속에 파묻힌 채로 앉았다.
+        ///
+        /// 둘이 다투지도 않는다. 여기서는 <b>거쳐 갈 자리에 적힌 높이</b>를 따라가고,
+        /// GroundFeet 은 그 자리에서 모델을 몇 cm 다듬을 뿐이다. 서로 다른 것을 만진다.
+        ///
+        /// 다리를 걸은 <b>몫만큼</b> 올린다 — 계단을 딛고 오르는 꼴이 된다. 정해진
+        /// 빠르기로 올리면 계단에 닿기도 전에 허공으로 떠오른다.
+        /// </summary>
+        private void Climb()
+        {
+            if (_goal == null) return;
+            float goalY = _goal.position.y;
+            if (_legLen <= 0.01f) { Snap(goalY); return; }
+
+            Vector3 flat = transform.position - _goal.position; flat.y = 0f;
+            float k = Mathf.Clamp01(1f - flat.magnitude / _legLen);
+            Snap(Mathf.Lerp(_legFrom.y, goalY, k));
+        }
+
+        private void Snap(float y)
+        {
+            var p = transform.position;
+            if (Mathf.Abs(p.y - y) < 0.0005f) return;
+            p.y = y;
+            transform.position = p;
+        }
+
+        private Vector3 _legFrom;   // 이 다리를 시작한 자리
+        private float _legLen;      // 그 다리의 수평 길이
 
         private void Arrive()
         {
