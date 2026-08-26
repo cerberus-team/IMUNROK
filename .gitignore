@@ -128,12 +128,28 @@ gemini_api_key.txt
 /Assets/_Project/Art/UI/**/*.jpeg
 # 공통 아트(한지 텍스처·폰트 등) — git 제외, 공유폴더로 배포
 /Assets/_Project/_Common/Art/*
-# 폰트만은 .meta 를 커밋한다. 씬이 폰트를 GUID 로 가리키므로 .meta 가 빠지면
-# 팀원 화면에서 글씨가 통째로 다른 것으로 바뀐다. 부모 폴더가 통으로 빠져 있으면
-# 안쪽만 되살릴 수 없어, 폴더를 한 번 열고 그 안에서 다시 거른다.
+# 폰트는 .meta 를 커밋한다. 씬이 폰트를 GUID 로 가리키므로 .meta 가 빠지면
+# 팀원 화면에서 글씨가 통째로 다른 것으로 바뀐다.
+#
+# ★2026-08-27 고침 — 여태 "폴더를 한 번 열고 그 안에서 다시 거르는" 방식이었는데,
+#   그 예외는 <b>한 겹까지만</b> 미친다. UI 꾸러미가 구워 둔 TMP 폰트 에셋을
+#   Fonts/Resources/ 에 넣는데, 한 겹 더 들어간 그곳이 도로 막혀 .meta 가 통째로
+#   빠졌다 — clone 만 하고 꾸러미를 안 넣은 사람 손에서는 대화창 글씨가 통째로 빈다.
+#   Art/Tools·Art/UI 에서 이미 두 번 밟고 고친 함정인데 이쪽만 안 고쳐져 있었다.
+#   이제 <b>확장자로</b> 막는다 — 몇 겹이 되든 .meta 는 안 걸린다.
 !/Assets/_Project/_Common/Art/Fonts/
-/Assets/_Project/_Common/Art/Fonts/*
-!/Assets/_Project/_Common/Art/Fonts/*.meta
+/Assets/_Project/_Common/Art/Fonts/**/*.ttf
+/Assets/_Project/_Common/Art/Fonts/**/*.otf
+/Assets/_Project/_Common/Art/Fonts/**/*.ttc
+/Assets/_Project/_Common/Art/Fonts/**/*.woff
+/Assets/_Project/_Common/Art/Fonts/**/*.woff2
+
+# 구워 둔 TMP 폰트 에셋 — 생성물이자 아트다(한글 것 하나가 8.7MB).
+# 전달본은 UI 꾸러미(IMUNROK_UI.unitypackage)다 — 그것을 임포트하면 파일도 GUID도
+# 팀 전체가 같아진다. .meta 는 일부러 커밋한다 → 꾸러미를 다시 임포트해도
+# 씬이 가리키던 GUID 가 유지된다(사건 문서 텍스처와 같은 규칙이다).
+TMP_Hangul_*.asset
+TMP_Hanja_*.asset
 
 # ─────────────────────────────────────────────
 # 대용량 에셋 팩 — git 제외, 팀 공유폴더로 "폴더째" 배포
