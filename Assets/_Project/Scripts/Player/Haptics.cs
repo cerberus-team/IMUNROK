@@ -55,7 +55,18 @@ namespace IMUNROK.Common
         public static void Tap(float strength = 0.45f, float seconds = 0.045f)
         {
             if (Instance == null) Spawn();
-            if (Instance != null) Instance.Pulse(strength, seconds);
+            if (Instance != null) Instance.Pulse(VRRaySelector.LastHand, strength, seconds);
+        }
+
+        /// <summary>
+        /// <b>이 손을</b> 울린다. 손으로 직접 친 것은 방아쇠를 당긴 것이 아니라서,
+        /// 마지막에 당긴 손을 고르면 <b>엉뚱한 손</b>이 울린다 — 오른손으로 문을 쳤는데
+        /// 왼손이 떨리면 몸이 어리둥절해진다. 친 쪽이 스스로 일러 준다.
+        /// </summary>
+        public static void TapOn(XRNode hand, float strength = 0.45f, float seconds = 0.045f)
+        {
+            if (Instance == null) Spawn();
+            if (Instance != null) Instance.Pulse(hand, strength, seconds);
         }
 
         private IEnumerator Beat(float[] beats, float strength, float seconds)
@@ -66,13 +77,12 @@ namespace IMUNROK.Common
                 float wait = beats[i] - t;
                 if (wait > 0f) yield return new WaitForSeconds(wait);
                 t = beats[i];
-                Pulse(strength, seconds);
+                Pulse(VRRaySelector.LastHand, strength, seconds);
             }
         }
 
-        private void Pulse(float strength, float seconds)
+        private void Pulse(XRNode node, float strength, float seconds)
         {
-            var node = VRRaySelector.LastHand;
             var dev = InputDevices.GetDeviceAtXRNode(node);
             if (!dev.isValid) return;
             // 이 컨트롤러가 울릴 줄 아는지 먼저 묻는다. 못 하는 기기에 밀어 넣으면

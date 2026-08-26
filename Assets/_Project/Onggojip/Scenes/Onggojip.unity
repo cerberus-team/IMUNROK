@@ -24,9 +24,9 @@ RenderSettings:
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
   m_AmbientIntensity: 1
-  m_AmbientMode: 3
+  m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: d4454f71d85928744be7771e2143dab7, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -251,15 +251,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 450985cfff3338745ae308056bad0589, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 0.009774208
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 450985cfff3338745ae308056bad0589, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.7677572
+      value: -0.7276883
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 450985cfff3338745ae308056bad0589, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -0.047542572
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 450985cfff3338745ae308056bad0589, type: 3}
       propertyPath: m_LocalRotation.w
@@ -594,6 +594,8 @@ MonoBehaviour:
   _litText: 
   _clueNeedsLantern: 0
   _litGlyphs: 
+  _litClueKey: 
+  _litClueOwnText: 
   _litClueText: 
   _title: "\uC7AC \uC548\uCABD"
   _body: "\uC7AC \uC548\uCABD\uC744 \uB354 \uD5E4\uC9D1\uC790 \uC885\uC774 \uC7AC\uAC00
@@ -3386,6 +3388,8 @@ MonoBehaviour:
   _litText: 
   _clueNeedsLantern: 0
   _litGlyphs: 
+  _litClueKey: 
+  _litClueOwnText: 
   _litClueText: 
   _title: "\uD0C0\uB2E4 \uB9CC \uC11C\uCC30 \uC870\uAC01"
   _body: "\uC544\uAD81\uC774 \uC7AC \uC18D\uC5D0\uC11C \uB098\uC628 \uC885\uC774\uB2E4.
@@ -3444,7 +3448,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 686935864}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.40821794, y: -0.23456973, z: 0.10938166, w: 0.8754261}
+  m_LocalRotation: {x: -0.08426324, y: 0.9133009, z: -0.3144747, w: -0.24471824}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -3461,8 +3465,8 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 1
-  m_Color: {r: 0.55, g: 0.6, b: 0.75, a: 1}
-  m_Intensity: 0.4
+  m_Color: {r: 0.72, g: 0.8, b: 1, a: 1}
+  m_Intensity: 0.55
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -4862,6 +4866,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  _knockOnce: {fileID: 8300000, guid: c97c74c33d625e74da4827b3859148a4, type: 3}
+  _knocksNeeded: 3
+  _knockWindow: 1.6
 --- !u!65 &995650160
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5608,6 +5615,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1085244087}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &1111459545 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3742407835892290726, guid: 450985cfff3338745ae308056bad0589, type: 3}
+  m_PrefabInstance: {fileID: 24547587}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1131798635
 GameObject:
   m_ObjectHideFlags: 0
@@ -5898,6 +5910,18 @@ MonoBehaviour:
       - m_Target: {fileID: 14501239}
         m_TargetAssemblyTypeName: IMUNROK.Common.SpokenLine, IMUNROK.Common
         m_MethodName: Hide
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 1688468739}
+        m_TargetAssemblyTypeName: IMUNROK.Common.InterrogationController, IMUNROK.Common
+        m_MethodName: Begin
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -11370,7 +11394,7 @@ MonoBehaviour:
   _sink: 0.01
   _soleOnGround: 1
   _pinHorizontally: 1
-  _bodyBone: {fileID: 0}
+  _bodyBone: {fileID: 1111459545}
   _followSpeed: 1.5
   _maxStepUp: 0.5
 --- !u!114 &1366552805

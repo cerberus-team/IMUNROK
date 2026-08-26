@@ -60,7 +60,12 @@ namespace IMUNROK.Common.EditorTools
             for (int i = 0; i < 3; i++)
                 log.AppendLine(Write("발소리_돌_" + i, Stone(0.16f, 210f + i * 34f, i)));
 
-            // 문 두드리기 — 창틀을 손마디로 친다. 두 번, 그리고 세 번.
+            // 문 두드리기 — 창틀을 손마디로 친다. 한 번, 두 번, 세 번.
+            //
+            // <b>한 번짜리를 따로 굽는 까닭</b>: 헤드셋에서는 사람이 손으로 직접 친다.
+            // 칠 때마다 세 번짜리를 틀면 한 번 쳤는데 세 번 소리가 나고, 세 번 치면
+            // 아홉 번이 난다. 손이 치는 만큼만 나야 <b>제가 치고 있다</b>가 된다.
+            log.AppendLine(Write("문_두드림_하나", Knock(0.30f, new[] { 0f })));
             log.AppendLine(Write("문_두드림_둘", Knock(0.70f, new[] { 0f, 0.26f })));
             log.AppendLine(Write("문_두드림_셋", Knock(1.00f, new[] { 0f, 0.24f, 0.50f })));
 

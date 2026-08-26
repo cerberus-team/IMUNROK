@@ -351,6 +351,49 @@ namespace IMUNROK.Common
         /// <summary>잠금 해제 후 즉시 열기(시퀀스 마무리용).</summary>
         public void Unlock() { _locked = false; }
 
+        // ── 손으로 두드리기 ───────────────────────
+
+        [Header("손으로 두드리기")]
+        [Tooltip("한 번 칠 때 나는 소리. 비우면 소리 없이 울림만 온다")]
+        [SerializeField] private AudioClip _knockOnce;
+
+        [Tooltip("몇 번 쳐야 안에서 사람이 나오나")]
+        [SerializeField] private int _knocksNeeded = 3;
+
+        [Tooltip("이만큼(초) 안에 이어 쳐야 한 번의 두드림으로 친다")]
+        [SerializeField] private float _knockWindow = 1.6f;
+
+        private int _knocks;
+        private float _lastKnock;
+
+        /// <summary>손으로 칠 수 있는 문인가 — 잠긴 문만 두드린다.</summary>
+        public bool CanBeKnocked => _locked;
+
+        /// <summary>
+        /// <b>손이 한 번 쳤다.</b> 친 만큼만 울리고, 세 번이 차야 안에 이른다.
+        ///
+        /// 한 번에 세 번을 대신 쳐 주면 한 번 쳤는데 세 번 소리가 난다.
+        /// 사람이 팔을 뻗어 치는 것이라 <b>친 횟수와 난 소리가 같아야</b> 한다.
+        ///
+        /// 세다 만 것은 잊는다 — 두 번 치고 딴 데 갔다가 한참 뒤에 한 번 더 친 것을
+        /// 세 번으로 쳐 주면, 언제 문이 열릴지 사람이 못 짚는다.
+        /// </summary>
+        public void KnockByHand(UnityEngine.XR.XRNode hand)
+        {
+            if (!_locked) return;
+
+            if (Time.time - _lastKnock > _knockWindow) _knocks = 0;
+            _lastKnock = Time.time;
+            _knocks++;
+
+            Haptics.TapOn(hand, 0.85f, 0.07f);
+            if (_knockOnce != null) AudioSource.PlayClipAtPoint(_knockOnce, transform.position, 0.9f);
+
+            if (_knocks < _knocksNeeded) return;
+            _knocks = 0;
+            OnKnock?.Invoke();
+        }
+
         // ── ISelectable(클릭/VR 레이) ──
         public void OnHoverEnter() { }   // 나중에 하이라이트 붙일 자리
         public void OnHoverExit() { }
@@ -366,9 +409,9 @@ namespace IMUNROK.Common
 
             if (_locked)
             {
-                // 두드리는 것은 소리보다 손에 먼저 온다. 소리(문_두드림_셋)와 같은
-                // 박자로 쿵·쿵·쿵 세 번 울려, 문 소리를 튼 것이 아니라 제가 친 것이
-                // 되게 한다. 헤드셋이 없으면 저절로 아무 일도 안 한다.
+                // 광선으로 짚어 두드린 것 — 책상에서 쓰는 길이다. 여기서는 한 번에
+                // 세 번을 대신 쳐 준다. 헤드셋에서는 손이 직접 세 번 치므로 이리로
+                // 안 들어온다(KnockByHand).
                 Haptics.Knock();
                 OnKnock?.Invoke();   // 두드리기 → 시퀀스가 받아 처리
                 return;

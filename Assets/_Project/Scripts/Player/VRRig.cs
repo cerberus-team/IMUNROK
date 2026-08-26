@@ -182,6 +182,10 @@ namespace IMUNROK.Common
 
             var sel = go.AddComponent<VRRaySelector>();
             sel.Bind(node, line);
+
+            // 손으로 직접 두드릴 수 있게 한다. 광선은 광선대로 두고, 팔을 뻗어 치는
+            // 쪽도 같이 연다 — 문 앞에서는 치는 편이 훨씬 자연스럽다.
+            go.AddComponent<HandKnock>().Setup(node);
             return go.transform;
         }
 
