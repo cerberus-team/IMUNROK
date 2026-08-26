@@ -28,7 +28,7 @@ namespace IMUNROK.Common.EditorTools
         private const string Act1 = "Assets/_Project/Onggojip/Scenes/Onggojip.unity";
 
         /// <summary>옮겨 올 도구.</summary>
-        private static readonly string[] Want = { "lantern", "magnify" };
+        private static readonly string[] Want = { "lantern", "magnify", "mapae" };
 
         [MenuItem("이문록/관아/⑰ 도구를 관아로 옮긴다")]
         public static void Run()
@@ -80,6 +80,35 @@ namespace IMUNROK.Common.EditorTools
                     var lamp = src.GetComponentInChildren<LanternController>(true);
                     if (lamp != null) { Bring(lamp.transform, "lantern", dst, log); need.Remove("lantern"); }
                 }
+
+                // <b>부품이 안 붙은 소품도 있다.</b> 마패는 1막 카메라 밑에 <c>_마패</c> 라는
+                // 이름으로 그냥 매달려 있을 뿐 HeldToolModel 이 없다 — 1막에서는 손에 드는
+                // 물건이 아니라 <b>보여 주는</b> 물건이라 그렇다(서리에게 내밀면 말투가 바뀐다).
+                // 2막에서는 장계를 봉하는 데 쓰므로 들었다 놓았다 해야 한다. 그래서 이름으로
+                // 찾아 옮기고, 옮기면서 <b>부품을 붙여</b> 벨트를 따라 뜨고 지게 한다.
+                for (int i = need.Count - 1; i >= 0; i--)
+                {
+                    string id = need[i];
+                    string want = ByName(id);
+                    if (want == null) continue;
+                    Transform found = null;
+                    foreach (var t in src.GetComponentsInChildren<Transform>(true))
+                        if (t.name == want) { found = t; break; }
+                    if (found == null) continue;
+                    var made = Bring(found, id, dst, log);
+                    if (made.GetComponent<HeldToolModel>() == null)
+                    {
+                        var htm = Undo.AddComponent<HeldToolModel>(made);
+                        var so = new SerializedObject(htm);
+                        so.FindProperty("_toolId").stringValue = id;
+                        // 모델 칸은 제 몸 아래 첫 그림을 잡아 준다
+                        Renderer any = made.GetComponentInChildren<Renderer>(true);
+                        so.FindProperty("_model").objectReferenceValue = any != null ? any.gameObject : made;
+                        so.ApplyModifiedPropertiesWithoutUndo();
+                        log.AppendLine("     └ 부품이 없어 HeldToolModel(" + id + ") 을 붙였다 — 벨트를 따라 뜨고 진다");
+                    }
+                    need.RemoveAt(i);
+                }
                 foreach (var miss in need)
                     log.AppendLine("  ※ " + miss + " 는 1막 카메라 밑에도 없다");
             }
@@ -92,8 +121,16 @@ namespace IMUNROK.Common.EditorTools
             Debug.Log(log.ToString());
         }
 
+        /// <summary>부품이 없는 소품을 이름으로 찾아 준다.</summary>
+        private static string ByName(string id)
+        {
+            if (id == "mapae") return "_마패";
+            if (id == "yucheok") return "_유척";
+            return null;
+        }
+
         /// <summary>소품 하나를 자리와 기울기 그대로 옮긴다.</summary>
-        private static void Bring(Transform src, string id, Camera dst, System.Text.StringBuilder log)
+        private static GameObject Bring(Transform src, string id, Camera dst, System.Text.StringBuilder log)
         {
             var copy = Object.Instantiate(src.gameObject);             // 활성 씬(관아)에 뜬다
             copy.name = src.gameObject.name;
@@ -105,6 +142,7 @@ namespace IMUNROK.Common.EditorTools
             copy.SetActive(src.gameObject.activeSelf);
             log.AppendLine("  · " + id + " — " + copy.name
                          + " 을 1막에서 그대로 옮겼다 (자리 " + copy.transform.localPosition.ToString("F3") + ")");
+            return copy;
         }
 
         /// <summary>그 씬의 주 카메라. 태그가 안 붙어 있으면 아무 카메라나 집는다.</summary>
