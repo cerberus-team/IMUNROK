@@ -81,10 +81,13 @@ namespace IMUNROK.Common
 
         private Vector3 _home;     // 자리 표식이 없을 때 쓸 제 자리
 
+        private GroundFeet _feet;
+
         private void Awake()
         {
             _home = transform.position;
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
+            _feet = GetComponent<GroundFeet>();
         }
 
         private Vector3 WaitAt => _waitSpot != null ? _waitSpot.position : _home;
@@ -226,6 +229,12 @@ namespace IMUNROK.Common
         /// </summary>
         private void SetBool(string param, bool on)
         {
+            // <b>앉고 서면 발붙임에 일러 준다.</b> 발 뼈에서 몸의 맨 아래까지의 거리가
+            // 자세에 따라 달라진다 — 서면 신발 두께뿐이지만 앉으면 치맛단이 발보다
+            // 아래로 처진다. 안 일러 주면 선 자세에서 잰 값을 그대로 써서 아내가
+            // 앉는 순간 치마가 마루를 13cm 뚫었다.
+            if (_feet != null && param == _sitBool && !string.IsNullOrEmpty(param)) _feet.Repose();
+
             if (_animator == null || string.IsNullOrEmpty(param)) return;
             foreach (var p in _animator.parameters)
                 if (p.type == AnimatorControllerParameterType.Bool && p.name == param)

@@ -160,30 +160,57 @@ namespace IMUNROK.Common
         private float _soleOffset = -1f;   // 아직 안 재봄
 
         /// <summary>
-        /// 발 뼈에서 발바닥까지의 거리. 몸을 한 번 구워 가장 낮은 정점과 발 뼈를 비교해 잰다.
-        /// 인물마다 신발 두께가 다르고 뼈가 발등 어디에 박혔는지도 달라서, 숫자를 손으로
-        /// 적어 넣으면 인물을 바꿀 때마다 다시 틀린다.
+        /// <b>자세가 바뀌었다고 이른다.</b> 다음 칸에 발바닥 거리를 다시 잰다.
+        ///
+        /// 앉으면 이 거리가 통째로 달라진다 — 서 있을 땐 신발 두께(2~3cm)뿐이지만,
+        /// 앉으면 <b>치맛단이 발보다 아래로 처져</b> 아내의 경우 13cm 가 된다. 선 자세에서
+        /// 잰 값을 그대로 쓰면 그 13cm 만큼 치마가 마루를 뚫는다.
+        /// 매 칸 재기에는 몸을 굽는 일이 비싸니, 앉고 서는 그때만 이렇게 일러 준다.
+        /// </summary>
+        public void Repose() { _soleOffset = -1f; _settleUntil = Time.time + ReposeSettle; }
+
+        /// <summary>자세가 바뀌었다고 이른 뒤, 이만큼(초) 은 매 칸 다시 잰다.</summary>
+        private const float ReposeSettle = 1.6f;
+        private float _settleUntil;
+
+        /// <summary>
+        /// 발 뼈에서 <b>몸의 가장 낮은 곳</b>까지의 거리. 몸을 한 번 구워 가장 낮은 정점과
+        /// 발 뼈를 비교해 잰다. 인물마다 신발 두께가 다르고 뼈가 발등 어디에 박혔는지도
+        /// 달라서, 숫자를 손으로 적어 넣으면 인물을 바꿀 때마다 다시 틀린다.
+        ///
+        /// 선 자세에서는 이것이 곧 신발 밑창이고, 앉은 자세에서는 <b>치맛단</b>이 된다.
+        /// 어느 쪽이든 "몸의 맨 아래가 바닥에 닿는다"가 되어 옳다.
         /// </summary>
         private float SoleOffset(float lowestBoneY)
         {
             if (!_soleOnGround) return 0f;
-            if (_soleOffset >= 0f) return _soleOffset;
+
+            // <b>이르자마자 재면 아직 안 앉아 있다.</b> Stand_To_Sit 이 한 칸에 끝나지
+            // 않으므로, 앉으라 이른 그 프레임에 재면 <b>선 자세</b>가 잡힌다. 자세가
+            // 바뀐다고 들은 뒤 잠깐은 매 칸 다시 재서, 다 앉고 난 값이 남게 한다.
+            if (_soleOffset >= 0f && Time.time >= _settleUntil) return _soleOffset;
 
             var sk = _model.GetComponentInChildren<SkinnedMeshRenderer>(true);
             if (sk == null || sk.sharedMesh == null) { _soleOffset = 0f; return 0f; }
 
+            // <b>구운 살갗에 localToWorldMatrix 를 태우면 안 된다.</b> BakeMesh 가 내주는
+            // 점은 이미 실제 크기라, 거기에 또 행렬을 태우면 배율이 두 번 곱해진다.
+            // 마름의 fbx 는 안쪽이 100배(노드 배율 0.01)라 키가 1.86m 에서 0.02m 로
+            // 줄어 자가 통째로 헛돈다. 배율 말고 <b>돌림과 자리만</b> 태운다.
             var baked = new Mesh();
-            sk.BakeMesh(baked, true);
-            var l2w = sk.transform.localToWorldMatrix;
+            sk.BakeMesh(baked);
+            var rot = sk.transform.rotation;
+            float py = sk.transform.position.y;
             float meshLow = float.MaxValue;
             foreach (var v in baked.vertices)
             {
-                float y = l2w.MultiplyPoint3x4(v).y;
+                float y = (rot * v).y + py;
                 if (y < meshLow) meshLow = y;
             }
             if (Application.isPlaying) Destroy(baked); else DestroyImmediate(baked);
 
-            _soleOffset = meshLow == float.MaxValue ? 0f : Mathf.Clamp(lowestBoneY - meshLow, 0f, 0.25f);
+            // 앉으면 치맛단이 13cm 를 넘기도 하니 0.25 로는 모자란다.
+            _soleOffset = meshLow == float.MaxValue ? 0f : Mathf.Clamp(lowestBoneY - meshLow, 0f, 0.40f);
             return _soleOffset;
         }
     }

@@ -42,8 +42,15 @@ namespace IMUNROK.Common.EditorTools
         /// <summary>문서고에서 마주 앉는 줄(x). 기둥(-6·-3·-1·2)을 비껴간 자리다.</summary>
         private const float Line = -4.20f;
 
-        /// <summary>어사 · 죄인 · 발이 서는 z. 사이가 2.30m 다.</summary>
-        private const float JudgeZ = -9.40f, SeatZ = -7.10f, VeilZ = -8.25f;
+        /// <summary>
+        /// 어사 · 죄인 · 발이 서는 z.
+        ///
+        /// 처음에 어사를 -9.40 에 두고 발을 한가운데(-8.25)에 걸었더니, 발이
+        /// <b>어사 코앞 1.15m</b> 에 서서 앉자마자 시야를 통째로 덮었다. 어사를 반 자
+        /// 물리고 발을 죄인 쪽으로 당긴다 — 발은 <b>가려지는 사람</b> 앞에 치는 것이지
+        /// 보는 사람 앞에 치는 것이 아니다.
+        /// </summary>
+        private const float JudgeZ = -9.90f, SeatZ = -7.10f, VeilZ = -7.85f;
 
         /// <summary>문 앞(바깥) · 문 안. 여닫이는 z -5.30 에 걸려 있다.</summary>
         private const float OutZ = -3.60f, InZ = -6.20f;
