@@ -197,6 +197,10 @@ namespace IMUNROK.Common
                 camT.localRotation = Quaternion.identity;
                 var head = camT.gameObject.AddComponent<XRPose>();
                 SetNode(head, XRNode.Head);
+                // <b>머리의 쉬는 자리는 선 사람의 눈높이다.</b> 안 넣어 두면 기본값
+                // (0.2, 1.0, 0.25)이 들어가는데 그건 <b>손</b>이 쉬는 자리다.
+                // 헤드셋을 벗어 놓은 동안 눈이 한 뼘 낮고 옆으로 비껴 앉는다.
+                SetField(head, "_restPosition", new Vector3(0f, 1.6f, 0f));
             }
 
             // ④ 손 둘

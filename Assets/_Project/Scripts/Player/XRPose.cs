@@ -36,10 +36,34 @@ namespace IMUNROK.Common
         private void OnDisable() { Application.onBeforeRender -= Apply; }
         private void Update() { Apply(); }
 
+        [Tooltip("<b>안 쓰고 있는 헤드셋의 자세는 안 받는다</b>(머리에만 쓴다).\n\n" +
+                 "링크를 켜 두고 헤드셋을 책상에 내려놓으면, 오큘러스는 장치를 " +
+                 "<b>멀쩡히 잡혔다</b>고 하면서 자리는 추적 원점(0,0,0)을 준다. 그 값을 " +
+                 "그대로 넣으면 눈이 몸 뿌리로 내려앉는데, 몸 뿌리는 <b>바닥</b>이다 — " +
+                 "화면이 마루에 깔린다. 재 보고 알았다(눈 y −0.80, 마루 −0.807).\n\n" +
+                 "쓰고 있는지는 헤드셋이 알려 준다(userPresence). 그것을 못 읽는 장치를 " +
+                 "위해 높이도 함께 본다")]
+        [SerializeField] private bool _ignoreWhenNotWorn = true;
+
+        [Tooltip("머리가 몸 뿌리에서 이보다 낮게 잡히면 <b>안 쓴 것</b>으로 본다(m). " +
+                 "웅크려도 0.6m 밑으로 내려가지는 않는다")]
+        [SerializeField] private float _minHeadHeight = 0.6f;
+
         private void Apply()
         {
             var dev = InputDevices.GetDeviceAtXRNode(_node);
             if (!dev.isValid) { Tracked = false; return; }
+
+            // ── 안 쓰고 있는 머리는 안 받는다 ──────────
+            //
+            // 「잡혔다」와 「쓰고 있다」는 다른 말이다. 링크만 켜 두고 헤드셋을 내려놓으면
+            // 장치는 잡히되 자리는 원점이고, 그 원점이 곧 <b>발밑</b>이다.
+            if (_ignoreWhenNotWorn && _node == XRNode.Head)
+            {
+                bool worn;
+                if (dev.TryGetFeatureValue(CommonUsages.userPresence, out worn) && !worn)
+                { Tracked = false; Rest(); return; }
+            }
 
             bool got = false;
             if (dev.TryGetFeatureValue(CommonUsages.deviceRotation, out Quaternion rot))
@@ -49,16 +73,26 @@ namespace IMUNROK.Common
             }
             if (_position && dev.TryGetFeatureValue(CommonUsages.devicePosition, out Vector3 pos))
             {
+                // userPresence 를 안 주는 장치도 있다. 그때는 <b>높이</b>로 가른다 —
+                // 사람 머리가 제 발밑에 붙어 있을 수는 없다.
+                if (_ignoreWhenNotWorn && _node == XRNode.Head && pos.y < _minHeadHeight)
+                { Tracked = false; Rest(); return; }
+
                 transform.localPosition = pos;
                 got = true;
             }
             Tracked = got;
         }
 
-        /// <summary>아직 안 잡히는 동안 놓아 둘 자리로 물린다.</summary>
+        /// <summary>
+        /// 아직 안 잡히는 동안 놓아 둘 자리로 물린다.
+        ///
+        /// <b>여기 놓아 두는 자리가 곧 「안 썼을 때의 자세」다.</b> 손은 발밑에 떨어져
+        /// 있지 않게 하려고 둔 것이었는데, 머리에도 같은 것이 필요하다는 것을
+        /// 뒤늦게 알았다 — 머리의 쉬는 자리는 <b>선 사람의 눈높이</b>다.
+        /// </summary>
         public void Rest()
         {
-            if (Tracked) return;
             transform.localPosition = _restPosition;
             transform.localRotation = Quaternion.identity;
         }
