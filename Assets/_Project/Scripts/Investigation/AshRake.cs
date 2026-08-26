@@ -108,6 +108,12 @@ namespace IMUNROK.Common
         [Tooltip("헤집는 동안 이는 먼지의 양(초당 알). 다 헤집었을 때의 <b>풀썩</b>은 이것과 " +
                  "별개로 그대로 터진다 — 이건 그 앞의 <b>자욱함</b>이다")]
         [SerializeField] private float _dustPerSecond = 26f;
+        [Tooltip("헤집을 때 <b>튀어 떨어지는 알갱이</b>. 먼지와 따로 두는 까닭: 연기는 떠오르고 " +
+                 "가루는 떨어진다. 한 뭉치로 묶으면 둘 다 아닌 것이 된다. " +
+                 "[이문록 ▸ 아궁이 ▸ 재를 가루로] 가 만들어 걸어 준다")]
+        [SerializeField] private ParticleSystem _grit;
+        [Tooltip("튀는 알갱이의 양(초당 알)")]
+        [SerializeField] private float _gritPerSecond = 34f;
 
         [Header("두 가지 모습")]
         [Tooltip("헤집기 전 — 고르게 덮인 재")]
@@ -408,22 +414,34 @@ namespace IMUNROK.Common
         /// </summary>
         private void Dust(float e)
         {
-            if (!_dustWhileRaking || _puff == null || Raked) return;
-            if (e <= 0.03f) { _dustCarry = 0f; return; }
+            if (!_dustWhileRaking || Raked) return;
+            if (e <= 0.03f) { _dustCarry = 0f; _gritCarry = 0f; return; }
+            if (_puff == null && _grit == null) return;
 
             // <b>배율을 만지지 않고 직접 뿜는다.</b> 재먼지는 「0.9초 동안 40알을 한 번에」
             // 터뜨리는 <b>버스트</b>로 짜여 있어서 rateOverTime 이 0이다. 거기에 배수를
             // 곱해 봐야 0 × 무엇이라 <b>한 알도 안 나온다</b>. 게다가 Play() 를 부르면
             // 그 버스트 40알이 통째로 터져 「다 헤집었을 때의 풀썩」을 미리 써 버린다.
             // Emit 으로 필요한 만큼만 얹으면 버스트는 마지막 순간을 위해 남는다.
-            _dustCarry += _dustPerSecond * Mathf.Clamp01(e) * Time.deltaTime;
-            int n = Mathf.FloorToInt(_dustCarry);
-            if (n <= 0) return;
-            _dustCarry -= n;
-            _puff.Emit(n);
+            if (_puff != null)
+            {
+                _dustCarry += _dustPerSecond * Mathf.Clamp01(e) * Time.deltaTime;
+                int n = Mathf.FloorToInt(_dustCarry);
+                if (n > 0) { _dustCarry -= n; _puff.Emit(n); }
+            }
+
+            // <b>가루는 먼지와 따로 뿜는다.</b> 먼지는 자욱하게 떠오르고 가루는 알알이
+            // 떨어진다 — 하나로 묶으면 뭉게뭉게한 것이 아래로 흐르는 이상한 것이 된다.
+            if (_grit == null) return;
+            _gritCarry += _gritPerSecond * Mathf.Clamp01(e) * Time.deltaTime;
+            int g = Mathf.FloorToInt(_gritCarry);
+            if (g <= 0) return;
+            _gritCarry -= g;
+            _grit.Emit(g);
         }
 
         private float _dustCarry;
+        private float _gritCarry;
         private Vector3 _restScale;
         private bool _restScaleTaken;
 
