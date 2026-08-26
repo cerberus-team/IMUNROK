@@ -35,23 +35,23 @@ namespace IMUNROK.Gyeonu
         //      밖으로 밀려난다 — 1.12m 판 시절에 정반대 이유로 겪은 것과 같은 실패다.
         //   글자는 **각도**로 잡았다: 본문 34단위 × 0.0014 = 48mm = 1.8°.
         //   판 치수를 바꿀 일이 생기면 **CanvasScale 하나만** 만지면 된다 — 배치·글자가 함께 큰다.
-        const float PanelW = 1920f, PanelH = 1120f;
-        const float CanvasScale = 0.0014f;
-        const float PanelDistance = 1.50f;
+        public const float PanelW = 1920f, PanelH = 1120f;
+        public const float CanvasScale = 0.0014f;
+        public const float PanelDistance = 1.50f;
         /// <summary>판이 따라가는 시선 기울기의 한도.
         /// ⚠️ 35°로 조였더니 **반닫이에서 서책을 꺼낼 때 판이 화면 위로 잘려 나갔다**(실측) —
         /// 낮은 가구를 뒤지려면 60° 가까이 숙이게 된다. 이제는 시야를 계속 따라가므로 75°까지
         /// 열어 두되, 완전히 90°는 두지 않는다 — 정수리·발밑에서 판이 수평으로 누워 버린다.</summary>
-        const float MaxPitch = 75f;
+        public const float MaxPitch = 75f;
 
         /// <summary>이 각도 안에서 고개가 움직이면 판은 가만히 있는다 (VR 멀미 방지).</summary>
-        const float FollowDeadZone = 7f;
+        public const float FollowDeadZone = 7f;
         /// <summary>시야를 따라잡는 데 걸리는 시간(초). 0.1 미만은 머리에 붙은 듯 답답하고, 0.3 이상은 끌린다.</summary>
-        const float FollowTime = 0.16f;
+        public const float FollowTime = 0.16f;
 
-        const int Cols = 5, Rows = 3;
-        const int PerPage = Cols * Rows;
-        const float CellW = 320f, CellH = 272f, Gap = 28f;
+        public const int Cols = 5, Rows = 3;
+        public const int PerPage = Cols * Rows;
+        public const float CellW = 320f, CellH = 272f, Gap = 28f;
 
         public static InventoryUI Instance { get; private set; }
 

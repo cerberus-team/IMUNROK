@@ -60,6 +60,29 @@ namespace IMUNROK.Gyeonu
         /// <summary>매 프레임 내용 갱신 (자리 잡기 전에 불린다).</summary>
         protected virtual void Refresh() { }
 
+        // ── 자리 확보 수치 (2026-08-27 공개) ─────────────────────────────
+        //   판이 벽·가구에 박히지 않게 앞으로 당기는 규칙의 수치들이다.
+        //   ⚠️ <b>값은 그대로다</b> — 흩어져 있던 숫자에 이름을 붙여 밖에서 읽을 수 있게만 했다.
+        //   자기 판을 이 뼈대 위에 세우면 저절로 따르므로 베낄 일이 없다. 다른 방식으로 짓는
+        //   사람이 <b>같은 감각으로 맞추고 싶을 때</b> 보라고 열어 둔 것이다.
+
+        /// <summary>이 거리(m)보다 가까이 서는 판은 앞을 재지 않는다.
+        /// PC의 0.22 m 는 걷기 캡슐 반지름(0.3 m)보다 가까워 애초에 가려질 수 없다.</summary>
+        public const float ProbeMinDistance = 0.4f;
+
+        /// <summary>앞을 재는 광선의 길이 = 판 거리 × 이 값.</summary>
+        public const float ProbeRange = 1.3f;
+
+        /// <summary>막은 것에서 이만큼(m) 더 앞으로 당긴다 — 면끼리 스치는 것을 막는 여유.</summary>
+        public const float WallClearance = 0.06f;
+
+        /// <summary>아무리 당겨도 이보다(m) 가까이는 오지 않는다 — 근거리 클립 앞으로 넘어가지 않게.</summary>
+        public const float MinDistance = 0.18f;
+
+        /// <summary>따라가기를 <b>멈추는</b> 문턱 = 죽은 구간 × 이 값. 문턱을 둘로 나눠
+        /// (들어갈 때는 죽은 구간, 나올 때는 그 35%) 경계에서 떨렸다 안 떨렸다 하는 것을 막는다.</summary>
+        public const float FollowReleaseFactor = 0.35f;
+
         // ─────────────────────────────────────────────────────
         protected virtual void Awake()
         {
@@ -141,7 +164,7 @@ namespace IMUNROK.Gyeonu
             {
                 float off = Quaternion.Angle(transform.rotation, want);
                 if (off > layout.followDeadZone) following = true;
-                else if (off < layout.followDeadZone * 0.35f) following = false;
+                else if (off < layout.followDeadZone * FollowReleaseFactor) following = false;
                 rot = following
                     ? Quaternion.Slerp(transform.rotation, want,
                                        1f - Mathf.Exp(-Time.unscaledDeltaTime / Mathf.Max(0.01f, layout.followLag)))
@@ -159,18 +182,18 @@ namespace IMUNROK.Gyeonu
             //    (당긴 만큼 배율도 함께 줄이므로 보이는 각은 그대로다)
             float dist = layout.distance;
             Vector3 ahead = rot * Vector3.forward;
-            if (dist > 0.4f)   // PC의 0.22 m 에서는 잴 이유가 없다 — 걷기 캡슐이 이미 막아 준다
+            if (dist > ProbeMinDistance)   // PC의 0.22 m 에서는 잴 이유가 없다 — 걷기 캡슐이 이미 막아 준다
             {
                 foreach (var dir in ProbeDirs(rot, layout))
                 {
                     RaycastHit hit;
-                    if (!Physics.Raycast(e.position, dir, out hit, layout.distance * 1.3f, ~0, QueryTriggerInteraction.Ignore))
+                    if (!Physics.Raycast(e.position, dir, out hit, layout.distance * ProbeRange, ~0, QueryTriggerInteraction.Ignore))
                         continue;
                     // 비스듬한 광선의 거리를 판 면까지의 **수직** 거리로 환산한다
                     float along = hit.distance * Vector3.Dot(dir, ahead);
-                    dist = Mathf.Min(dist, along - 0.06f);
+                    dist = Mathf.Min(dist, along - WallClearance);
                 }
-                dist = Mathf.Max(0.18f, dist);
+                dist = Mathf.Max(MinDistance, dist);
             }
             followDist = dist;
 
