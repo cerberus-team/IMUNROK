@@ -61,6 +61,29 @@ namespace IMUNROK.Common
         [TextArea(3, 8)] [SerializeField] private string _creditsLine =
             "이문록(異聞錄)\n\n만든 사람\n(여기에 이름을 적으십시오)";
 
+        /// <summary>
+        /// <b>빌려 온 것을 밝힌다.</b>
+        ///
+        /// CC-BY 와 공공누리 제1유형은 둘 다 <b>출처를 적으면 쓸 수 있다</b>는 조건이다.
+        /// 적지 않으면 조건을 안 지킨 것이 되고, 그 조건은 <b>학내 시연에도 걸린다</b> —
+        /// 밖에 내놓을 때만의 일이 아니다.
+        ///
+        /// 만든 사람 다음에 온다. 사람 이름과 빌린 것을 한 판에 섞으면 둘 다 안 읽힌다.
+        ///
+        /// 낱낱의 목록은 Docs/에셋_출처와_라이선스.md 에 있다 — 화면에는
+        /// <b>어디서 왔는지</b>만 적는다. 스무 줄을 띄워 봐야 아무도 안 읽는다.
+        /// </summary>
+        [Tooltip("빌려 온 것의 출처. 줄을 바꿔 여럿 적으면 그대로 뜬다. 비우면 안 뜬다")]
+        [TextArea(4, 12)] [SerializeField] private string _sourcesLine =
+            "쓰인 것들\n" +
+            "\n" +
+            "한국공예디자인문화진흥원 (KCDF)   전통 공예 3D\n" +
+            "운현궁 소장품 3D\n" +
+            "경복궁 3D 데이터\n" +
+            "한국저작권위원회 공유마당   음향\n" +
+            "\n" +
+            "CC BY · 공공누리 제1유형";
+
         [Header("종료 후")]
         [SerializeField] private string _hubSceneName = "HubScene";
 
@@ -122,6 +145,7 @@ namespace IMUNROK.Common
             _fromLine = _lines.Count;
             if (!string.IsNullOrEmpty(_thanksLine)) _lines.Add(_thanksLine);
             if (!string.IsNullOrEmpty(_creditsLine)) _lines.Add(_creditsLine);
+            if (!string.IsNullOrEmpty(_sourcesLine)) _lines.Add(_sourcesLine);
 
             _index = 0;
             _timer = 0f;
