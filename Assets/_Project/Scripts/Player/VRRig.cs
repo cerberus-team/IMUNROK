@@ -149,6 +149,10 @@ namespace IMUNROK.Common
             var loco = body.gameObject.AddComponent<VRLocomotion>();
             SetField(loco, "_head", camT);
 
+            // ⑥ 단추를 잇는다. 여기까지 안 하면 말하기도 수첩도 도구도 못 부른다 —
+            //    그것들이 죄 키보드에 매여 있는데, 헤드셋을 쓰면 자판을 누를 손이 없다.
+            body.gameObject.AddComponent<VRButtons>();
+
             Active = true;
             Debug.Log("[VR] 몸을 지었다 — 머리 하나, 손 둘. 바닥 y=" + floorY.ToString("F2"));
         }

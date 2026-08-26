@@ -120,6 +120,16 @@ namespace IMUNROK.Common
             if (!string.IsNullOrEmpty(_lieLine)) SubtitleView.Show("", _lieLine, "");
         }
 
+        /// <summary>
+        /// 밖에서 일어서라 이를 때. 헤드셋에는 Space 가 없어 컨트롤러 단추가 이리로 온다.
+        /// </summary>
+        public void RiseNow()
+        {
+            if (_moving) return;
+            var cam = Camera.main;
+            if (cam != null) StartCoroutine(Rise(cam.transform));
+        }
+
         private IEnumerator Rise(Transform eye)
         {
             _moving = true;

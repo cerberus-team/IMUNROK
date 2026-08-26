@@ -326,6 +326,12 @@ namespace IMUNROK.Common
             Begin();
         }
 
+        /// <summary>
+        /// 밖에서 닫아 달라 이를 때. 헤드셋을 쓰면 Esc 를 누를 손이 없어,
+        /// 컨트롤러 단추가 이리로 들어온다.
+        /// </summary>
+        public void CloseFromOutside() { if (_active) ClosePanel(); }
+
         private void ClosePanel()
         {
             if (_beginOnStart) { _exitRequested = true; return; }      // 단독 무대 → 조사청 복귀
