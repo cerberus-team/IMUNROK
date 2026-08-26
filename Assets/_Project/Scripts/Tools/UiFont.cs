@@ -21,11 +21,29 @@ namespace IMUNROK.Common
             if (font != null && Korean == null) Korean = font;
         }
 
-        /// <summary>공유 폰트 → 없으면 유니티 기본 폰트(한글은 깨진다).</summary>
+        /// <summary>
+        /// 쓸 글씨를 정한다: 인스펙터에 꽂힌 것 → 먼저 올라온 것 →
+        /// <b>Resources 에 적어 둔 것</b> → 유니티 기본 글씨.
+        ///
+        /// 셋째 칸이 뒤늦게 생긴 까닭: 선착순만으로는 <b>표제가 없는 씬</b>이
+        /// 못 막힌다. 사건 현장에서 먼저 뜨는 판은 아무도 올리기 전에 물어보게
+        /// 되고, 그러면 유니티 기본 글씨로 떨어지는데 거기엔 한글도 한자도 없어
+        /// 운영체제가 글자마다 다른 얼굴을 주워 온다 — 한 줄 안에 필체가 섞인다.
+        /// "한글 중간에 한자만 딴 글씨체" 는 폰트가 없어서가 아니라
+        /// <b>아직 안 올라와서</b> 생긴다.
+        /// </summary>
         public static Font Resolve(Font preferred = null)
         {
             if (preferred != null) return preferred;
             if (Korean != null) return Korean;
+
+            var book = Resources.Load<UiFontBook>(UiFontBook.ResourceName);
+            if (book != null && book.korean != null)
+            {
+                Korean = book.korean;
+                return Korean;
+            }
+
             return Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         }
     }

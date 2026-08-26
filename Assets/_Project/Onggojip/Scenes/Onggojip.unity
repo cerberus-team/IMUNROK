@@ -4453,6 +4453,7 @@ MonoBehaviour:
         m_CallState: 2
   _lockedAtStart: 0
   _lockedBody: "\uC9C0\uAE08\uC740 \uC190\uC744 \uB308 \uC218 \uC5C6\uB2E4."
+  _yieldWhenDone: 1
 --- !u!1 &871150881
 GameObject:
   m_ObjectHideFlags: 0
@@ -11750,6 +11751,7 @@ MonoBehaviour:
   _dictation: {fileID: 1435503031}
   _pushToTalkKey: 34
   _maxListenSeconds: 12
+  _logDevice: 1
 --- !u!114 &1435503031
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -23190,6 +23192,7 @@ GameObject:
   - component: {fileID: 1886234752}
   - component: {fileID: 1886234751}
   - component: {fileID: 1886234753}
+  - component: {fileID: 1886234754}
   m_Layer: 0
   m_Name: _OnggojipCase
   m_TagString: Untagged
@@ -23247,6 +23250,27 @@ MonoBehaviour:
   _investigateLine: "\uBC24\uC774\uB2E4. \uBAB0\uB798 \uC9D1 \uC548\uC744 \uC870\uC0AC\uD558\uB77C"
   _readyLine: "\uC99D\uAC70\uB97C \uCDA9\uBD84\uD788 \uBAA8\uC558\uB2E4 \u2014 \uCD9C\uB3C4\uD558\uB77C! 
     (F2 \u25B8 \uCD9C\uB3C4)"
+--- !u!114 &1886234754
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1886234750}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8da5d1e5e2cd049478908f237fe0b7af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.CaseSheet
+  _caseId: 0
+  _key: "\uC0AC\uAC74\uD45C"
+  _clueLine: "\uC0AC\uAC74\uD45C \u2014 \uC5B4\uC804\uC5D0\uC11C \uBC1B\uC740 \uBD09\uC11C"
+  _title: "\uC81C1\uC0AC\uAC74 \u2014 \uC639\uACE0\uC9D1\uC804"
+  _body: 
+  _page: {fileID: 2800000, guid: b534ecce5322f4244bfa389a9cc08fa2, type: 3}
+  _fine: 
+  _delay: 1.1
+  _openOnArrive: 1
 --- !u!1 &1889712465
 GameObject:
   m_ObjectHideFlags: 0

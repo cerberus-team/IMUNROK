@@ -87,6 +87,10 @@ namespace IMUNROK.Common
         [Tooltip("고르는 창에 적히는 요지 두어 줄")]
         [SerializeField] private string _brief = "";
 
+        [Tooltip("「자세히 알아보기」 로 펼칠 봉서 그림. [이문록 ▸ 사건 문서 굽기] 로 구운 것. " +
+                 "비우면 그 단추가 아예 안 선다 — 눌러도 아무 일 없는 단추는 안내가 아니라 헛걸음이다")]
+        [SerializeField] private Texture2D _sheet;
+
         [Tooltip("가리켰을 때 흰색 쪽으로 섞는 정도(하이라이트)")]
         [Range(0f, 1f)]
         [SerializeField] private float _hoverBrighten = 0.35f;
@@ -264,7 +268,26 @@ namespace IMUNROK.Common
             bool hasProgress = _state.GetStatus(_caseId) == CaseStatus.InProgress
                                || Journal.Instance.ClueCount(_caseId) > 0;
 
-            CaseChoicePanel.Open(OrderLabel(), NameLabel(), _brief, hasProgress, Fresh, Enter);
+            CaseChoicePanel.Open(OrderLabel(), NameLabel(), _brief, hasProgress, Fresh, Enter,
+                                 _sheet != null ? (System.Action)ReadSheet : null);
+        }
+
+        /// <summary>
+        /// 들어가지 않고 <b>여기서</b> 봉서를 펴 본다.
+        ///
+        /// 사건 셋을 앞에 두고 처음 서는 사람에게 필요한 것은 "들어갈까 말까" 가
+        /// 아니라 "이게 무슨 사건인가" 다. 요지 두어 줄로는 모자라니, 어전에서
+        /// 받은 그 종이를 조사청에서도 펴 볼 수 있게 둔다. 들어갔다 나오는 것으로
+        /// 알아보게 하면 <b>고르는 일이 되돌릴 수 없는 일</b>이 되어 버린다.
+        /// </summary>
+        private void ReadSheet()
+        {
+            // 창을 <b>걷고</b> 편다. 그 위에 그냥 띄웠더니 둘이 겹쳐, 봉서를 폈는데도
+            // 창에 가려 아무것도 안 보였다. 내려놓으면 창을 도로 세운다 —
+            // 알아보러 갔다가 고르는 자리를 잃으면 알아본 값이 없다.
+            CaseChoicePanel.Close();
+            DocumentView.OnPutDown = OnSelect;
+            DocumentView.Show(_sheet, OrderLabel() + " — " + NameLabel(), _brief);
         }
 
         /// <summary>처음부터 — 이 사건의 단서와 상태만 지운다. 다른 사건은 그대로 둔다.</summary>

@@ -66,6 +66,9 @@ namespace IMUNROK.Common
         private RectTransform _hand;      // 종이를 쥔 손 — 여기가 흔들린다
         private RawImage _page;
         private RectTransform _pageRt;
+
+        /// <summary>그림 없는 문서를 적을 빈 종이의 빛깔. 한지.</summary>
+        private static readonly Color _blankPaper = new Color(0.82f, 0.76f, 0.62f, 0.99f);
         private Image _edge;
         private Image _backdrop;     // 수첩에서 볼 때 뒤를 덮는 어둠
         private Image _backFace;     // 종이 뒷면 — 뒤집었을 때 글씨가 비치지 않게
@@ -160,9 +163,22 @@ namespace IMUNROK.Common
         /// <summary>이 종이를 집은 자리(플레이어의 눈). 여기서 멀어지면 도로 내려놓는다.</summary>
         private Vector3 _openedAt;
 
+        /// <summary>
+        /// 이 종이를 <b>내려놓았을 때</b> 한 번 부를 것.
+        ///
+        /// 종이를 펴려고 걷어 둔 창이 있으면 도로 세워야 하기 때문이다. 고르는 창을
+        /// 걷지 않고 그 위에 종이를 띄웠더니 둘이 겹쳐, 봉서를 폈는데도 창에 가려
+        /// 아무것도 안 보였다. 걷고 펴되, 다 읽으면 <b>있던 자리로 돌려놓는다</b> —
+        /// 알아보러 들어갔다가 고르는 자리를 잃으면 그것은 알아본 값이 아니다.
+        /// </summary>
+        public static System.Action OnPutDown;
+
         public static void Hide()
         {
             ReadingFocus.Release(ReadingFocus.Panel.Document);
+            var back = OnPutDown;
+            OnPutDown = null;
+            if (back != null) back();
             if (_instance != null && _instance._anchor != null)
             {
                 _instance._anchor.Frozen = false;   // 세워 둔 채로 걷어 버리면 다음 종이도 못 박힌다
@@ -354,6 +370,7 @@ namespace IMUNROK.Common
             if (page != null)
             {
                 _page.texture = page;
+                _page.color = Color.white;      // 빈 종이를 깔며 물들여 둔 것을 되돌린다
                 float w = Mathf.Max(1, page.width), h = Mathf.Max(1, page.height);
                 float k = _pageSpan / Mathf.Max(w, h);
                 var size = new Vector2(w * k, h * k);
@@ -364,14 +381,39 @@ namespace IMUNROK.Common
                 _page.enabled = true;
                 _edge.enabled = true;
             }
-            else { _page.enabled = false; _edge.enabled = false; }
+            else
+            {
+                // <b>그림이 없어도 종이는 깐다.</b> 사목처럼 구워 둔 면이 없고 글만
+                // 있는 문서를 그냥 띄웠더니, 흰 글씨가 방 위에 그대로 떠서 뒤의
+                // 창살과 겹쳐 읽히지가 않았다. 종이는 그림이 아니라 <b>읽을 바탕</b>이다.
+                // 한지 빛 한 장을 깔고 그 위에 적는다.
+                _page.texture = null;
+                _page.color = _blankPaper;
+                // <b>넓게 편다.</b> 구워 둔 문서는 돋보기로 들여다볼 것이라 좁아도
+                // 되지만, 사목처럼 <b>읽어 내려갈</b> 종이가 그 폭이면 한 줄에 아홉
+                // 자밖에 안 들어가 조목 하나가 네 줄로 흩어진다. 종이를 넓혀 한 줄에
+                // 스물몇 자가 들어가게 한다 — 읽는 종이는 읽히는 폭이라야 한다.
+                var size = new Vector2(_pageSpan * 1.9f, _pageSpan * 1.5f);
+                _pageRt.sizeDelta = size;
+                _backFace.rectTransform.sizeDelta = size;
+                _edge.rectTransform.sizeDelta = size + new Vector2(10f, 10f);
+                _pageLit.rectTransform.sizeDelta = size;
+                _page.enabled = true;
+                _edge.enabled = true;
+            }
 
             SetSlip(page != null ? title : null);
 
             // 요약은 <b>수첩</b>에서 읽는 것이다. 방에서 종이를 짚었을 때는 종이만 보인다 —
             // 그때는 아직 무엇인지 알아보는 중이지 정리하는 중이 아니다.
+            // <b>그림이 없으면 글이 곧 종이다.</b> 이 자리는 원래 <b>요약</b> 칸이라
+            // 종이 아래에 한 줄 폭으로 나 있다. 사목처럼 구워 둔 면이 없고 조목만
+            // 있는 문서를 그대로 넣었더니, 여섯 조목이 그 한 줄 칸에 쏟아져 종이도
+            // 없이 방 위에 떠 버렸다. 그림이 없을 때는 글을 <b>종이 위로</b> 올린다.
+            PlaceBody(page == null);
             _body.text = string.IsNullOrEmpty(body) ? "" : Emphasis.Rich(body, Emphasis.OnDark);
             _body.gameObject.SetActive(!string.IsNullOrEmpty(body));
+            if (page == null) FitBody();
 
             bool hasFine = !string.IsNullOrEmpty(finePrint);
             _finePrint = hasFine ? finePrint : "";
@@ -773,6 +815,64 @@ namespace IMUNROK.Common
             closeBtn.onClick.AddListener(Hide);
             NewText("라벨", "내려놓기", Vector2.zero, new Vector2(150f, 56f), _closeRt, _fontSize - 8);
         }
+
+        /// <summary>
+        /// 글을 <b>종이 위</b>에 적을지 <b>종이 밑 요약 칸</b>에 적을지 정한다.
+        ///
+        /// 종이 위에 적을 때는 먹빛이라야 한다 — 한지 위에 흰 글씨를 얹으면 안 보인다.
+        /// 그리고 위에서부터 적어 내려야 조목이 길어져도 첫 줄이 제자리에 있다.
+        /// </summary>
+        private void PlaceBody(bool onPaper)
+        {
+            if (_body == null) return;
+            var rt = _body.rectTransform;
+
+            if (onPaper)
+            {
+                rt.SetParent(_pageRt, false);
+                var size = _pageRt.sizeDelta;
+                rt.sizeDelta = new Vector2(size.x * 0.88f, size.y * 0.86f);
+                rt.anchoredPosition = new Vector2(0f, -size.y * 0.02f);
+                _body.alignment = TextAnchor.UpperLeft;
+                _body.color = _paperInk;
+                _body.fontSize = _fontSize - 8;
+            }
+            else
+            {
+                rt.SetParent(_chrome.transform, false);
+                rt.sizeDelta = new Vector2(700f, 76f);
+                rt.anchoredPosition = new Vector2(0f, -_pageSpan * 0.62f);
+                _body.alignment = TextAnchor.MiddleCenter;
+                _body.color = _textColor;
+                _body.fontSize = _fontSize - 4;
+            }
+        }
+
+        /// <summary>
+        /// <b>글이 종이 밖으로 나가지 않게 글씨를 줄인다.</b>
+        ///
+        /// 종이 크기를 글에 맞춰 정해 두면, 조목을 한 줄 보태는 순간 그만큼 넘친다 —
+        /// 실제로 사목의 여섯째 조목이 종이 밑으로 빠져 있었다. 못 박을 것은 종이지
+        /// 글이 아니므로, 종이를 두고 <b>글씨</b> 쪽을 줄인다.
+        ///
+        /// 열두 눈금 밑으로는 안 내려간다. 그보다 작으면 줄이는 것이 아니라
+        /// 안 보이게 하는 것이다 — 그때는 종이를 나누는 것이 맞다.
+        /// </summary>
+        private void FitBody()
+        {
+            if (_body == null || !_body.gameObject.activeSelf) return;
+            float room = _body.rectTransform.sizeDelta.y;
+            int size = _fontSize - 8;
+            _body.fontSize = size;
+            while (size > 12 && _body.preferredHeight > room)
+            {
+                size--;
+                _body.fontSize = size;
+            }
+        }
+
+        /// <summary>한지 위에 적는 먹빛.</summary>
+        private static readonly Color _paperInk = new Color(0.14f, 0.10f, 0.07f);
 
         private RectTransform NewRect(string name, Vector2 pos, Vector2 size, Transform parent)
         {

@@ -48,8 +48,8 @@ namespace IMUNROK.Common
         private RectTransform _paper, _bottomRod, _body;
         private CanvasGroup _bodyGroup;
         private Text _title, _sub, _brief;
-        private Button _fresh, _cont, _back;
-        private Text _freshLabel, _contLabel;
+        private Button _fresh, _cont, _back, _more;
+        private Text _freshLabel, _contLabel, _moreLabel;
         private Coroutine _run;
 
         /// <summary>지금 고르는 창이 떠 있나. 다른 것이 끼어들지 않게 참고한다.</summary>
@@ -63,7 +63,7 @@ namespace IMUNROK.Common
         /// <param name="brief">요지 두어 줄</param>
         /// <param name="hasProgress">하던 것이 있나 — 없으면 이어하기 단추를 안 보인다</param>
         public static void Open(string title, string subtitle, string brief, bool hasProgress,
-                                Action onFresh, Action onContinue)
+                                Action onFresh, Action onContinue, Action onMore = null)
         {
             if (_instance == null)
             {
@@ -75,7 +75,7 @@ namespace IMUNROK.Common
                     _instance = go.AddComponent<CaseChoicePanel>();
                 }
             }
-            _instance.OpenInternal(title, subtitle, brief, hasProgress, onFresh, onContinue);
+            _instance.OpenInternal(title, subtitle, brief, hasProgress, onFresh, onContinue, onMore);
         }
 
         /// <summary>
@@ -186,6 +186,16 @@ namespace IMUNROK.Common
             _brief.verticalOverflow = VerticalWrapMode.Truncate;
 
             // 단추 셋 — 왼쪽부터 처음부터 · 이어하기 · 물러나기
+            // 단추 넷 — 아랫줄에 셋, 그 위에 「자세히 알아보기」 한 줄.
+            //
+            // <b>고르는 것과 알아보는 것은 다른 일이다.</b> 여태 이 창은 들어갈지
+            // 말지만 물었다. 그런데 사건 셋을 앞에 두고 처음 서는 사람에게 정말
+            // 필요한 것은 "들어갈까 말까" 가 아니라 "이게 무슨 사건인가" 다.
+            // 요지 두어 줄로는 모자라니, 봉서를 <b>여기서 펴 볼</b> 길을 둔다 —
+            // 들어가지 않고도.
+            _more = MakeButton("자세히 알아보기", new Vector2(0f, -PageH * 0.5f + 250f),
+                               new Color(0.20f, 0.19f, 0.16f, 0.90f), out _moreLabel);
+
             _fresh = MakeButton("처음부터", new Vector2(-330f, -PageH * 0.5f + 150f), _cordColor, out _freshLabel);
             _cont = MakeButton("이어하기", new Vector2(0f, -PageH * 0.5f + 150f), new Color(0.24f, 0.22f, 0.18f, 0.94f), out _contLabel);
             Text backLabel;
@@ -214,7 +224,7 @@ namespace IMUNROK.Common
         // ── 열기 ──
 
         private void OpenInternal(string title, string subtitle, string brief, bool hasProgress,
-                                  Action onFresh, Action onContinue)
+                                  Action onFresh, Action onContinue, Action onMore)
         {
             EnsureBuilt();
             _title.text = title ?? "";
@@ -228,6 +238,12 @@ namespace IMUNROK.Common
 
             // 하던 것이 없으면 이어할 것도 없다. 눌리지 않는 단추를 보여 주면
             // 눌러 보고 나서야 안 된다는 것을 알게 된다 — 아예 치운다.
+            // 자세히 볼 것이 있는 사건에만 둔다. 눌러도 아무 일 없는 단추를
+            // 세워 두는 것은 안내가 아니라 헛걸음이다.
+            _more.onClick.RemoveAllListeners();
+            _more.gameObject.SetActive(onMore != null);
+            if (onMore != null) _more.onClick.AddListener(delegate { onMore(); });
+
             _cont.gameObject.SetActive(hasProgress);
             _fresh.gameObject.SetActive(true);
             _freshLabel.text = hasProgress ? "처음부터" : "봉서를 펴다";

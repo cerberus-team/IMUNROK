@@ -34,8 +34,18 @@ namespace IMUNROK.Common
         /// <summary>지금 서 있는 단추. 한 번에 하나만 둔다 — 귀퉁이는 하나다.</summary>
         private static CornerButton _live;
 
-        /// <summary>화면을 0~1 로 본 자리. 오른쪽 위.</summary>
-        private static readonly Vector2 At = new Vector2(0.80f, 0.82f);
+        /// <summary>화면을 0~1 로 본 자리. 오른쪽 <b>위</b>.</summary>
+        private static readonly Vector2 At = new Vector2(0.82f, 0.89f);
+
+        /// <summary>
+        /// 가만히 있을 때의 진하기.
+        ///
+        /// <b>또렷할수록 좋은 것이 아니다.</b> 이 단추는 연출을 보는 사람에게
+        /// 필요 없는 물건이다 — 있다는 것만 알면 되고, 눈이 자꾸 그리로 가면
+        /// 어명을 보라고 띄운 화면에서 넘기라고 조르는 꼴이 된다.
+        /// 겨누면 단추 제 빛깔이 밝아지므로(highlightedColor) 흐려도 안 놓친다.
+        /// </summary>
+        private const float Rest = 0.62f;
 
         /// <summary>눈에서 이만큼 앞(m). 표제 글씨와 같은 거리라 앞뒤로 다투지 않는다.</summary>
         private const float Distance = 0.85f;
@@ -191,7 +201,7 @@ namespace IMUNROK.Common
             while (t < 1f)
             {
                 t += Time.deltaTime / dur;
-                if (_group != null) _group.alpha = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
+                if (_group != null) _group.alpha = Mathf.SmoothStep(0f, Rest, Mathf.Clamp01(t));
                 yield return null;
             }
         }
