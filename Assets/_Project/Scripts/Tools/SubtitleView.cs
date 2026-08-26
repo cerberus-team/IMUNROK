@@ -200,6 +200,9 @@ namespace IMUNROK.Common
             _lineText.text = Emphasis.Rich(line ?? "", Emphasis.OnDark);
             _hintText.text = hint ?? "";
 
+            // 물을 상대가 있을 때만 입력줄이 뜬다
+            if (_inputRow != null) _inputRow.gameObject.SetActive(InterrogationController.AnyOpen);
+
             SetVisible(true);
             // 숨겨져 있다가 다시 뜰 땐 눈앞으로 바로 가져온다(감쇠 때문에 옆에서 날아오지 않게)
             if (wasHidden && _anchor != null) _anchor.Recenter();
@@ -323,22 +326,60 @@ namespace IMUNROK.Common
             foreach (var g in GetComponentsInChildren<Graphic>(true)) DrawOnTop(g);
         }
 
-        // ── 꾸러미 하단바의 세로 차림 ─────────────────
-        //
-        // 견우팀 꾸러미의 <b>하단바 확정안(VR)</b>을 그대로 옮긴 값이다.
-        // 위에서부터: 여백 → 이름패 → 사이 → 구분선 → 사이 → 대사 → 사이 → 안내 → 여백.
-        //
-        // <b>입력줄만 뺐다.</b> 꾸러미 바에는 글쇠로 쳐 넣는 칸이 한 줄 있는데,
-        // 우리는 <b>말로 묻는다</b>(Wit.ai). 칠 데가 없는 칸을 남겨 두면 판만 높아지고
-        // 「여기에 뭘 치라는 거지」가 된다.
-        //
-        // ⚠ 숫자를 <b>베껴 왔다</b>. 색은 <c>DialogueUI.Palette()</c> 가 공개라 물어 오는데,
-        //   치수를 쥔 <c>StyleOf</c> 는 비공개다. 견우팀에 그것도 열어 달라고 적어 둘 것 —
-        //   열리면 이 상수들을 지우고 그쪽을 부르면 된다.
-        private const float BarW = 1500f;
-        private const float PadX = 60f, PadTop = 18f;
-        private const float NameToRule = 12f, RuleH = 3f, RuleToLine = 28f;
-        private const float LineToFoot = 40f, FootH = 36f, FootToEdge = 24f;
+        /// <summary>
+        /// <b>꾸러미 하단바의 치수 한 벌.</b> 이름과 뜻을 저쪽 <c>BottomStyle</c> 에서 그대로 가져왔다.
+        ///
+        /// ⚠ <b>베껴 온 것이다.</b> 색을 쥔 <c>Palette()</c> 는 공개라 물어 오는데,
+        ///   치수를 쥔 <c>StyleOf</c> 는 비공개다. 그것이 열리면 이 구조체를 지우고
+        ///   그쪽을 부르면 된다 — 팀원께 열어 달라고 청해 둘 것.
+        /// </summary>
+        private struct BarStyle
+        {
+            public float w;             // 판 너비
+            public int line, name, foot, input;
+            public float inputH;
+            public float padX, padTop, nameToRule, ruleH, ruleToLine, lineToInput, inputToFoot, footToEdge, footH;
+
+            public float NameH { get { return name + 18f; } }
+
+            /// <summary>대사 자리 높이 — 저쪽 <c>LineBox</c> 와 같은 셈이다(궁서체 줄높이 1.25 + 0.28).</summary>
+            public float LineBoxH { get { return Mathf.Ceil(line * (1.25f + 0.28f) * 3f) + 6f; } }
+
+            /// <summary>여백까지 더한 판 높이. 저쪽 <c>TotalHeight</c> 와 같은 셈이다.</summary>
+            public float Total
+            {
+                get
+                {
+                    return padTop + NameH + nameToRule + ruleH + ruleToLine
+                         + LineBoxH + lineToInput + inputH + inputToFoot + footH + footToEdge;
+                }
+            }
+        }
+
+        /// <summary>
+        /// <b>PC 와 VR 은 치수가 다르다.</b> 그것을 몰라 여태 VR 값만 넣어 두었고,
+        /// 그래서 화면으로 보면 안내줄이 팀원 것(19단위)보다 배 가까이 컸다.
+        ///
+        /// VR 값이 큰 데는 까닭이 있다 — 저쪽 주석 그대로다:
+        /// 「1.5m 앞에서 19단위 안내줄은 <b>0.73도</b>인데 헤드셋 하한이 1.30도다.
+        ///  그래서 작은 글씨부터 키웠다: 안내 19→34, 입력 28→34, 이름 32→36, 대사 42→46.」
+        ///
+        /// 셈을 그대로 돌려 보면 저쪽이 적어 둔 판 높이가 나온다 —
+        /// PC 461 · VR 535. 같은 값이 나오면 베낀 것이 맞게 옮겨진 것이다.
+        /// </summary>
+        private static BarStyle StyleNow()
+        {
+            if (VRRig.Active)
+                return new BarStyle {
+                    w = 1500f, line = 46, name = 36, input = 34, foot = 34, inputH = 76f,
+                    padX = 60f, padTop = 18f, nameToRule = 12f, ruleH = 3f, ruleToLine = 28f,
+                    lineToInput = 40f, inputToFoot = 26f, footToEdge = 24f, footH = 36f };
+
+            return new BarStyle {
+                w = 2900f, line = 42, name = 32, input = 28, foot = 19, inputH = 62f,
+                padX = 90f, padTop = 14f, nameToRule = 10f, ruleH = 3f, ruleToLine = 24f,
+                lineToInput = 34f, inputToFoot = 22f, footToEdge = 19f, footH = 24f };
+        }
 
         private void Build()
         {
@@ -364,57 +405,155 @@ namespace IMUNROK.Common
                 _lineFontSize = 46; _nameFontSize = 36; _hintFontSize = 34;
             }
 
-            float nameH = _nameFontSize + 18f;
-            float lineBoxH = Mathf.Round(_lineFontSize * 1.28f) * 3f;   // 대사 세 줄
-            float h = PadTop + nameH + NameToRule + RuleH + RuleToLine
-                    + lineBoxH + LineToFoot + FootH + FootToEdge;
-            const float w = BarW;
+            // ── 치수는 모드에 따라 갈린다 ──────────────
+            var st = StyleNow();
+            if (_useCommonLook)
+            { _lineFontSize = st.line; _nameFontSize = st.name; _hintFontSize = st.foot; }
+
+            float nameH = st.NameH;
+            float lineBoxH = st.LineBoxH;
+            // <b>입력줄 자리를 비워 둔다.</b> 저쪽 바에는 글쇠 칸이 한 줄 있고, 그 높이가
+            // 판 높이 셈에 들어간다. 우리는 그 칸을 <b>심문할 때만</b> 채우지만, 자리는
+            // 늘 둔다 — 안 그러면 판 높이가 저쪽과 달라져 「같은 바」가 아니게 된다.
+            float h = st.Total;
+            float w = st.w;
 
             var panel = NewRect("바탕", Vector2.zero, new Vector2(w, h), transform);
             panel.gameObject.AddComponent<Image>().color = _panelColor;
-
-            // <b>목재 테두리</b> — 꾸러미 바에 있고 우리에게 없던 것이다.
-            // 먹빛 판이 밤 배경에 얹히면 어디까지가 판인지 경계가 사라진다.
             Edge(panel, w, h, pal.border);
 
-            // 위에서부터 쌓아 내려간다. 자리를 하나씩 손으로 잡으면 값 하나만 고쳐도
-            // 아래가 죄 어긋난다 — 커서를 두고 내린다.
             float top = h * 0.5f;
-            float y = top - PadTop;
+            float y = top - st.padTop;
 
-            // 이름표 — 낙관. 판 <b>안</b> 왼쪽 위다(꾸러미와 같은 자리).
-            float nameW = 300f;
+            // 이름패 — 판 안 왼쪽 위(저쪽과 같은 자리). 나뭇결 위에 주칠.
+            float nameW = Mathf.Max(220f, st.name * 7f);
             _nameplate = NewRect("이름판",
-                new Vector2(-w * 0.5f + PadX + nameW * 0.5f, y - nameH * 0.5f),
+                new Vector2(-w * 0.5f + st.padX + nameW * 0.5f, y - nameH * 0.5f),
                 new Vector2(nameW, nameH), panel);
             Skin(_nameplate.gameObject.AddComponent<Image>(), _skin.Wood_, _nameplateColor);
-            // 이름 글씨는 대사와 다른 색이다 — 주칠 위에서는 한지빛이라야 뜬다
             _nameText = NewText("이름", "", Vector2.zero, new Vector2(nameW, nameH),
                                 _nameplate, _nameFontSize,
                                 _useCommonLook ? UiLook.SealText : _textColor);
-            y -= nameH + NameToRule;
+            y -= nameH + st.nameToRule;
 
-            // 구분선 — 이름과 말을 가른다
-            var rule = NewRect("구분선", new Vector2(0f, y - RuleH * 0.5f),
-                               new Vector2(w - PadX * 2f, RuleH), panel);
+            var rule = NewRect("구분선", new Vector2(0f, y - st.ruleH * 0.5f),
+                               new Vector2(w - st.padX * 2f, st.ruleH), panel);
             Skin(rule.gameObject.AddComponent<Image>(), _skin.Wood_, pal.border);
-            y -= RuleH + RuleToLine;
+            y -= st.ruleH + st.ruleToLine;
 
             _lineText = NewText("대사", "", new Vector2(0f, y - lineBoxH * 0.5f),
-                                new Vector2(w - PadX * 2f, lineBoxH),
+                                new Vector2(w - st.padX * 2f, lineBoxH),
                                 panel, _lineFontSize, _textColor);
             _lineText.alignment = TextAnchor.UpperLeft;
             _lineText.horizontalOverflow = HorizontalWrapMode.Wrap;
             _lineText.verticalOverflow = VerticalWrapMode.Truncate;
-            y -= lineBoxH + LineToFoot;
+            y -= lineBoxH + st.lineToInput;
 
-            _hintText = NewText("힌트", "", new Vector2(0f, y - FootH * 0.5f),
-                                new Vector2(w - PadX * 2f, FootH),
+            BuildInputRow(panel, w, y, st);
+            y -= st.inputH + st.inputToFoot;
+
+            _hintText = NewText("힌트", "", new Vector2(0f, y - st.footH * 0.5f),
+                                new Vector2(w - st.padX * 2f, st.footH),
                                 panel, _hintFontSize, _hintColor);
             _hintText.alignment = TextAnchor.MiddleCenter;
 
-            BuildCloseTab(panel, w, h);
+            BuildCloseTab(panel, w, h, st);
+            SitLikeTheBar(w, h);
             AllOnTop();
+        }
+
+        /// <summary>
+        /// <b>바가 앉는 자리도 저쪽 셈으로 잡는다.</b>
+        ///
+        /// 치수만 옮기고 자리를 그냥 두었더니 판이 화면 밖으로 넘쳤다 — 2900단위짜리
+        /// 바를 눈앞 1.3m 에 세우면 2.9m 폭이 되어 화면을 훌쩍 넘는다.
+        ///
+        /// 저쪽 셈은 이렇다(주석 그대로): 「1.5m 앞, 세로 화각 60° 기준으로 화면
+        /// 반높이가 866단위, 16:9 반너비가 1540단위다. 바를 화면 <b>아래 끝에서
+        /// 46단위 띄워</b> 눕히려면 중심 y = −(866 − 높이/2 − 46).」
+        /// 너비 2900 은 화면 폭 3080 의 94% — 「거의 전체 폭」이 그 뜻이다.
+        ///
+        /// 화각을 60으로 못 박지 않고 <b>지금 카메라에서 뽑는다</b> — 60이 아닌 날에도 맞는다.
+        /// </summary>
+        private void SitLikeTheBar(float w, float h)
+        {
+            if (!_useCommonLook || _anchor == null) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+
+            const float dist = 1.5f;                 // 저쪽이 잡은 거리
+            const float scale = 0.001f;              // 캔버스 1단위 = 1mm
+            float halfH = Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * dist / scale;
+            float y = -(halfH - h * 0.5f - 46f);     // 아래 끝에서 46단위 띄운다
+
+            _anchor.SetDistance(dist, y * scale);
+            // 넓고 아래에 눕는 판이라 <b>화면과 나란히</b> 서야 한다 — 눈을 마주 보게
+            // 눕히면 사다리꼴로 일그러진다(재 보니 좌우 귀퉁이가 화면에서 0.04 어긋났다).
+            _anchor.SetScreenParallel(true);
+        }
+
+        private RectTransform _inputRow;
+        private Text _heardText;
+
+        /// <summary>
+        /// <b>입력줄</b> — 저쪽 바의 「글쇠 칸 + 단추 셋」 자리다.
+        ///
+        /// 팀원 PC판을 보면 이 줄에 <c>[친 글] [🎤] [묻 기] [증거 제시]</c> 가 있다.
+        /// 우리는 글쇠로 치지 않고 <b>말로 묻는다</b>(Wit.ai). 그래서 칸은 남기되
+        /// 쓰임이 바뀐다 — 친 글이 아니라 <b>받아 적힌 말</b>이 여기 뜬다.
+        ///
+        /// <b>심문할 때만 보인다.</b> 문 앞 대사나 복명 낭독에는 물을 상대가 없다.
+        /// 그래도 <b>자리는 늘 잡아 둔다</b> — 판 높이가 저쪽과 같아야 「같은 바」다.
+        /// </summary>
+        private void BuildInputRow(RectTransform panel, float w, float top, BarStyle st)
+        {
+            float inner = w - st.padX * 2f;
+            _inputRow = NewRect("입력줄", new Vector2(0f, top - st.inputH * 0.5f),
+                                new Vector2(inner, st.inputH), panel);
+
+            var pal = IMUNROK.Ui.DialogueUI.Palette();
+            float bw = Mathf.Round(inner * 0.16f);     // 단추 하나 너비
+            float gap = 14f;
+            float slotW = inner - (bw * 2f + st.inputH + gap * 3f);
+
+            // 받아 적힌 말이 뜨는 칸 — 저쪽 글쇠 칸 자리다
+            var slot = NewRect("받아적힌말", new Vector2(-inner * 0.5f + slotW * 0.5f, 0f),
+                               new Vector2(slotW, st.inputH), _inputRow);
+            Skin(slot.gameObject.AddComponent<Image>(), _skin.Slot_, pal.slotBack);
+            _heardText = NewText("글", "", new Vector2(16f, 0f), new Vector2(slotW - 32f, st.inputH),
+                                 slot, st.input, pal.slotHint);
+            _heardText.alignment = TextAnchor.MiddleLeft;
+
+            float x = -inner * 0.5f + slotW + gap + st.inputH * 0.5f;
+
+            // 마이크 — 그림글자가 궁서체에 없어 저쪽이 직접 그려 둔 것을 얻어 쓴다
+            var mic = NewRect("마이크", new Vector2(x, 0f), new Vector2(st.inputH, st.inputH), _inputRow);
+            Skin(mic.gameObject.AddComponent<Image>(), _skin.Slot_, pal.slotBack);
+            var micIcon = NewRect("그림", Vector2.zero, new Vector2(st.inputH * 0.6f, st.inputH * 0.6f), mic);
+            Skin(micIcon.gameObject.AddComponent<Image>(), _skin.Mic_, pal.text);
+            x += st.inputH * 0.5f + gap + bw * 0.5f;
+
+            Chip(_inputRow, "묻기", "묻 기", new Vector2(x, 0f), new Vector2(bw, st.inputH), st.input,
+                 pal.slotBack, () => { var a2 = InterrogationController.Active;
+                                       if (a2 != null && !string.IsNullOrEmpty(_heardText.text)) a2.Say(_heardText.text); });
+            x += bw + gap;
+
+            Chip(_inputRow, "증거제시", "증거 제시", new Vector2(x, 0f), new Vector2(bw, st.inputH), st.input,
+                 UiLook.Seal, () => { var v = FindFirstObjectByType<JournalView>(); if (v != null) JournalPanel.Open(v); });
+
+            _inputRow.gameObject.SetActive(false);
+        }
+
+        private void Chip(RectTransform parent, string name, string label, Vector2 at, Vector2 size,
+                          int fontSize, Color back, System.Action onClick)
+        {
+            var rt = NewRect(name, at, size, parent);
+            var im = rt.gameObject.AddComponent<Image>();
+            Skin(im, _skin.Wood_, back);
+            NewText("글", label, Vector2.zero, size, rt, fontSize, IMUNROK.Ui.DialogueUI.Palette().text);
+            var btn = rt.gameObject.AddComponent<Button>();
+            btn.targetGraphic = im;
+            btn.onClick.AddListener(() => { if (onClick != null) onClick(); });
         }
 
         /// <summary>
@@ -446,13 +585,14 @@ namespace IMUNROK.Common
             im.color = c;
         }
 
-        private void BuildCloseTab(RectTransform panel, float w, float h)
+        private void BuildCloseTab(RectTransform panel, float w, float h, BarStyle st)
         {
             // 꾸러미와 같이 <b>판 안</b> 오른쪽 위다. 예전에는 판 밖에 걸터앉아 있어서
-            // 어디에 딸린 단추인지 알 수 없었다.
-            var size = new Vector2(120f, 56f);
+            // 어디에 딸린 단추인지 알 수 없었다. 높이는 <b>이름패와 같게</b> 맞춘다 —
+            // 저쪽 주석에 「닫기 ×도 같은 높이로 맞춘다」고 적혀 있다.
+            var size = new Vector2(st.NameH * 2.2f, st.NameH);
             var rt = NewRect("닫기",
-                new Vector2(w * 0.5f - PadX - size.x * 0.5f, h * 0.5f - PadTop - size.y * 0.5f),
+                new Vector2(w * 0.5f - st.padX - size.x * 0.5f, h * 0.5f - st.padTop - size.y * 0.5f),
                 size, panel);
             // 이 딱지 색도 손으로 정하지 않는다. 꾸러미의 <b>글쇠 칸</b> 색을 쓴다 —
             // 저쪽에서 「눌러도 되는 자리」를 알리는 데 쓰는 색이라 뜻이 맞는다.

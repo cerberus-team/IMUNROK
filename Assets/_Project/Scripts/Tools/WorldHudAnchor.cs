@@ -210,6 +210,14 @@ namespace IMUNROK.Common
         /// </summary>
         public void KeepInFrontOf(Transform target) => _keepInFrontOf = target;
 
+        [Tooltip("<b>화면과 나란히</b> 세운다 — 카메라 회전을 그대로 쓰고 자리만 앞·위로 민다. " +
+                 "꾸러미 하단바가 그렇게 선다. 눈을 마주 보게 눕히면 아래로 치우친 넓은 판이 " +
+                 "<b>사다리꼴로 일그러져</b> 글이 읽기 나빠진다")]
+        [SerializeField] private bool _screenParallel;
+
+        /// <summary>화면과 나란히 설지 밖에서 정한다. 하단바처럼 넓고 아래에 눕는 판이 쓴다.</summary>
+        public void SetScreenParallel(bool on) { _screenParallel = on; }
+
         [Header("벽 피하기")]
         [Tooltip("앞을 막은 것이 있으면 그 앞으로 당겨 온다. 당긴 만큼 배율도 함께 줄어 " +
                  "<b>보이는 크기는 그대로</b>다 — 그 셈은 이미 아래에 있다.\n\n" +
@@ -390,6 +398,35 @@ namespace IMUNROK.Common
             // 붙박은 동안만은 세계 기준이다 — 방향부터 수평이라, 여기서 고개를 따라가면
             // 숙일 때마다 글이 도로 아래로 쓸려 내려간다.
             Vector3 down = (_placement == Placement.Waist || Pinned) ? Vector3.up : head.up;
+
+            // ── 화면과 나란히 세우기 ────────────────────
+            //
+            // 꾸러미 하단바가 못 박아 둔 규칙이다. 저쪽 주석 그대로:
+            // 「전에는 판을 18도 눕혀 놨더니 원근 때문에 <b>사다리꼴로 일그러져</b>
+            //  글을 읽기 불편했다. 판을 <b>카메라 회전 그대로</b> 세우고 자리만
+            //  카메라의 위·오른쪽 축으로 밀어낸다.」
+            //
+            // 우리 앵커는 판을 <b>눈을 마주 보게</b> 눕히는데, 그러면 아래로 치우친
+            // 판이 비스듬해진다 — 재 보니 왼쪽 귀퉁이가 화면 y 0.34, 오른쪽이 0.30 으로
+            // 어긋나 있었다. 넓은 바일수록 그 어긋남이 크게 보인다.
+            //
+            // 그리고 <b>자리를 각도로 잡으면 안 된다</b>(저쪽의 또 다른 경고):
+            // 방향을 돌려 곱하면 판 면까지의 거리가 달라져 가장자리가 작아 보인다.
+            // 앞으로 d, 위로 drop — 두 축으로 <b>밀어야</b> 한다.
+            if (_screenParallel)
+            {
+                var flat = head.position + head.forward * d + head.up * drop;
+                var rot = head.rotation;
+                if (instant) transform.SetPositionAndRotation(flat, rot);
+                else
+                {
+                    float k = 1f - Mathf.Exp(-_damping * Time.deltaTime);
+                    transform.SetPositionAndRotation(
+                        Vector3.Lerp(transform.position, flat, k),
+                        Quaternion.Slerp(transform.rotation, rot, k));
+                }
+                return;
+            }
 
             Vector3 target = head.position
                              + dir * d
