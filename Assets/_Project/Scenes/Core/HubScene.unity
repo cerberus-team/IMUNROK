@@ -11301,6 +11301,12 @@ MonoBehaviour:
   _playerCanToggle: 1
   _maxTouchDistance: 2.4
   _locked: 0
+  _noise: 0.55
+  _openSound: {fileID: 0}
+  _closeSound: {fileID: 0}
+  _pitchJitter: 0.08
+  _soundStartAt: 0
+  _soundSeconds: 0
   _blocker: {fileID: 0}
   _blockerFollowsDoor: 1
   OnKnock:
@@ -11309,6 +11315,9 @@ MonoBehaviour:
   OnOpened:
     m_PersistentCalls:
       m_Calls: []
+  _knockOnce: {fileID: 0}
+  _knocksNeeded: 3
+  _knockWindow: 1.6
 --- !u!1001 &120792011
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -26947,6 +26956,17 @@ MonoBehaviour:
   _stepUp: 0.4
   _stepDown: 2
   _stepSpeed: 4
+  _walkNoise: 0.18
+  _runNoise: 0.7
+  _stepInterval: 0.55
+  _woodSteps: []
+  _dirtSteps: []
+  _stoneSteps: []
+  _creakSounds: []
+  _creakChance: 0.14
+  _creakAdds: 0.28
+  _dirtQuieter: 0.55
+  _stoneQuieter: 0.8
 --- !u!114 &270294125
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -55656,6 +55676,12 @@ MonoBehaviour:
   _playerCanToggle: 0
   _maxTouchDistance: 2.4
   _locked: 0
+  _noise: 0.55
+  _openSound: {fileID: 0}
+  _closeSound: {fileID: 0}
+  _pitchJitter: 0.08
+  _soundStartAt: 0
+  _soundSeconds: 0
   _blocker: {fileID: 0}
   _blockerFollowsDoor: 1
   OnKnock:
@@ -55664,6 +55690,9 @@ MonoBehaviour:
   OnOpened:
     m_PersistentCalls:
       m_Calls: []
+  _knockOnce: {fileID: 0}
+  _knocksNeeded: 3
+  _knockWindow: 1.6
 --- !u!1 &589693177
 GameObject:
   m_ObjectHideFlags: 0
@@ -56806,6 +56835,12 @@ MonoBehaviour:
   _playerCanToggle: 1
   _maxTouchDistance: 2.4
   _locked: 0
+  _noise: 0.55
+  _openSound: {fileID: 0}
+  _closeSound: {fileID: 0}
+  _pitchJitter: 0.08
+  _soundStartAt: 0
+  _soundSeconds: 0
   _blocker: {fileID: 0}
   _blockerFollowsDoor: 1
   OnKnock:
@@ -56814,6 +56849,9 @@ MonoBehaviour:
   OnOpened:
     m_PersistentCalls:
       m_Calls: []
+  _knockOnce: {fileID: 0}
+  _knocksNeeded: 3
+  _knockWindow: 1.6
 --- !u!1 &602879545
 GameObject:
   m_ObjectHideFlags: 0
@@ -66067,6 +66105,9 @@ MonoBehaviour:
   _litText: 
   _clueNeedsLantern: 0
   _litGlyphs: 
+  _litClueKey: 
+  _litClueOwnText: 
+  _litClueText: 
   _title: "\u4E8B\u76EE"
   _body: 
   _requiresMagnifier: 0
@@ -104484,6 +104525,12 @@ MonoBehaviour:
   _playerCanToggle: 0
   _maxTouchDistance: 2.4
   _locked: 0
+  _noise: 0.55
+  _openSound: {fileID: 0}
+  _closeSound: {fileID: 0}
+  _pitchJitter: 0.08
+  _soundStartAt: 0
+  _soundSeconds: 0
   _blocker: {fileID: 0}
   _blockerFollowsDoor: 1
   OnKnock:
@@ -104492,6 +104539,9 @@ MonoBehaviour:
   OnOpened:
     m_PersistentCalls:
       m_Calls: []
+  _knockOnce: {fileID: 0}
+  _knocksNeeded: 3
+  _knockWindow: 1.6
 --- !u!1 &1080104874
 GameObject:
   m_ObjectHideFlags: 0
@@ -110951,6 +111001,12 @@ MonoBehaviour:
   _playerCanToggle: 1
   _maxTouchDistance: 2.4
   _locked: 0
+  _noise: 0.55
+  _openSound: {fileID: 0}
+  _closeSound: {fileID: 0}
+  _pitchJitter: 0.08
+  _soundStartAt: 0
+  _soundSeconds: 0
   _blocker: {fileID: 0}
   _blockerFollowsDoor: 1
   OnKnock:
@@ -110959,6 +111015,9 @@ MonoBehaviour:
   OnOpened:
     m_PersistentCalls:
       m_Calls: []
+  _knockOnce: {fileID: 0}
+  _knocksNeeded: 3
+  _knockWindow: 1.6
 --- !u!1 &1156879128
 GameObject:
   m_ObjectHideFlags: 0
@@ -146411,6 +146470,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1513624884}
   - component: {fileID: 1513624883}
+  - component: {fileID: 1513624885}
   m_Layer: 0
   m_Name: _WorldState
   m_TagString: Untagged
@@ -146458,6 +146518,24 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1513624885
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1513624882}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd84b921894f36745a55839991acaa01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.HubArrival
+  _line: "\uC870\uC0AC\uCCAD\uC774\uC624. \uB9E1\uC73C\uC2E0 \uC0AC\uAC74\uC758 \uBB38\uC11C\uB294
+    \uC548\uC5D0 \uD3BC\uCCD0 \uB450\uC5C8\uC18C."
+  _speaker: 
+  _lineSeconds: 4.5
+  _delay: 0.9
+  _markLabel: "\uC0AC\uAC74 \uBB38\uC11C"
 --- !u!1001 &1514276262
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -162650,6 +162728,12 @@ MonoBehaviour:
   _playerCanToggle: 0
   _maxTouchDistance: 2.4
   _locked: 0
+  _noise: 0.55
+  _openSound: {fileID: 0}
+  _closeSound: {fileID: 0}
+  _pitchJitter: 0.08
+  _soundStartAt: 0
+  _soundSeconds: 0
   _blocker: {fileID: 0}
   _blockerFollowsDoor: 1
   OnKnock:
@@ -162658,6 +162742,9 @@ MonoBehaviour:
   OnOpened:
     m_PersistentCalls:
       m_Calls: []
+  _knockOnce: {fileID: 0}
+  _knocksNeeded: 3
+  _knockWindow: 1.6
 --- !u!1001 &1680944928
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -182719,6 +182806,12 @@ MonoBehaviour:
   _playerCanToggle: 0
   _maxTouchDistance: 2.4
   _locked: 0
+  _noise: 0.55
+  _openSound: {fileID: 0}
+  _closeSound: {fileID: 0}
+  _pitchJitter: 0.08
+  _soundStartAt: 0
+  _soundSeconds: 0
   _blocker: {fileID: 0}
   _blockerFollowsDoor: 1
   OnKnock:
@@ -182727,6 +182820,9 @@ MonoBehaviour:
   OnOpened:
     m_PersistentCalls:
       m_Calls: []
+  _knockOnce: {fileID: 0}
+  _knocksNeeded: 3
+  _knockWindow: 1.6
 --- !u!1 &1909113889
 GameObject:
   m_ObjectHideFlags: 0
@@ -197284,6 +197380,12 @@ MonoBehaviour:
   _playerCanToggle: 0
   _maxTouchDistance: 2.4
   _locked: 0
+  _noise: 0.55
+  _openSound: {fileID: 0}
+  _closeSound: {fileID: 0}
+  _pitchJitter: 0.08
+  _soundStartAt: 0
+  _soundSeconds: 0
   _blocker: {fileID: 0}
   _blockerFollowsDoor: 1
   OnKnock:
@@ -197292,6 +197394,9 @@ MonoBehaviour:
   OnOpened:
     m_PersistentCalls:
       m_Calls: []
+  _knockOnce: {fileID: 0}
+  _knocksNeeded: 3
+  _knockWindow: 1.6
 --- !u!1001 &2061780408
 PrefabInstance:
   m_ObjectHideFlags: 0

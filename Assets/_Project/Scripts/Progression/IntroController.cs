@@ -63,6 +63,13 @@ namespace IMUNROK.Common
         [SerializeField] private string _takeSpeaker = "나";
         [Tooltip("받은 뒤 조사청으로 넘어가기까지(초)")]
         [SerializeField] private float _leaveAfter = 1.8f;
+        [Header("어디로 가는지")]
+        [Tooltip("봉서를 맡은 뒤, 눈을 감기 직전에 한 마디. 비우면 안 뜬다")]
+        [SerializeField] private string _goingLine = "조사청으로 든다.";
+        [SerializeField] private string _goingSpeaker = "";
+        [Tooltip("그 한 마디를 읽을 틈(초). 떠나는 시간이 그만큼 늘어난다")]
+        [SerializeField] private float _goingHold = 1.6f;
+
         [SerializeField] private string _hubSceneName = "HubScene";
 
         [Header("건너뛰기")]
@@ -250,7 +257,18 @@ namespace IMUNROK.Common
             if (!string.IsNullOrEmpty(_takeLine)) SubtitleView.Show(_takeSpeaker, _takeLine);
             else SubtitleView.Hide();
 
-            Invoke(nameof(LeaveForHub), Mathf.Max(0.1f, _leaveAfter));
+            // 어디로 가는지 한 마디. 여태 여기서 곧장 캄캄해졌다 낯선 마당에서
+            // 떴는데, 그러면 화면이 <b>바뀐 것</b>이지 <b>간 것</b>이 아니다.
+            // 갈 곳을 듣고 나서 눈을 감아야 옮겨 간 것이 된다.
+            if (!string.IsNullOrEmpty(_goingLine))
+                Invoke(nameof(SayGoing), Mathf.Max(0.1f, _leaveAfter) * 0.55f);
+
+            Invoke(nameof(LeaveForHub), Mathf.Max(0.1f, _leaveAfter) + _goingHold);
+        }
+
+        private void SayGoing()
+        {
+            if (_taken) SubtitleView.Show(_goingSpeaker, _goingLine, "");
         }
 
         private void LeaveForHub()

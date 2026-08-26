@@ -99,6 +99,20 @@ namespace IMUNROK.Common
             if (_instance != null) _instance.SetVisible(false);
         }
 
+        /// <summary>
+        /// 지금 이 창이 떠 있나. 다른 안내가 이 창 위로 겹치지 않게 물어보는 자리다 —
+        /// 무엇을 고르는지 이미 알고 그 앞에 선 사람에게 화살표를 또 얹을 일은 없다.
+        /// </summary>
+        public static bool Showing
+        {
+            get
+            {
+                if (_instance == null) return false;
+                var g = _instance._group;
+                return g != null && g.alpha > 0.01f;
+            }
+        }
+
         private void Awake()
         {
             if (_instance != null && _instance != this) { Destroy(gameObject); return; }
