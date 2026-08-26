@@ -36,13 +36,21 @@ namespace IMUNROK.Common
         /// <summary>안내 한 줄 — 본문보다 물러나 있어야 한다.</summary>
         public static Color Hint { get { return Ui.UiSkin.HintText; } }
 
-        // ── 우리 것 ─────────────────────────────────
-
         /// <summary>
-        /// 이름표의 붉은 낙관. <b>꾸러미에 없는 색</b>이다.
-        /// 말하는 이를 낙관으로 찍는 것은 이 게임의 글투라 그대로 둔다.
+        /// 이름패 바탕 — <b>주칠(朱漆)</b>.
+        ///
+        /// 한동안 우리 낙관 색(0.62, 0.14, 0.11)을 「꾸러미에 없는 색」이라며 남겨 두었다.
+        /// <b>틀렸다.</b> 꾸러미도 이름패는 붉다 — <c>InventorySkin.Vermilion</c>
+        /// (0.667, 0.216, 0.161) 이고, 저쪽 주석에도 「주칠 이름패를 그대로 쓴다」고
+        /// 적혀 있다. 없는 색이 아니라 <b>내가 안 찾아본 색</b>이었다.
+        ///
+        /// 그러니 우리 낙관은 버린다. 붉은 것을 잃는 것이 아니라 <b>같은 붉은 것</b>으로
+        /// 모으는 일이다.
         /// </summary>
-        public static readonly Color Seal = new Color(0.62f, 0.14f, 0.11f, 0.95f);
+        public static Color Seal { get { return Ui.InventorySkin.Vermilion; } }
+
+        /// <summary>이름패 위의 글씨 — 한지빛. 주칠 위에서는 이것이 뜬다.</summary>
+        public static Color SealText { get { return Ui.InventorySkin.Hanji; } }
 
         // ── 크기 ───────────────────────────────────
 

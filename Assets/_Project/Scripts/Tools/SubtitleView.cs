@@ -334,18 +334,21 @@ namespace IMUNROK.Common
             _group = gameObject.GetComponent<CanvasGroup>();
             if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
 
-            // ── 색은 꾸러미에서 물어 온다 ───────────────
+            // ── 색은 <b>한 자락도 안 베낀다</b> ─────────────
             //
-            // 베끼지 않는다. 베끼면 그 순간 두 벌이 되고, 견우팀이 고칠 때 우리만
-            // 옛 색으로 남는다. 낙관의 붉은색만 우리 것이다 — 꾸러미에 없는 색이고,
-            // 말하는 이를 낙관으로 찍는 것은 이 게임의 글투다.
+            // 낙관의 붉은색까지 꾸러미 것으로 넘긴다. 한동안 「그건 꾸러미에 없는
+            // 색이고 이 게임의 글투」라며 남겨 두었는데, 찾아보니 <b>저쪽도 이름패는
+            // 붉었다</b> — InventorySkin.Vermilion, 주칠이다. 없는 색이 아니라
+            // 내가 안 찾아본 색이었다.
+            //
+            // 이제 이 판에 우리가 손으로 정한 색은 하나도 없다.
             var pal = IMUNROK.Ui.DialogueUI.Palette();
             if (_useCommonLook)
             {
                 _panelColor = pal.back;          // 먹빛 65%
                 _textColor = pal.text;
                 _hintColor = pal.dim;
-                _nameplateColor = UiLook.Seal;
+                _nameplateColor = UiLook.Seal;   // 주칠
                 _lineFontSize = 46; _nameFontSize = 36; _hintFontSize = 34;
             }
 
@@ -373,8 +376,10 @@ namespace IMUNROK.Common
                 new Vector2(-w * 0.5f + PadX + nameW * 0.5f, y - nameH * 0.5f),
                 new Vector2(nameW, nameH), panel);
             _nameplate.gameObject.AddComponent<Image>().color = _nameplateColor;
+            // 이름 글씨는 대사와 다른 색이다 — 주칠 위에서는 한지빛이라야 뜬다
             _nameText = NewText("이름", "", Vector2.zero, new Vector2(nameW, nameH),
-                                _nameplate, _nameFontSize, _textColor);
+                                _nameplate, _nameFontSize,
+                                _useCommonLook ? UiLook.SealText : _textColor);
             y -= nameH + NameToRule;
 
             // 구분선 — 이름과 말을 가른다
@@ -429,7 +434,9 @@ namespace IMUNROK.Common
             var rt = NewRect("닫기",
                 new Vector2(w * 0.5f - PadX - size.x * 0.5f, h * 0.5f - PadTop - size.y * 0.5f),
                 size, panel);
-            rt.gameObject.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.35f);
+            // 이 딱지 색도 손으로 정하지 않는다. 꾸러미의 <b>글쇠 칸</b> 색을 쓴다 —
+            // 저쪽에서 「눌러도 되는 자리」를 알리는 데 쓰는 색이라 뜻이 맞는다.
+            rt.gameObject.AddComponent<Image>().color = IMUNROK.Ui.DialogueUI.Palette().slotBack;
             NewText("글", "✕", Vector2.zero, size, rt, _hintFontSize, _hintColor);
 
             _closeTab = rt.gameObject.AddComponent<NoticeCloseTab>();
