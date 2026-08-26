@@ -21,6 +21,29 @@ namespace IMUNROK.Seocheon.AI
     }
 
     /// <summary>
+    /// 조각 하나를 들이밀었을 때 이 인물이 보이는 반응 (2026-08-27).
+    ///
+    /// ★없으면 AI 가 아무 반응이나 지어냅니다. 그러면 게임이 무너집니다 —
+    ///   무관한 조각에도 뜨끔해하거나, 관련 조각에 한 번에 다 실토해 버립니다.
+    ///   그래서 <b>규칙이 있는 조각만</b> 태도가 바뀌고, 나머지는 어리둥절해하고 넘어갑니다.
+    /// </summary>
+    [Serializable]
+    public sealed class SeocheonPresentReaction
+    {
+        [Tooltip("들이밀린 조각의 clueId. ★이 인물이 준 것이 아니어도 됩니다 — 남의 말을 물어 오는 것이 심문입니다")]
+        public string clueId = string.Empty;
+
+        [Tooltip("그때 이 인물이 어떻게 나오는가. 그대로 AI 지시문에 들어갑니다. " +
+                 "★한 번에 다 실토하게 쓰지 마십시오 — 태도가 달라지는 정도로 씁니다")]
+        [TextArea(2, 5)]
+        public string reaction = string.Empty;
+
+        [Tooltip("이 반응으로 새로 흘릴 조각의 clueId. 비워도 됩니다. " +
+                 "★clues 목록에 있는 값이어야 합니다")]
+        public string revealsClueId = string.Empty;
+    }
+
+    /// <summary>
     /// 서천 전용 심문 인물 데이터.
     ///
     /// ★공통 InterrogationCharacter 를 쓰지 않은 이유:
@@ -46,6 +69,9 @@ namespace IMUNROK.Seocheon.AI
         [Tooltip("이 인물이 줄 수 있는 단서. ★AI 는 이 목록 밖의 clueId 를 만들 수 없습니다")]
         public SeocheonClue[] clues = Array.Empty<SeocheonClue>();
 
+        [Tooltip("★조각을 들이밀렸을 때의 반응. 여기 없는 조각을 들이밀면 어리둥절해하고 넘어갑니다")]
+        public SeocheonPresentReaction[] presentReactions = Array.Empty<SeocheonPresentReaction>();
+
         [Tooltip("★AI 실패 시 쓸 고정 대사. 순서대로 한 턴에 하나씩 나옵니다")]
         public WordPickNote.Sentence[] fallbackSentences = Array.Empty<WordPickNote.Sentence>();
 
@@ -69,6 +95,18 @@ namespace IMUNROK.Seocheon.AI
             "무슨 말씀이신지 잘 모르겠구려.",
             "허, 소인이 잠시 딴생각을 했소.",
         };
+
+        /// <summary>
+        /// 이 조각을 들이밀렸을 때의 반응을 찾습니다. 없으면 null —
+        /// ★그것은 <b>이 인물과 무관한 조각</b>이라는 뜻이고, 지시문이 어리둥절해하라고 시킵니다.
+        /// </summary>
+        public SeocheonPresentReaction FindPresentReaction(string clueId)
+        {
+            if (string.IsNullOrEmpty(clueId) || presentReactions == null) return null;
+            for (int i = 0; i < presentReactions.Length; i++)
+                if (presentReactions[i] != null && presentReactions[i].clueId == clueId) return presentReactions[i];
+            return null;
+        }
 
         /// <summary>clueId 로 단서를 찾습니다. 없으면 null(= AI 가 만들어 낸 ID).</summary>
         public SeocheonClue FindClue(string clueId)

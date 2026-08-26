@@ -20,9 +20,12 @@ namespace IMUNROK.Seocheon
     ///   ★어절 후보(options)는 <b>합친 글 기준으로 다시 매핑</b>해 <see cref="PickSource"/> 에 담는다 —
     ///     원본은 <see cref="LastResult"/> 에 그대로 남는다.
     ///
-    /// ■ 증거 제시
-    ///   서천에는 소지품 시스템이 없다. <see cref="Presentables"/> 가 빈 목록을 주면
-    ///   팀 화면이 알아서 <b>내밀 것이 없다</b>고 처리한다 — 단추를 가짜로 두지 않는다.
+    /// ■ 증거 제시 (2026-08-27 — 이제 실제로 돈다)
+    ///   서천에는 소지품이 없다. 그래서 <b>수첩에 적힌 조각이 곧 증거</b>다
+    ///   (<see cref="SeocheonClueItem"/> 이 조각 하나를 견우 판이 읽는 물건으로 감싼다).
+    ///   내밀면 그 말이 AI 지시문의 [지금 들이민 것] 단락으로 들어가고,
+    ///   ★반응은 <see cref="SeocheonNpcData.presentReactions"/> 에 적힌 대로만 달라진다 —
+    ///   규칙이 없는 조각에는 어리둥절해하며 넘어간다.
     ///
     /// ■ 서천에만 있는 둘 (2026-08-27, <see cref="ISeocheonBarSource"/>)
     ///   ① <b>선택지 4개</b> — VR 에서는 글쇠를 칠 수 없어 이것이 기본 입력이다.
@@ -90,10 +93,58 @@ namespace IMUNROK.Seocheon
             responder.GetReply(host, npc, transcript, collected, text, OnReply);
         }
 
-        /// <summary>서천에는 내밀 물건이 없다 — 언제나 거절한다.</summary>
-        public bool Present(IUiItem item) { return false; }
+        /// <summary>
+        /// ★조각을 들이밀었다.
+        ///
+        /// 자유 입력·선택지와 <b>같은 길</b>로 흘려보낸다 — 다른 것은 지시문에
+        /// [지금 들이민 것] 단락이 하나 붙는다는 것뿐이다.
+        /// 우리 카드가 아니면 false 를 돌려주고, 그러면 화면이 "내밀 것이 못 된다"고 알린다.
+        /// </summary>
+        public bool Present(IUiItem item)
+        {
+            if (busy || npc == null) return false;
 
-        public IReadOnlyList<IUiItem> Presentables() { return NoItems; }
+            SeocheonClueItem card = item as SeocheonClueItem;
+            if (card == null || card.Record == null) return false;
+            SeocheonClueRecord r = card.Record;
+
+            var ctx = new SeocheonPresentContext
+            {
+                sentence = r.sentence,
+                word = card.DisplayName,
+                sourceNpc = r.sourceNpc,
+                derived = r.isDerived,
+            };
+
+            // ★반응 규칙은 <b>조각</b> 단위다. 카드 한 장이 조각을 여럿 이고 있을 수 있어
+            //   (한 문장에서 어절을 둘 짚은 경우) 처음 맞는 규칙을 쓴다.
+            for (int i = 0; i < r.clueIds.Count; i++)
+            {
+                SeocheonPresentReaction rule = npc.FindPresentReaction(r.clueIds[i]);
+                if (rule == null) continue;
+                ctx.reaction = rule.reaction;
+                ctx.revealsClueId = rule.revealsClueId;
+                break;
+            }
+
+            // ★대화 기록에는 "무엇을 내밀었나"가 남아야 한다. 다음 턴의 문맥이 되기 때문이다.
+            string line = "「" + ctx.word + "」… 이 말을 어찌 보시오?";
+            transcript.Add("나: " + line);
+            busy = true;
+            Raise();
+
+            RefreshCollected();
+            responder.GetReply(host, npc, transcript, collected, line, OnReply, ctx);
+            return true;
+        }
+
+        /// <summary>지금 수첩에 있는 조각들. ★없으면 화면이 「증거 제시」를 흐리게 둔다.</summary>
+        public IReadOnlyList<IUiItem> Presentables()
+        {
+            SeocheonClueItems.Instance.Refresh();
+            IReadOnlyList<IUiItem> items = SeocheonClueItems.Instance.Items;
+            return items ?? (IReadOnlyList<IUiItem>)NoItems;
+        }
 
         // ── ISeocheonBarSource ───────────────────────────
         public IReadOnlyList<SeocheonAsk> Asks { get { return asks; } }
@@ -124,7 +175,14 @@ namespace IMUNROK.Seocheon
                 sentence = option.word;
 
             SeocheonClueStore.Add(SpeakerName, sentence, option.word, option.clueId);
+            // ★Add 는 저장소의 Changed 를 울리지 않는다(결합 결과만 울린다).
+            //   그래서 카드 목록은 여기서 직접 맞춰 준다 — 안 하면 방금 지목한 조각을 못 내민다.
+            SeocheonClueItems.Instance.Refresh();
             RefreshCollected();
+
+            // ★화면에 「증거 제시」를 켜 주려면 여기서 알려야 한다.
+            //   안 그러면 조각을 짚어 놓고도 <b>다음 대꾸가 올 때까지</b> 단추가 흐린 채로 있다(실측).
+            Raise();
         }
 
         // ── 안쪽 ─────────────────────────────────────────

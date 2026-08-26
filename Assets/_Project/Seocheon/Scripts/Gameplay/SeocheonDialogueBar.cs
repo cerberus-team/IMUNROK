@@ -395,6 +395,9 @@ namespace IMUNROK.Seocheon
         RectTransform bubbleRoot, bubbleTail;
         TextMeshProUGUI bubbleName, bubbleLine;
 
+        /// <summary>증거를 고르는 동안만 켜 둔 <see cref="InventoryInput"/> 이 우리 것인가.</summary>
+        bool presentInputMine;
+
         bool eventSystemMine;
         bool prevNavigation;
         bool voiceBusy;
@@ -460,6 +463,7 @@ namespace IMUNROK.Seocheon
             voice.Cancel();
             voiceBusy = false;
             if (session != null) session.Changed -= Refresh;
+            ReleasePresentInput();
             if (field != null) { field.text = ""; field.DeactivateInputField(); }
             if (EventSystem.current != null) EventSystem.current.sendNavigationEvents = prevNavigation;
             IsOpen = false;
@@ -592,6 +596,10 @@ namespace IMUNROK.Seocheon
                 voice.Cancel();
                 return;
             }
+
+            // 판이 닫혔으면 켜 두었던 소지품 입력을 도로 끈다 (여기가 유일한 회수 지점이다 —
+            // 고르지 않고 Esc 로 물러나는 길도 있으므로 OnPresentChosen 에만 두면 새어 나간다).
+            ReleasePresentInput();
 
             // ★서천 — F8 로 모드가 바뀌면 <b>판을 다시 짓는다</b>.
             //   견우는 <see cref="Open"/> 때만 본다. 서천은 대화 도중에도 바꿔 가며 확인해야 하는데,
@@ -831,14 +839,33 @@ namespace IMUNROK.Seocheon
             ActivateField();
         }
 
-        /// <summary>증거 제시 — 소지품 판을 그대로 연다.</summary>
+        /// <summary>
+        /// 증거 제시 — 소지품 판을 그대로 연다. 서천은 <b>수첩의 조각</b>이 목록으로 올라온다.
+        ///
+        /// ⚠️ <see cref="InventoryInput"/> 은 카메라에 <b>꺼진 채로</b> 달려 있다.
+        ///    켜 두면 <b>I 키로 소지품 판이 열린다</b> — 서천에는 소지품이 없고 수첩은 따로 있어
+        ///    그 문이 열려 있으면 안 된다. 그래서 고르는 동안만 켜고 닫히면 도로 끈다
+        ///    (<see cref="ReleasePresentInput"/>).
+        /// </summary>
         void OpenPresentPanel()
         {
             if (session == null || eye == null) return;
             var input = eye.GetComponent<InventoryInput>();
             if (input == null) { DebugToast.Show("소지품 입력이 없다.", 2f); return; }
+
+            if (!input.enabled) { input.enabled = true; presentInputMine = true; }
             field.DeactivateInputField();
             input.OpenPresent(() => session.Presentables(), OnPresentChosen);
+        }
+
+        /// <summary>증거 고르기가 끝났다 — 켜 두었던 입력 부품을 도로 끈다.</summary>
+        void ReleasePresentInput()
+        {
+            if (!presentInputMine) return;
+            presentInputMine = false;
+            if (eye == null) return;
+            var input = eye.GetComponent<InventoryInput>();
+            if (input != null) input.enabled = false;
         }
 
         void OnPresentChosen(IUiItem item)

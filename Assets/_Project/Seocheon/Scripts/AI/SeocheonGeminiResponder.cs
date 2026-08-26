@@ -27,6 +27,31 @@ namespace IMUNROK.Seocheon.AI
         public string tone = string.Empty;
     }
 
+    /// <summary>
+    /// ★플레이어가 조각을 <b>들이밀었을 때</b> 딸려 가는 것 (2026-08-27).
+    ///
+    /// 이 값이 있으면 지시문에 [증거 제시] 단락이 붙는다. 없으면 평범한 물음이다 —
+    /// 그래서 <b>기존 대화 경로는 한 줄도 안 달라진다</b>.
+    /// </summary>
+    public sealed class SeocheonPresentContext
+    {
+        /// <summary>수첩에 적힌 문장 그대로. 화면에 보이는 것과 같다.</summary>
+        public string sentence = string.Empty;
+        /// <summary>플레이어가 짚었던 어절(카드 앞면).</summary>
+        public string word = string.Empty;
+        /// <summary>그 말을 한 사람. 결합 카드면 빈 문자열.</summary>
+        public string sourceNpc = string.Empty;
+        /// <summary>이 인물이 이 조각에 대해 가진 반응 규칙. 비어 있으면 ★무관한 조각이다.</summary>
+        public string reaction = string.Empty;
+        /// <summary>이 반응으로 새로 흘려도 되는 조각. 없으면 빈 문자열.</summary>
+        public string revealsClueId = string.Empty;
+        /// <summary>맞춰 본 결과 카드인가 — 그건 이미 판정이 끝난 것이라 감출 것이 없다.</summary>
+        public bool derived;
+
+        /// <summary>이 인물과 관련이 있는 조각인가.</summary>
+        public bool Known { get { return !string.IsNullOrEmpty(reaction); } }
+    }
+
     public sealed class SeocheonReplyResult
     {
         public List<WordPickNote.Sentence> sentences = new List<WordPickNote.Sentence>();
@@ -105,9 +130,14 @@ namespace IMUNROK.Seocheon.AI
         //  요청
         // ─────────────────────────────────────────────
 
+        /// <param name="presented">
+        /// ★조각을 들이민 턴이면 그 문맥. 평범한 물음이면 null —
+        /// 그때는 지시문·요청이 예전과 <b>글자 하나 다르지 않다</b>.
+        /// </param>
         public void GetReply(MonoBehaviour host, SeocheonNpcData npc,
                              List<string> transcript, List<string> collectedClueIds,
-                             string playerInput, Action<SeocheonReplyResult> onDone)
+                             string playerInput, Action<SeocheonReplyResult> onDone,
+                             SeocheonPresentContext presented = null)
         {
             if (onDone == null) return;
 
@@ -131,15 +161,16 @@ namespace IMUNROK.Seocheon.AI
                 return;
             }
 
-            host.StartCoroutine(Send(npc, transcript, collectedClueIds, playerInput, onDone));
+            host.StartCoroutine(Send(npc, transcript, collectedClueIds, playerInput, onDone, presented));
         }
 
         private IEnumerator Send(SeocheonNpcData npc, List<string> transcript,
                                  List<string> collectedClueIds, string playerInput,
-                                 Action<SeocheonReplyResult> onDone)
+                                 Action<SeocheonReplyResult> onDone,
+                                 SeocheonPresentContext presented)
         {
             string url = config.endpointBase + config.model + ":generateContent?key=" + apiKey;
-            string body = BuildRequestJson(npc, transcript, collectedClueIds, playerInput);
+            string body = BuildRequestJson(npc, transcript, collectedClueIds, playerInput, presented);
 
             float t0 = Time.realtimeSinceStartup;
             string responseText = null;
@@ -221,7 +252,8 @@ namespace IMUNROK.Seocheon.AI
         //  지시문
         // ─────────────────────────────────────────────
 
-        private string BuildSystemInstruction(SeocheonNpcData npc, List<string> collectedClueIds)
+        private string BuildSystemInstruction(SeocheonNpcData npc, List<string> collectedClueIds,
+                                              SeocheonPresentContext presented = null)
         {
             StringBuilder sb = new StringBuilder(1024);
 
@@ -295,6 +327,8 @@ namespace IMUNROK.Seocheon.AI
             sb.AppendLine("- 조각을 흘릴 때도 결론을 말하지 말고, 겪은 일을 이야기하듯 흘려라.");
             sb.AppendLine();
 
+            AppendPresentBlock(sb, npc, presented);
+
             sb.AppendLine("[출력 형식]");
             sb.AppendLine("아래 JSON 만 출력한다. 마크다운 코드펜스를 쓰지 마라. 설명을 덧붙이지 마라.");
             sb.AppendLine("{\"reply\":[{\"text\":\"한 문장\",\"options\":[{\"word\":\"어절\",\"clueId\":\"A1\"}]}]}");
@@ -319,14 +353,82 @@ namespace IMUNROK.Seocheon.AI
             return sb.ToString();
         }
 
+        /// <summary>
+        /// ★조각을 들이밀었을 때만 붙는 단락 (2026-08-27).
+        ///
+        /// ■ 왜 규칙 데이터가 있어야 하나
+        ///   이것 없이 "상대가 조각을 내밀었다"고만 알려 주면 AI 가 <b>아무 반응이나 지어낸다</b> —
+        ///   무관한 조각에도 뜨끔해하고, 관련 조각에는 한 번에 다 실토한다. 둘 다 게임을 무너뜨린다.
+        ///   그래서 <see cref="SeocheonNpcData.presentReactions"/> 에 적힌 조각만 태도가 바뀌고,
+        ///   나머지는 <b>어리둥절해하며 넘어가라</b>고 못박는다.
+        ///
+        /// ■ ★들이밀어도 새면 안 되는 것
+        ///   수령이 죽었다는 사실. 무엇을 내밀어도 이 인물은 그것을 모른다.
+        /// </summary>
+        private static void AppendPresentBlock(StringBuilder sb, SeocheonNpcData npc,
+                                               SeocheonPresentContext p)
+        {
+            if (p == null) return;
+
+            sb.AppendLine("[증거 제시]");
+            sb.AppendLine("- ★상대가 방금 수첩을 펴 적어 둔 말 하나를 들이밀었다.");
+            sb.AppendLine("- 수첩이나 종이 자체를 화제로 삼지 마라. ★거기 적힌 말에 반응하라.");
+            sb.AppendLine("- 아는 바 없는 것이면 ★어리둥절해하며 넘겨라. 아는 척도, 겁먹은 척도 하지 마라.");
+            sb.AppendLine("- 네가 관련된 것이면 태도가 달라진다 — 말이 짧아지거나, 되묻거나, 딴청을 부린다.");
+            sb.AppendLine("  ★그러나 한 번에 다 실토하지 마라. 다 불면 더 물어볼 것이 없어진다.");
+            sb.AppendLine("- ★수령이 죽었다는 사실은 무엇을 들이밀어도 새면 안 된다. 너는 그것을 모른다.");
+            sb.AppendLine("- 상대를 관아 사람으로 의심하지 마라. 여전히 곡물 사러 온 장사꾼이다.");
+            sb.AppendLine();
+
+            sb.AppendLine("[지금 들이민 것]");
+            sb.Append("- 적힌 말 : \"").Append(OneLine(p.sentence)).AppendLine("\"");
+            if (!string.IsNullOrEmpty(p.word))
+                sb.Append("- 상대가 짚은 대목 : \"").Append(OneLine(p.word)).AppendLine("\"");
+            if (!string.IsNullOrEmpty(p.sourceNpc))
+                sb.Append("- 이 말을 한 사람 : ").AppendLine(p.sourceNpc);
+            if (p.derived)
+                sb.AppendLine("- 이것은 상대가 여러 말을 견주어 얻어 낸 것이다.");
+
+            if (p.Known)
+            {
+                sb.Append("- ★너의 반응 : ").AppendLine(OneLine(p.reaction));
+                if (!string.IsNullOrEmpty(p.revealsClueId))
+                {
+                    SeocheonClue c = npc != null ? npc.FindClue(p.revealsClueId) : null;
+                    sb.Append("- ★이번에는 조각 ").Append(p.revealsClueId).Append(" 를 흘려도 된다");
+                    if (c != null && !string.IsNullOrEmpty(c.journalText))
+                        sb.Append(" (").Append(OneLine(c.journalText)).Append(")");
+                    sb.AppendLine(". 흘리기로 했다면 options 에 그 어절을 넣어라.");
+                }
+                else
+                {
+                    sb.AppendLine("- 이번에는 새 조각을 흘리지 마라. options 를 빈 배열로 둬라.");
+                }
+            }
+            else
+            {
+                sb.AppendLine("- ★너는 이 일에 대해 아는 바가 없다. 남의 이야기다.");
+                sb.AppendLine("  어리둥절해하며 넘기고, ★조각을 흘리지 마라. options 를 빈 배열로 둬라.");
+            }
+            sb.AppendLine();
+        }
+
+        /// <summary>지시문은 줄 단위로 읽히므로 줄바꿈이 섞이면 단락이 어긋난다.</summary>
+        private static string OneLine(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
+            return text.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        }
+
         private string BuildRequestJson(SeocheonNpcData npc, List<string> transcript,
-                                        List<string> collectedClueIds, string playerInput)
+                                        List<string> collectedClueIds, string playerInput,
+                                        SeocheonPresentContext presented)
         {
             GReq req = new GReq();
             req.systemInstruction = new GSystem();
             req.systemInstruction.parts = new GPart[1];
             req.systemInstruction.parts[0] = new GPart();
-            req.systemInstruction.parts[0].text = BuildSystemInstruction(npc, collectedClueIds);
+            req.systemInstruction.parts[0].text = BuildSystemInstruction(npc, collectedClueIds, presented);
 
             List<GContent> contents = new List<GContent>();
             if (transcript != null)

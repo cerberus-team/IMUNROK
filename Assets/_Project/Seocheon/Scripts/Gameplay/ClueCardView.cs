@@ -21,6 +21,9 @@ namespace IMUNROK.Seocheon
         [SerializeField] private Image background;
         [Tooltip("앞면 글자 — 지목한 어절(수집 카드) 또는 결과 문구(결합 카드)")]
         [SerializeField] private TMP_Text faceLabel;
+        [Tooltip("★글자 뒤에 까는 반투명 판. 사군자 그림의 먹선 위에서는 글자가 묻히기 때문입니다. " +
+                 "글자가 없는 수집 카드에서는 꺼집니다")]
+        [SerializeField] private Image facePlate;
         [Tooltip("결합 유형 표식(모순/연결/결론). 수집 카드에서는 꺼집니다")]
         [SerializeField] private GameObject kindBadge;
         [SerializeField] private TMP_Text kindLabel;
@@ -44,6 +47,16 @@ namespace IMUNROK.Seocheon
         /// </param>
         public void Bind(SeocheonClueRecord record, Sprite face, Color textColor, bool showFaceText)
         {
+            Bind(record, face, textColor, showFaceText, new Color(1f, 1f, 1f, 0f));
+        }
+
+        /// <param name="plateColor">
+        /// ★글자 뒤에 깔 판의 색. 카드가 스스로 고르지 않습니다 — 배경·글자색과 마찬가지로
+        /// 화면 쪽에서 <b>전 카드에 같은 값</b>을 넘깁니다.
+        /// </param>
+        public void Bind(SeocheonClueRecord record, Sprite face, Color textColor, bool showFaceText,
+                         Color plateColor)
+        {
             entryId = record != null ? record.entryId : string.Empty;
             if (background != null && face != null) background.sprite = face;
 
@@ -52,6 +65,13 @@ namespace IMUNROK.Seocheon
                 faceLabel.gameObject.SetActive(showFaceText);
                 faceLabel.text = (showFaceText && record != null) ? record.faceText : string.Empty;
                 faceLabel.color = textColor;
+            }
+            if (facePlate != null)
+            {
+                // ★글자가 있을 때만 깐다. 수집 카드는 그림만 있어야 한다 —
+                //   판이 깔리면 그것만으로도 "이 카드는 뭔가 다르다"는 표시가 되어 버린다.
+                facePlate.gameObject.SetActive(showFaceText);
+                facePlate.color = plateColor;
             }
 
             bool derived = record != null && record.isDerived;
