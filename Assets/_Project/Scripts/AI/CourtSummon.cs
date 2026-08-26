@@ -57,8 +57,14 @@ namespace IMUNROK.Common
         [SerializeField] private Animator _animator;
         [Tooltip("걷는 동안 켜 둘 bool 이름. 클립이 없으면 비워 둘 것")]
         [SerializeField] private string _walkBool = "";
-        [Tooltip("앞에 서면 켤 bool(꿇기). 클립이 없으면 비워 둘 것")]
-        [SerializeField] private string _kneelBool = "";
+        [Tooltip("앞에 다다르면 켤 bool(<b>앉기</b>). 클립이 없으면 비워 둘 것. " +
+                 "몸짓표가 이것으로 Stand_To_Sit → Sitting_Idle 로 넘어가고, 끄면 " +
+                 "Sit_To_Stand 로 일어선다 — 앉고 서는 그림은 클립이 다 가지고 있다")]
+        [SerializeField] private string _sitBool = "";
+
+        [Tooltip("<b>들어올 때 열 문</b>. 불리면 열고, 물러나 제자리에 닿으면 닫는다. " +
+                 "비우면 문 없이 드나든다 — 앞이 트인 대청이면 그래도 된다")]
+        [SerializeField] private SwingDoor[] _doors;
 
         [Header("그때")]
         [SerializeField] private UnityEvent _onArrivedFront;
@@ -89,7 +95,10 @@ namespace IMUNROK.Common
         {
             if (_up) return;
             _up = true;
-            SetBool(_kneelBool, false);
+            // <b>문이 먼저 열린다.</b> 걷기 시작할 때 열어 두어야, 대여섯 걸음 걸어오는
+            // 동안 문이 다 열려 있다. 다다라서 열면 코앞에서 문이 밀리는 꼴이 된다.
+            Doors(true);
+            SetBool(_sitBool, false);
             SetBool(_walkBool, true);
             _leg = 0;
             Next();
@@ -100,7 +109,7 @@ namespace IMUNROK.Common
         {
             if (!_up) return;
             _up = false;
-            SetBool(_kneelBool, false);
+            SetBool(_sitBool, false);
             SetBool(_walkBool, true);
             _leg = 0;
             Next();
@@ -139,7 +148,8 @@ namespace IMUNROK.Common
             _goal = null;
             _leg = int.MaxValue;
             SetBool(_walkBool, false);
-            SetBool(_kneelBool, false);
+            SetBool(_sitBool, false);
+            Doors(false);
             Vector3 p = WaitAt; p.y = transform.position.y;
             transform.position = p;
         }
@@ -178,7 +188,7 @@ namespace IMUNROK.Common
                     Vector3 look = _faceTarget.position - transform.position; look.y = 0f;
                     if (look.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(look);
                 }
-                SetBool(_kneelBool, true);
+                SetBool(_sitBool, true);
                 _onArrivedFront?.Invoke();
                 return;
             }
@@ -186,7 +196,17 @@ namespace IMUNROK.Common
             // 물러난 사람은 도로 마루 쪽을 보고 선다. 등을 돌린 채 굳어 있으면
             // 뜰에 사람이 아니라 허수아비가 서 있는 것처럼 보인다.
             if (_waitSpot != null) transform.rotation = _waitSpot.rotation;
+            // 다 나가고 나서 닫는다. 나가는 중에 닫으면 문이 사람을 뚫고 지나간다.
+            Doors(false);
             _onArrivedBack?.Invoke();
+        }
+
+        /// <summary>딸린 문을 다 여닫는다. 같은 칸의 다른 벌에게도 번지게 둔다.</summary>
+        private void Doors(bool open)
+        {
+            if (_doors == null) return;
+            foreach (var d in _doors)
+                if (d != null && d.IsOpen != open) d.SetOpen(open, true);
         }
 
         private void Face(Vector3 dir)
