@@ -1,0 +1,37 @@
+S33 Sky Cloud Drama — execution record
+
+Goal
+- Make the sky the dominant visual element without changing Terrain, flowers,
+  planet placement, PlanetDirection, skybox cubemap, or directional-light rotation.
+
+Source
+- Assets/RainSnowCloudEffect/Prefabs/PF_CloudLayer.prefab
+- Assets/RainSnowCloudEffect/Materials/M_CloudLayer_URP.mat
+
+Owned output
+- _SkyCloudDrama
+  - Cloud_Crown
+  - Cloud_SouthLeft
+  - Cloud_SouthRight
+  - Cloud_NorthCrown
+- Assets/_Project/Seocheon/Art/VFX/S33/M_S33_CloudDrama.mat
+
+Method
+- Four deterministic world-space particle layers.
+- Fixed random seeds 3301..3304.
+- Large lavender / blue / peach forms, slow speed, no colliders, no shadows.
+- P1 keeps an opening around the planet while cloud banks frame the upper sky.
+- BACK receives a separate north crown instead of reusing the south silhouette.
+
+Immutable
+- Terrain heightmap / alphamap / detail layers and TerrainLayers.
+- Existing flower roots and user-painted details.
+- M_Flowerfield_Sky, CM_Flowerfield_Sky_v14, Aurora, stars.
+- Planet, satellite, PlanetDirection and Directional Light rotation.
+- Willow and camera baseline.
+
+Safety
+- Scene and M_Flowerfield_Sky are copied to timestamped _bk assets first.
+- No AssetDatabase.SaveAssets().
+- SaveAssetIfDirty is used only for the new S33 material.
+- The test root is isolated and removable as one object.

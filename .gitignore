@@ -99,8 +99,6 @@ _AssetBackup/
 /[Aa]ssets/SeyeonjeongPavilion.meta
 /[Aa]ssets/AllSkyFree/
 /[Aa]ssets/AllSkyFree.meta
-/[Aa]ssets/Models/
-/[Aa]ssets/Models.meta
 /[Aa]ssets/TombOfSilla/
 /[Aa]ssets/TombOfSilla.meta
 /[Aa]ssets/SUIMONO - WATER SYSTEM 2/
@@ -116,69 +114,73 @@ _AssetBackup/
 /[Aa]ssets/TutorialInfo/
 /[Aa]ssets/TutorialInfo.meta
 
+# ── 기성 팩 추가분 (2026-08-27) ──
+#   ★.meta 차단을 푸는 순간 이 팩들이 새어나왔다.
+#   지금까지는 *.png.meta 같은 확장자 규칙에 우연히 가려져 있었을 뿐이다.
+#   스토어 팩은 팀원이 각자 임포트하면 GUID 가 저절로 맞는다 — 커밋하면 안 된다.
+/[Aa]ssets/Idyllic Fantasy Nature/
+/[Aa]ssets/Idyllic Fantasy Nature.meta
+/[Aa]ssets/FlipGameDev/
+/[Aa]ssets/FlipGameDev.meta
+/[Aa]ssets/Eric VFX Studio/
+/[Aa]ssets/Eric VFX Studio.meta
+/[Aa]ssets/Fog Particles/
+/[Aa]ssets/Fog Particles.meta
+/[Aa]ssets/RainSnowCloudEffect/
+/[Aa]ssets/RainSnowCloudEffect.meta
+
+# ── Unity 기본 제공물 ──
+#   TMP Essentials 는 각자 프로젝트가 이미 갖고 있다. 덮으면 충돌만 난다.
+/[Aa]ssets/TextMesh Pro/
+/[Aa]ssets/TextMesh Pro.meta
+
+# ── 팀원 꾸러미 (원작자 브랜치가 나른다) ──
+#   견우 UI. 우리가 같이 올리면 머지 때 같은 파일이 양쪽에서 올라온다.
+/[Aa]ssets/IMUNROK_UI/
+/[Aa]ssets/IMUNROK_UI.meta
+
 # ── 바이너리 아트 (모델) ──
+#   ★알통만 막고 .meta 는 반드시 커밋한다 (2026-08-27).
+#   .meta 가 빠지면 GUID 가 새로 생겨 팀원 쪽에서 참조가 통째로 죽는다.
 *.fbx
-*.fbx.meta
 *.blend
 *.blend1
-*.blend.meta
 *.obj
-*.obj.meta
 *.dae
-*.dae.meta
 *.max
 *.mb
 *.ma
 
 # ── 바이너리 아트 (텍스처) ──
 *.png
-*.png.meta
 *.jpg
-*.jpg.meta
 *.jpeg
-*.jpeg.meta
 *.tga
-*.tga.meta
 *.psd
-*.psd.meta
 *.tif
 *.tiff
-*.tif.meta
 *.exr
-*.exr.meta
 *.hdr
-*.hdr.meta
 *.cubemap
-*.cubemap.meta
 
 # ── 바이너리 아트 (오디오·폰트·패키지) ──
 *.wav
-*.wav.meta
 *.mp3
-*.mp3.meta
 *.ogg
-*.ogg.meta
 *.aif
 *.aiff
 *.ttf
-*.ttf.meta
 *.otf
-*.otf.meta
 *.unitypackage
 *.unitypackage.meta
 
 # ── 구운 메시 / 지형 (.asset 바이너리) ──
 #   URP 설정과 Onggojip 데이터만 예외로 포함한다.
 /[Aa]ssets/**/*.asset
-/[Aa]ssets/**/*.asset.meta
 !/[Aa]ssets/_Project/Settings/*.asset
-!/[Aa]ssets/_Project/Settings/*.asset.meta
 !/[Aa]ssets/_Project/Onggojip/Data/*.asset
-!/[Aa]ssets/_Project/Onggojip/Data/*.asset.meta
 !/[Aa]ssets/Resources/*.asset
-!/[Aa]ssets/Resources/*.asset.meta
 !/[Aa]ssets/Oculus/*.asset
-!/[Aa]ssets/Oculus/*.asset.meta
 
 # ── README 용 스크린샷은 예외로 허용 ──
 !/docs/
@@ -193,3 +195,16 @@ _AssetBackup/
 /[Aa]ssets/_Recovery/
 /[Aa]ssets/Screenshots/
 /[Aa]ssets/Screenshots.meta
+
+# 팀 인수인계 임시 폴더 (커밋 대상 아님)
+/_TeamHandoff/
+.gitignore.bak
+.gitignore.before-meta-fix
+/.codex/
+
+# ── 작업 중 만든 잔여 파일 ──
+/[Aa]ssets/_Recovery.meta
+/_planetpick.txt
+/_us.txt
+/oisamun_del.txt
+/unused.txt

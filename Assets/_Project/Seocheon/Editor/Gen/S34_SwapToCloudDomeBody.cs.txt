@@ -1,0 +1,23 @@
+var scene=UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene();
+var root=GameObject.Find("_SkyCloudAsset");if(root==null)root=new GameObject("_SkyCloudAsset");
+for(int i=root.transform.childCount-1;i>=0;i--)UnityEngine.Object.DestroyImmediate(root.transform.GetChild(i).gameObject);
+var sourcePrefab=UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/FlipGameDev/Terrain&GrassPack/Prefabs/Day-Night-Manager.prefab");
+var sourceMat=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/FlipGameDev/Terrain&GrassPack/Art/Materials/Sky/Clouds_Mat.mat");
+if(sourcePrefab==null||sourceMat==null)return "SOURCE_MISSING";
+Transform sourceCloud=null;var renderers=sourcePrefab.GetComponentsInChildren<Renderer>(true);
+for(int i=0;i<renderers.Length;i++){if(renderers[i].gameObject.name=="hybrid_sky_layer_cube_clouds"){sourceCloud=renderers[i].transform;break;}}
+if(sourceCloud==null)return "CLOUD_CHILD_MISSING";
+string matPath="Assets/_Project/Seocheon/Art/Sky/S34/M_RealCloudDome_S34.mat";
+var cloudMat=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(matPath);
+if(cloudMat==null){cloudMat=new Material(sourceMat);cloudMat.name="M_RealCloudDome_S34";UnityEditor.AssetDatabase.CreateAsset(cloudMat,matPath);}
+if(cloudMat.HasProperty("_Color"))cloudMat.SetColor("_Color",new Color(0.70f,0.61f,0.82f,0.55f));
+if(cloudMat.HasProperty("_FogFactor"))cloudMat.SetFloat("_FogFactor",0.32f);
+if(cloudMat.HasProperty("_EmissionColor"))cloudMat.SetColor("_EmissionColor",new Color(0.20f,0.12f,0.28f,0.0f));
+cloudMat.renderQueue=2870;UnityEditor.EditorUtility.SetDirty(cloudMat);UnityEditor.AssetDatabase.SaveAssetIfDirty(cloudMat);
+var cloud=UnityEngine.Object.Instantiate(sourceCloud.gameObject);cloud.name="Imported_CloudDome";cloud.transform.SetParent(root.transform,false);
+root.transform.position=new Vector3(444.1f,12.8941f,719.3f);root.transform.rotation=Quaternion.identity;root.transform.localScale=Vector3.one;
+cloud.transform.localPosition=new Vector3(0f,-430.17f,0f);cloud.transform.localRotation=sourceCloud.localRotation;cloud.transform.localScale=sourceCloud.localScale;
+var rr=cloud.GetComponent<Renderer>();rr.sharedMaterial=cloudMat;rr.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;rr.receiveShadows=false;
+var cols=cloud.GetComponentsInChildren<Collider>(true);for(int i=0;i<cols.Length;i++)UnityEngine.Object.DestroyImmediate(cols[i]);
+UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
+return "DOME_APPLIED|mesh="+(cloud.GetComponent<MeshFilter>()!=null?cloud.GetComponent<MeshFilter>().sharedMesh.name:"null")+"|mat="+matPath+"|scale="+cloud.transform.localScale;

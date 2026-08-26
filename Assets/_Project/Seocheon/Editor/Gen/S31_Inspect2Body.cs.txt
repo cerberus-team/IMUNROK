@@ -1,0 +1,16 @@
+System.Text.StringBuilder sb = new System.Text.StringBuilder();
+Terrain terr = UnityEngine.Object.FindFirstObjectByType<Terrain>(); TerrainData td = terr.terrainData;
+DetailPrototype[] dp = td.detailPrototypes;
+for (int i = 0; i < dp.Length; i++) {
+    string nm = dp[i].prototype != null ? dp[i].prototype.name : (dp[i].prototypeTexture != null ? dp[i].prototypeTexture.name : "NULL");
+    int[,] map = td.GetDetailLayer(0,0,td.detailWidth,td.detailHeight,i); long sum=0; int mx=0; int cells=0;
+    for (int y=0;y<td.detailHeight;y++) for(int x=0;x<td.detailWidth;x++){int v=map[y,x];sum+=v;if(v>mx)mx=v;if(v>0)cells++;}
+    sb.Append("DETAIL|").Append(i).Append("|").Append(nm).Append("|sum=").Append(sum).Append("|cells=").Append(cells).Append("|max=").Append(mx)
+      .Append("|healthy=").Append(dp[i].healthyColor).Append("|dry=").Append(dp[i].dryColor).Append("|density=").Append(dp[i].density.ToString("F2")).Append("\n");
+}
+GameObject root=GameObject.Find("_DistantMassifs");
+if(root!=null){Renderer[] rr=root.GetComponentsInChildren<Renderer>(true);System.Collections.Generic.HashSet<int> seen=new System.Collections.Generic.HashSet<int>();
+for(int i=0;i<rr.Length;i++){Material m=rr[i].sharedMaterial;if(m==null||!seen.Add(m.GetInstanceID()))continue;Shader sh=m.shader;sb.Append("MATERIAL|").Append(m.name).Append("|shader=").Append(sh.name).Append("\n");
+int pc=sh.GetPropertyCount();for(int p=0;p<pc;p++){string pn=sh.GetPropertyName(p);UnityEngine.Rendering.ShaderPropertyType pt=sh.GetPropertyType(p);sb.Append("PROP|").Append(pn).Append("|").Append(pt);if(pt==UnityEngine.Rendering.ShaderPropertyType.Color)sb.Append("|").Append(m.GetColor(pn));else if(pt==UnityEngine.Rendering.ShaderPropertyType.Float||pt==UnityEngine.Rendering.ShaderPropertyType.Range)sb.Append("|").Append(m.GetFloat(pn));sb.Append("\n");}}
+}
+return sb.ToString();

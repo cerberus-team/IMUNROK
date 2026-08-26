@@ -1,0 +1,17 @@
+var root=GameObject.Find("_ProceduralSkyFX");if(root==null)return "ROOT_MISSING";
+var source=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/RainSnowCloudEffect/Materials/M_CloudLayer_URP.mat");
+var smoke=UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Eric VFX Studio/Resource/Textures/FX_smoke_02.png");
+var cloudMat=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Seocheon/Art/Sky/S35/M_ProceduralCloud_S35.mat");
+if(source==null||smoke==null||cloudMat==null)return "CLOUD_ASSET_MISSING";
+cloudMat.CopyPropertiesFromMaterial(source);cloudMat.shader=source.shader;
+if(cloudMat.HasProperty("_BaseMap"))cloudMat.SetTexture("_BaseMap",smoke);if(cloudMat.HasProperty("_MainTex"))cloudMat.SetTexture("_MainTex",smoke);
+Color cb=new Color(.94f,.82f,1f,.62f);if(cloudMat.HasProperty("_BaseColor"))cloudMat.SetColor("_BaseColor",cb);if(cloudMat.HasProperty("_Color"))cloudMat.SetColor("_Color",cb);cloudMat.renderQueue=3000;
+UnityEditor.EditorUtility.SetDirty(cloudMat);UnityEditor.AssetDatabase.SaveAssetIfDirty(cloudMat);
+var cloudParent=root.transform.Find("_Clouds");var cps=cloudParent.GetComponentsInChildren<ParticleSystem>(true);for(int i=0;i<cps.Length;i++){var rr=cps[i].GetComponent<ParticleSystemRenderer>();rr.sharedMaterial=cloudMat;cps[i].Clear(true);cps[i].Simulate(62f,true,true,false);}
+
+var auroraParent=root.transform.Find("_Aurora");var aps=auroraParent.GetComponentsInChildren<ParticleSystem>(true);
+Vector3[] pos={new Vector3(350f,128f,555f),new Vector3(480f,142f,550f),new Vector3(500f,125f,865f)};
+Vector3[] boxes={new Vector3(105f,10f,30f),new Vector3(115f,10f,28f),new Vector3(110f,10f,32f)};
+for(int i=0;i<aps.Length;i++){aps[i].transform.position=pos[i];var m=aps[i].main;m.startSizeX=new ParticleSystem.MinMaxCurve(34f,58f);m.startSizeY=new ParticleSystem.MinMaxCurve(65f,105f);m.startColor=new ParticleSystem.MinMaxGradient(new Color(1f,.18f,.80f,.10f),new Color(.16f,1f,.88f,.13f));var sh=aps[i].shape;sh.scale=boxes[i];var em=aps[i].emission;em.SetBursts(new ParticleSystem.Burst[]{new ParticleSystem.Burst(0f,9)});em.rateOverTime=.015f;aps[i].Clear(true);aps[i].Simulate(62f,true,true,false);}
+UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
+return "TUNED|cloudPS="+cps.Length+"|auroraPS="+aps.Length;

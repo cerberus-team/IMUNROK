@@ -1,0 +1,29 @@
+// S24 - Seocheon Flowerfield environment VFX first-pass record
+// Written before execution. This file is documentation and is not compiled by Unity.
+//
+// Invariants:
+// - Do not touch TerrainData, heightmap, alphamap, terrain layers, detail layers.
+// - Do not touch CM_Flowerfield_Sky_v14, SkyboxAurora, aurora, stars,
+//   planet/satellite transforms/materials, PlanetDirection, light rotation/color,
+//   post-processing, LUMINATE, fog settings, or ground textures.
+// - All created scene objects live below one root: _EnvironmentVFX.
+//
+// STEP 1: clone Assets/RainSnowCloudEffect/Prefabs/PF_Fog_Distant.prefab
+//   max 32, rate 0.65/s, life 35..50 s, size 22..40 m,
+//   speed 0.06..0.15 m/s, world simulation, pale blue/lavender alpha 0.06..0.11.
+//   Place only around distant massifs/horizon; keep foreground clear.
+//
+// STEP 2: clone Assets/RainSnowCloudEffect/Prefabs/PF_CloudLayer.prefab
+//   max 32, rate 0.45/s, life 50..70 s, size 32..55 m,
+//   speed 0.10..0.22 m/s, world simulation, alpha 0.10..0.16.
+//   Use a broad asymmetric box at Y 55..105 m; do not blanket the planet.
+//
+// STEP 3: clone only child "twink" from
+//   Assets/Eric VFX Studio/Free Game VFX/Prefab/FX_LootDrop_Blue.prefab
+//   max 24, rate 0.5/s, life 8..12 s, size 0.03..0.08 m,
+//   speed 0.01..0.04 m/s, world simulation, alpha 0.10..0.18.
+//   No beam, burst, explosion, confetti, loot column, or strong glow systems.
+//
+// Render each cumulative stage from P1, BACK and BASIN with the same camera,
+// t=0 sky phase, 960x540 RT. Restore camera/controller/wind after each stage.
+// Final validation: Play stats, then restore diagnostics and keep approved VFX only.

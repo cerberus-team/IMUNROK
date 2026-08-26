@@ -1,0 +1,58 @@
+// ============================================================================
+//  Gen_StarTwinkleSeed_v23.cs.txt        2단계 v23
+//  별 반짝임 진폭 시드 재사상 (UnityMCP execute_code 실행 원문)
+//
+//  ★§7 규칙에 따라 실행 전 파일로 보존. .cs.txt 라 유니티가 컴파일하지 않는다.
+//
+//  대상  Assets/_Project/Seocheon/Art/Sky/M_StarBillboards.asset  (별 900개 단일 메시)
+//  내용  uv4.x (= 셰이더의 v.rw.x, 반짝임 진폭 시드) 의 분포 하한만 올린다
+//        0.20 ~ 1.00  ->  0.35 ~ 1.00
+//
+//  ★메시를 다시 "생성" 하지 않고 ★기존 메시의 한 속성만 선형 재사상한다.
+//    재생성하면 위치·위상·원속도·가중·크기·등급이 전부 새 난수가 되어
+//    이미 통과한 지표(주기 1.5~3.9초 · 위상 흩어짐 · 화면 점유율 0.564% · DC 1)가
+//    전부 다시 흔들린다. 재사상은 그 위험이 0 이다.
+//
+//  ★건드리지 않는 것
+//    uv4.y (가중 시드 w1) · uv2 (위상 p1 · 원속도) · uv3 (center) · color (등급)
+//    정점 위치 · 삼각형 · 별 개수 900 · 서브메시 1개
+//    _TwinkleDepth 0.42/0.35 · _TwinkleZenith 0.40 · s1/s2 수식
+//
+//  ★CodeDom = C# 6. 로컬 함수 금지. 한글 식별자 금지.
+// ============================================================================
+
+const string MESH = "Assets/_Project/Seocheon/Art/Sky/M_StarBillboards.asset";
+const double OLD_LO = 0.20;   // 현재 분포 하한 (실측 0.2000)
+const double OLD_HI = 1.00;   // 현재 분포 상한 (실측 0.9989)
+const double NEW_LO = 0.35;   // 목표 하한
+const double NEW_HI = 1.00;   // 목표 상한 (무변경)
+
+Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(MESH);
+
+var rw = new System.Collections.Generic.List<Vector2>();
+mesh.GetUVs(3, rw);           // TEXCOORD3 = uv4 = float2 rw
+
+double scale = (NEW_HI - NEW_LO) / (OLD_HI - OLD_LO);
+for (int i = 0; i < rw.Count; i++)
+{
+    double v = rw[i].x;
+    double n = NEW_LO + (v - OLD_LO) * scale;
+    if (n < NEW_LO) n = NEW_LO;
+    if (n > NEW_HI) n = NEW_HI;
+    rw[i] = new Vector2((float)n, rw[i].y);   // ★y(가중 시드)는 그대로
+}
+mesh.SetUVs(3, rw);
+mesh.UploadMeshData(false);   // ★false : 이후에도 읽을 수 있게 CPU 사본 유지
+EditorUtility.SetDirty(mesh);
+AssetDatabase.SaveAssets();
+
+// ============================================================================
+//  ★실행 후 확인
+//   1) rw.x min 이 0.35, max 가 1.00 근처인지
+//   2) 별 개수 900 · verts 3600 · tris 1800 · 서브메시 1 유지
+//   3) 렌더에서 화면 점유율 0.564% ± 0.02 · DC 1 유지
+//   4) 배경 차감 측정에서 평균 d 가 올라갔는지, 개별 최대가 0.42 를 넘지 않는지
+//
+//  ★되돌리려면 백업 M_StarBillboards_<TS>.asset.bak 을 .asset 으로 복사하면 된다.
+//    또는 역사상: old = 0.20 + (new - 0.35) / 0.8125
+// ============================================================================

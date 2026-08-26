@@ -1,0 +1,24 @@
+GameObject pf=UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/RainSnowCloudEffect/Prefabs/PF_CloudLayer.prefab");
+Material mat=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/RainSnowCloudEffect/Materials/M_CloudLayer_URP.mat");
+string s="PREFAB="+(pf!=null?pf.name:"NULL");
+if(pf!=null){
+ ParticleSystem[] ps=pf.GetComponentsInChildren<ParticleSystem>(true);
+ Renderer[] rs=pf.GetComponentsInChildren<Renderer>(true);
+ s+="|ps="+ps.Length+"|renderers="+rs.Length;
+ for(int i=0;i<ps.Length;i++){
+  ParticleSystem.MainModule mn=ps[i].main;ParticleSystem.EmissionModule em=ps[i].emission;ParticleSystem.ShapeModule sh=ps[i].shape;
+  s+="|PS"+i+"="+ps[i].name+",max="+mn.maxParticles+",life="+mn.startLifetime.constantMin+"-"+mn.startLifetime.constantMax+",speed="+mn.startSpeed.constantMin+"-"+mn.startSpeed.constantMax+",size="+mn.startSize.constantMin+"-"+mn.startSize.constantMax+",rate="+em.rateOverTime.constant+",shape="+sh.shapeType+",scale="+sh.scale;
+ }
+}
+if(mat!=null){
+ s+="|MAT="+mat.name+"|shader="+mat.shader.name;
+ int pc=UnityEditor.ShaderUtil.GetPropertyCount(mat.shader);
+ for(int i=0;i<pc;i++){
+  string n=UnityEditor.ShaderUtil.GetPropertyName(mat.shader,i);UnityEditor.ShaderUtil.ShaderPropertyType t=UnityEditor.ShaderUtil.GetPropertyType(mat.shader,i);string v="";
+  if(t==UnityEditor.ShaderUtil.ShaderPropertyType.Color)v=mat.GetColor(n).ToString("F3");
+  else if(t==UnityEditor.ShaderUtil.ShaderPropertyType.Float||t==UnityEditor.ShaderUtil.ShaderPropertyType.Range)v=mat.GetFloat(n).ToString("F3");
+  else if(t==UnityEditor.ShaderUtil.ShaderPropertyType.TexEnv)v=(mat.GetTexture(n)!=null?mat.GetTexture(n).name:"NULL");
+  s+="|"+n+"="+v;
+ }
+}
+return s;

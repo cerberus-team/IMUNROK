@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_Flowerfield_Planet
+  m_Shader: {fileID: 4800000, guid: 2293f7809d240fe41b596a7505978afb, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _FrontCloudTex:
+        m_Texture: {fileID: 2800000, guid: 85ff9d5514d9562478704ec3663c9033, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 23d196af8d8293e4faab7c8e6ad41ee2, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SatTex:
+        m_Texture: {fileID: 2800000, guid: 1b8d0edb83356a4499a9cf4e2fa7b77b, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _BakedSatR: 0.0371
+    - _BottomFade: 0.2
+    - _Brightness: 1
+    - _CloudOpacity: 0
+    - _DiscCeiling: 0.995
+    - _DiscGain: 1.45
+    - _DiscKnee: 0.93
+    - _DiscRadius: 0.1333
+    - _HazeBase: 0.1
+    - _HazeGrad: 0.22
+    - _LimbBlendStart: 0.85
+    - _LimbSkyBlend: 0.16
+    - _RimGlowFloor: 0.16
+    - _RimLift: 1.2
+    - _RimLiftStart: 0.55
+    - _RimSoft: 0.035
+    - _SatAmbient: 0.35
+    - _SatBrightness: 1.86
+    - _SatLimbDark: 0.25
+    - _SatPhase: 55
+    - _SatRadius: 0.019250529
+    m_Colors:
+    - _BakedSatUV: {r: 0.28086, g: 0.77441, b: 0, a: 0}
+    - _CloudTint: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _HazeColor: {r: 0.71056664, g: 0.5704816, b: 0.7484142, a: 1}
+    - _LimbSkyColor: {r: 0.71056664, g: 0.5704816, b: 0.7484142, a: 1}
+    - _SatDirUV: {r: -0.62404, g: 0.78142, b: 0, a: 0}
+    - _SatUV: {r: 0.3450329, g: 0.69404906, b: 0, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

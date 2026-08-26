@@ -1,0 +1,31 @@
+System.Text.StringBuilder sb = new System.Text.StringBuilder();
+Terrain terrain = UnityEngine.Object.FindFirstObjectByType<Terrain>();
+TerrainData td = terrain != null ? terrain.terrainData : null;
+sb.Append("TERRAIN|").Append(td != null ? UnityEditor.AssetDatabase.GetAssetPath(td) : "NULL").Append("|dirty=").Append(td != null && UnityEditor.EditorUtility.IsDirty(td)).Append("\n");
+string[] roots = { "_DistantMassifs", "_FlowerPolish", "_FlowerTransition", "_FlowerFinalDressing" };
+for (int i = 0; i < roots.Length; i++) {
+    GameObject go = GameObject.Find(roots[i]);
+    if (go == null) { sb.Append("ROOT|").Append(roots[i]).Append("|MISSING\n"); continue; }
+    Renderer[] rr = go.GetComponentsInChildren<Renderer>(true);
+    System.Collections.Generic.HashSet<int> seen = new System.Collections.Generic.HashSet<int>();
+    sb.Append("ROOT|").Append(roots[i]).Append("|renderers=").Append(rr.Length).Append("\n");
+    for (int ri = 0; ri < rr.Length; ri++) {
+        Material[] mm = rr[ri].sharedMaterials;
+        for (int mi = 0; mi < mm.Length; mi++) {
+            Material mat = mm[mi]; if (mat == null || !seen.Add(mat.GetInstanceID())) continue;
+            sb.Append("MAT|").Append(roots[i]).Append("|").Append(mat.name).Append("|path=").Append(UnityEditor.AssetDatabase.GetAssetPath(mat)).Append("|shader=").Append(mat.shader != null ? mat.shader.name : "NULL");
+            string[] props = { "_BaseColor", "_Color", "_Tint", "_HealthyColor", "_FogColor", "_HorizonColor" };
+            for (int pi = 0; pi < props.Length; pi++) if (mat.HasProperty(props[pi])) sb.Append("|").Append(props[pi]).Append("=").Append(mat.GetColor(props[pi]));
+            sb.Append("\n");
+        }
+    }
+}
+GameObject massif = GameObject.Find("_DistantMassifs");
+if (massif != null) {
+    Renderer[] mr = massif.GetComponentsInChildren<Renderer>(true); Camera mc = Camera.main;
+    for (int ji = 0; ji < mr.Length; ji++) {
+        float dist = mc != null ? Vector3.Distance(mc.transform.position, mr[ji].bounds.center) : 0f;
+        sb.Append("MASSIF|").Append(mr[ji].name).Append("|dist=").Append(dist.ToString("F1")).Append("|center=").Append(mr[ji].bounds.center).Append("|mat=").Append(mr[ji].sharedMaterial != null ? mr[ji].sharedMaterial.name : "NULL").Append("\n");
+    }
+}
+return sb.ToString();

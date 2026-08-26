@@ -1,0 +1,35 @@
+// Flowerfield additive polish plan
+// Created before execution. Existing user-authored Terrain Detail is immutable.
+//
+// Baseline discovered in memory:
+//   scene dirty = true, TerrainData dirty = true
+//   detail layers carrying flowers: 7 Purple, 8 Yellow, 10 White,
+//   11 Orange, 12 Pink. Layer 9 Blue currently has zero painted cells.
+//   layer 0 fern = 58 cells / coverage sum 244 / max 5.
+//
+// Invariants:
+//   - Never call SetDetailLayer on existing TerrainData.
+//   - Never change heightmap, alphamap, TerrainLayers, detail prototypes,
+//     planet, satellite, skybox, directional-light rotation, or BASE ground.
+//   - Never save the live dirty TerrainData merely to make a backup.
+//   - Backup current memory state first using CreateAsset, then assign
+//     terrainLayers, SetAlphamaps, SetHeights, and SetDetailLayer.
+//
+// Additive hierarchy:
+//   _FlowerPolish
+//     Near_Enhancement
+//     Boundary_Blend
+//     Basin_Transition
+//     Far_Fill
+//
+// Strategy:
+//   1. Read all painted detail arrays and derive occupied cells, dominant
+//      colours, empty gaps, boundaries, basin radius, and camera distance.
+//   2. Add only prefab instances under _FlowerPolish. Existing details remain.
+//   3. Match the dominant local colour; mix only 10-20% adjacent colour near
+//      boundaries. Keep basin density lower and preserve visible ground.
+//   4. Use deterministic low-frequency clustered acceptance, random yaw and
+//      modest scale variation. Avoid rings, stripes, and uniform fill.
+//   5. Render P1/BACK/BASIN, visually inspect, and adjust only _FlowerPolish.
+//
+// Rollback is one operation: disable or remove _FlowerPolish.

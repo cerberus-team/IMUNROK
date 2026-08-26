@@ -1,0 +1,23 @@
+S34 - approved sky palette + imported cloud-shape layer
+
+Goal
+- Preserve the approved S33 lavender/rose/blue palette.
+- Remove the painted cloud silhouette from the sky source by sampling only a high mip.
+- Add cloud shape from RainSnowCloudEffect/PF_CloudLayer, not a generated panorama.
+
+Isolation
+- New sky material: Art/Sky/S34/M_Flowerfield_SkyColorBase_S34.mat
+- New cloud material: Art/Sky/S34/M_RealCloud_S34.mat
+- New scene root: _SkyCloudAsset
+- Previous S33 material, texture, shader remain untouched.
+
+Cloud rules
+- Keep the prefab's square billboard proportions; never stretch into thin diagonal wisps.
+- World-space, fixed seeds, slow motion, no collider, no shadows.
+- Transparent queue below celestial bodies so clouds do not cover the planet/satellite.
+- Three broad banks around the player, with a deliberate opening toward P1's planet.
+
+Safety
+- Back up the scene before mutation.
+- Do not touch terrain, alphamap, details, flowers, fog, planet, satellite, Willow, or light rotation.
+- SaveAssetIfDirty(target) only; never AssetDatabase.SaveAssets().

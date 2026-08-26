@@ -1,0 +1,54 @@
+var scene=UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene();
+string stamp=System.DateTime.Now.ToString("yyyyMMdd_HHmmss");
+string backup="Assets/_Project/Seocheon/Scenes/_bk/Seocheon_Flowerfield_PRE_S34_"+stamp+".unity";
+if(!UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene,backup,true)) return "BACKUP_FAILED";
+
+string dir="Assets/_Project/Seocheon/Art/Sky/S34";
+if(!UnityEditor.AssetDatabase.IsValidFolder(dir)){
+    if(!UnityEditor.AssetDatabase.IsValidFolder("Assets/_Project/Seocheon/Art/Sky")) return "SKY_DIR_MISSING";
+    UnityEditor.AssetDatabase.CreateFolder("Assets/_Project/Seocheon/Art/Sky","S34");
+}
+var s33=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Seocheon/Art/Sky/S33/M_Flowerfield_SkyPanorama_S33.mat");
+var colorShader=Shader.Find("Seocheon/SkyboxColorBase");
+var prefab=UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/RainSnowCloudEffect/Prefabs/PF_CloudLayer.prefab");
+var sourceCloud=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/RainSnowCloudEffect/Materials/M_CloudLayer_URP.mat");
+if(s33==null||colorShader==null||prefab==null||sourceCloud==null) return "ASSET_MISSING";
+
+string skyPath=dir+"/M_Flowerfield_SkyColorBase_S34.mat";
+var skyMat=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(skyPath);
+if(skyMat==null){skyMat=new Material(s33);skyMat.name="M_Flowerfield_SkyColorBase_S34";UnityEditor.AssetDatabase.CreateAsset(skyMat,skyPath);}
+skyMat.shader=colorShader;skyMat.CopyPropertiesFromMaterial(s33);skyMat.shader=colorShader;skyMat.SetFloat("_ColorBlurMip",6.0f);
+UnityEditor.EditorUtility.SetDirty(skyMat);UnityEditor.AssetDatabase.SaveAssetIfDirty(skyMat);
+
+string cloudPath=dir+"/M_RealCloud_S34.mat";
+var cloudMat=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(cloudPath);
+if(cloudMat==null){cloudMat=new Material(sourceCloud);cloudMat.name="M_RealCloud_S34";UnityEditor.AssetDatabase.CreateAsset(cloudMat,cloudPath);}
+Color cloudTint=new Color(0.76f,0.72f,0.88f,0.40f);
+if(cloudMat.HasProperty("_BaseColor"))cloudMat.SetColor("_BaseColor",cloudTint);
+if(cloudMat.HasProperty("_Color"))cloudMat.SetColor("_Color",cloudTint);
+cloudMat.renderQueue=2870;UnityEditor.EditorUtility.SetDirty(cloudMat);UnityEditor.AssetDatabase.SaveAssetIfDirty(cloudMat);
+
+var oldRoot=GameObject.Find("_SkyCloudAsset");if(oldRoot!=null)UnityEngine.Object.DestroyImmediate(oldRoot);
+var root=new GameObject("_SkyCloudAsset");
+Vector3[] pos={new Vector3(350f,88f,635f),new Vector3(545f,82f,650f),new Vector3(445f,72f,825f)};
+Vector3[] shapeScale={new Vector3(120f,14f,90f),new Vector3(120f,14f,90f),new Vector3(150f,12f,75f)};
+string[] names={"P1_WestCloudBank","P1_EastCloudBank","Back_CloudBank"};
+uint[] seeds={34117u,73019u,11887u};
+for(int i=0;i<3;i++){
+    var go=(GameObject)UnityEditor.PrefabUtility.InstantiatePrefab(prefab,scene);
+    go.name=names[i];go.transform.SetParent(root.transform,false);go.transform.position=pos[i];go.transform.localScale=Vector3.one;
+    var ps=go.GetComponentInChildren<ParticleSystem>(true);if(ps==null)continue;
+    ps.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);ps.useAutoRandomSeed=false;ps.randomSeed=seeds[i];
+    var main=ps.main;main.simulationSpace=ParticleSystemSimulationSpace.World;main.prewarm=true;main.startSize=new ParticleSystem.MinMaxCurve(32f,58f);main.maxParticles=32;
+    var shape=ps.shape;shape.shapeType=ParticleSystemShapeType.Box;shape.scale=shapeScale[i];
+    var emission=ps.emission;emission.rateOverTime=new ParticleSystem.MinMaxCurve(0.65f);
+    var rend=ps.GetComponent<ParticleSystemRenderer>();rend.sharedMaterial=cloudMat;rend.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;rend.receiveShadows=false;
+    var cols=go.GetComponentsInChildren<Collider>(true);for(int c=0;c<cols.Length;c++)UnityEngine.Object.DestroyImmediate(cols[c]);
+    ps.Play(true);ps.Simulate(55f,true,true,false);
+}
+
+RenderSettings.skybox=skyMat;
+var sky=UnityEngine.Object.FindFirstObjectByType<IMUNROK.Seocheon.FlowerfieldSkyController>();
+if(sky!=null){var so=new UnityEditor.SerializedObject(sky);var p=so.FindProperty("skyboxMaterial");if(p!=null){p.objectReferenceValue=skyMat;so.ApplyModifiedPropertiesWithoutUndo();}sky.Apply();}
+UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
+return "APPLIED|backup="+backup+"|sky="+skyPath+"|cloud="+cloudPath+"|rootChildren="+root.transform.childCount;

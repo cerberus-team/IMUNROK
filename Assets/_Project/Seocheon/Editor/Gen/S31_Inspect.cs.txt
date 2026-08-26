@@ -1,0 +1,64 @@
+using UnityEngine;
+using UnityEditor;
+using UnityEngine.SceneManagement;
+using System.Text;
+using System.Collections.Generic;
+
+public static class S31Inspect
+{
+    public static object Run()
+    {
+        StringBuilder sb = new StringBuilder();
+        Terrain terrain = UnityEngine.Object.FindFirstObjectByType<Terrain>();
+        TerrainData td = terrain != null ? terrain.terrainData : null;
+        sb.Append("TERRAIN|").Append(td != null ? AssetDatabase.GetAssetPath(td) : "NULL")
+          .Append("|dirty=").Append(td != null && EditorUtility.IsDirty(td)).Append("\n");
+
+        string[] roots = { "_DistantMassifs", "_FlowerPolish", "_FlowerTransition", "_FlowerFinalDressing" };
+        for (int i = 0; i < roots.Length; i++)
+        {
+            GameObject go = GameObject.Find(roots[i]);
+            if (go == null) { sb.Append("ROOT|").Append(roots[i]).Append("|MISSING\n"); continue; }
+            Renderer[] rr = go.GetComponentsInChildren<Renderer>(true);
+            HashSet<int> seen = new HashSet<int>();
+            sb.Append("ROOT|").Append(roots[i]).Append("|renderers=").Append(rr.Length).Append("\n");
+            for (int r = 0; r < rr.Length; r++)
+            {
+                Material[] mm = rr[r].sharedMaterials;
+                for (int m = 0; m < mm.Length; m++)
+                {
+                    Material mat = mm[m];
+                    if (mat == null || !seen.Add(mat.GetInstanceID())) continue;
+                    sb.Append("MAT|").Append(roots[i]).Append("|").Append(mat.name)
+                      .Append("|path=").Append(AssetDatabase.GetAssetPath(mat))
+                      .Append("|shader=").Append(mat.shader != null ? mat.shader.name : "NULL");
+                    string[] props = { "_BaseColor", "_Color", "_Tint", "_HealthyColor", "_FogColor", "_HorizonColor", "_BaseMap_ST" };
+                    for (int p = 0; p < props.Length; p++)
+                    {
+                        if (mat.HasProperty(props[p]))
+                        {
+                            if (props[p].EndsWith("_ST")) sb.Append("|").Append(props[p]).Append("=").Append(mat.GetVector(props[p]));
+                            else sb.Append("|").Append(props[p]).Append("=").Append(mat.GetColor(props[p]));
+                        }
+                    }
+                    sb.Append("\n");
+                }
+            }
+        }
+
+        GameObject massif = GameObject.Find("_DistantMassifs");
+        if (massif != null)
+        {
+            Renderer[] mr = massif.GetComponentsInChildren<Renderer>(true);
+            Camera cam = Camera.main;
+            for (int i = 0; i < mr.Length; i++)
+            {
+                float d = cam != null ? Vector3.Distance(cam.transform.position, mr[i].bounds.center) : 0f;
+                sb.Append("MASSIF|").Append(mr[i].name).Append("|dist=").Append(d.ToString("F1"))
+                  .Append("|center=").Append(mr[i].bounds.center).Append("|mat=")
+                  .Append(mr[i].sharedMaterial != null ? mr[i].sharedMaterial.name : "NULL").Append("\n");
+            }
+        }
+        return sb.ToString();
+    }
+}

@@ -1,0 +1,24 @@
+S32 Minimal Atmosphere Fog - plan of record (2026-08-25)
+
+Scope
+- Use only fog/mist prefabs from Assets/RainSnowCloudEffect (Cinematic Weather VFX Bundle).
+- Add exactly three reversible scene instances under _AtmosphereFog:
+  P1_DistantFog, Back_HorizonFog, Basin_EdgeFog.
+- Keep them low, broad, distant, slow and subtle. No camera-near fog.
+
+Immutable
+- User flower placement and every Terrain Detail cell.
+- _FlowerPolish, _FlowerTransition, _FlowerFinalDressing.
+- Terrain heightmap, alphamap, TerrainLayers and base textures.
+- Planet, satellite, PlanetDirection(), skybox, Aurora, stars, directional-light rotation, willow and camera baseline.
+
+Method
+1. Verify editor state and create PRE_S32 scene/Terrain backups.
+2. Inspect PF_Fog_Distant/PF_Fog_Ground; use the least intrusive suitable source.
+3. Duplicate its material into the project S32 folder and tune only tint/alpha if supported.
+4. Instantiate three groups at distant horizon/terrain connection points. Scale and emission stay minimal.
+5. Render P1/BACK/BASIN with fixed camera and t=0, then make at most one reduction pass.
+6. Restore camera/controller/wind, verify immutable arrays and transforms, save scene and target assets only.
+
+Forbidden
+- LUMINATE, new skybox, post-processing, global fog overhaul, terrain edits, flower edits, asset deletion.

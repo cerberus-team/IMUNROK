@@ -1,0 +1,12 @@
+string shaderPath="Assets/_Project/Seocheon/Shaders/SkyboxCloudDrama.shader";
+UnityEditor.AssetDatabase.ImportAsset(shaderPath,UnityEditor.ImportAssetOptions.ForceSynchronousImport);
+Shader sh=Shader.Find("Seocheon/SkyboxCloudDrama");if(sh==null)return "ERROR|shader_missing";
+Texture2D tex=UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/_Project/Seocheon/Art/Sky/S33/T_SkyCloudDrama_S33.png");if(tex==null)return "ERROR|texture_missing";
+string matPath="Assets/_Project/Seocheon/Art/Sky/S33/M_Flowerfield_SkyPanorama_S33.mat";
+Material m=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(matPath);
+if(m==null){m=new Material(sh);m.name="M_Flowerfield_SkyPanorama_S33";UnityEditor.AssetDatabase.CreateAsset(m,matPath);}else m.shader=sh;
+m.SetTexture("_MainTex",tex);m.SetFloat("_Rotation",90f);m.SetFloat("_DramaGain",0.72f);m.SetColor("_ColorBalance",new Color(0.82f,0.90f,1f,1f));m.SetFloat("_Saturation",0.82f);m.SetFloat("_Contrast",1.04f);m.SetFloat("_HorizonLift",0.04f);
+UnityEditor.EditorUtility.SetDirty(m);UnityEditor.AssetDatabase.SaveAssetIfDirty(m);
+IMUNROK.Seocheon.FlowerfieldSkyController sky=UnityEngine.Object.FindFirstObjectByType<IMUNROK.Seocheon.FlowerfieldSkyController>();if(sky==null)return "ERROR|controller_missing";
+sky.skyboxMaterial=m;RenderSettings.skybox=m;sky.Apply();UnityEditor.EditorUtility.SetDirty(sky);
+return "APPLY_PANORAMA|shader="+sh.name+"|mat="+matPath+"|tex="+tex.width+"x"+tex.height+"|rotation=90|gain=0.72|sat=0.82";
