@@ -80,5 +80,40 @@ namespace IMUNROK.Common
             int need = Mathf.CeilToInt(MinAngle / perUnit);
             return Mathf.Max(wanted, need);
         }
+
+        /// <summary>
+        /// 판을 훑어 하한에 못 미치는 글씨가 있으면 <b>한 줄 일러 준다</b>.
+        ///
+        /// <b>왜 키우지 않고 이르기만 하나</b>: 자막 바처럼 글상자가 넉넉한 판은
+        /// 그냥 키워도 되지만, 수첩은 카드 크기가 손으로 맞춰져 있어서 글씨를
+        /// 몰래 키우면 <b>글이 카드를 넘친다</b>. 배치를 아는 사람이 고쳐야 한다.
+        ///
+        /// 재 보니 수첩은 지금 다 넘긴다(가장 작은 것이 1.31도). 그러니 이것은
+        /// 고치는 손이 아니라 <b>다음에 줄일 때 걸리는 자</b>다 — 눈으로는 못 가리는
+        /// 0.1도 차이가 헤드셋에서 눈을 피로하게 만든다.
+        /// </summary>
+        public static void WarnIfTooSmall(Component panel, string what)
+        {
+            if (panel == null) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+            float scale = panel.transform.lossyScale.y;
+            float dist = Vector3.Distance(cam.transform.position, panel.transform.position);
+            if (scale <= 0f || dist < 0.05f || dist > 20f) return;
+            float perUnit = Mathf.Atan(scale / dist) * Mathf.Rad2Deg;
+
+            int worst = int.MaxValue;
+            foreach (var t in panel.GetComponentsInChildren<UnityEngine.UI.Text>(true))
+                if (t.fontSize < worst && !string.IsNullOrEmpty(t.text)) worst = t.fontSize;
+            if (worst == int.MaxValue) return;
+
+            float angle = worst * perUnit;
+            if (angle >= MinAngle) return;
+            Debug.LogWarning("[판 " + what + "] 가장 작은 글씨가 " + worst + "단위 → "
+                           + angle.ToString("F2") + "도. 헤드셋 하한은 " + MinAngle.ToString("F2")
+                           + "도다 — 눈에 띄게 작지는 않아도 읽는 내내 눈이 피로해진다. "
+                           + "글씨를 키우거나 판을 눈에서 " + (worst * scale / Mathf.Tan(MinAngle * Mathf.Deg2Rad)).ToString("F2")
+                           + "m 안쪽으로 당길 것.");
+        }
     }
 }

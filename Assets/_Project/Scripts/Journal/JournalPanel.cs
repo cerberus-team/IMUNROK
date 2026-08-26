@@ -108,6 +108,30 @@ namespace IMUNROK.Common
             Rebuild();
             SetVisible(true);
             if (_anchor != null) _anchor.Recenter();
+            _checked = false;      // 펼 때마다 한 번 잰다 — 단서가 늘면 글도 달라진다
+        }
+
+        private bool _checked;
+
+        /// <summary>
+        /// <b>헤드셋에서 읽을 만한 크기인지 한 번 잰다.</b>
+        ///
+        /// 자막 바는 글상자가 넉넉해서 모자라면 그냥 키웠는데, 수첩은 카드 크기가
+        /// 손으로 맞춰져 있어 글씨를 몰래 키우면 <b>글이 카드를 넘친다</b>.
+        /// 그래서 여기서는 고치지 않고 <b>이르기만 한다</b>.
+        ///
+        /// 2026-08-27 재 보니 지금은 다 넘는다(가장 작은 것이 1.31도, 하한 1.30도).
+        /// 이 자는 <b>다음에 줄일 때</b>를 위한 것이다.
+        ///
+        /// 펼치는 그 칸에 재면 안 된다 — 앵커가 아직 판을 제자리로 안 옮겨 배율이 1 이다.
+        /// 자막 바에서 이미 한 번 밟았다.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (_checked || _group == null || _group.alpha < 0.5f) return;
+            if (transform.lossyScale.y > 0.5f) return;      // 아직 앵커가 안 줄였다
+            _checked = true;
+            UiLook.WarnIfTooSmall(this, "수첩");
         }
 
         private void SetVisible(bool on)

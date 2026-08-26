@@ -210,12 +210,90 @@ namespace IMUNROK.Common
         /// </summary>
         public void KeepInFrontOf(Transform target) => _keepInFrontOf = target;
 
+        [Header("벽 피하기")]
+        [Tooltip("앞을 막은 것이 있으면 그 앞으로 당겨 온다. 당긴 만큼 배율도 함께 줄어 " +
+                 "<b>보이는 크기는 그대로</b>다 — 그 셈은 이미 아래에 있다.\n\n" +
+                 "견우팀 꾸러미(VrPanel)가 쟀던 것을 옮겨 온 것이다. 좁은 방(사랑방·문서고)에서 " +
+                 "판이 벽에 파묻히던 자리를 막는다")]
+        [SerializeField] private bool _avoidWalls = true;
+        [Tooltip("막은 것에서 이만큼 앞에 선다(m)")]
+        [SerializeField] private float _wallMargin = 0.06f;
+        [Tooltip("아무리 막혀도 이보다 가까이는 안 온다(m)")]
+        [SerializeField] private float _wallMinDistance = 0.45f;
+
         /// <summary>지금 프레임에 쓸 거리. 대상이 나보다 가까우면 그 앞으로 당긴다.</summary>
         private float EffectiveDistance(Transform head)
         {
-            if (_keepInFrontOf == null) return _distance;
-            float toTarget = ModelBounds.DistanceTo(_keepInFrontOf, head.position);
-            return Mathf.Clamp(toTarget - _frontMargin, _minDistance, _distance);
+            float d = _distance;
+            if (_keepInFrontOf != null)
+            {
+                float toTarget = ModelBounds.DistanceTo(_keepInFrontOf, head.position);
+                d = Mathf.Clamp(toTarget - _frontMargin, _minDistance, _distance);
+            }
+            return _avoidWalls ? PullBeforeWall(head, d) : d;
+        }
+
+        /// <summary>
+        /// <b>앞을 막은 것 앞으로 당겨 온다.</b>
+        ///
+        /// 이 앵커는 눈앞 정해진 거리에 판을 세우는데, 월드 캔버스는 깊이 검사를 받는다.
+        /// 그래서 좁은 방에서는 판이 <b>벽 속에 파묻혀</b> 글자가 반쯤 잘린다.
+        /// 사랑방과 문서고가 그렇다.
+        ///
+        /// <b>판 가운데로만 한 번 재면 안 된다</b> — 견우팀이 헤드셋에서 재고 적어 둔 것이다.
+        /// 판이 화면 한가운데가 아니라 아래쪽에 앉아 있으면, 가운데 광선은 앞의 물건을
+        /// <b>비껴가</b> 막힌 줄을 모른다. 그래서 네 귀퉁이까지 다섯 줄기를 재고
+        /// 가장 가까운 것에 맞춘다.
+        ///
+        /// <b>손에 든 것은 안 센다.</b> 등불과 돋보기는 눈앞 반 미터에 있어서, 그것까지
+        /// 세면 도구를 드는 순간 자막이 코앞으로 끌려온다. 머리와 한 몸에 달린 것은
+        /// 벽이 아니다.
+        /// </summary>
+        private float PullBeforeWall(Transform head, float want)
+        {
+            if (want <= 0.4f || _rect == null) return want;   // 이미 코앞이면 잴 까닭이 없다
+
+            Vector3 ahead = _anchorForward.sqrMagnitude > 1e-4f ? _anchorForward : head.forward;
+            ahead.y = 0f;
+            if (ahead.sqrMagnitude < 1e-4f) ahead = head.forward;
+            ahead.Normalize();
+            Vector3 right = Vector3.Cross(Vector3.up, ahead).normalized;
+            Vector3 up = Vector3.Cross(ahead, right);
+
+            Vector2 half = _rect.sizeDelta * 0.5f * _canvasScale;
+            Vector3 mid = ahead * want + up * _verticalOffset;
+
+            // <b>막힌 것이 있을 때만 당긴다.</b> 처음엔 마지막에 무조건 여유(_wallMargin)를
+            // 빼게 짜 두었더니, 아무것도 안 막았는데도 판이 늘 6cm 앞으로 나와 있었다 —
+            // 재 보고 알았다(앵커 0.85m 인데 실제 0.81m). 아무 일도 없을 때는
+            // <b>시킨 거리 그대로</b>여야 한다.
+            float d = want;
+            bool blocked = false;
+            Transform mine = head.root;
+            for (int i = 0; i < 5; i++)
+            {
+                float hx = i == 0 ? 0f : ((i == 1 || i == 3) ? -half.x : half.x);
+                float hy = i == 0 ? 0f : ((i == 1 || i == 2) ? -half.y : half.y);
+                Vector3 dir = (mid + right * hx + up * hy).normalized;
+
+                RaycastHit hit;
+                if (!Physics.Raycast(head.position, dir, out hit, want * 1.3f, ~0,
+                                     QueryTriggerInteraction.Ignore)) continue;
+                if (hit.transform != null && hit.transform.IsChildOf(mine)) continue;   // 내 몸·내 손
+
+                // <b>바닥은 벽이 아니다.</b> 판이 넓고 아래로 치우쳐 있으면 아래 귀퉁이
+                // 광선이 코앞의 마루를 짚는다 — 그것을 막힌 것으로 세면 판이 늘
+                // 최소 거리까지 끌려온다. 사랑방에서 재 보니 1.30m 짜리 자막이
+                // <b>0.46m</b> 까지 왔다. 글을 읽는 판을 가로막는 것은 <b>서 있는 면</b>이지
+                // 누워 있는 면이 아니다.
+                if (Vector3.Dot(hit.normal, Vector3.up) > 0.7f) continue;
+
+                // 비스듬한 광선의 길이를 <b>판 면까지의 수직 거리</b>로 환산한다.
+                // 안 그러면 귀퉁이 광선이 길다는 이유로 판을 덜 당긴다.
+                float along = hit.distance * Vector3.Dot(dir, ahead);
+                if (along < d) { d = along; blocked = true; }
+            }
+            return blocked ? Mathf.Max(_wallMinDistance, d - _wallMargin) : want;
         }
 
         /// <summary>
