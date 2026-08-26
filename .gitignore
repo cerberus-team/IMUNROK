@@ -74,11 +74,33 @@ gemini_api_key.txt
 /Assets/_Project/Onggojip/Art/KimMyeonggwanHouse/
 /Assets/_Project/Onggojip/Art/KimMyeonggwanHouse.meta
 
-# 소품 모델(fbx/glb 등)도 LFS/git에 안 올림 — 공유폴더로 배포
-/Assets/_Project/Onggojip/Art/Models/
-/Assets/_Project/Onggojip/Art/Props/
-# 캐릭터 모델도 마찬가지 — git 제외, 공유폴더로 배포
-/Assets/_Project/Onggojip/Art/Characters/
+# 소품·캐릭터 모델도 git에 안 올림 — 공유폴더로 배포.
+#
+# ★2026-08-26 고침 — 여태 <b>폴더째</b> 막고 있었다. 그러면 git 이 그 안으로 아예
+#   들어가지 않아 .meta 도 .mat 도 .controller 도 같이 빠진다. 그 셋은 아트가 아니라
+#   <배선>이다 — .meta 가 빠지면 팀원이 모델을 임포트하는 순간 GUID 를 새로 지어내고,
+#   씬이 가리키던 사람 일곱이 통째로 사라진다. .controller 가 빠지면 걷는 클립이
+#   어느 상태에서 도는지가 없어져 다들 T 자세로 미끄러진다.
+#   Art/Tools 에서 이미 한 번 밟고 고친 함정인데 이쪽만 안 고쳐져 있었다.
+#   이제 <b>무거운 확장자만</b> 막는다.
+/Assets/_Project/Onggojip/Art/Models/**/*.fbx
+/Assets/_Project/Onggojip/Art/Models/**/*.obj
+/Assets/_Project/Onggojip/Art/Models/**/*.mtl
+/Assets/_Project/Onggojip/Art/Models/**/*.glb
+/Assets/_Project/Onggojip/Art/Models/**/*.png
+/Assets/_Project/Onggojip/Art/Models/**/*.jpg
+/Assets/_Project/Onggojip/Art/Props/**/*.fbx
+/Assets/_Project/Onggojip/Art/Props/**/*.obj
+/Assets/_Project/Onggojip/Art/Props/**/*.mtl
+/Assets/_Project/Onggojip/Art/Props/**/*.glb
+/Assets/_Project/Onggojip/Art/Props/**/*.png
+/Assets/_Project/Onggojip/Art/Props/**/*.jpg
+/Assets/_Project/Onggojip/Art/Characters/**/*.fbx
+/Assets/_Project/Onggojip/Art/Characters/**/*.obj
+/Assets/_Project/Onggojip/Art/Characters/**/*.mtl
+/Assets/_Project/Onggojip/Art/Characters/**/*.glb
+/Assets/_Project/Onggojip/Art/Characters/**/*.png
+/Assets/_Project/Onggojip/Art/Characters/**/*.jpg
 # 공통 도구 아이콘(돋보기·지도 등 아트) — git 제외, 공유폴더로 배포
 # 폴더를 통으로 막으면 git 이 그 안으로 들어가지 않아 예외(!)가 안 먹는다.
 # 그래서 무거운 확장자만 막는다 — 애니메이터 컨트롤러·재질·meta 는 아트가 아니라
@@ -93,14 +115,17 @@ gemini_api_key.txt
 /Assets/_Project/Art/Tools/**/*.mtl
 /Assets/_Project/Art/Tools/**/*.asset
 # UI 아트(한지 등)·폰트 — git 제외, 공유폴더로 배포
-/Assets/_Project/Art/UI/
 /Assets/_Project/Art/Fonts/
 # UI 아트도 .meta 만은 커밋한다. 표제의 제자(題字)처럼 씬이 GUID 로 가리키는 것이
 # 있어서, .meta 가 빠지면 팀원 화면에서는 제목 자리가 통째로 비어 버린다.
-# 폰트와 같은 방식이다 — 폴더를 한 번 열고 그 안에서 다시 거른다.
-!/Assets/_Project/Art/UI/
-/Assets/_Project/Art/UI/*
-!/Assets/_Project/Art/UI/*.meta
+#
+# ★2026-08-26 고침 — 여태 "폴더를 한 번 열고 그 안에서 다시 거르는" 방식이었는데,
+#   그 예외는 <b>한 겹까지만</b> 미친다. UI/Icons/ 처럼 한 겹 더 들어간 데는 도로
+#   막혀서 도구벨트 아이콘 넷(수첩·등불·돋보기·지도)의 .meta 가 빠져 있었다.
+#   Tools 와 같이 <b>확장자로</b> 막는다 — 몇 겹이 되든 .meta 는 안 걸린다.
+/Assets/_Project/Art/UI/**/*.png
+/Assets/_Project/Art/UI/**/*.jpg
+/Assets/_Project/Art/UI/**/*.jpeg
 # 공통 아트(한지 텍스처·폰트 등) — git 제외, 공유폴더로 배포
 /Assets/_Project/_Common/Art/*
 # 폰트만은 .meta 를 커밋한다. 씬이 폰트를 GUID 로 가리키므로 .meta 가 빠지면
@@ -197,10 +222,25 @@ T_Glb_*.png
 /Assets/_Project/_Common/Sets/Gwana/**/*.png
 /Assets/_Project/_Common/Sets/Gwana/**/*.fbx
 /Assets/_Project/_Common/Sets/Gwana/**/*.asset
-# 동헌에서 떼어낸 지붕 메시는 통째로 생성물이다 — .meta 까지 함께 뺀다.
-# 홀로 남은 .meta 는 유니티가 고아 취급하며 경고한다. 재생성: [이문록 ▸ 관아 ▸ ⑦ 문서고 짓기]
-/Assets/_Project/_Common/Sets/Gwana/Donheon/Meshes/
-/Assets/_Project/_Common/Sets/Gwana/Donheon/Meshes.meta
+# 동헌에서 떼어낸 메시(서가·문서궤·대장책·지붕)는 생성물이다.
+#
+# ★2026-08-26 고침 — 여태 폴더째 막아 .meta 까지 뺐다. 까닭은 "홀로 남은 .meta 를
+#   유니티가 고아 취급하며 경고한다"였는데, 그 경고 한 줄을 피하려다 <b>GUID 를
+#   버리고 있었다</b>. 다시 구우면 GUID 가 새로 지어지고, git 에 든 씬은 옛 GUID 를
+#   가리키므로 팀원 화면에서 서가와 문서궤가 통째로 사라진다.
+#   경고는 파일을 제자리에 넣으면 없어지지만 GUID 는 되돌릴 수가 없다.
+#   위의 **/*.asset 규칙이 알맹이만 막고 .asset.meta 는 안 걸린다(끝이 .meta 라서).
+#   재생성: [이문록 ▸ 관아 ▸ ⑦ 문서고 짓기]
+
+# ─────────────────────────────────────────────
+# 말하기(Wit.ai) 설정 — ★서버·클라이언트 토큰이 그대로 들어 있다
+# 커밋하면 토큰이 공개된다. 팀원은 각자 만든다:
+#   [Meta ▸ Voice SDK ▸ Get Started] ▸ Built-In Models ▸ Korean
+# ─────────────────────────────────────────────
+/Assets/WitConfiguration.asset
+/Assets/WitConfiguration.asset.meta
+/Assets/Oculus/Voice/Resources/ConduitManifest-*.json
+/Assets/Oculus/Voice/Resources/ConduitManifest-*.json.meta
 
 # ─────────────────────────────────────────────
 # 화성행궁(kcisa) — 관아 마당 담장만 골라 왔다
