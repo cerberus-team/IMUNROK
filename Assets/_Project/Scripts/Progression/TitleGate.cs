@@ -504,8 +504,17 @@ namespace IMUNROK.Common
 
             // 연출이 흐르는 동안에는 <b>건너뛰기</b> 한 줄만. 이어하기는 이 자리에
             // 적지 않는다 — 그것은 연출이 끝난 뒤 오른쪽 위에 단추로 나타난다.
+            // 안내는 <b>로고 밑을 따라간다</b>. 못 박아 두면 로고를 키우는 순간
+            // 글씨가 그림 안으로 들어가 파묻힌다 — 실제로 680 을 1180 으로 키우니
+            // 그렇게 됐다. 자리를 값에서 뽑으면 다시 맞출 일이 없다.
+            float hintY = -225f;
+            if (byImage)
+            {
+                float imgH = _titleImageWidth * (_titleImage.height / Mathf.Max(1f, (float)_titleImage.width));
+                hintY = _titleImageOffset.y - imgH * 0.5f - 90f;
+            }
             _hintText = MakeText(rt, _skipHint, font, 34,
-                                 new Color(_titleColor.r, _titleColor.g, _titleColor.b, 0.45f), new Vector2(0f, -225f));
+                                 new Color(_titleColor.r, _titleColor.g, _titleColor.b, 0.45f), new Vector2(0f, hintY));
         }
 
         /// <summary>

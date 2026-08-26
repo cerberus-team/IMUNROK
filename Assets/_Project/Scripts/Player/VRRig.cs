@@ -57,7 +57,26 @@ namespace IMUNROK.Common
             DontDestroyOnLoad(go);
         }
 
-        private void Start() { StartCoroutine(WaitForHeadset()); }
+        private void Start()
+        {
+            // 씬마다 다시 본다. 어전은 고정 화면이라 몸을 안 짓는데, 그 다음 씬으로
+            // 넘어가면 지어야 한다 — 이 부품은 씬을 건너 살아남으므로 Start 한 번으로는
+            // 그 자리를 잡을 수가 없다.
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnScene;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnScene;
+            StartCoroutine(WaitForHeadset());
+        }
+
+        private void OnDestroy()
+        {
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnScene;
+        }
+
+        private void OnScene(UnityEngine.SceneManagement.Scene s, UnityEngine.SceneManagement.LoadSceneMode m)
+        {
+            if (!XRSettings.isDeviceActive) return;
+            Build();
+        }
 
         /// <summary>
         /// 헤드셋은 <b>늦게 붙을 수 있다</b>. 링크를 나중에 켜는 일이 흔하므로 몇 초 동안
@@ -137,12 +156,19 @@ namespace IMUNROK.Common
             Debug.Log("[VR] 링크를 잡았다 — 헤드셋으로 넘어간다.");
         }
 
+        /// <summary>
+        /// 몸을 짓는다. <see cref="FixedView"/> 가 있는 씬에서는 <b>머리를 못 박고
+        /// 손만 준다</b> — 어전 같은 연출 화면은 카메라가 어디를 보는지까지 짜 둔
+        /// 그림이라 목에 넘길 수 없고, 그렇다고 손을 뺏으면 헤드셋에는 자판도
+        /// 마우스도 없어 단추 하나 못 누른다.
+        /// </summary>
         private void Build()
         {
             var cam = Camera.main;
             if (cam == null) { Debug.LogWarning("[VR] 카메라를 못 찾아 몸을 못 짓는다."); return; }
             if (Body != null) return;
 
+            bool fixedHead = FixedView.Here;
             Transform camT = cam.transform;
 
             // ① 몸 — 카메라가 서 있던 자리의 <b>발밑</b>에 세운다
@@ -162,26 +188,37 @@ namespace IMUNROK.Common
             Disable(camT, "MouseInspector");
 
             // ③ 카메라를 몸 밑으로. 자세는 헤드셋이 넣는다.
-            camT.SetParent(body, true);
-            camT.localPosition = new Vector3(0f, 1.6f, 0f);
-            camT.localRotation = Quaternion.identity;
-            var head = camT.gameObject.AddComponent<XRPose>();
-            SetNode(head, XRNode.Head);
+            //    <b>고정 화면에서는 손대지 않는다</b> — 옮기지도, XRPose 를 붙이지도
+            //    않는다. 씬에 짜 둔 자리와 각 그대로 두 눈에만 갈려 보인다.
+            if (!fixedHead)
+            {
+                camT.SetParent(body, true);
+                camT.localPosition = new Vector3(0f, 1.6f, 0f);
+                camT.localRotation = Quaternion.identity;
+                var head = camT.gameObject.AddComponent<XRPose>();
+                SetNode(head, XRNode.Head);
+            }
 
             // ④ 손 둘
             LeftHand = MakeHand(body, "왼손", XRNode.LeftHand, new Vector3(-0.2f, 1.0f, 0.25f));
             RightHand = MakeHand(body, "오른손", XRNode.RightHand, new Vector3(0.2f, 1.0f, 0.25f));
 
-            // ⑤ 스틱으로 걷고 돌아선다
-            var loco = body.gameObject.AddComponent<VRLocomotion>();
-            SetField(loco, "_head", camT);
+            // ⑤ 스틱으로 걷고 돌아선다. 고정 화면에서는 안 준다 —
+            //    몸이 움직여도 눈은 그대로라 걷는 것이 아니라 어긋나는 것이 된다.
+            if (!fixedHead)
+            {
+                var loco = body.gameObject.AddComponent<VRLocomotion>();
+                SetField(loco, "_head", camT);
+            }
 
             // ⑥ 단추를 잇는다. 여기까지 안 하면 말하기도 수첩도 도구도 못 부른다 —
             //    그것들이 죄 키보드에 매여 있는데, 헤드셋을 쓰면 자판을 누를 손이 없다.
             body.gameObject.AddComponent<VRButtons>();
 
             Active = true;
-            Debug.Log("[VR] 몸을 지었다 — 머리 하나, 손 둘. 바닥 y=" + floorY.ToString("F2"));
+            Debug.Log(fixedHead
+                ? "[VR] 손 둘만 지었다 — 이 씬은 고정 화면이라 머리는 못 박아 둔다(FixedView)."
+                : "[VR] 몸을 지었다 — 머리 하나, 손 둘. 바닥 y=" + floorY.ToString("F2"));
         }
 
         private static Transform MakeHand(Transform body, string name, XRNode node, Vector3 rest)

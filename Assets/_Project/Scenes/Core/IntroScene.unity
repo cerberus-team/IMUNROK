@@ -158,7 +158,7 @@ MonoBehaviour:
   - "\uB098\uB294 \uADF8 \uB9D0\uC744 \uBBFF\uC9C0 \uC54A\uB294\uB2E4."
   - "\uBD09\uC11C\uC640 \uB9C8\uD328, \uC720\uCC99\uC744 \uB0B4\uB9AC\uB2C8 \u2014
     \uAC00\uC11C \uBB34\uC5C7\uC774 \uC788\uC5C8\uB294\uC9C0 \uAE30\uB85D\uD574 \uC624\uB77C."
-  _pickPrompt: "\uAD74\uB7EC\uC628 \uBD09\uC11C\uB97C \uC9D1\uC5B4 \uBCF4\uB77C."
+  _pickPrompt: 
   _documents:
   - {fileID: 769633752}
   - {fileID: 1168603006}
@@ -313,6 +313,7 @@ GameObject:
   - component: {fileID: 183265546}
   - component: {fileID: 183265545}
   - component: {fileID: 183265544}
+  - component: {fileID: 183265547}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -411,6 +412,18 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!114 &183265547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 183265542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6532514eaf7f256409be17dc3e545f39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.FixedView
 --- !u!1 &258836236
 GameObject:
   m_ObjectHideFlags: 0
@@ -895,14 +908,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.TitleGate
   _titleImage: {fileID: 2800000, guid: fe063d9b8b8639548bf82576bbd3be4c, type: 3}
-  _titleImageWidth: 680
+  _titleImageWidth: 1180
   _titleImageOffset: {x: 0, y: 60}
   _keepSubtitleWithImage: 0
   _title: "\uC774\uBB38\uB85D"
   _subtitle: "\u7570\u805E\u9304"
   _titleAnchor: {fileID: 258836237}
   _titleDistance: 0.85
-  _titleHeight: 0.15
+  _titleHeight: 0.1
   _titleMinHeight: 0.22
   _titleScale: 0.00072
   _font: {fileID: 12800000, guid: dafdf968e3b186e41accd381d368dc9c, type: 3}

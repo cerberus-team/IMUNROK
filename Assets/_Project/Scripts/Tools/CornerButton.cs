@@ -40,8 +40,21 @@ namespace IMUNROK.Common
         /// <summary>눈에서 이만큼 앞(m). 표제 글씨와 같은 거리라 앞뒤로 다투지 않는다.</summary>
         private const float Distance = 0.85f;
 
-        /// <summary>캔버스 한 칸이 몇 m 인가. 겨눠서 누르는 것이라 읽기만 하는 글씨보다 크다.</summary>
-        private const float Scale = 0.0017f;
+        /// <summary>
+        /// 캔버스 한 칸이 몇 m 인가.
+        ///
+        /// <b>고르는 창의 단추와 같은 크기로 맞춘다.</b> 처음에는 이 단추만 크게
+        /// 잡았는데(360×96 을 0.0017 로), 눈에서 0.85m 앞에 0.61m 짜리가 서니
+        /// 가로로만 39도를 먹어 화면 한쪽이 통째로 단추가 됐다. 「처음부터」·
+        /// 「물러나기」 는 280×84 를 0.001 로, 0.90m 앞에 세운다 — 겨눠 누르기에
+        /// 모자란 적이 없었으니 여기서만 클 까닭이 없다.
+        ///
+        /// 거리가 0.85m 로 조금 가까우므로 그만큼 줄여야 <b>보이는 크기</b>가 같다.
+        /// </summary>
+        private const float Scale = 0.001f * (Distance / 0.90f);
+
+        /// <summary>단추 한 장의 크기(칸). 고르는 창의 단추와 같다.</summary>
+        private static readonly Vector2 Size = new Vector2(280f, 84f);
 
         private Transform _eye;
         private Camera _cam;
@@ -91,17 +104,19 @@ namespace IMUNROK.Common
             _group.alpha = 0f;
 
             var rt = canvas.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(360f, 96f);
+            rt.sizeDelta = Size;
             rt.localScale = Vector3.one * Scale;
 
             var bgGo = new GameObject("판", typeof(Image), typeof(Button));
             var brt = bgGo.GetComponent<RectTransform>();
             brt.SetParent(rt, false);
             brt.anchoredPosition = Vector2.zero;
-            brt.sizeDelta = rt.sizeDelta;
+            brt.sizeDelta = Size;
 
+            // 고르는 창의 「처음부터」와 같은 낙관빛. 어전은 어두워서 검은 판을
+            // 두면 있는지조차 잘 안 보인다.
             var img = bgGo.GetComponent<Image>();
-            img.color = new Color(0.09f, 0.09f, 0.10f, 0.80f);
+            img.color = new Color(0.58f, 0.10f, 0.09f);
 
             var btn = bgGo.GetComponent<Button>();
             btn.targetGraphic = img;
@@ -113,25 +128,19 @@ namespace IMUNROK.Common
             btn.colors = c;
             btn.onClick.AddListener(Press);
 
-            // 낙관빛 테 한 줄. 어둠 위에 얹히는 것이라 흰 판을 놓으면 그것만 떠오른다.
-            var line = new GameObject("테", typeof(Image));
-            var lrt = line.GetComponent<RectTransform>();
-            lrt.SetParent(brt, false);
-            lrt.anchoredPosition = new Vector2(0f, -46f);
-            lrt.sizeDelta = new Vector2(360f, 3f);
-            line.GetComponent<Image>().color = new Color(0.78f, 0.24f, 0.19f, 0.9f);
-            line.GetComponent<Image>().raycastTarget = false;
+            // 테는 없앤다. 판이 낙관빛이 되었으니 그 위에 다시 붉은 줄을 그으면
+            // 같은 색이 겹칠 뿐이고, 고르는 창의 단추에도 그런 줄은 없다.
 
             var txtGo = new GameObject("글", typeof(Text));
             var trt = txtGo.GetComponent<RectTransform>();
             trt.SetParent(brt, false);
             trt.anchoredPosition = Vector2.zero;
-            trt.sizeDelta = rt.sizeDelta;
+            trt.sizeDelta = Size;
             var txt = txtGo.GetComponent<Text>();
             txt.font = UiFont.Resolve(null);
-            txt.fontSize = 40;
+            txt.fontSize = 36;                       // 고르는 창의 단추 글씨와 같다
             txt.alignment = TextAnchor.MiddleCenter;
-            txt.color = new Color(0.97f, 0.93f, 0.82f);
+            txt.color = new Color(0.98f, 0.94f, 0.86f);
             txt.raycastTarget = false;
             txt.horizontalOverflow = HorizontalWrapMode.Overflow;
             txt.verticalOverflow = VerticalWrapMode.Overflow;
@@ -157,11 +166,22 @@ namespace IMUNROK.Common
             Place();
         }
 
+        /// <summary>
+        /// 화면 귀퉁이에 붙여 세운다.
+        ///
+        /// <b>눈을 바라보게 세우면 안 된다.</b> 그렇게 두었더니 단추가 비스듬히
+        /// 돌아가 걸렸다 — 어전은 시선이 오십일 도 숙어 있어서, 화면 <b>귀퉁이</b>로
+        /// 가는 방향은 카메라가 보는 방향과 어긋난다. 그 어긋난 축을 바라보게
+        /// 하면 판이 그만큼 기운다. 가운데 놓인 것에서는 안 드러나고 귀퉁이에서만
+        /// 드러나는 종류의 어긋남이다.
+        ///
+        /// 화면에 붙은 것은 <b>화면과 나란해야</b> 한다. 카메라의 자세를 그대로
+        /// 쓰면 어디에 놓든 반듯하다.
+        /// </summary>
         private void Place()
         {
-            Vector3 pos = _cam.ViewportToWorldPoint(new Vector3(At.x, At.y, Distance));
-            transform.position = pos;
-            transform.rotation = Quaternion.LookRotation(pos - _eye.position, _eye.up);
+            transform.position = _cam.ViewportToWorldPoint(new Vector3(At.x, At.y, Distance));
+            transform.rotation = _eye.rotation;
         }
 
         private IEnumerator FadeIn(float seconds)

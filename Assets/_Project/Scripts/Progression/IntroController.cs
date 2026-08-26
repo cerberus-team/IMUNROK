@@ -45,8 +45,9 @@ namespace IMUNROK.Common
             "봉서와 마패, 유척을 내리니 — 가서 무엇이 있었는지 기록해 오라.",
         };
 
-        [Tooltip("문서를 집으라는 안내(대사 후 표시)")]
-        [SerializeField] private string _pickPrompt = "세 문서 중 하나를 집으라. 거기서부터 조사가 시작된다.";
+        [Tooltip("봉서가 다 굴러온 뒤에 띄울 안내. <b>비우면 아무것도 안 뜬다</b> — " +
+                 "셋이 발치에 굴러와 멎는 그림이 이미 그 말을 하고 있다")]
+        [SerializeField] private string _pickPrompt = "";
 
         [Header("문서 등장 연출")]
         [SerializeField] private IntroDocument[] _documents;
@@ -168,7 +169,7 @@ namespace IMUNROK.Common
             // 끝까지 들었든 건너뛰었든, 이 지점에 닿았으면 본 것으로 친다.
             SeenBefore = true;
 
-            SubtitleView.Show("", _pickPrompt, "(봉서를 가리켜 집는다)");
+            ShowPickPrompt("(봉서를 가리켜 집는다)");
             RevealDocuments();
         }
 
@@ -208,7 +209,20 @@ namespace IMUNROK.Common
             if (_documents != null)
                 foreach (var d in _documents)
                     if (d != null && d.IsReading) return;
-            SubtitleView.Show("", _pickPrompt, "(가리켜 누르기)");
+            ShowPickPrompt("(가리켜 누르기)");
+        }
+
+        /// <summary>
+        /// 집으라는 안내를 띄운다 — <b>적을 것이 있을 때만</b>.
+        ///
+        /// 안내를 비워 두면 그냥 <c>Show("", "", …)</c> 가 되어, 글 없는 자막판이
+        /// 어전 한복판에 덩그러니 걸린다. 안내를 안 쓰기로 했으면 판까지 걷어야 한다.
+        /// 봉서 셋이 발치로 굴러와 멎는 그림 자체가 이미 "집으라"는 말이다.
+        /// </summary>
+        private void ShowPickPrompt(string hint)
+        {
+            if (string.IsNullOrEmpty(_pickPrompt)) { SubtitleView.Hide(); return; }
+            SubtitleView.Show("", _pickPrompt, hint);
         }
 
         public void NowReading(IntroDocument open)

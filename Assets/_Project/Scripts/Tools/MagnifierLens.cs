@@ -227,11 +227,24 @@ namespace IMUNROK.Common
 
         private static void OnScene(Scene s, LoadSceneMode m) => Ensure();
 
+        /// <summary>
+        /// 이 씬에 돋보기를 세운다 — <b>도구를 쓰는 씬에서만</b>.
+        ///
+        /// 여태는 씬이 열릴 때마다 무턱대고 섰다. 그러니 도구가 아예 없는 어전과
+        /// 조사청에서도 서서, 소품을 못 찾았다고 <b>매번 경고 한 줄</b>을 남겼다 —
+        /// 고쳐야 할 것이 없는데 콘솔에는 늘 노란 줄이 있는 꼴이라, 정작 무언가
+        /// 잘못됐을 때 그것이 묻힌다. 게다가 쓰지도 않을 렌즈 카메라와
+        /// RenderTexture 한 장을 어전에서도 만들고 있었다.
+        ///
+        /// 씬에 <see cref="HeldToolModel"/> 이 하나라도 있으면 도구를 쓰는 씬이다.
+        /// 없으면 서지 않는다 — 경고도 없다. 없는 것을 나무랄 일이 아니다.
+        /// </summary>
         private static void Ensure()
         {
             if (_instance != null) return;
             var cam = Camera.main;
             if (cam == null) return;
+            if (FindFirstObjectByType<HeldToolModel>(FindObjectsInactive.Include) == null) return;
             var go = new GameObject("돋보기_렌즈");
             go.transform.SetParent(cam.transform, false);
             _instance = go.AddComponent<MagnifierLens>();
