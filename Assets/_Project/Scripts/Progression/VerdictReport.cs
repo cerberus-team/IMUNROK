@@ -312,7 +312,9 @@ namespace IMUNROK.Common
             // ④ 이문록에 한 줄이 오른다 — 이 게임의 이름이 곧 그 책이다.
             string line = (_form.이문록줄 ?? "").Replace("{판결}", Korean(verdict));
             if (!string.IsNullOrEmpty(line))
-                WorldNotice.Show("이문록", "이문록에 오르다 — " + line, 0.35f);
+                // 종이 <b>위로</b> 띄운다. 한가운데 두었더니 넷째 줄을 덮어,
+                // 방금 제가 쓴 글을 못 읽은 채 사건이 끝났다.
+                WorldNotice.Show("이문록", "이문록에 오르다 — " + line, 0.95f);
 
             Invoke(nameof(Close), 5.5f);
         }

@@ -121,13 +121,35 @@ namespace IMUNROK.Common.EditorTools
                 // ③ 곁가지 하나 — 등불을 대 본 사람만 쓸 수 있다.
                 new CaseReport.Blank
                 {
-                    앞 = "또", 뒤 = "은(는) 면천된 몸이나 문서가 고쳐져 아직 종으로 있으니",
+                    앞 = "또", 뒤 = "은(는) 면천된 몸이나 문서가 고쳐져 아직 종으로 있고",
                     물음 = "장부가 고쳐져 신분을 잃은 자가 누구인가.",
                     보기 = new[]
                     {
                         new CaseReport.Choice { 말 = "복동",     필요단서 = "G05", 맞음 = true },
                         new CaseReport.Choice { 말 = "늙은하인" },
                         new CaseReport.Choice { 말 = "마름" },
+                    },
+                },
+                // ④ 그 지운 손이 누구인가.
+                //
+                // 이 줄이 있어야 셋째 줄이 <b>딱한 사정</b>에서 <b>죄</b>로 넘어간다.
+                // 복동이 종으로 남아 있다는 것만으로는 누구의 잘못도 아니다 —
+                // 그 문서를 고친 손을 짚어야 비로소 죄가 된다.
+                //
+                // 근거는 필적이다. 집에서 나온 호구단자(J13)와 관이 받아 둔 것(G02)을
+                // 나란히 놓으면 <b>관리의 손이 아니라 이 집 사람의 손</b>이고, 거기 복동이
+                // 죽은 것으로 적혀 있다. 관은 맨 끝 '도부' 한 줄만 썼다.
+                new CaseReport.Blank
+                {
+                    앞 = "복동을 죽은 것으로 적어 그 이름을 지운 것 또한",
+                    뒤 = "의 소행이니",
+                    물음 = "호구단자를 고쳐 쓴 손이 누구인가.",
+                    보기 = new[]
+                    {
+                        new CaseReport.Choice { 말 = "甲", 필요단서 = "G02", 맞음 = true },
+                        new CaseReport.Choice { 말 = "마름" },
+                        new CaseReport.Choice { 말 = "아내" },
+                        new CaseReport.Choice { 말 = "관아의 서리" },
                     },
                 },
                 // ④ 처분. 사람을 맞혔을 때 판결의 결을 정한다.
@@ -145,8 +167,8 @@ namespace IMUNROK.Common.EditorTools
             };
 
             f.참끝 = "파기 한 줄이 스무 해를 건너 사람을 짚었다. 가짜는 옹진 밖으로 " +
-                    "내쳐졌고, 옹덕구는 제 이름을 되찾았다. 복동은 그해 가을 " +
-                    "<b>제 이름으로</b> 호적에 올랐다.";
+                    "내쳐졌고, 옹덕구는 제 이름을 되찾았다. 죽었다던 복동은 그해 가을 " +
+                    "<b>제 이름으로</b> 호적에 올랐다 — 종이 아니라 양인으로.";
             f.반끝 = "판결은 섰다. 다만 <b>못 박을 증좌가 없어</b> 엄히 다스리지는 못했다. " +
                     "고을에는 아직도 어느 쪽이 참이었느냐는 말이 남았다.";
             f.헛끝 = "가짜가 옹덕구의 자리에 그대로 앉았다. 진짜는 제 집 문간에서 쫓겨났고, " +
@@ -213,9 +235,10 @@ namespace IMUNROK.Common.EditorTools
             if (desk == null) desk = Undo.AddComponent<ReportDesk>(root);
             // 넷을 다 캐야 앉는다. 반쯤 캐고 앉으면 빈칸에 쓸 말이 뜨지도 않아,
             // 제가 무엇을 못 했는지도 모르는 채 헛장계를 봉하게 된다.
-            desk.Setup(form, seatT, new[] { "G01", "G07", "G08" });
+            desk.Setup(form, seatT, new[] { "G01", "G07" });
             EditorUtility.SetDirty(desk);
-            log.AppendLine("  · 앉는 자리 " + Seat.ToString("F2") + " — G01(파기)·G07·G08 을 캐야 앉는다");
+            log.AppendLine("  · 앉는 자리 " + Seat.ToString("F2") + " — G01(파기)·G07 만 있으면 앉는다. " +
+                           "덜 캐고 앉는 것도 길이라 막지 않는다 — 다만 장계가 무를 뿐이다");
             log.AppendLine("  · 진짜 서안·의자가 오면 '임시소품' 만 지우고 그 밑에 넣으면 된다");
         }
 
