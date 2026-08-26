@@ -73,12 +73,19 @@ namespace IMUNROK.Common
         /// 낱낱의 목록은 Docs/에셋_출처와_라이선스.md 에 있다 — 화면에는
         /// <b>어디서 왔는지</b>만 적는다. 스무 줄을 띄워 봐야 아무도 안 읽는다.
         /// </summary>
-        [Tooltip("빌려 온 것의 출처. <b>한 칸이 한 판</b>이다 — 자막 바는 세 줄이 한계라, " +
-                 "한 칸에 몰아 넣으면 위아래로 넘쳐 안내줄과 겹친다")]
+        [Tooltip("빌려 온 것의 출처. <b>한 칸이 고리에 걸리는 판 하나</b>다 — " +
+                 "한 칸에 몰아 넣으면 판 하나가 길어져 두른 보람이 없다")]
         [TextArea(2, 4)] [SerializeField] private string[] _sourceLines = {
-            "쓰인 것들\n\n한국공예디자인문화진흥원 (KCDF) · 운현궁 · 경복궁 3D",
-            "한국저작권위원회 공유마당 — 음향\n\nCC BY · 공공누리 제1유형",
+            "쓰인 것들",
+            "한국공예디자인문화진흥원\nKCDF",
+            "운현궁 소장품 3D",
+            "국가유산청 — 경복궁 3D\n공공누리 제1유형",
+            "한국저작권위원회 공유마당\n음향 · CC BY",
         };
+
+        [Tooltip("크레딧 고리가 한 바퀴 도는 데 걸리는 시간(초). " +
+                 "이 시간 안에 모든 판이 한 번씩 정면을 지난다")]
+        [SerializeField] private float _creditsSeconds = 46f;
 
         [Header("종료 후")]
         [SerializeField] private string _hubSceneName = "HubScene";
@@ -144,8 +151,12 @@ namespace IMUNROK.Common
             //
             // <b>여기서 자막으로 크레딧을 띄우지 않는다.</b> 자막 바는 대사 그릇이라,
             // 거기에 이름과 출처를 넣으니 짜쳤다. 왕의 마지막 말이 끝나면
-            // <see cref="OutroCeremony"/> 가 발을 걷고 어전을 저물게 하고, 크레딧은
-            // <b>종이 위에</b> 적힌다. 그릇이 맞아야 읽힌다.
+            // <see cref="OutroCeremony"/> 가 어전을 저물게 하고, 크레딧은
+            // <see cref="CreditsRing"/> 이 <b>사방에 둘러</b> 건다.
+            //
+            // 그런데도 줄을 여기 넣어 두는 까닭: 의식이 없는 씬(안전망)에서는
+            // 이 줄들이 자막으로 나가야 하고, 무엇보다 <b>이 줄 수만큼 재생이
+            // 이어져야</b> 한다. 여기를 비우면 왕의 마지막 말과 동시에 끝나 버린다.
             _fromLine = _lines.Count;
             if (!string.IsNullOrEmpty(_thanksLine)) _lines.Add(_thanksLine);
             if (!string.IsNullOrEmpty(_creditsLine)) _lines.Add(_creditsLine);
@@ -273,24 +284,30 @@ namespace IMUNROK.Common
         private bool _closing;
 
         /// <summary>
-        /// <b>크레딧은 종이 위에 적는다.</b>
+        /// <b>크레딧은 사방을 두른다.</b>
         ///
-        /// 이 게임의 모든 글은 종이 위에 있었는데 크레딧만 자막 바에 있었다.
-        /// 그릇이 틀렸으니 짜쳤던 것이다. <see cref="DocumentView"/> 는 그림이 없으면
-        /// 한지를 깔고 글씨를 종이에 맞춰 준다 — 그대로 쓴다.
-        /// 내려놓을 수 없게 막는다. 크레딧을 「내려놓기」로 치울 일이 아니다.
+        /// 앞서 한지 한 장에 적어 눈앞에 띄웠다. 그릇은 맞았는데 <b>크기가 틀렸다</b> —
+        /// 만든 사람 셋과 빌려 온 것 여남은 줄이 손바닥만 한 종이에 다 들어가니
+        /// 끝을 맺는 것이 아니라 <b>쪽지 한 장 읽고 마는</b> 것이 됐다. 헤드셋에서는
+        /// 그 종이 하나 말고 온 사방이 텅 비어 있기까지 했다.
+        ///
+        /// <see cref="CreditsRing"/> 이 글을 고리처럼 둘러 걸고 한 바퀴 돌린다.
+        /// 가만히 서 있어도 모든 글이 한 번씩 정면을 지나고, 고개를 돌리면 지나간
+        /// 것과 올 것이 사방에 걸려 있다.
+        ///
+        /// <b>뭉치를 나눠 넘긴다</b> — 한 덩어리로 이어 붙이면 판 하나에 다 들어가
+        /// 두른 보람이 없다. 맺음말 · 만든 사람 · 빌려 온 것들이 저마다 한 판이다.
         /// </summary>
         private void Credits()
         {
-            var body = new System.Text.StringBuilder();
-            if (!string.IsNullOrEmpty(_thanksLine)) body.Append(_thanksLine).Append("\n\n");
-            if (!string.IsNullOrEmpty(_creditsLine)) body.Append(_creditsLine).Append("\n\n");
+            var blocks = new System.Collections.Generic.List<string>();
+            if (!string.IsNullOrEmpty(_thanksLine)) blocks.Add(_thanksLine);
+            if (!string.IsNullOrEmpty(_creditsLine)) blocks.Add(_creditsLine);
             if (_sourceLines != null)
                 for (int i = 0; i < _sourceLines.Length; i++)
-                    if (!string.IsNullOrEmpty(_sourceLines[i])) body.Append(_sourceLines[i]).Append("\n\n");
+                    if (!string.IsNullOrEmpty(_sourceLines[i])) blocks.Add(_sourceLines[i]);
 
-            DocumentView.SetCanPutDown(false);
-            DocumentView.Show(null, "", body.ToString().TrimEnd());
+            CreditsRing.Show(blocks, _creditsSeconds);
         }
 
         private void LateUpdate()
