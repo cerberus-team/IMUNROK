@@ -217,14 +217,26 @@ namespace IMUNROK.Common.EditorTools
             }
         }
 
+        /// <summary>머리뼈가 사람 키의 어디쯤에 오는가. 목뼈 위 머리뼈는 대개 키의 0.87 이다.</summary>
+        private const float HeadRatio = 0.87f;
+
         /// <summary>
-        /// <b>선 자세에서</b> 정수리 뼈와 발 뼈 사이.
+        /// <b>선 자세에서</b> 잰 키.
         ///
         /// 바인드 자세로 재면 안 된다. 옹덕구와 복동은 <b>바인드 자세가 웅크린 것</b>이라
         /// 1.30 · 1.39 로 나오는데, 그 값에 맞춰 키우면 실제로 서는 순간 2.30 · 2.18 이
         /// 되어 거인이 된다 — 실제로 그렇게 세워 놓고 한 번 웃었다.
-        ///
         /// 그래서 선 자세(Idle)를 <b>씌우고 나서</b> 잰다. 씬에 잠깐 세웠다가 지운다.
+        ///
+        /// <b>꼭대기 뼈로 재면 안 된다 — 쓴 것까지 키로 친다.</b>
+        /// 복동은 <b>갓</b>을 썼다. 그 rig 의 HeadTop_End 는 정수리가 아니라 <b>갓 꼭대기</b>에
+        /// 박혀 있어, 그 값에 키를 맞추면 갓을 뺀 몸이 그만큼 줄어든다 — 뜰에 세워 놓고 보니
+        /// 갓 쓴 복동(1.67)이 맨머리 옹덕구(1.74)보다 <b>작았다</b>. 서리도 갓을 썼고,
+        /// 마름은 더 심해서 <c>head_end_end</c> 라는 뼈가 <b>머리 위 17cm 허공</b>에 떠 있다.
+        ///
+        /// 그래서 <b>머리뼈(Head)</b>로 잰다. 무엇을 쓰든 머리뼈는 두개골 밑에 그대로 있으니
+        /// 갓도 상투도 허공의 뼈도 이 자를 못 흔든다. rig 이름이 달라도(mixamorig:Head · Head)
+        /// 앞머리(<c>headfront</c>) 같은 것에 걸리지 않게 <b>딱 'head' 인 것</b>만 고른다.
         /// </summary>
         private static float StandingHeight(string path)
         {
@@ -250,14 +262,51 @@ namespace IMUNROK.Common.EditorTools
 
                 var smr = inst.GetComponentInChildren<SkinnedMeshRenderer>(true);
                 if (smr == null || smr.bones == null || smr.bones.Length == 0) return -1f;
-                float lo = 9e9f, hi = -9e9f;
+
+                // <b>바닥은 뼈가 아니라 살갗으로 잡는다.</b>
+                // 제일 낮은 뼈는 발가락 마디라 <b>밑창보다 3cm쯤 위</b>에 있다. 그 차이만큼
+                // 자가 짧게 나와, 도구가 그만큼 사람을 더 키웠다 — 1.60 을 시켰는데 1.64 가
+                // 서 있었다. 선 자세로 구운 살갗의 맨 밑을 바닥으로 친다.
+                //
+                // <b>구운 살갗에 TransformPoint 를 쓰면 안 된다.</b> BakeMesh 가 내주는 점은
+                // 이미 <b>실제 크기</b>다 — 거기에 또 transform 을 태우면 배율이 두 번 곱해진다.
+                // 마름의 fbx 는 안쪽이 100배라 노드 배율이 0.01 인데, 그대로 태웠더니 키가
+                // <b>1.86m 가 0.02m</b> 로 줄어 자가 통째로 헛돌았다. 배율 말고 <b>돌림만</b>
+                // 태워서 세로를 세운다.
+                float floor = 9e9f;
+                {
+                    var baked = new Mesh();
+                    smr.BakeMesh(baked);
+                    var vs = baked.vertices;
+                    var rot = smr.transform.rotation;
+                    float py = smr.transform.position.y;
+                    for (int i = 0; i < vs.Length; i++)
+                    {
+                        float y = (rot * vs[i]).y + py;
+                        if (y < floor) floor = y;
+                    }
+                    Object.DestroyImmediate(baked);
+                }
+
+                float lo = 9e9f, hi = -9e9f; Transform head = null;
                 foreach (var b in smr.bones)
                 {
                     if (b == null) continue;
                     if (b.position.y < lo) lo = b.position.y;
                     if (b.position.y > hi) hi = b.position.y;
+
+                    var n = b.name;
+                    int colon = n.LastIndexOf(':');
+                    if (colon >= 0) n = n.Substring(colon + 1);
+                    if (string.Equals(n, "head", System.StringComparison.OrdinalIgnoreCase)) head = b;
                 }
-                return hi > lo ? hi - lo : -1f;
+                if (lo > hi) return -1f;
+                if (floor > 8e9f) floor = lo;
+
+                // 머리뼈가 있으면 그것으로 잰다. 없으면 옛 자(꼭대기 뼈)로 물러선다 —
+                // 쓴 것이 없는 사람은 두 자가 어차피 같은 값을 낸다.
+                if (head != null) return (head.position.y - floor) / HeadRatio;
+                return hi - floor;
             }
             finally { Object.DestroyImmediate(inst); }
         }

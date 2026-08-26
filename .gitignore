@@ -154,6 +154,10 @@ gemini_api_key.txt
 /Assets/Screenshots/
 /Assets/Screenshots.meta
 
+# 찍어 본 그림. Assets 밖에 둔다 — 안에 두면 유니티가 210장을 다 자산으로 물어
+# 새로고침마다 훑는다(98MB였다).
+/Captures/
+
 # TextMesh Pro 기본 리소스(순정 LiberationSans만) — GUID가 고정이라 재임포트하면 동일하게 복구됨
 # 없으면: 유니티 메뉴 [Window ▸ TextMeshPro ▸ Import TMP Essential Resources]
 # ※ 한글 폰트는 /Assets/_Project/Art/Fonts/ 에 있고 그쪽도 공유폴더 배포다
