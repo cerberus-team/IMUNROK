@@ -129,8 +129,19 @@ namespace IMUNROK.Common.EditorTools
             foreach (var c in Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 UnityEditor.Undo.RecordObject(c.gameObject, "재우기");
+                UnityEditor.Undo.RecordObject(c, "재우기");
                 c.gameObject.SetActive(awake);
+
+                // <b>깨울 때는 부품도 켠다.</b> 이 도구의 첫 판은 오브젝트가 아니라
+                // 부품을 껐다(그것만으로는 Awake 가 막히지 않아 오브젝트째 끄는 쪽으로
+                // 고쳤다). 그런데 되돌리기는 오브젝트만 도로 켰으므로, 그때 꺼진
+                // 부품이 씬에 그대로 저장돼 남았다 — 표제는 Awake 로 화면을 캄캄하게
+                // 내려놓고 Start 가 안 돌아 글씨도 누름판도 세우지 못했고, Update 가
+                // 안 도니 아무 키도 안 먹었다. 게임이 검은 화면에서 죽어 있었다.
+                if (awake) c.enabled = true;
+
                 EditorUtility.SetDirty(c.gameObject);
+                EditorUtility.SetDirty(c);
                 n++;
             }
             if (n > 0) log.AppendLine("── " + name + " " + (awake ? "깨웠다" : "재웠다(오브젝트째)"));

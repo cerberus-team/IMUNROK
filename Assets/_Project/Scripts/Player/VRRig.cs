@@ -47,8 +47,10 @@ namespace IMUNROK.Common
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()
         {
-            // 찍는 중이면 아예 서지 않는다 — 두드림 한 번이 5초씩 화면을 붙잡는다.
-            if (ShotMode.On) return;
+            // 아예 서지 않는 두 자리 — 두드림 한 번이 5초씩 화면을 붙잡는 까닭이다.
+            //   · 찍는 중(ShotMode)      — 이 장면만 조용하면 된다
+            //   · 헤드셋 안 씀(VrPref)   — 당분간 책상에서만 만진다
+            if (ShotMode.On || VrPref.HeadsetOff) return;
 
             var go = new GameObject("_VR_몸짓기");
             go.AddComponent<VRRig>();

@@ -20,7 +20,7 @@ RenderSettings:
   m_FogDensity: 0.01
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.1, g: 0.1, b: 0.12, a: 1}
+  m_AmbientSkyColor: {r: 0.012, g: 0.012, b: 0.018, a: 1}
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
   m_AmbientIntensity: 1
@@ -135,7 +135,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &76830929
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -143,7 +143,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 76830928}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 982df04ff279afa4f9fd375c1ba6672d, type: 3}
   m_Name: 
@@ -173,7 +173,7 @@ MonoBehaviour:
   _skipLabel: "\uD29C\uD1A0\uB9AC\uC5BC \uB118\uAE30\uAE30"
   _skipAppearsAfter: 3
   _skipFadeIn: 1.4
-  _skipOnlyAfterSeen: 1
+  _skipOnlyAfterSeen: 0
 --- !u!4 &76830930
 Transform:
   m_ObjectHideFlags: 0
@@ -578,8 +578,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 498567541}
-  - component: {fileID: 498567542}
-  - component: {fileID: 498567543}
   m_Layer: 0
   m_Name: Documents
   m_TagString: Untagged
@@ -605,35 +603,6 @@ Transform:
   - {fileID: 1425768609}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &498567542
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 498567540}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ae1bf90e515195c4d9f53684056140f5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.ScrollRollIn
-  _fromDistance: 1.6
-  _seconds: 2.6
-  _stagger: 0.45
-  _delay: 0.6
-  _playOnStart: 1
---- !u!114 &498567543
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 498567540}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 957eb114413b08a4aa06c9348b3b1cbe, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.FrameHitchProbe
 --- !u!1001 &536229945
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -912,7 +881,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &656084189
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -920,7 +889,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 656084188}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 752a8bed7bfd1f144bb0e2f5ddf27954, type: 3}
   m_Name: 
@@ -2468,7 +2437,7 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 2
-  m_Color: {r: 0.68361604, g: 0.88139534, b: 0.9748427, a: 1}
+  m_Color: {r: 0, g: 0.2701093, b: 0.40251565, a: 1}
   m_Intensity: 2.4
   m_Range: 7
   m_SpotAngle: 30
