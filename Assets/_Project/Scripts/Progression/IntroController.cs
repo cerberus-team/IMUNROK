@@ -249,6 +249,7 @@ namespace IMUNROK.Common
         {
             if (_taken) return;
             _taken = true;
+            _takenCase = chosen;
 
             // 고르지 않은 둘은 사건판에 회색으로 남는다. 나중에 아무 때나 집으면 된다.
             foreach (var d in _documents)
@@ -271,15 +272,13 @@ namespace IMUNROK.Common
             if (_taken) SubtitleView.Show(_goingSpeaker, _goingLine, "");
         }
 
+        [Tooltip("맡은 봉서로 화면을 덮으며 넘어가는 데 걸리는 시간(초). " +
+                 "0 이면 예전처럼 그냥 캄캄해졌다 뜬다")]
+        [SerializeField] private float _coverSeconds = 0.75f;
+
         private void LeaveForHub()
         {
             SubtitleView.Hide();
-
-            // 눈앞에 들어 올린 두루마리는 화면을 덮는 검은 막보다 앞에 있다.
-            // 그냥 두면 캄캄해진 화면 위에 그것만 남아 떠 있다.
-            if (_documents != null)
-                foreach (var d in _documents)
-                    if (d != null) d.HideNow();
 
             if (string.IsNullOrEmpty(_hubSceneName) || !Application.CanStreamedLevelBeLoaded(_hubSceneName))
             {
@@ -288,9 +287,34 @@ namespace IMUNROK.Common
                 return;
             }
 
-            // 눈을 한 번 감았다 뜨는 사이에 옮긴다 — 갑자기 자리가 바뀌면 멀미가 난다.
+            // <b>맡은 봉서로 화면을 덮으며 넘어간다.</b>
+            //
+            // 여태는 그냥 캄캄해졌다 떴다. 그 검은 막은 아무것도 아니라서, 화면이
+            // <b>바뀐 것</b>이지 내가 <b>들고 간 것</b>이 아니었다. 손에 쥔 종이가
+            // 시야를 덮으며 넘어가면 그 봉서가 조사청까지 따라온 것이 된다 —
+            // 도착해서 손에 봉서가 있는 것이 그제야 자연스럽다.
+            IntroDocument taken = null;
+            if (_documents != null)
+                foreach (var d in _documents)
+                    if (d != null && d.CaseId == _takenCase && d.IsReading) taken = d;
+
+            if (taken != null && _coverSeconds > 0.01f)
+            {
+                taken.CoverScreen(_coverSeconds, () => SceneManager.LoadScene(_hubSceneName));
+                return;
+            }
+
+            // 덮을 것이 없으면(펼치지 않고 맡았거나 값이 0) 예전 길로 간다.
+            // 눈앞에 들어 올린 두루마리는 검은 막보다 앞에 있어, 그냥 두면
+            // 캄캄해진 화면 위에 그것만 남아 떠 있다.
+            if (_documents != null)
+                foreach (var d in _documents)
+                    if (d != null) d.HideNow();
             ScreenFade.Blink(0.45f, 0.5f, () => SceneManager.LoadScene(_hubSceneName));
         }
+
+        /// <summary>어느 사건을 맡았나 — 화면을 덮을 봉서를 고를 때 쓴다.</summary>
+        private CaseId _takenCase;
 
         /// <summary>다음 줄로 넘기려고 눌렀는가(한 번 누름).</summary>
         private bool AdvancePressed()

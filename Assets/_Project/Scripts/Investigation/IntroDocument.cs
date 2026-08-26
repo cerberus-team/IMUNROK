@@ -355,6 +355,78 @@ namespace IMUNROK.Common
             return Quaternion.LookRotation(-cam.transform.forward, cam.transform.up);
         }
 
+        /// <summary>
+        /// <b>봉서로 화면을 덮는다.</b> 이것을 든 채 다음 자리로 넘어간다는 말이다.
+        ///
+        /// 여태는 봉서를 맡으면 <b>화면이 그냥 캄캄해졌다</b>. 그 검은 막은 아무것도
+        /// 아니라서, 화면이 <b>바뀐 것</b>이지 내가 <b>들고 간 것</b>이 아니었다.
+        /// 손에 쥔 것으로 화면을 덮으면 그 종이가 다음 자리까지 따라온 것이 된다 —
+        /// 조사청에 닿았을 때 손에 봉서가 있는 것이 자연스러워진다.
+        ///
+        /// 어떻게: 읽던 자리(눈앞 0.6m)에서 <b>눈 바로 앞</b>까지 끌어당긴다.
+        /// 종이 한 장은 그 거리에서 시야를 통째로 덮는다 — 키울 것도 없다.
+        /// 끝에 가서는 <b>가속</b>한다. 고르게 당기면 종이가 다가오는 것이 아니라
+        /// 화면이 확대되는 것으로 보인다.
+        ///
+        /// 자막·이름표는 먼저 걷는다. 종이 뒤에 글이 비쳐 보이면 종이가 아니라
+        /// 유리로 보인다.
+        /// </summary>
+        /// <param name="seconds">덮는 데 걸리는 시간</param>
+        /// <param name="then">다 덮은 뒤에 할 일 — 대개 씬 갈아 끼우기</param>
+        public void CoverScreen(float seconds, System.Action then)
+        {
+            if (_moving != null) StopCoroutine(_moving);
+            _moving = StartCoroutine(CoverRoutine(seconds, then));
+        }
+
+        private IEnumerator CoverRoutine(float seconds, System.Action then)
+        {
+            var cam = Camera.main;
+            if (cam == null) { if (then != null) then(); yield break; }
+
+            HideLabel();
+            KillPutBackTarget();
+            SubtitleView.Hide();
+            if (_collider != null) _collider.enabled = false;
+
+            // <b>읽는중에서 빠져나와야 한다.</b> LateUpdate 가 「읽는중」인 동안
+            // 종이를 <b>매 프레임 읽는 자리로 끌어다 놓기</b> 때문이다(고개를 돌려도
+            // 종이가 정면을 보게 하려고 둔 것). 코루틴이 당겨 놓으면 그 프레임 끝에
+            // 도로 밀려나서, 6초를 걸어 놓고도 종이가 <b>한 뼘도 안 움직였다</b>.
+            //
+            // 떠오르는중으로 옮긴다 — LateUpdate 는 손을 떼고, IsReading 은 참으로
+            // 남아 다른 데서 「지금 읽는 중」으로 세는 셈은 그대로 간다.
+            _phase = Phase.떠오르는중;
+
+            Vector3 fromPos = transform.position;
+            Quaternion fromRot = transform.rotation;
+
+            float dur = Mathf.Max(0.05f, seconds);
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.deltaTime / dur;
+                float k = Mathf.Clamp01(t);
+
+                // 끝에서 빨라진다 — 다가오는 것은 가까울수록 빨리 커진다
+                float e = k * k * k;
+
+                // 눈 바로 앞. 카메라의 앞 자름면보다 조금 앞이라야 잘리지 않는다.
+                float near = Mathf.Max(cam.nearClipPlane + 0.02f, 0.055f);
+                float half = PaperHalf();
+                Vector3 to = cam.transform.position
+                             + cam.transform.forward * near
+                             + cam.transform.up * half;      // 종이는 축에 매달려 아래로 자란다
+
+                transform.position = Vector3.Lerp(fromPos, to, e);
+                transform.rotation = Quaternion.Slerp(fromRot, ReadRotation(cam), Mathf.Min(1f, e * 2f));
+                yield return null;
+            }
+
+            _moving = null;
+            if (then != null) then();
+        }
+
         /// <summary>도로 발치에 내려놓는다(다른 봉서를 집었을 때).</summary>
         public void Lower()
         {
