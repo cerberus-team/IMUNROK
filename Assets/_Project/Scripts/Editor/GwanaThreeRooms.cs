@@ -167,6 +167,19 @@ namespace IMUNROK.Common.EditorTools
                     if (strip != null) parts.Add(strip);
                 }
 
+                // <b>붙박이로 표시된 것은 움직여도 안 움직인다.</b>
+                //
+                // 여닫이를 달고 열어 보아도 문이 그대로 서 있었다. 재 보면 트랜스폼은
+                // 분명히 돌아가 있는데(pos 14.27 → 8.42) <b>그려지는 자리는 그대로</b>였다.
+                // 까닭은 이 문짝들이 Static 으로 표시돼 있어서다 — 유니티가 씬을 올릴 때
+                // 붙박이 것들을 한 덩이로 구워 붙이므로, 그 뒤로는 트랜스폼을 움직여도
+                // 구워 둔 그림이 안 따라온다. 문서고 문이 잘 여닫히던 까닭도 이것이다
+                // (그쪽은 도구가 새로 세운 것이라 붙박이가 아니었다).
+                //
+                // 여닫는 것은 붙박이가 아니다. 표시를 지운다.
+                foreach (var p in parts)
+                    if (p != null) GameObjectUtility.SetStaticEditorFlags(p.gameObject, 0);
+
                 var sd = body.GetComponent<SwingDoor>();
                 if (sd == null) { sd = Undo.AddComponent<SwingDoor>(body.gameObject); made++; }
 
@@ -174,8 +187,14 @@ namespace IMUNROK.Common.EditorTools
                 var pp = so.FindProperty("_parts");
                 pp.arraySize = parts.Count;
                 for (int k = 0; k < parts.Count; k++) pp.GetArrayElementAtIndex(k).objectReferenceValue = parts[k];
-                so.FindProperty("_hinge").vector3Value = new Vector3(LeafX[i] - LeafHalf, Maru, DoorZ);
-                so.FindProperty("_openAngle").floatValue = 85f;      // + 면 대청 쪽(-z)으로 접힌다
+                // <b>가운데가 갈리게 단다.</b> 셋 다 왼쪽 변에서 돌리면 병풍처럼 한쪽으로만
+                // 접혀, 문이 아니라 <b>접이 벽</b>으로 보인다("대문 느낌이 아니다"가 이것이다).
+                // 첫 벌은 왼변에서 왼쪽으로, 나머지 둘은 오른변에서 오른쪽으로 접는다.
+                // 그러면 벌어지는 자리가 x 13.97~15.18 — 들어오는 길(14.62) 한가운데다.
+                bool left = i == 0;
+                so.FindProperty("_hinge").vector3Value =
+                    new Vector3(LeafX[i] + (left ? -LeafHalf : LeafHalf), Maru, DoorZ);
+                so.FindProperty("_openAngle").floatValue = left ? 85f : -85f;   // 둘 다 대청 쪽(-z)으로 열린다
                 so.FindProperty("_title").stringValue = "세살문";
                 so.FindProperty("_shutBody").stringValue = "동헌 안으로 드는 문이다. 닫혀 있다.";
                 so.FindProperty("_openBody").stringValue = "동헌 안으로 드는 문이다. 열려 있다.";

@@ -13562,8 +13562,8 @@ MonoBehaviour:
   - {fileID: 417867720}
   - {fileID: 1792777063}
   - {fileID: 827512605}
-  _hinge: {x: 15.28, y: 2.19, z: 4.57}
-  _openAngle: 85
+  _hinge: {x: 16.4, y: 2.19, z: 4.57}
+  _openAngle: -85
   _speed: 170
   _together: []
   _openAtStart: 0
@@ -20734,7 +20734,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &758590145
 Transform:
@@ -39957,9 +39957,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6081581871553324287, guid: cba4de886f1dd5149b85c3a27a2b809f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6112805227379689371, guid: cba4de886f1dd5149b85c3a27a2b809f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7355586318479984982, guid: cba4de886f1dd5149b85c3a27a2b809f, type: 3}
       propertyPath: m_Name
       value: PF_Donheon
+      objectReference: {fileID: 0}
+    - target: {fileID: 8721266649211963320, guid: cba4de886f1dd5149b85c3a27a2b809f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -40805,8 +40817,8 @@ MonoBehaviour:
   - {fileID: 1597184524}
   - {fileID: 758590145}
   - {fileID: 1007057143}
-  _hinge: {x: 14.059999, y: 2.19, z: 4.57}
-  _openAngle: 85
+  _hinge: {x: 15.18, y: 2.19, z: 4.57}
+  _openAngle: -85
   _speed: 170
   _together: []
   _openAtStart: 0
@@ -44939,7 +44951,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &1723694269
 Transform:
@@ -47417,7 +47429,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &1792777063
 Transform:
