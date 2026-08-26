@@ -193,6 +193,16 @@ namespace IMUNROK.Common
             // 세워 둔 동안에는 손을 대지 않는다 — 지금 있는 그 자리 그대로.
             if (Frozen) return;
 
+            // ── 모니터에서는 붙박이 ──
+            // 데드존도 감쇠도 건너뛰고 매 칸 카메라를 그대로 따른다. 위아래도 따라간다 —
+            // 수평만 따르던 것은 <b>고개를 젓는 헤드셋</b>을 위한 규칙이지 모니터의 것이 아니다.
+            if (ScreenFixed && !Pinned)
+            {
+                _anchorForward = head.forward;
+                ApplyTransform(head, instant: true);
+                return;
+            }
+
             // 데드존: 고개를 충분히 돌렸을 때만 목표 방향을 새로 잡는다.
             if (Vector3.Angle(_anchorForward, look) > _recenterAngle)
                 _anchorForward = look;
@@ -217,6 +227,28 @@ namespace IMUNROK.Common
 
         /// <summary>화면과 나란히 설지 밖에서 정한다. 하단바처럼 넓고 아래에 눕는 판이 쓴다.</summary>
         public void SetScreenParallel(bool on) { _screenParallel = on; }
+
+        [Tooltip("헤드셋을 안 쓴 동안에는 판을 <b>화면에 붙박는다</b> — 감쇠도 데드존도 없이 " +
+                 "매 칸 카메라를 그대로 따른다. 꾸러미 PC판이 그렇게 선다. " +
+                 "끄면 예전처럼 늦게 따라온다(판이 앞에 놓인 것처럼 보이는 대신 헤엄친다)")]
+        [SerializeField] private bool _screenFixedOnPc = true;
+
+        /// <summary>
+        /// 지금 <b>화면에 붙박여야</b> 하는가.
+        ///
+        /// 팀원 PC판을 보면 판이 화면에 못 박힌 듯 딱 붙어 있는데 우리 것은 고개를 돌릴
+        /// 때마다 뒤따라 헤엄쳐 왔다. 까닭을 찾아보니 <b>감쇠를 늘 걸고 있었다</b> —
+        /// 저쪽은 감쇠를 <c>UiModes.IsVr</c> 일 때만 건다(<c>DialogueUI.ApplyPose</c>).
+        ///
+        /// 저쪽 주석이 왜 그렇게 갈랐는지도 적어 두었다: VR에서 붙박이로 두면 판이
+        /// 시야 한구석에 <b>영원히 붙어</b> 고개를 돌려도 정면으로 가져올 수가 없다.
+        /// 모니터에는 그런 일이 없다 — 화면이 곧 시야라서, 늦게 따라오는 것은
+        /// <b>손해일 뿐</b>이다.
+        ///
+        /// 그래서 헤드셋 유무로 가른다. <see cref="Pinned"/>(세워 둔 판)와
+        /// <see cref="Frozen"/>은 제 뜻이 따로 있으므로 건드리지 않는다.
+        /// </summary>
+        private bool ScreenFixed { get { return _screenFixedOnPc && !VRRig.Active; } }
 
         [Header("벽 피하기")]
         [Tooltip("앞을 막은 것이 있으면 그 앞으로 당겨 온다. 당긴 만큼 배율도 함께 줄어 " +
