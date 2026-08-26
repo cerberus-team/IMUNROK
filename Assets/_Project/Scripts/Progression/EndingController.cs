@@ -41,6 +41,26 @@ namespace IMUNROK.Common
         [Header("마지막 대사")]
         [TextArea] [SerializeField] private string _finalLine = "그래서, 그 이야기들은 거짓이었느냐.";
 
+        [Header("맺음 — 왕의 말이 끝난 뒤")]
+        /// <summary>
+        /// <b>어전이 꺼지고 맺음말만 남는다.</b>
+        ///
+        /// 왕의 마지막 물음("그래서, 그 이야기들은 거짓이었느냐")에는 답이 없다.
+        /// 답을 자막으로 붙이면 그건 이 게임이 제 물음에 제가 답하는 꼴이 된다.
+        /// 그러니 그 자리에서 <b>세상을 끈다</b> — 물음만 남기고 어전이 사라지면,
+        /// 답할 사람은 화면 밖에 남는다.
+        ///
+        /// 그 어둠 위에 맺음말과 만든 사람을 적는다.
+        /// </summary>
+        [Tooltip("맺음말이 뜰 때 끌 것(어전 통째로). 비우면 세상이 그대로 남는다")]
+        [SerializeField] private GameObject _worldToHide;
+
+        [TextArea(2, 3)] [SerializeField] private string _thanksLine = "플레이해 주셔서 감사합니다.";
+
+        [Tooltip("만든 사람. 줄을 바꿔 여럿 적으면 그대로 뜬다")]
+        [TextArea(3, 8)] [SerializeField] private string _creditsLine =
+            "이문록(異聞錄)\n\n만든 사람\n(여기에 이름을 적으십시오)";
+
         [Header("종료 후")]
         [SerializeField] private string _hubSceneName = "HubScene";
 
@@ -97,6 +117,11 @@ namespace IMUNROK.Common
 
             // 4) 마지막 대사
             _lines.Add(_finalLine);
+
+            // 5) 맺음 — 여기부터는 왕이 아니라 만든 사람이 말한다
+            _fromLine = _lines.Count;
+            if (!string.IsNullOrEmpty(_thanksLine)) _lines.Add(_thanksLine);
+            if (!string.IsNullOrEmpty(_creditsLine)) _lines.Add(_creditsLine);
 
             _index = 0;
             _timer = 0f;
@@ -208,10 +233,21 @@ namespace IMUNROK.Common
             _shown = at;
             _justFinished = false;
 
-            SubtitleView.Show(_speakerName, _lines[at], Hint(), true);
+            // 맺음말에 들어서면 어전을 끈다. 왕의 목소리도 여기서 끝난다.
+            bool ending = _fromLine >= 0 && at >= _fromLine;
+            if (ending && _worldToHide != null && _worldToHide.activeSelf)
+            {
+                _worldToHide.SetActive(false);
+                RenderSettings.ambientIntensity = 0f;
+            }
+
+            SubtitleView.Show(ending ? "" : _speakerName, _lines[at], Hint(), true);
         }
 
         private bool _justFinished;
+
+        /// <summary>맺음말이 시작되는 줄. -1 이면 없다.</summary>
+        private int _fromLine = -1;
 
         /// <summary>
         /// 아랫줄. <b>헤드셋에서는 자판 이름을 안 적는다</b> — 누를 손이 없다.
