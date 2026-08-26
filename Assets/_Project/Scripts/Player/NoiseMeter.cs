@@ -477,6 +477,16 @@ namespace IMUNROK.Common
         private void OnGUI()
         {
             if (!_showGauge) return;
+
+            // <b>조심할 것이 없으면 아무것도 안 그린다.</b>
+            //
+            // 여태 무게가 실리기 전에도 눈금을 흐리게나마 그렸다. "아직 아무도 안
+            // 듣는다"고 적어 두면 친절하리라 여긴 것인데, 실제로는 표제에도 어전에도
+            // 조사청에도 화면 왼쪽 아래에 막대 두 줄이 <b>늘</b> 박혀 있었다.
+            // 영상을 찍으면 그것부터 눈에 든다.
+            //
+            // 잠행이 아닌 데서는 소리가 아무 뜻이 없다. 뜻이 생길 때(Arm) 나타나면 된다.
+            if (!_armed) return;
             const float w = 220f, h = 14f;
             float x = 16f, y = Screen.height - 76f;
 

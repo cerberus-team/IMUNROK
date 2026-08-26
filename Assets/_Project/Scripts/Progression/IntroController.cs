@@ -65,10 +65,24 @@ namespace IMUNROK.Common
         [SerializeField] private string _hubSceneName = "HubScene";
 
         [Header("건너뛰기")]
-        [Tooltip("이만큼 누르고 있으면 어명을 건너뛴다. 스치듯 눌러 날아가지 않게 길게 잡는다")]
-        [SerializeField] private float _skipHoldSeconds = 1.2f;
-        [Tooltip("끄면 처음부터 건너뛸 수 있다(시연·개발용)")]
-        [SerializeField] private bool _skipOnlyAfterSeen = true;
+        // <b>꾹 누르기를 걷어냈다.</b> 눌러도 한참 아무 일이 없다가 갑자기 되는 방식이라
+        // 처음 온 사람에게는 고장난 것과 구별이 안 되고, 무엇보다 <b>건너뛸 수 있다는
+        // 사실 자체가 안 보였다</b> — 자막 아랫줄에 "꾹 누르기"라고 적어 두어도 그것을
+        // 읽고 시험해 볼 사람은 이미 건너뛸 마음이 있는 사람뿐이다.
+        //
+        // 이제 화면 오른쪽 위에 <b>단추가 서서히 배어 나온다</b>(CornerButton).
+        // 볼 사람은 그대로 보고, 넘길 사람은 눈에 보이는 것을 누른다.
+        [Tooltip("단추에 적힐 말")]
+        [SerializeField] private string _skipLabel = "튜토리얼 넘기기";
+        [Tooltip("어명이 시작되고 이만큼(초) 뒤에 단추가 배어 나오기 시작한다. " +
+                 "곧바로 띄우면 연출이 아니라 기다리는 화면이 된다")]
+        [SerializeField] private float _skipAppearsAfter = 3f;
+        [Tooltip("배어 나오는 데 걸리는 시간(초)")]
+        [SerializeField] private float _skipFadeIn = 1.4f;
+        [Tooltip("켜면 <b>끝까지 한 번 본 뒤부터만</b> 단추가 뜬다. 어명은 내가 왜 여기 " +
+                 "있는지를 말해 주는 유일한 자리라 한때 그렇게 막아 두었는데, 눈에 보이는 " +
+                 "단추를 누르는 것은 실수로 되는 일이 아니므로 이제 열어 둔다")]
+        [SerializeField] private bool _skipOnlyAfterSeen = false;
 
         /// <summary>어명을 끝까지 본 적이 있는가. 기기에 남는다.</summary>
         private const string SeenKey = "이문록_어명_봄";
@@ -88,11 +102,13 @@ namespace IMUNROK.Common
         }
 
         private bool CanSkip => !_skipOnlyAfterSeen || SeenBefore;
+        private float _skipTimer;
 
         private void Start()
         {
             _index = 0;
             _timer = 0f;
+            _skipTimer = 0f;
             ShowLine();
         }
 
@@ -100,26 +116,26 @@ namespace IMUNROK.Common
         {
             if (_speechDone) return;
 
-            HandleSkipHold();
-            if (_speechDone) return;
+            RaiseSkipButton();
 
             _timer += Time.deltaTime;
             if (_timer >= _secondsPerLine || AdvancePressed())
                 Next();
         }
 
-        /// <summary>누르고 있는 시간을 재서 건너뛴다. 짧게 누른 것은 '다음 줄'이라 여기 걸리지 않는다.</summary>
-        private void HandleSkipHold()
+        /// <summary>
+        /// 몇 마디가 지나면 오른쪽 위에 <b>넘기기</b>가 배어 나온다.
+        ///
+        /// 곧바로 띄우지 않는 까닭: 어명이 시작되자마자 "넘기기"가 떠 있으면 그것은
+        /// 연출이 아니라 <b>기다리는 화면</b>이 된다. 세 셈쯤 뒤에 나타나면, 볼 사람은
+        /// 이미 첫 마디에 들어가 있고 넘길 사람은 그때쯤 손이 움직인다.
+        /// </summary>
+        private void RaiseSkipButton()
         {
-            if (!CanSkip) return;
-
-            if (!AdvanceHeld()) { _holdTimer = 0f; return; }
-
-            _holdTimer += Time.deltaTime;
-            if (_holdTimer < _skipHoldSeconds) return;
-
-            _holdTimer = 0f;
-            EndSpeech();
+            if (!CanSkip || CornerButton.Up) return;
+            _skipTimer += Time.deltaTime;
+            if (_skipTimer < _skipAppearsAfter) return;
+            CornerButton.Show(_skipLabel, EndSpeech, _skipFadeIn);
         }
 
         private void Next()
@@ -139,15 +155,14 @@ namespace IMUNROK.Common
 
         private string HintText()
         {
-            return CanSkip
-                ? "(다음 — 누르기 · 건너뛰기 — 꾹 누르기)"
-                : "(다음 — 누르기)";
+            return "(다음 — 누르기)";
         }
 
         private void EndSpeech()
         {
             if (_speechDone) return;
             _speechDone = true;
+            CornerButton.Hide();
             _index = Mathf.Max(0, _kingLines.Length - 1);
 
             // 끝까지 들었든 건너뛰었든, 이 지점에 닿았으면 본 것으로 친다.
