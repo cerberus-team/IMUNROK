@@ -292,6 +292,7 @@ namespace IMUNROK.Common
         {
             FitToEye();
             if (_group == null || _group.alpha < 0.5f) return;
+            PaintHeard();
 #if ENABLE_INPUT_SYSTEM
             // 옛 Input 클래스를 쓰면 안 된다. 이 프로젝트는 입력을 Input System 으로
             // 넘겨 놓아서, 저것을 읽는 순간 예외가 난다 — 자막이 떠 있는 내내 매 프레임
@@ -300,7 +301,47 @@ namespace IMUNROK.Common
             if (kb == null) return;
             if (kb.escapeKey.wasPressedThisFrame || kb.backspaceKey.wasPressedThisFrame)
                 SetVisible(false, true);        // 이것도 사람이 닫은 것이다
+
+            // ── Enter — 묻기 ──
+            //
+            // 저쪽 대화창이 Enter 로 던진다. 우리는 여태 <b>던지는 절차 자체가 없었다</b> —
+            // 마이크가 문장을 끝내는 순간 그대로 날아갔다. 이제 칸에 올라 있는 말을
+            // 사람이 보고 Enter 로 던진다(「묻 기」 단추와 같은 길이다).
+            if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame)
+            {
+                var a = InterrogationController.Active;
+                if (a != null) a.AskDraft();
+            }
 #endif
+        }
+
+        /// <summary>
+        /// 입력줄 칸에 <b>받아 적힌 말</b>을 비춘다.
+        ///
+        /// 세 가지가 번갈아 온다 — 지금 받아 적히는 중이면 그 글이 또렷하게, 던지고 나서
+        /// 비었으면 <b>방금 던진 말이 묽게</b>, 그것마저 없으면 무엇을 누르라는 안내가 온다.
+        /// 던진 말을 지워 버리면 무엇으로 전해졌는지 확인할 데가 없어진다.
+        /// </summary>
+        private void PaintHeard()
+        {
+            if (_heardText == null) return;
+            var a = InterrogationController.Active;
+            var pal = IMUNROK.Ui.DialogueUI.Palette();
+
+            string draft = a != null ? a.Draft : "";
+            if (!string.IsNullOrEmpty(draft))
+            {
+                if (_heardText.text != draft) _heardText.text = draft;
+                if (_heardText.color != pal.text) _heardText.color = pal.text;
+                return;
+            }
+
+            string last = a != null ? a.LastPlayerLine : "";
+            string show = string.IsNullOrEmpty(last)
+                        ? Controls.SpeakPrompt
+                        : last;
+            if (_heardText.text != show) _heardText.text = show;
+            if (_heardText.color != pal.slotHint) _heardText.color = pal.slotHint;
         }
 
         /// <summary>
@@ -535,7 +576,7 @@ namespace IMUNROK.Common
 
             Chip(_inputRow, "묻기", "묻 기", new Vector2(x, 0f), new Vector2(bw, st.inputH), st.input,
                  pal.slotBack, () => { var a2 = InterrogationController.Active;
-                                       if (a2 != null && !string.IsNullOrEmpty(_heardText.text)) a2.Say(_heardText.text); });
+                                       if (a2 != null) a2.AskDraft(); });
             x += bw + gap;
 
             Chip(_inputRow, "증거제시", "증거 제시", new Vector2(x, 0f), new Vector2(bw, st.inputH), st.input,

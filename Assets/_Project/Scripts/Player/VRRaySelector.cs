@@ -126,13 +126,20 @@ namespace IMUNROK.Common
         /// </summary>
         public static XRNode LastHand { get; private set; } = XRNode.RightHand;
 
-        /// <summary>방아쇠를 당기고 있나. 검지 방아쇠와 손아귀 중 어느 쪽이든 친다.</summary>
+        /// <summary>
+        /// 방아쇠를 당기고 있나 — <b>검지 방아쇠만</b> 친다.
+        ///
+        /// 한동안 손아귀(그립)도 같이 쳤다. 어느 쪽을 쥐어도 짚히면 편할 줄 알았는데,
+        /// 견우팀 꾸러미와 손짓을 맞추면서 <b>그립이 「말하기」로 갔다</b>. 둘을 겹쳐 두면
+        /// 말하려고 손아귀를 쥔 순간 광선 끝에 있던 것이 함께 눌린다 — 소리 없이 엉뚱한
+        /// 물건이 집히거나 「묻 기」가 저 혼자 눌리는, <b>오류 하나 안 나면서 어긋나는</b>
+        /// 종류의 탈이다. 그래서 그립을 떼어 냈다.
+        /// </summary>
         private bool Trigger()
         {
             var dev = InputDevices.GetDeviceAtXRNode(_hand);
             if (!dev.isValid) return false;
             if (dev.TryGetFeatureValue(CommonUsages.triggerButton, out bool t) && t) { LastHand = _hand; return true; }
-            if (dev.TryGetFeatureValue(CommonUsages.gripButton, out bool g) && g) { LastHand = _hand; return true; }
             return false;
         }
 

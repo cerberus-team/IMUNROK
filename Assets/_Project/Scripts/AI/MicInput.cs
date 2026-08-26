@@ -32,8 +32,12 @@ namespace IMUNROK.Common
         [Tooltip("비우면 씬에서 AppDictationExperience를 자동으로 찾는다")]
         [SerializeField] private AppDictationExperience _dictation;
 
-        [Tooltip("데스크탑 테스트용: 이 키를 누르고 있는 동안 듣는다(VR에선 컨트롤러 버튼)")]
-        [SerializeField] private Key _pushToTalkKey = Key.T;
+        // 견우팀 꾸러미와 같은 글쇠다(2026-08-27). 저쪽 대화창이 왼쪽 Ctrl 로 말하고,
+        // 우리는 여태 T 였다 — 판을 똑같이 맞춰 놓고 손만 다른 데를 누르게 둘 수는 없다.
+        // Ctrl 이어야 하는 까닭이 하나 더 있다: 글쇠 칸에 한글을 치는 중에도
+        // <b>Ctrl 은 글자를 먹지 않는다</b>. T 는 먹는다.
+        [Tooltip("이 키를 누르고 있는 동안 듣는다(VR에선 그립). 견우팀 꾸러미와 같은 자리다")]
+        [SerializeField] private Key _pushToTalkKey = Key.LeftCtrl;
 
         [Tooltip("이 시간(초)이 지나면 자동으로 듣기를 끝낸다. 0이면 제한 없음")]
         [SerializeField] private float _maxListenSeconds = 12f;

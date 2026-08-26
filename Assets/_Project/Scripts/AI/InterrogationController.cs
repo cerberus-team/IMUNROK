@@ -112,6 +112,27 @@ namespace IMUNROK.Common
         private string _lastPlayerLine = "";
 
         /// <summary>
+        /// <b>받아 적혔지만 아직 안 던진 말.</b>
+        ///
+        /// 여태는 마이크가 문장을 끝내는 순간 그대로 인물에게 날아갔다. 잘못 알아들으면
+        /// 그것이 그대로 질문이 되고, 무엇으로 전해졌는지는 대답이 온 뒤에야 알았다.
+        /// 견우팀 꾸러미는 그러지 않는다 — 받아 적은 글을 <b>칸에 올려 두고</b>,
+        /// 사람이 눈으로 확인한 뒤 Enter(또는 「묻 기」)로 던진다.
+        /// 저쪽 주석 그대로다: 「잘못 알아들었을 때 고칠 수 있어야 한다.」
+        ///
+        /// 그래서 우리도 <b>한 박자 둔다</b>. 자막 바의 입력줄이 이 값을 비춘다
+        /// (<see cref="Tools.SubtitleView"/>).
+        /// </summary>
+        public string Draft { get; private set; } = "";
+
+        /// <summary>방금 던진 말. 칸이 비어 있을 때 <b>묽게</b> 남아 무엇을 물었는지 보여 준다.</summary>
+        public string LastPlayerLine { get { return _lastPlayerLine; } }
+
+        [Tooltip("받아 적히자마자 곧바로 던진다. 끄면 칸에 올려 두고 Enter/「묻 기」를 기다린다 " +
+                 "— 꾸러미와 같은 절차이므로 꺼 두는 것이 기본이다")]
+        [SerializeField] private bool _voiceAutoSend;
+
+        /// <summary>
         /// 지금 대사가 <b>새로 알아낸 것</b>인가. 그러면 자막이 붉게 나온다.
         ///
         /// 수첩에는 물증만 적힌다(<see cref="Journal.AddClue"/>). 추천 질문으로 캐낸 정황과
@@ -278,6 +299,8 @@ namespace IMUNROK.Common
             _active = true;
             s_openCount++;
             Active = this;
+            // 지난 사람에게 하려던 말이 다음 사람 칸에 남아 있으면 안 된다.
+            Draft = "";
 
             if (MicInput.Instance != null)
             {
@@ -299,6 +322,7 @@ namespace IMUNROK.Common
         {
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); }
             if (Active == this) Active = null;
+            Draft = "";
             UnsubscribeMic();
             SubtitleView.KeepInFrontOf(null);
             SubtitleView.Hide();
@@ -396,10 +420,26 @@ namespace IMUNROK.Common
             _responder.GetResponse(this, req, OnReply, OnError);
         }
 
-        // 말하는 도중의 중간 전사 — 확정 전이라 대화 기록엔 넣지 않고 화면에만 보여준다.
-        private void OnMicPartial(string text) { if (!_active) return; _lastPlayerLine = text; RefreshSubtitle(); }
+        // 말하는 도중의 중간 전사 — 확정 전이라 대화 기록엔 넣지 않고 입력줄에만 비친다.
+        private void OnMicPartial(string text) { if (!_active) return; Draft = text ?? ""; RefreshSubtitle(); }
 
-        private void OnMicFinal(string text) { if (_active) Say(text); }
+        // 다 말했다. <b>던지지 않는다</b> — 칸에 올려 두고 사람이 보게 한다(Draft 주석 참고).
+        private void OnMicFinal(string text)
+        {
+            if (!_active) return;
+            Draft = (text ?? "").Trim();
+            if (_voiceAutoSend) AskDraft();
+            else RefreshSubtitle();
+        }
+
+        /// <summary>칸에 올라 있는 말을 던진다 — Enter 와 「묻 기」 단추가 부른다.</summary>
+        public void AskDraft()
+        {
+            if (string.IsNullOrWhiteSpace(Draft)) return;
+            string say = Draft;
+            Draft = "";
+            Say(say);
+        }
 
         // ── 행동 ②: 추천 질문 고르기 ──
         private void AskTopic(TopicQuestion t)
@@ -515,9 +555,11 @@ namespace IMUNROK.Common
         {
             if (!_active || _character == null) { SubtitleView.Hide(); return; }
             string line = _busy ? "…" : _npcLine;
-            string hint = string.IsNullOrEmpty(_lastPlayerLine)
-                        ? "마이크로 묻거나, 수첩에서 증거를 제시하시오"
-                        : $"{PlayerTitle} — {_lastPlayerLine}";
+            // 아랫줄은 <b>늘 조작 안내</b>다 — 꾸러미 바와 같은 자리에 같은 말이 온다.
+            // 여태는 여기에 「판관 — 내가 한 말」이 왔는데, 그 말은 이제 입력줄 칸으로
+            // 갔다(저쪽이 글쇠 칸에 두는 자리다). 한 줄에 둘을 번갈아 넣으면
+            // <b>조작을 알려 주는 줄이 말할 때마다 사라진다</b>.
+            string hint = Controls.InterrogationHint;
             // 붉은 글씨는 말이 다 나온 뒤에만. 기다리는 동안의 "…" 까지 붉으면
             // 무엇이 붉은 것인지 흐려진다.
             SubtitleView.Show(_character.characterName, line, hint, _lineIsKey && !_busy);
