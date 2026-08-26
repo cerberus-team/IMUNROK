@@ -77,7 +77,6 @@ namespace IMUNROK.Common
                                  "Built-In Models ▸ Korean 설정을 연결하세요.");
 
             Wire();
-            PickHeadsetMic();
         }
 
         /// <summary>
@@ -145,9 +144,29 @@ namespace IMUNROK.Common
         public void StartListening()
         {
             if (IsListening || _dictation == null) return;
+
+            // <b>들을 때마다 고른다.</b> 처음에는 Start 에서 한 번만 골랐는데, 그때는
+            // Voice SDK 의 Mic 부품이 <b>아직 안 생겨</b> 있어 찾지 못하고 조용히 지나갔다.
+            // 그 부품은 처음 쓸 때 저 혼자 생긴다. 이미 맞게 잡혀 있으면 곧 돌아오니
+            // 매번 불러도 헛일이 아니다.
+            PickHeadsetMic();
+
             IsListening = true;
             _listenTimer = 0f;
             _dictation.Activate();
+            if (_logDevice) Debug.Log("[MicInput] 듣기 시작 — " + CurrentDeviceName());
+        }
+
+        [Tooltip("들을 때마다 어느 마이크를 잡았는지 콘솔에 적는다. 잘 되면 꺼도 된다")]
+        [SerializeField] private bool _logDevice = true;
+
+        /// <summary>지금 잡고 있는 마이크 이름. 안 잡혔으면 그렇다고 말한다.</summary>
+        private string CurrentDeviceName()
+        {
+            foreach (var mb in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (mb != null && mb.GetType().FullName == "Meta.WitAi.Lib.Mic")
+                    return (string)mb.GetType().GetProperty("CurrentDeviceName").GetValue(mb, null);
+            return "아직 마이크 부품이 없다";
         }
 
         /// <summary>듣기 종료 → Wit.ai가 최종 문장을 만들어 OnFinal로 돌려준다.</summary>
@@ -184,11 +203,23 @@ namespace IMUNROK.Common
             }
         }
 
-        private void HandlePartial(string text) => OnPartial?.Invoke(text);
+        // <b>들린 말을 콘솔에도 적는다.</b>
+        //
+        // 단추가 빨개지는 것만으로는 <b>알아듣고 있는지</b>를 알 수가 없다. 마이크가
+        // 안 잡혔는지, 잡혔는데 소리가 안 들어오는지, 들어왔는데 못 알아들었는지가
+        // 화면에서는 다 똑같이 "아무 일 없음"으로 보인다. 한 마디라도 돌아오면
+        // 여기에 찍히므로, 안 찍히면 <b>들리기 전 단계</b>가 막힌 것이다.
+        private void HandlePartial(string text)
+        {
+            if (_logDevice && !string.IsNullOrWhiteSpace(text)) Debug.Log("[MicInput] …" + text);
+            OnPartial?.Invoke(text);
+        }
 
         private void HandleFinal(string text)
         {
             IsListening = false;
+            if (_logDevice) Debug.Log("[MicInput] 들은 말 = " +
+                (string.IsNullOrWhiteSpace(text) ? "(빔 — 소리가 안 들어왔거나 못 알아들었다)" : text.Trim()));
             if (!string.IsNullOrWhiteSpace(text)) OnFinal?.Invoke(text.Trim());
         }
     }
