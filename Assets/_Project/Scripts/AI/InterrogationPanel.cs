@@ -29,6 +29,8 @@ namespace IMUNROK.Common
     {
         [SerializeField] private Font _font;
         [SerializeField] private int _fontSize = 30;
+        [Tooltip("켜면 색을 <b>꾸러미(IMUNROK.Ui)</b> 에서 받아 온다 — 자막 바·수첩과 한 결이 된다")]
+        [SerializeField] private bool _useCommonLook = true;
         [SerializeField] private Color _chipColor = new Color(0.06f, 0.06f, 0.07f, 0.85f);
         [SerializeField] private Color _micColor = new Color(0.20f, 0.35f, 0.28f, 0.9f);
         [SerializeField] private Color _micOnColor = new Color(0.72f, 0.20f, 0.16f, 0.95f);
@@ -199,6 +201,7 @@ namespace IMUNROK.Common
             _group = gameObject.GetComponent<CanvasGroup>();
             if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
 
+            AdoptCommonLook();
             BuildFixedParts();
             SetVisible(false);
         }
@@ -291,6 +294,40 @@ namespace IMUNROK.Common
         }
 
         // ── 만들기 ──
+
+        /// <summary>
+        /// <b>색을 꾸러미에서 물어 온다.</b> 자막 바·수첩에 이어 셋째다.
+        ///
+        /// 이 판은 뒤판 없이 단추만 떠 있어서 색이 열 자리로 흩어져 있다.
+        /// 하나하나 꾸러미의 <b>뜻이 같은 색</b>에 붙인다 — 값이 아니라 뜻을 맞춘다.
+        ///
+        /// <b>마이크의 초록만은 옮길 데가 없었다.</b> 꾸러미에 초록이 없다. 그래서
+        /// 뜻으로 옮겼다 — 평소에는 <c>slotBack</c>(「눌러도 되는 자리」를 알리는 색),
+        /// 녹음 중에는 <c>Vermilion</c>(주칠). 팀원 PC판에서도 마이크는 어두운 칸이고
+        /// 누르면 붉어진다.
+        ///
+        /// 알파(비침)는 우리 값을 지킨다 — 저쪽은 낱색만 주고, 얼마나 비칠지는
+        /// 판마다 다르다.
+        /// </summary>
+        private void AdoptCommonLook()
+        {
+            if (!_useCommonLook) return;
+            var pal = IMUNROK.Ui.DialogueUI.Palette();
+
+            _chipColor      = Keep(pal.slotBack, _chipColor.a);      // 물음 칩 — 고를 수 있는 자리
+            _micColor       = Keep(pal.slotBack, _micColor.a);       // 마이크(평소)
+            _micOnColor     = Keep(UiLook.Seal, _micOnColor.a);      // 마이크(녹음 중) — 주칠
+            _endColor       = Keep(UiLook.WoodLit, _endColor.a);     // 마치기 — 나뭇결
+            _confirmColor   = Keep(UiLook.Seal, _confirmColor.a);    // 다짐 — 주칠
+            _orderColor     = Keep(UiLook.Seal, _orderColor.a);      // 명령 — 주칠
+            _seatColor      = Keep(pal.slotBack, _seatColor.a);      // 사람 칸
+            _seatUpColor    = Keep(UiLook.WoodLit, _seatUpColor.a);  // 부른 사람
+            _seatEmptyColor = Keep(pal.back, _seatEmptyColor.a);     // 빈 칸 — 먹빛
+            _textColor      = pal.text;
+        }
+
+        /// <summary>낱색은 꾸러미 것, 비침은 우리 것.</summary>
+        private static Color Keep(Color c, float alpha) { return new Color(c.r, c.g, c.b, alpha); }
 
         private void BuildFixedParts()
         {
