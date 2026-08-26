@@ -39,6 +39,12 @@ namespace IMUNROK.Common
             [Tooltip("이 말을 고르면 판결이 이렇게 정해진다(None 이면 안 건드린다). " +
                      "처분 빈칸에만 쓴다 — 엄히 다스리면 Truth, 사정을 헤아리면 Mercy")]
             public Verdict 판결 = Verdict.None;
+
+            [Tooltip("<b>쐐기</b>인가 — 이것 하나로 사람이 못 빠져나가는 증좌." +
+                     "곁증좌만 대고는 엄히 다스릴 수 없다. 사람을 맞혀도 쐐기가 없으면 " +
+                     "판결이 Mercy 로 내려앉는다 — 조선의 재판에서도 증거 없이 엄형은 못 했다." +
+                     "증좌 빈칸에만 쓴다")]
+            public bool 쐐기 = false;
         }
 
         /// <summary>한 줄. 빈칸 하나를 품는다.</summary>

@@ -47,6 +47,18 @@ namespace IMUNROK.Common
                  "끝까지 대야 뜻이 새겨진다. 그 가운데 켜에 쓴다")]
         [SerializeField] private string _litGlyphs = "";
 
+        [Tooltip("불빛에 다 드러났을 때 <b>따로 적는 단서</b>의 식별자(비우면 안 적음)." +
+                 "왜 따로 적는가: 위의 _litClueText 는 <b>이미 있는 줄을 고쳐 적는다</b>. " +
+                 "같은 종이에서 나온 이야기라 줄을 늘리지 않으려는 뜻인데, 그러면 " +
+                 "<b>등불로 본 사람과 그냥 읽은 사람을 가릴 수가 없다</b> — 열쇠가 같아서다. " +
+                 "장계의 빈칸처럼 '등불까지 댄 사람만 쓸 수 있는 말'을 두려면 " +
+                 "열쇠가 하나 더 있어야 한다")]
+        [SerializeField] private string _litClueKey = "";
+
+        [TextArea(2, 4)]
+        [Tooltip("위 열쇠로 적을 문구")]
+        [SerializeField] private string _litClueOwnText = "";
+
         [TextArea(2, 4)]
         [Tooltip("불빛에 다 드러났을 때 <b>수첩의 그 단서를 이 문구로 고쳐 적는다</b>(비우면 안 고침). " +
                  "단서 줄을 새로 늘리지 않는 까닭은, 같은 종이에서 나온 이야기가 " +
@@ -196,6 +208,12 @@ namespace IMUNROK.Common
         private void OnLitThrough()
         {
             if (_clueNeedsLantern) Record();
+
+            // 등불로 본 사람만 갖는 열쇠. 이것이 있어야 "등불까지 댄 사람만 쓸 수 있는 말"을
+            // 장계에 걸 수 있다.
+            if (!string.IsNullOrEmpty(_litClueKey) && Journal.Instance != null)
+                Journal.Instance.AddClue(_clueCase, _litClueKey,
+                    string.IsNullOrEmpty(_litClueOwnText) ? _litClueText : _litClueOwnText, _clueImage);
 
             if (string.IsNullOrEmpty(_litClueText) || Journal.Instance == null) return;
             string key = string.IsNullOrEmpty(_clueKey) ? _title : _clueKey;

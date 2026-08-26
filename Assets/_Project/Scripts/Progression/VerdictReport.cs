@@ -270,21 +270,39 @@ namespace IMUNROK.Common
             int rightCount = 0, total = _picked.Length;
             for (int i = 0; i < total; i++) if (Right(i)) rightCount++;
 
-            // ② 판결. 사람을 틀리면 무엇을 골랐든 가짜를 인정한 것이다.
+            // ② 판결.
+            //
+            //   · 사람을 틀리면 무엇을 골랐든 가짜를 인정한 것이다.
+            //   · 맞혔으면 처분 빈칸이 결을 정한다.
+            //   · 다만 <b>쐐기 없이는 엄히 못 다스린다</b>. 곁증좌만 대고 Truth 를 고르면
+            //     Mercy 로 내려앉는다 — 조선의 재판에서도 증거 없는 엄형은 못 했고,
+            //     게임으로도 그래야 증좌를 캐는 일이 값을 갖는다. 안 그러면 이름만
+            //     맞히면 되는 객관식과 다를 바 없다.
+            bool wedge = false;
+            for (int i = 0; i < total; i++)
+            {
+                var c = Chosen(i);
+                if (c != null && c.쐐기) wedge = true;
+            }
+
             var verdict = Verdict.Truth;
             if (!whoRight) verdict = Verdict.AcceptFake;
             else
+            {
                 for (int i = 0; i < total; i++)
                 {
                     var c = Chosen(i);
                     if (c != null && c.판결 != Verdict.None) verdict = c.판결;
                 }
+                if (verdict == Verdict.Truth && !wedge) verdict = Verdict.Mercy;
+            }
 
             if (GameState.Instance != null) GameState.Instance.SetVerdict(_form.사건, verdict);
 
             // ③ 뒷일. 증좌를 얼마나 짚었는지는 판결이 아니라 여기에 남는다.
+            // 뒷일도 쐐기로 갈린다. 다 맞혀도 쐐기가 없으면 <b>판결은 서되 뒷말이 남는다</b>.
             string after = !whoRight ? _form.헛끝
-                         : (rightCount >= total ? _form.참끝 : _form.반끝);
+                         : (wedge && rightCount >= total ? _form.참끝 : _form.반끝);
 
             _title.text = "狀 啓  (封)";
             _hint.text = "";

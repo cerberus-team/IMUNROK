@@ -78,6 +78,11 @@ namespace IMUNROK.Common.EditorTools
             f.빈칸 = new[]
             {
                 // ① 누구인가. 이 한 칸이 판결을 통째로 정한다.
+                //
+                // <b>이름은 늘 다 뜬다.</b> 증좌를 못 대면 이름을 아예 못 고르게 할까도
+                // 했지만, 그러면 게임이 이미 답을 정해 준 꼴이라 <b>고르는 일</b>이
+                // 사라진다. 누구든 지목할 수 있되 그 뒤를 못 받치면 판결이 무른다 —
+                // 그것이 판단을 플레이어에게 남기는 유일한 길이다.
                 new CaseReport.Blank
                 {
                     앞 = "", 뒤 = "이(가) 옹덕구를 사칭하고 가산을 차지하였으며",
@@ -86,34 +91,41 @@ namespace IMUNROK.Common.EditorTools
                     {
                         new CaseReport.Choice { 말 = "甲", 맞음 = true },
                         new CaseReport.Choice { 말 = "乙" },
-                        new CaseReport.Choice { 말 = "아내" },
                         new CaseReport.Choice { 말 = "마름" },
                         new CaseReport.Choice { 말 = "복동" },
                     },
                 },
                 // ② 증좌. 캐낸 것만 뜬다 — 이 목록이 곧 조사의 성적표다.
+                //
+                // <b>쐐기는 파기(疤記) 하나뿐이다.</b> 관아 호적대장에 스무 해 전
+                // 관리가 적어 둔 줄 — "왼팔 안쪽 데인 자국 두 치 남짓" — 은 노비를
+                // 가려내려고 관이 적은 것이라 이 집 사람이 손댈 수가 없다. 그 자국이
+                // 甲의 팔에 있다는 것은 <b>甲이 이 집 주인이 아니라는 뜻</b>이다.
+                // 나머지는 다 곁증좌다 — 필적이 다르고 셈이 수상하고 돈이 급했다는 것은
+                // 사람을 의심하게 하지만 사람을 못 박지는 못한다.
                 new CaseReport.Blank
                 {
                     앞 = "그 증좌는", 뒤 = "이라",
                     물음 = "무엇으로 그것을 아는가. (캐낸 것만 쓸 수 있다)",
                     보기 = new[]
                     {
-                        new CaseReport.Choice { 말 = "왼팔에 흉터가 없음",     필요단서 = "G08", 맞음 = true },
-                        new CaseReport.Choice { 말 = "왼팔 흉터가 대장과 같음", 필요단서 = "G07" },
-                        new CaseReport.Choice { 말 = "입안대장의 긁어낸 자리",       필요단서 = "G03" },
-                        new CaseReport.Choice { 말 = "호적대장에 적힌 것",           필요단서 = "G01" },
-                        new CaseReport.Choice { 말 = "호구단자의 필적",             필요단서 = "G02" },
-                        new CaseReport.Choice { 말 = "환곡대장의 셈",               필요단서 = "G04" },
+                        new CaseReport.Choice { 말 = "甲의 왼팔에 파기와 같은 자국이 있음",
+                                                필요단서 = "G07", 맞음 = true, 쐐기 = true },
+                        new CaseReport.Choice { 말 = "乙의 왼팔에는 그 자국이 없음", 필요단서 = "G08", 맞음 = true },
+                        new CaseReport.Choice { 말 = "입안대장을 긁어내고 고쳐 쓴 자리", 필요단서 = "G05", 맞음 = true },
+                        new CaseReport.Choice { 말 = "호구단자를 관리가 아니라 집사람이 씀", 필요단서 = "G02" },
+                        new CaseReport.Choice { 말 = "소작료를 한 달 전에 내린 셈",       필요단서 = "G04" },
+                        new CaseReport.Choice { 말 = "호적대장에 적힌 것",               필요단서 = "G01" },
                     },
                 },
-                // ③ 곁가지 하나 — 조사하지 않으면 아예 모르고 지나갈 사람.
+                // ③ 곁가지 하나 — 등불을 대 본 사람만 쓸 수 있다.
                 new CaseReport.Blank
                 {
                     앞 = "또", 뒤 = "은(는) 면천된 몸이나 문서가 고쳐져 아직 종으로 있으니",
                     물음 = "장부가 고쳐져 신분을 잃은 자가 누구인가.",
                     보기 = new[]
                     {
-                        new CaseReport.Choice { 말 = "복동",     필요단서 = "G03", 맞음 = true },
+                        new CaseReport.Choice { 말 = "복동",     필요단서 = "G05", 맞음 = true },
                         new CaseReport.Choice { 말 = "늙은하인" },
                         new CaseReport.Choice { 말 = "마름" },
                     },
@@ -132,10 +144,11 @@ namespace IMUNROK.Common.EditorTools
                 },
             };
 
-            f.참끝 = "가짜는 옹진 밖으로 내쳐졌다. 옹덕구는 제 이름을 되찾았고, " +
-                    "복동은 그해 가을 <b>제 이름으로</b> 호적에 올랐다.";
-            f.반끝 = "판결은 섰다. 다만 증좌가 성글어, 고을에는 아직도 " +
-                    "<b>어느 쪽이 참이었느냐</b>는 말이 남았다.";
+            f.참끝 = "파기 한 줄이 스무 해를 건너 사람을 짚었다. 가짜는 옹진 밖으로 " +
+                    "내쳐졌고, 옹덕구는 제 이름을 되찾았다. 복동은 그해 가을 " +
+                    "<b>제 이름으로</b> 호적에 올랐다.";
+            f.반끝 = "판결은 섰다. 다만 <b>못 박을 증좌가 없어</b> 엄히 다스리지는 못했다. " +
+                    "고을에는 아직도 어느 쪽이 참이었느냐는 말이 남았다.";
             f.헛끝 = "가짜가 옹덕구의 자리에 그대로 앉았다. 진짜는 제 집 문간에서 쫓겨났고, " +
                     "복동은 <b>여태 종이다</b>.";
             f.이문록줄 = "옹진현 옹고집 — {판결}";
@@ -144,7 +157,7 @@ namespace IMUNROK.Common.EditorTools
             AssetDatabase.CreateAsset(f, FormPath);
             AssetDatabase.SaveAssets();
             log.AppendLine("  · 장계를 만들었다 — " + FormPath);
-            log.AppendLine("    ※ 어느 보기가 참인지(맞음)는 이야기를 쓰는 쪽이 정할 일이다. 인스펙터에서 고치면 된다");
+            log.AppendLine("    쐐기는 파기(G07) 하나 — 나머지는 곁증좌라 판결이 무른다");
             return f;
         }
 
@@ -200,9 +213,9 @@ namespace IMUNROK.Common.EditorTools
             if (desk == null) desk = Undo.AddComponent<ReportDesk>(root);
             // 넷을 다 캐야 앉는다. 반쯤 캐고 앉으면 빈칸에 쓸 말이 뜨지도 않아,
             // 제가 무엇을 못 했는지도 모르는 채 헛장계를 봉하게 된다.
-            desk.Setup(form, seatT, new[] { "G01", "G03", "G07", "G08" });
+            desk.Setup(form, seatT, new[] { "G01", "G07", "G08" });
             EditorUtility.SetDirty(desk);
-            log.AppendLine("  · 앉는 자리 " + Seat.ToString("F2") + " — G01·G03·G07·G08 을 다 캐야 앉는다");
+            log.AppendLine("  · 앉는 자리 " + Seat.ToString("F2") + " — G01(파기)·G07·G08 을 캐야 앉는다");
             log.AppendLine("  · 진짜 서안·의자가 오면 '임시소품' 만 지우고 그 밑에 넣으면 된다");
         }
 

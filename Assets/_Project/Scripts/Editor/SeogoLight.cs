@@ -231,6 +231,12 @@ namespace IMUNROK.Common.EditorTools
             so.FindProperty("_litText").stringValue =
                 "긁어낸 자리 밑에서 지운 글이 배어 나온다 — *「복동 면천(免賤), 기묘년 시월」*. " +
                 "관이 이미 놓아준 것을 누군가 도로 종으로 만들어 놓았다.";
+            // 등불로 본 사람만 갖는 열쇠. 장계에서 "복동" 을 쓸 수 있는 자격이 이것이다 —
+            // 그냥 읽기만 한 사람은 다섯째 줄이 고쳐진 줄을 모른다.
+            so.FindProperty("_litClueKey").stringValue = "G05";
+            so.FindProperty("_litClueOwnText").stringValue =
+                "입안대장 다섯째 줄은 긁어내고 덧쓴 것이다. 지운 밑글은 「免賤 己卯十月」 — " +
+                "복동은 이미 놓여난 몸이었다.";
             so.FindProperty("_litClueText").stringValue =
                 "입안대장 다섯째 줄은 긁어내고 덧쓴 것이다. 지운 밑글은 「복동 면천, 기묘년 시월」 — " +
                 "복동은 이미 면천된 몸이다. 이 책이 고쳐진 덕에 아직 종으로 남아 있다.";
