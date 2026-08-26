@@ -262,6 +262,16 @@ namespace IMUNROK.Common
         private void FitToEye()
         {
             if (_fitted || _lineText == null) return;
+
+            // <b>이것은 헤드셋의 규칙이다.</b> 1.30도 하한은 「눈에서 몇 도로 보이나」를
+            // 따지는 값인데, 모니터에서는 그 물음이 성립하지 않는다 — 화면이 곧 시야라
+            // 몇 미터 앞에 앉느냐로 정해지지 우리가 정할 수가 없다.
+            //
+            // 그런데 여태 모니터에서도 이걸 돌리고 있었다. 재 보니 1.5m·0.001배에서
+            // 1단위가 0.038도라 안내 줄 <b>19가 35로</b>, 이름 32가 35로 부풀었다.
+            // 저쪽 PC판은 19·32 그대로다 — 판 치수를 한 픽셀까지 맞춰 놓고
+            // <b>글씨만 두 배로 키워</b> 놓고 있었던 것이다.
+            if (!VRRig.Active) { _fitted = true; return; }
             float scale = transform.lossyScale.y;
             if (scale > 0.5f) return;              // 아직 앵커가 안 줄였다
             var cam = Camera.main;
@@ -291,6 +301,7 @@ namespace IMUNROK.Common
         private void Update()
         {
             FitToEye();
+            SitNow();
             if (_group == null || _group.alpha < 0.5f) return;
             PaintHeard();
 #if ENABLE_INPUT_SYSTEM
@@ -516,21 +527,76 @@ namespace IMUNROK.Common
         ///
         /// 화각을 60으로 못 박지 않고 <b>지금 카메라에서 뽑는다</b> — 60이 아닌 날에도 맞는다.
         /// </summary>
+        private float _barH;
+        private float _sitFov = -1f;
+
+        /// <summary>
+        /// 캔버스 1단위 = 1mm. 저쪽과 같다.
+        /// </summary>
+        private const float BarScale = 0.001f;
+
+        /// <summary>
+        /// <b>화면 반높이를 단위로 적은 것.</b> 1.5m 앞, 세로 화각 60°에서
+        /// 1.5 × tan30° ÷ 0.001 = 866 이다. 저쪽이 못 박아 둔 숫자다.
+        ///
+        /// 이 값을 <b>고정</b>으로 두는 것이 요점이다 — 화각이 어떻든 「화면은 늘
+        /// 1732단위 높이」로 치고, 그렇게 되도록 <b>거리를 바꾼다</b>.
+        /// 그러면 바가 차지하는 화면 비율이 변하지 않는다.
+        /// </summary>
+        private const float RefHalfHeight = 866f;
+
         private void SitLikeTheBar(float w, float h)
         {
-            if (!_useCommonLook || _anchor == null) return;
+            _barH = h;
+            _sitFov = -1f;
+            // 넓고 아래에 눕는 판이라 <b>화면과 나란히</b> 서야 한다 — 눈을 마주 보게
+            // 눕히면 사다리꼴로 일그러진다(재 보니 좌우 귀퉁이가 화면에서 0.04 어긋났다).
+            if (_anchor != null) _anchor.SetScreenParallel(true);
+            SitNow();
+        }
+
+        /// <summary>
+        /// <b>바가 앉는 자리를 매 칸 다시 잡는다.</b>
+        ///
+        /// 여태는 <see cref="Build"/> 에서 <b>한 번만</b> 쟀다. 그 순간의 화각으로 재고
+        /// 끝냈으니, 화각이 그대로인 동안에는 맞았다.
+        ///
+        /// 그런데 이 게임은 <b>심문이 열리면 화각을 좁힌다</b> —
+        /// <see cref="ConversationView"/> 가 60°에서 42°로 당긴다(인물에 초점을 준다).
+        /// 화각이 좁아지면 화면이 확대되는 것이라, 같은 자리에 선 바가 <b>1.5배로 부푼다</b>.
+        /// 재 보니 화면 폭의 94%였던 것이 <b>141%</b>가 되어 양옆이 잘려 나갔다.
+        /// 「자막이 너무 크다」와 「인물에 너무 당겨진다」가 <b>같은 하나였다</b>.
+        ///
+        /// 그래서 화각을 좇는다. 화면 높이를 늘 <see cref="RefHalfHeight"/>×2 단위로 치고
+        /// 그렇게 되는 거리에 바를 세우면, 당기든 물러나든 <b>화면에서 차지하는 자리가
+        /// 그대로</b>다. 42°에서는 1.5m 가 아니라 2.26m 에 선다.
+        ///
+        /// ⚠️ 헤드셋에서는 <c>cam.fieldOfView</c> 를 읽으면 안 된다 — HMD 투영이 덮어써
+        ///    뜻을 잃는다(저쪽 <c>UiTuning</c> 주석에 같은 경고가 있다). VR은 저쪽처럼
+        ///    1.5m 에 못 박고 −16°로 눕힌다.
+        /// </summary>
+        private void SitNow()
+        {
+            if (!_useCommonLook || _anchor == null || _barH <= 0f) return;
             var cam = Camera.main;
             if (cam == null) return;
 
-            const float dist = 1.5f;                 // 저쪽이 잡은 거리
-            const float scale = 0.001f;              // 캔버스 1단위 = 1mm
-            float halfH = Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * dist / scale;
-            float y = -(halfH - h * 0.5f - 46f);     // 아래 끝에서 46단위 띄운다
+            if (VRRig.Active)
+            {
+                const float vrDist = 1.5f, vrUpDeg = -16f;
+                if (_sitFov > 0f) return;                       // VR은 한 번이면 된다
+                _sitFov = 1f;
+                _anchor.SetDistance(vrDist, vrDist * Mathf.Tan(vrUpDeg * Mathf.Deg2Rad));
+                return;
+            }
 
-            _anchor.SetDistance(dist, y * scale);
-            // 넓고 아래에 눕는 판이라 <b>화면과 나란히</b> 서야 한다 — 눈을 마주 보게
-            // 눕히면 사다리꼴로 일그러진다(재 보니 좌우 귀퉁이가 화면에서 0.04 어긋났다).
-            _anchor.SetScreenParallel(true);
+            float fov = cam.fieldOfView;
+            if (Mathf.Abs(fov - _sitFov) < 0.05f) return;       // 안 바뀌었으면 손대지 않는다
+            _sitFov = fov;
+
+            float dist = RefHalfHeight * BarScale / Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad);
+            float y = -(RefHalfHeight - _barH * 0.5f - 46f);    // 아래 끝에서 46단위 — 이건 안 변한다
+            _anchor.SetDistance(dist, y * BarScale);
         }
 
         private RectTransform _inputRow;
