@@ -566,6 +566,36 @@ namespace IMUNROK.Common
             bool after = Raked || previewAfter;
             if (_before != null) _before.SetActive(!after);
             if (_after != null) _after.SetActive(after);
+            if (Raked) YieldTo(_after);
         }
+
+        [Tooltip("다 헤집고 나면 <b>이쪽 콜라이더를 물린다</b>. 나온 물건이 이 콜라이더 " +
+                 "속에 들어앉아 있으면 광선이 늘 이쪽을 먼저 맞아, 나온 것을 집을 수가 없다")]
+        [SerializeField] private bool _yieldWhenDone = true;
+
+        /// <summary>
+        /// <b>다 헤집었으면 자리를 내준다.</b>
+        ///
+        /// 서고의 문서궤에서 드러난 탈이다. 궤를 헤집으면 대장이 나오는데 <b>집을 수가
+        /// 없었다</b>. 까닭은 종이도 단서도 아니고 <b>콜라이더</b>였다 — 궤의 상자가
+        /// 24cm 높이로 궤 <b>속까지</b> 덮고 있어서, 그 안에 놓인 대장(6cm)을 통째로
+        /// 품는다. 광선은 늘 바깥 상자를 먼저 맞고, 거슬러 올라가 찾는
+        /// <see cref="ISelectable"/> 은 이 부품이다. 그래서 대장을 눌러도 "궤를 헤집는다"만
+        /// 되풀이됐다 — 무슨 증거인지 알 길이 없었던 것이 이것이다.
+        ///
+        /// 다 헤집은 뒤에는 이 부품이 할 일이 없다. 자리를 내주면 광선이 안의 것을 맞는다.
+        /// 나온 것에 제 콜라이더가 <b>없으면</b> 물리지 않는다 — 그러면 아무것도 못 짚는
+        /// 자리가 되어 버린다.
+        /// </summary>
+        private void YieldTo(GameObject after)
+        {
+            if (!_yieldWhenDone || _yielded) return;
+            if (after == null || after.GetComponentInChildren<Collider>(true) == null) return;
+
+            foreach (var c in GetComponents<Collider>()) c.enabled = false;
+            _yielded = true;
+        }
+
+        private bool _yielded;
     }
 }

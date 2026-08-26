@@ -83,8 +83,14 @@ namespace IMUNROK.Common
 
                 // 유척 — 놋쇠 자. 앞으로 곧게 뻗으면 끝만 보이므로 <b>비스듬히</b> 뉜다.
                 // 자는 눈금을 읽는 물건이라 길이가 보여야 한다.
+                //
+                // -28도로는 <b>모자랐다</b>. 자는 2cm × 1.4cm × 31cm 짜리 각봉인데,
+                // 그 각도로는 31cm 가 거의 앞으로 뻗어 눈에는 <b>손가락만 한 막대</b>
+                // 하나로 줄어들었다 — "유척이 이상하게 보인다"던 것이 이것이다.
+                // 눈금을 읽는 물건이니 <b>길이가 가로로 놓여야</b> 한다. -72도로 눕히면
+                // 31cm 가 시야를 가로질러, 각진 몸과 눈금이 다 보인다.
                 case "yucheok":
-                    pose = new Pose { position = new Vector3(0.19f, -0.14f, 0.40f), euler = new Vector3(-16f, -28f, 4f), scale = 1f };
+                    pose = new Pose { position = new Vector3(0.17f, -0.16f, 0.38f), euler = new Vector3(-12f, -72f, 6f), scale = 1f };
                     return true;
             }
             pose = default(Pose);

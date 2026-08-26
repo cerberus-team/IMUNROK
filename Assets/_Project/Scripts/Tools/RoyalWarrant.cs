@@ -38,6 +38,19 @@ namespace IMUNROK.Common
     /// </summary>
     public class RoyalWarrant : MonoBehaviour
     {
+        /// <summary>
+        /// <b>2막에서는 이 패가 도구벨트에 오른다.</b> 출도가 이미 끝났으므로 품에 감출
+        /// 까닭이 없고, 서리 앞에 내보이는 물건이 되어 있다.
+        ///
+        /// 그런데 벨트에 오르는 순간 <b>같은 모형을 두 부품이 다툰다</b> —
+        /// <see cref="HeldToolModel"/> 이 켜 놓으면 이쪽이 그 다음 칸에 도로 끈다.
+        /// 그래서 벨트에서 마패를 골라도 손에 아무것도 안 들렸다. 오류도 안 났다.
+        ///
+        /// 벨트가 들고 있는 동안에는 <b>손을 뗀다</b>. 품에서 꺼내는 일(1막의 출도)은
+        /// 벨트에 마패가 없을 때의 일이다.
+        /// </summary>
+        private static bool OnTheBelt { get { return ToolbeltHud.SelectedToolId == "mapae"; } }
+
         [Header("무엇을 꺼내나")]
         [Tooltip("품에서 꺼낼 패의 모형. 평소에는 꺼져 있다")]
         [SerializeField] private GameObject _model;
@@ -126,6 +139,19 @@ namespace IMUNROK.Common
         private void Update()
         {
             if (_done) return;
+
+            // 벨트가 들고 있으면 <b>다 꺼낸 자리에 그대로 둔다</b>.
+            // 그냥 손만 떼면 모형이 품속 자리(-30cm)에 남아 눈 밑으로 내려가 버린다 —
+            // 켜지긴 했는데 화면 밖에 있어, 골라도 안 보이는 것은 매한가지가 된다.
+            if (OnTheBelt)
+            {
+                if (_model != null)
+                {
+                    if (!_model.activeSelf) _model.SetActive(true);
+                    Place(1f);
+                }
+                return;
+            }
 
             bool ready = Missing() == 0;
 
