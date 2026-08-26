@@ -315,9 +315,9 @@ namespace IMUNROK.Gyeonu.Editor
             foreach (Transform hut in huts.transform)
             {
                 foreach (var c in hut.GetComponentsInChildren<Collider>(true))
-                    if (c.enabled && c.name != "몸통차단") { c.enabled = false; off++; }
+                    if (c.enabled && c.name != DebugInteractor.BodyBlockerName) { c.enabled = false; off++; }
 
-                var stale = hut.Find("몸통차단");
+                var stale = hut.Find(DebugInteractor.BodyBlockerName);
                 if (stale != null) Object.DestroyImmediate(stale.gameObject);
 
                 Vector3 lMin = Vector3.one * float.MaxValue, lMax = Vector3.one * float.MinValue;
@@ -329,7 +329,7 @@ namespace IMUNROK.Gyeonu.Editor
                     any = true;
                 }
                 if (!any) continue;
-                var go = new GameObject("몸통차단");
+                var go = new GameObject(DebugInteractor.BodyBlockerName);
                 go.transform.SetParent(hut, false);
                 var bc = go.AddComponent<BoxCollider>();
                 var size = lMax - lMin;

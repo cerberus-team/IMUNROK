@@ -58,6 +58,9 @@ namespace IMUNROK.Gyeonu
             homeRot = transform.rotation;
             // 대화는 사람과 마주 서는 일이라 퍼즐보다 가까이 붙지 않는다.
             if (profile != null) focusDistance = profile.talkDistance;
+
+            aimBody = GetComponent<CapsuleCollider>();
+            anim = GetComponent<Animator>();
         }
 
         public override string Prompt => profile != null ? profile.talkVerb : "말 걸기";
@@ -241,12 +244,50 @@ namespace IMUNROK.Gyeonu
             if (a != null && a.Has("Thank")) a.Play("Thank", NpcActor.Pri.Story);
         }
 
+        // ── 조준 몸통 (2026-08-27) ───────────────────────────────
+        //
+        //  ■ 왜 여기인가
+        //    <see cref="NpcAimBody"/> 가 재는 캡슐은 <b>말을 걸 수 있게 하는 판정</b>이다.
+        //    NpcDialogue 는 11인 스무 자리에 이미 전부 붙어 있고 <c>[RequireComponent(Collider)]</c>
+        //    라 캡슐이 있는 것도 보장된다 — 씬을 한 줄도 고치지 않고 전원에게 닿는 자리다.
+        //
+        //  ■ 자세가 바뀌면 다시 잰다
+        //    수령은 순찰 때 <c>SitToStand</c> 로 일어서고 선아는 구출되면 몸을 일으킨다.
+        //    앉은 자세에 맞춘 캡슐 그대로 두면 일어선 순간 다시 머리가 밖으로 나온다.
+        //    ⚠️ 상태가 바뀐 <b>그 프레임</b>에 재면 안 된다 — 전이 중이라 몸이 두 자세 사이에 있다.
+        //       <see cref="RefitDelay"/> 만큼 두고 잰다.
+
+        CapsuleCollider aimBody;
+        Animator anim;
+        int lastStateHash;                 // 0 = 아직 한 번도 안 쟀다 (첫 Update에서 반드시 잰다)
+        float refitAt = -1f;
+
+        const float RefitDelay = 0.35f;
+
         void Update()
         {
+            FitAimBody();
+
             if (!turning) return;
             turnT += Time.deltaTime / Mathf.Max(0.05f, turnTime);
             transform.rotation = Quaternion.Slerp(transform.rotation, turnTarget, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(turnT)));
             if (turnT >= 1f) { transform.rotation = turnTarget; turning = false; }
+        }
+
+        void FitAimBody()
+        {
+            if (aimBody == null) return;
+
+            if (anim != null && anim.isActiveAndEnabled && anim.runtimeAnimatorController != null)
+            {
+                int hash = anim.GetCurrentAnimatorStateInfo(0).shortNameHash;
+                if (hash != lastStateHash) { lastStateHash = hash; refitAt = Time.time + RefitDelay; }
+            }
+            else if (lastStateHash == 0) { lastStateHash = -1; refitAt = Time.time + RefitDelay; }
+
+            if (refitAt < 0f || Time.time < refitAt) return;
+            refitAt = -1f;
+            NpcAimBody.Fit(gameObject, aimBody);
         }
 
         // ── 포커스 리그가 넘겨 주는 것 ────────────────────────────

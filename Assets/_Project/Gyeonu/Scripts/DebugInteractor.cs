@@ -18,6 +18,14 @@ namespace IMUNROK.Gyeonu
         [Tooltip("상호작용 최대 거리(m)")]
         public float maxDistance = 3.5f;
 
+        /// <summary>
+        /// <b>몸통만</b> 막는 상자의 이름. 건물마다 하나씩 씌워 둔 진입 차단 박스다
+        /// (<c>VillageBuildingBlocker</c> · <c>GyeonuVillageWalkSetup</c> 이 만든다).
+        /// 보이는 물건이 아니라 걸어 들어가지 못하게 하는 <b>몸통</b> 판정이므로,
+        /// 조준선은 여기서 멈추지 않는다 — 아래 <see cref="Update"/> 참고.
+        /// </summary>
+        public const string BodyBlockerName = "몸통차단";
+
         Interactable target;
         AimPanel aim;
 
@@ -47,6 +55,27 @@ namespace IMUNROK.Gyeonu
             foreach (var hit in hits)
             {
                 if (hit.collider.transform.root == transform.root) continue;
+
+                // ⚠️ 건물 진입 차단 박스는 조준을 막지 않는다 (2026-08-27 실측으로 물린 것).
+                //    이 상자는 건물 <b>둘레를 통째로</b> 감싸 마당 쪽으로도 한두 자 넘쳐 나온다.
+                //    어머니는 그 넘친 자락 안에 앉아 있어서 — 집 밖에, 눈앞에 보이는데도 —
+                //    어느 방향에서 겨눠도 광선이 상자에 먼저 막혀 **말을 걸 수가 없었다**
+                //    (사방 12방위 × 몸통 다섯 높이, 전부 차단). 이 상자의 몫은 '몸통 진입 차단'
+                //    하나뿐이다 — <b>보이지도 않는 부피가 조준을 먹는 것</b>이 잘못이다.
+                //    대가: 이 상자를 씌운 마을 건물들은 팩 콜라이더를 꺼 두었으므로(성능),
+                //    이제 그 벽 너머 3.5m 안쪽이 조준선에 열린다. 그 안에는 조준할 것이
+                //    아무것도 없다(배경 건물이고 들어갈 수도 없다). 언젠가 마을 건물 안에
+                //    만질 것을 두게 되면 그때는 벽에 진짜 콜라이더를 되살려야 한다.
+                if (hit.collider.gameObject.name == BodyBlockerName) continue;
+
+                // ⚠️ 사건을 알리는 트리거 부피도 조준을 먹는다 (2026-08-27 실측).
+                //    아이01에게는 노래를 시작시키는 <b>반지름 7m 짜리 구</b>가 몸통과 같은
+                //    오브젝트에 달려 있다. 그 구 밖에서 안쪽을 겨누면 — 아이02를 보고 있어도 —
+                //    광선이 구 껍질에 먼저 닿아 <b>아이01이 잡힌다</b>.
+                //    몸통이 따로 있는 트리거는 조준면이 아니다. 다만 <c>SceneExit</c>(출구_*)처럼
+                //    트리거 하나가 곧 조준면인 것도 있으므로, <b>몸통이 따로 있을 때만</b> 건너뛴다.
+                if (IsEventVolume(hit.collider)) continue;
+
                 var it = hit.collider.GetComponentInParent<Interactable>();
 
                 // 열린 가구는 한 겹 더 들여다본다 (2026-08-24).
@@ -73,6 +102,18 @@ namespace IMUNROK.Gyeonu
             aim.SetTarget(target == null ? null
                 : (string.IsNullOrEmpty(target.displayName) ? target.Prompt
                                                             : target.displayName + " — " + target.Prompt));
+        }
+
+        /// <summary>조준면이 아니라 <b>사건을 알리는 부피</b>인가 — 같은 오브젝트에 몸통이 따로 있는 트리거.
+        /// 매 프레임 도는 자리라 <see cref="_cols"/> 를 돌려 써서 할당을 만들지 않는다.</summary>
+        static readonly System.Collections.Generic.List<Collider> _cols = new System.Collections.Generic.List<Collider>();
+
+        static bool IsEventVolume(Collider c)
+        {
+            if (!c.isTrigger) return false;
+            c.GetComponents(_cols);
+            foreach (var o in _cols) if (!o.isTrigger) return true;
+            return false;
         }
 
         /// <summary>주어진 거리보다 뒤에 있는 첫 **가구 속 대상** — 열린 가구를 들여다볼 때만 쓴다.

@@ -19,7 +19,9 @@ namespace IMUNROK.Gyeonu.Editor
     /// </summary>
     public static class VillageBuildingBlocker
     {
-        const string BoxName = "몸통차단";
+        /// <summary>조준 쪽과 이름 하나로 묶여 있다 — <see cref="DebugInteractor.BodyBlockerName"/>.
+        /// 이 상자는 몸통만 막고 조준선은 통과시킨다.</summary>
+        const string BoxName = DebugInteractor.BodyBlockerName;
         static readonly string[] BodyPatterns =
         {
             "Tavern_House", "Bamboo_Rafter_House", "House_With_", "L_Shaped_House",
