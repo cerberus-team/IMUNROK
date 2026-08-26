@@ -577,7 +577,11 @@ namespace IMUNROK.Common
                 if (MoveTo(_leaveThroughSpot.position, _leaveThroughSpot.rotation))
                 {
                     transform.rotation = _leaveThroughSpot.rotation;
-                    DoTurnToDoor();
+                    // 넘어서자마자 홱 돌아서면 <b>나가려던 사람</b>이 아니라 문을 닫으러
+                    // 나온 사람이 된다. 한 박자 서 있다 돌아본다.
+                    HoldStand();
+                    _phase = Phase.Arrived;
+                    Delay(_leaveCloseDelay, DoTurnToDoor);
                 }
                 return;
             }

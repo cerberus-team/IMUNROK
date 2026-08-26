@@ -120,7 +120,6 @@ namespace IMUNROK.Common
         private readonly List<float> _lightHome = new List<float>();
         private bool _done;
         private float _hold;
-        private bool _running;
         private bool _waiting;      // 연출이 끝나 사람의 손을 기다리는 중
         private bool _closing;      // 제목을 걷는 중 — 이때 또 부르면 그 걷기가 죽는다
         private bool _heldByKey;    // 지금 누르고 있는 것이 키보드인가(마우스는 레이가 따로 본다)
@@ -233,7 +232,6 @@ namespace IMUNROK.Common
 
         private IEnumerator Sequence()
         {
-            _running = true;
 
             // ① 어둠. 소리만.
             yield return new WaitForSeconds(_blackHold);
@@ -289,7 +287,6 @@ namespace IMUNROK.Common
         {
             if (_waiting) return;
             _waiting = true;
-            _running = false;
 
             if (_hintText != null)
                 _hintText.text = SaveSystem.HasSave && !string.IsNullOrEmpty(_startPromptFresh)
@@ -372,7 +369,6 @@ namespace IMUNROK.Common
         {
             if (_done) return;
             _done = true;
-            _running = false;
             _waiting = false;
             Autosave.BeginNewGame();
             if (_pressTarget != null) Destroy(_pressTarget);
@@ -395,7 +391,6 @@ namespace IMUNROK.Common
         {
             if (_done) return;
             _done = true;
-            _running = false;
             StopAllCoroutines();
 
             if (!SaveSystem.Load())

@@ -62,9 +62,10 @@ namespace IMUNROK.Common
         [SerializeField] private Transform _dozeSpot;
 
         [Header("시간차 (초)")]
-        [Tooltip("두드린 뒤 → 여는 동작까지 뜸. 안에서 인기척을 내고 다가오는 사이다. " +
-                 "0에 가까우면 두드리자마자 문이 열려 허락받는 느낌이 없다")]
-        [SerializeField] private float _delayBeforeOpen = 1.6f;
+        // 여기 있던 _delayBeforeOpen 은 걷었다. "두드림 → 뜸 → 문" 한 걸음이었는데,
+        // 지금은 <b>두 걸음</b>으로 갈라져 있다: 두드림 → _delayBeforeAsk → 「뉘시오」
+        // → _askSeconds → 「드시지요」 → 문. 안에 여쭈러 들어갔다 오는 사이가 생겨
+        // 허락받는 느낌이 그쪽에서 난다. 옛 값은 아무도 안 읽고 있었다.
         [Tooltip("두드리면 문 안에서 마름이 건네는 말. 비우면 말 없이 뜸만 둔다")]
         [SerializeField] private string _answerLine = "이 밤중에 뉘시오?";
         [Tooltip("그 말을 하는 이 이름(자막에 붙는다)")]

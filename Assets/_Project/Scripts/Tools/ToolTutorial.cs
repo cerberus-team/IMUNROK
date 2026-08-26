@@ -88,7 +88,6 @@ namespace IMUNROK.Common
         private Phase _phase = Phase.놓임;
         private int _step;
         private Coroutine _moving;
-        private bool _learned;
         private bool _awaiting;   // 낸 과제를 기다리는 중
         private float _stepShownAt;   // 이 마디를 띄운 때
 
@@ -523,7 +522,6 @@ namespace IMUNROK.Common
             // 그러니 마지막 마디는 둘로 나눈다: 한 번 <b>들어 보고</b>, 그다음
             // <b>내려놓는다</b>. 들어 보는 동안 물건은 손에 있고 문갑의 것은 제자리로
             // 돌아간다 — 지금 들고 있는 것이 곧 그 물건이기 때문이다.
-            _learned = true;
             _hefting = true;
 
             string nm = _tool != null ? _tool.displayName : "";
@@ -613,7 +611,6 @@ namespace IMUNROK.Common
         {
             if (!_awaiting || _tool == null || toolId != _tool.id) return;
             StopAwaiting();
-            _learned = true;
 
             // 여기서 곧바로 끝내지 않는다.
             //

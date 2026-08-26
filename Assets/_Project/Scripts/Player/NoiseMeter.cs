@@ -443,8 +443,10 @@ namespace IMUNROK.Common
         [Tooltip("화면 구석 눈금(OnGUI)은 <b>헤드셋에서 안 보인다</b>. 켜면 목표 알림판 아래에 " +
                  "월드 공간으로 한 줄 더 띄운다 — 헤드셋에서도 제 소리가 보인다")]
         [SerializeField] private bool _worldGauge = true;
-        [Tooltip("알림판 높이(시선 기준). 목표 안내가 0.42 이므로 그 아래에 둔다")]
-        [SerializeField] private float _worldGaugeHeight = 0.30f;
+        // 여기 있던 _worldGaugeHeight 는 걷었다. 눈금이 제 판을 세우고 높이를 잡던 때의
+        // 값인데, 지금은 <b>StatusPanel</b> 이 한 줄을 얻어 가는 방식이라 자리를 그쪽이 쥔다.
+        // 안내가 여럿 뜰 때 서로 겹치지 않게 줄 세우는 일도 그쪽 몫이다.
+        // 값만 남겨 두면 인스펙터에서 만지고 아무 일도 안 일어난다.
 
         private float _gaugeTick;
 

@@ -42,6 +42,9 @@ namespace IMUNROK.Common
         private bool _armed = true;
         private float _lastHitTime;
 
+        /// <summary>친 자리. 여기서 <see cref="_rearm"/> 만큼 멀어져야 다시 쳐진다.</summary>
+        private Vector3 _hitAt;
+
         private void OnEnable() { _last = transform.position; }
 
         private void Update()
@@ -53,8 +56,14 @@ namespace IMUNROK.Common
 
             float speed = step.magnitude / Time.deltaTime;
 
-            // 물러났나 — 친 자리에서 멀어지면 다시 칠 채비가 선다
-            if (!_armed && Time.time - _lastHitTime > 0.12f && speed > 0.25f) _armed = true;
+            // 물러났나 — <b>친 자리에서 그만큼 멀어져야</b> 다시 칠 채비가 선다.
+            //
+            // 여태 "빠르기 0.25 로 조금이라도 움직이면" 이었다. 그러면 문에 손을 댄 채
+            // 손이 떨리기만 해도 채비가 서서, 한 번 두드리려다 <b>대여섯 번 두드려진다</b> —
+            // 소리계에 그만큼 쌓이므로 잠행 중에는 그것만으로 사람이 나온다.
+            // 물러난 것은 빠르기가 아니라 <b>거리</b>다.
+            if (!_armed && Time.time - _lastHitTime > 0.08f
+                && (now - _hitAt).sqrMagnitude >= _rearm * _rearm) _armed = true;
             if (!_armed || speed < _minSpeed) return;
 
             // 손이 가는 쪽으로 쏜다. 손이 보는 쪽이 아니라 <b>가는 쪽</b>이라야
@@ -69,6 +78,7 @@ namespace IMUNROK.Common
 
             door.KnockByHand(_hand);
             _armed = false;
+            _hitAt = now;
             _lastHitTime = Time.time;
         }
 
