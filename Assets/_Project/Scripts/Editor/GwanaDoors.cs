@@ -167,10 +167,20 @@ namespace IMUNROK.Common.EditorTools
             copy.transform.SetPositionAndRotation(go.transform.position, go.transform.rotation);
             copy.transform.localScale = go.transform.lossyScale;
 
-            // 겉짝은 눈으로만 있는 것이다. 원래 짝이 이미 막고 있으니 콜라이더가 겹치면
-            // 값만 들고, 뒤집힌 배율에 상자를 물리면 셈도 어긋난다.
+            // <b>겉짝은 눈으로만 있는 것이다.</b> 콜라이더도 부품도 다 걷어낸다.
+            //
+            // 콜라이더: 원래 짝이 이미 막고 있으니 겹치면 값만 들고, 뒤집힌 배율에
+            // 상자를 물리면 셈도 어긋난다.
+            //
+            // 부품: 이걸 안 걷어서 <b>여닫이가 열두 개</b>가 되었다. 두 번째로 누를 때
+            // 원래 짝에는 이미 SwingDoor 가 붙어 있고, 그 몸을 통째로 베끼니 겉짝도
+            // 그 부품을 물려받는다. 그러고는 <b>지난번에 지워진 조각들</b>을 가리킨 채
+            // 유령으로 서서, 언제 무엇을 움직일지 모르는 것이 여섯 개 생긴다.
+            // 겉짝이 지녀야 할 것은 그림뿐이다.
             foreach (var c in copy.GetComponentsInChildren<Collider>(true))
                 Object.DestroyImmediate(c);
+            foreach (var mb in copy.GetComponentsInChildren<MonoBehaviour>(true))
+                if (mb != null) Object.DestroyImmediate(mb);
 
             Vector3 before = Middle(copy);
 
