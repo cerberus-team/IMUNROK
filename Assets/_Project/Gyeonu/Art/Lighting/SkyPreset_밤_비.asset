@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4214600bc9d54fe4bb5bdf013ef62ded, type: 3}
+  m_Name: "SkyPreset_\uBC24_\uBE44"
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.SkyPreset
+  skyboxMaterial: {fileID: 2100000, guid: 7a8675eb396637d43b4ba0a69cc715a5, type: 2}
+  reflectionCubemap: {fileID: 8900000, guid: c11b114da6a86f0478eff31991c47eef, type: 2}
+  waterPreset: {fileID: 11400000, guid: 028cfacbd9cadaf4ebeab90db6fdb5ab, type: 2}
+  waterColorMultiplier: {r: 0.14, g: 0.16, b: 0.22, a: 1}
+  waterReflectionStrength: -1
+  waterReflectionFresnel: -1
+  waterReflectionDistortion: -1
+  sunEulerAngles: {x: 40, y: 250, z: 0}
+  sunColor: {r: 0.2, g: 0.23, b: 0.3, a: 1}
+  sunIntensity: 0.14
+  sunShadowStrength: 0
+  ambientSky: {r: 0.303104, g: 0.281428, b: 0.245283, a: 1}
+  ambientEquator: {r: 0.174795, g: 0.184248, b: 0.188679, a: 1}
+  ambientGround: {r: 0.02874, g: 0.02874, b: 0.043396, a: 1}
+  fogEnabled: 1
+  fogColor: {r: 0.025, g: 0.03, b: 0.045, a: 1}
+  fogStart: 10
+  fogEnd: 60
