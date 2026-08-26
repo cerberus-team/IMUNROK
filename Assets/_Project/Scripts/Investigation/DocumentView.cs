@@ -414,10 +414,10 @@ namespace IMUNROK.Common
             // IsOpen 이 아직 false 라 HasBacklight 를 못 쓴다 — 방금 넣은 값으로 직접 본다.
             bool hasLit = litPage != null || !string.IsNullOrEmpty(litPrint);
             _hint.text = hasFine
-                ? "끌어서 돌려 볼 수 있다 · 잔글씨는 오른쪽 단추를 <b>누른 채</b> 종이를 들여다본다"
+                ? "끌어서 돌려 볼 수 있다 · 잔글씨는 " + Controls.Raise + " 종이를 들여다본다"
                 : hasLit
                 ? "끌어서 돌려 볼 수 있다 · 불빛 앞에 대면 겹 사이가 비친다"
-                : _canPutDown ? "끌어서 돌려 볼 수 있다 · (Esc — 내려놓기)"
+                : _canPutDown ? "끌어서 돌려 볼 수 있다 · " + Controls.PutDown
                 : "끌어서 돌려 볼 수 있다";
 
             if (_closeRt != null) _closeRt.gameObject.SetActive(_canPutDown);

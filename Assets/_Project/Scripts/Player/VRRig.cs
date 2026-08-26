@@ -180,6 +180,10 @@ namespace IMUNROK.Common
             line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             line.receiveShadows = false;
 
+            // 화면의 단추도 이 광선으로 누른다. 붙이는 차례가 중요하다 — 짚는 쪽이
+            // 깨어날 때 이것을 찾아 물기 때문이다.
+            go.AddComponent<VRUiRay>().Bind(node);
+
             var sel = go.AddComponent<VRRaySelector>();
             sel.Bind(node, line);
 

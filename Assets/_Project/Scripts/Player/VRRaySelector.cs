@@ -37,22 +37,51 @@ namespace IMUNROK.Common
         private ISelectable _current;
         private IHoldable _holding;
         private bool _wasPressed;
+        private VRUiRay _ui;
+
+        private void Awake() { _ui = GetComponent<VRUiRay>(); }
 
         private void Update()
         {
-            // 종이를 쥐고 있는 동안에는 방을 짚지 않는다 — 마우스 쪽과 같은 규칙이다.
-            if (DocumentView.IsOpen) { Clear(); Draw(false, Vector3.zero); return; }
-
             Ray ray = new Ray(transform.position, transform.forward);
+            bool pressed = Trigger();
+
+            // ── 화면의 단추와 방의 물건 가운데 <b>가까운 쪽</b>을 짚는다 ──
+            //
+            // 심문 판은 사람 앞에 떠 있고 그 너머에 심문받는 사람이 서 있다. 둘이
+            // 한 광선 위에 놓이므로 어느 쪽을 짚은 것인지 가려야 한다. 눈에 가까운
+            // 것을 짚는 것이 사람의 셈이다 — 판 너머의 사람을 짚으려면 판을 비켜서
+            // 겨눈다.
+            float uiAt = _ui != null ? _ui.Pick(ray) : float.PositiveInfinity;
+
             ISelectable hit = null;
             Vector3 end = ray.origin + ray.direction * _idleLength;
+            float worldAt = float.PositiveInfinity;
 
             if (Physics.Raycast(ray, out RaycastHit info, _maxDistance, _mask))
             {
+                worldAt = info.distance;
                 hit = info.collider.GetComponentInParent<ISelectable>();
                 end = info.point;
-                Pointing.Set(info.point, info.collider != null ? info.collider.transform : null);
             }
+
+            if (uiAt < worldAt)
+            {
+                Clear();
+                _ui.Drive(pressed);
+                _wasPressed = pressed;
+                Draw(true, _ui.Point);
+                return;
+            }
+            if (_ui != null) _ui.Clear();
+
+            // 종이를 쥐고 있는 동안에는 방을 짚지 않는다 — 마우스 쪽과 같은 규칙이다.
+            // <b>단추는 위에서 이미 짚었다.</b> 종이의 내려놓기도 단추이므로, 이 문을
+            // 단추보다 앞에 두면 종이를 편 채로는 내려놓을 수가 없어진다.
+            if (DocumentView.IsOpen) { Clear(); Draw(false, Vector3.zero); _wasPressed = pressed; return; }
+
+            if (hit != null || worldAt < float.PositiveInfinity)
+                Pointing.Set(end, info.collider != null ? info.collider.transform : null);
 
             // 도구를 익히는 동안에는 손이 방으로 가지 않는다(자막의 닫기 표만 예외)
             if (ToolTutorial.Learning && !(hit is NoticeCloseTab)) hit = null;
@@ -64,8 +93,6 @@ namespace IMUNROK.Common
                 _current = hit;
                 _current?.OnHoverEnter();
             }
-
-            bool pressed = Trigger();
 
             var holdable = _current as IHoldable;
             if (holdable != null && !holdable.HoldReady) holdable = null;

@@ -147,11 +147,20 @@ namespace IMUNROK.Common
             for (int i = 0; i < _slotBgs.Count; i++)
                 _slotBgs[i].color = (i == _belt.SelectedIndex) ? _selectedColor : _slotColor;
 
-            if (_caption != null) _caption.text = $"손 : {_belt.SlotName(_belt.SelectedIndex)}";
+            // 무엇을 들었는지 <b>아래에 쓰는 법 한 줄</b>을 붙인다.
+            //
+            // 여태 벨트는 "손 : 돋보기"까지만 말했다. 그러면 고르는 법은 알아도
+            // <b>쓰는 법</b>은 아무 데도 안 적혀 있어서, 도구를 든 채로 서 있게 된다.
+            // 도구를 바꾼 바로 그 자리가 일러 주기 가장 좋은 자리다.
+            string how = Controls.HowTo(IdOf(_belt.SelectedIndex));
+            if (_caption != null)
+                _caption.text = $"손 : {_belt.SlotName(_belt.SelectedIndex)}"
+                              + (string.IsNullOrEmpty(how) ? "" : "\n" + how);
 
             // 바뀌었으니 다시 떠오른다. 도구를 새로 받았을 때도 여기를 지나므로,
             // 방금 익힌 것이 벨트에 들어가 앉는 것을 눈으로 보게 된다.
-            _linger = LingerSeconds;
+            // 쓰는 법이 붙은 도구는 <b>읽을 시간</b>이 든다.
+            _linger = string.IsNullOrEmpty(how) ? LingerSeconds : LingerSeconds * 2f;
         }
 
         // ── UI 만들기 헬퍼 ──
@@ -183,5 +192,9 @@ namespace IMUNROK.Common
         }
 
         private static string First(string s) => string.IsNullOrEmpty(s) ? "?" : s.Substring(0, 1);
+
+        /// <summary>이 칸의 도구 id("" = 맨손).</summary>
+        private string IdOf(int i)
+            => (i <= 0 || i > _belt.Tools.Count || _belt.Tools[i - 1] == null) ? "" : _belt.Tools[i - 1].id;
     }
 }
