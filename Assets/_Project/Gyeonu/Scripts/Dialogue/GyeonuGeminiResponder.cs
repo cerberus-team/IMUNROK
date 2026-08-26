@@ -163,7 +163,7 @@ namespace IMUNROK.Gyeonu
             {
                 systemInstruction = new GSystem { parts = new[] { new GPart { text = BuildSystem(req) } } },
                 contents = BuildContents(req),
-                generationConfig = new GGenConfig { maxOutputTokens = MaxOutputTokens, temperature = 0.9f },
+                generationConfig = new GGenConfig { maxOutputTokens = MaxOutputTokens, temperature = 0.6f },
             };
             return JsonUtility.ToJson(reqObj);
         }
@@ -176,6 +176,10 @@ namespace IMUNROK.Gyeonu
             sb.AppendLine();
             sb.AppendLine("[규칙] 위 인물로서 답하라. 2~3문장으로 짧게, 조선시대 말투로.");
             sb.AppendLine("아래 '밝혀진 사실'에 없는 핵심 비밀은 절대 먼저 말하지 마라. 시치미를 떼라.");
+            sb.AppendLine("플레이어가 방금 질문한 주제에 직접 필요한 사실만 답하라. 한 답에서 새 핵심 조사 정보는 원칙적으로 하나만 공개하라.");
+            sb.AppendLine("질문과 별개의 단서·비밀·사건 사실이 떠올라도 덧붙이지 말고, 여러 단서 표식을 한 답에 함께 쓰지 마라.");
+            sb.AppendLine("실제로 입으로 말하는 대사와 지정된 내부 태그만 출력하라. 괄호·별표·대괄호로 몸짓, 표정, 이동, 감정 행동을 묘사하지 마라. 연출은 게임 애니메이션이 담당한다.");
+            AppendNpcBoundary(sb, req);
             sb.AppendLine();
             sb.AppendLine("[밝혀진 사실]");
             if (req.unlockedFacts != null && req.unlockedFacts.Count > 0)
@@ -188,6 +192,23 @@ namespace IMUNROK.Gyeonu
                 sb.AppendLine("[방금 결정적 증거가 제시됨] 다음을 따르라: " + req.justRevealedInfo);
             }
             return sb.ToString();
+        }
+
+        static void AppendNpcBoundary(StringBuilder sb, NpcRequest req)
+        {
+            string who = req.character != null ? req.character.characterName : "";
+            if (who == "견우")
+            {
+                bool trust70 = req.unlockedFacts != null && req.unlockedFacts.Exists(f => f != null && f.Contains("이 사람을 믿기로 했다"));
+                if (!trust70)
+                    sb.AppendLine("[견우 정보 경계] 아직 신뢰도 70 미만이다. 행적을 물으면 실제 회피·거부 대사만 하라. 옛길, 오작교에서 기다림, 약속 장소, 선아가 오지 않음, 탈출 계획, 타공 지도와 정확한 이동 경로는 절대 말하지 마라.");
+            }
+            else if (who == "주모")
+                sb.AppendLine("[주모 정보 분리] A7 전설 믿음, A3 과거 날씨, B3 선아의 밤 외출, 아버지 죄인 주장은 서로 다른 정보다. 현재 질문에 해당하는 하나만 답하고 나머지는 말하지 마라. 특정 지역 방언을 섞지 말고 자연스러운 생활어로 말하라.");
+            else if (who == "칠석제 상인")
+                sb.AppendLine("[상인 정보 분리] 당일 수령 목격 질문에는 그날 밤·새벽 오작교 부근에서 관아 어른을 본 사실만 답하라. 과거 순찰 C6과 맑은 칠석 A3를 함께 말하지 마라. C6 질문에는 과거 순찰만, A3 질문에는 날씨만 답하라.");
+            else if (who == "노파")
+                sb.AppendLine("[노파 정보 분리] 은하담 이름 A4와 검수관 결백 C7은 따로 답하라. A4를 물으면 딸이 사라진 사건 뒤 사람들이 그 못을 은하담이라 부르기 시작했다고 분명히 말하되 딸의 현재 위치는 말하지 마라.");
         }
 
         GContent[] BuildContents(NpcRequest req)

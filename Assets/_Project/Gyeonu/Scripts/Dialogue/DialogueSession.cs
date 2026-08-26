@@ -30,7 +30,7 @@ namespace IMUNROK.Gyeonu
     ///   ⚠️ 못 읽으면 <b>중립(0점)</b> 이다 — 문서의 "정상적인 추리 질문에 과도한 페널티를 주지
     ///      않는다"와 같은 방향의 안전한 기본값이다. 판정 실패가 벌이 되면 안 된다.
     /// </summary>
-    public class DialogueSession
+    public class DialogueSession : IDialogueBackend
     {
         /// <summary>대화창에 쌓이는 한 줄.</summary>
         public class Line
@@ -53,9 +53,16 @@ namespace IMUNROK.Gyeonu
         readonly INpcResponder _responder;
         readonly InterrogationCharacter _character;               // 공통 연동에 넘길 껍데기
         readonly MonoBehaviour _host;                             // 코루틴(네트워크) 주인
+        string _lastPlayerInput = "";
 
         /// <summary>줄이 하나 늘었다 — 화면이 다시 그린다.</summary>
         public event Action Changed;
+
+        /// <summary>비밀 한 조각을 털어놓았다 — 아이02의 Secret 연출이 여기에 붙는다.</summary>
+        public event Action SecretTold;
+
+        /// <summary>고마움을 표했다 — 어머니·최초의 직녀의 Thank 모션이 여기에 붙는다.</summary>
+        public event Action Thanked;
 
         public DialogueSession(NpcProfile profile, MonoBehaviour host)
         {
@@ -87,6 +94,24 @@ namespace IMUNROK.Gyeonu
             }
 
             AddNpcLine(profile.openingLine, TalkTone.Neutral, false);
+            MarkFirstTalkOnly();
+        }
+
+        /// <summary>
+        /// 문서에서 '첫 대화'·'마을 자동'으로 적힌 단서(A6·A7·B7·C8)를 여기서 준다.
+        /// 전부 <b>레드헤링</b>이라 얻는 것 자체가 함정이다 — 견우에게 내밀면 신뢰도가 깎인다.
+        /// 그래서 AI 표식에 맡기지 않고 만나는 순간 확정적으로 준다. 기획의 배치가 그렇게 되어 있다.
+        /// </summary>
+        void MarkFirstTalkOnly()
+        {
+            if (GyeonuCase.HasFlag(Profile.TalkedFlag)) return;
+            // ⚠️ 단서가 없어도 '만났다'는 사실 자체는 남긴다 — 상인이 은하담에서 주막으로
+            //    옮겨 가는 조건이 이 플래그다 (NpcSchedule.forbidFlags).
+            GyeonuCase.SetFlag(Profile.TalkedFlag);
+
+            foreach (var f in Profile.flagsOnFirstTalk) GyeonuCase.SetFlag(f);
+
+            // grantOnFirstTalk는 하위 에셋 호환을 위해 필드는 남기되 런타임에서는 사용하지 않는다.
         }
 
         /// <summary>공통 연동과 <b>같은 자리</b>의 키 파일을 본다 (프로젝트 루트, .gitignore 등재).</summary>
@@ -110,6 +135,7 @@ namespace IMUNROK.Gyeonu
         {
             if (Busy || string.IsNullOrWhiteSpace(text)) return;
             string say = text.Trim();
+            _lastPlayerInput = say;
             AddPlayerLine(say);
             // ⚠️ 접두사 "어사"는 공통 연동이 <b>화자 역할(user/model)을 가르는 표식</b>이다
             //    (GeminiNpcResponder.BuildContents). 보내기 전에 떼어 내므로 AI는 이 말을 보지 않는다 —
@@ -140,6 +166,7 @@ namespace IMUNROK.Gyeonu
             if (Busy) return;
             var info = ClueTable.Get(id);
             string label = ClueTable.Label(id);
+            _lastPlayerInput = label;
 
             int delta = 0;
             if (Profile.npcId == NpcId.Gyeonu)
@@ -169,6 +196,23 @@ namespace IMUNROK.Gyeonu
             }, grade: false);
         }
 
+        /// <summary>정보 단서가 아닌 실제 물건 제시. 신분은 AI 문장이 아니라 마패 실물만 확정한다.</summary>
+        public bool PresentItem(InventoryItem item)
+        {
+            if (Busy || item == null || !Inventory.Has(item) || !IsMapae(item)) return false;
+            AddPlayerLine("〔" + item.displayName + "〕 을(를) 실제로 내밀었다.");
+            _transcript.Add("어사(증거): " + item.displayName + "을 실제로 제시했다.");
+            GyeonuCase.RevealIdentity(Profile.npcId);
+            return true;
+        }
+
+        static bool IsMapae(InventoryItem item)
+        {
+            string key = (item.Key ?? "").ToUpperInvariant();
+            string name = item.displayName ?? "";
+            return key == "MAPAE" || key.Contains("MAPAE_") || name.Contains("마패");
+        }
+
         // ─────────────────────────────────────────────────────────
         void Send(NpcRequest req, bool grade)
         {
@@ -187,6 +231,7 @@ namespace IMUNROK.Gyeonu
         {
             Busy = false;
             var tone = ParseTone(ref raw);
+            ApplyMarkers(ref raw, tone, _lastPlayerInput);
             bool applied = false;
             if (grade)
             {
@@ -196,6 +241,127 @@ namespace IMUNROK.Gyeonu
             if (string.IsNullOrWhiteSpace(raw)) raw = "…";
             _transcript.Add(Profile.displayName + ": " + raw);
             AddNpcLine(raw, tone, applied);
+        }
+
+        // ─────────────────────────────────────────────────────────
+        //  표식 — 단서 · 화제 · 모순 · 신분
+        // ─────────────────────────────────────────────────────────
+        /// <summary>
+        /// 응답에 섞인 표식을 떼어 내고 그대로 <see cref="GyeonuCase"/> 에 옮긴다 (2026-08-25).
+        ///
+        /// ■ 왜 표식인가
+        ///   NPC 대사는 자유 문장이라 "지금 B3을 말했는가"를 코드가 알 방법이 없다. 등급을 같은
+        ///   요청에 얹은 것과 같은 이유로(왕복·문맥·비용), <b>말한 당사자가 표식을 붙이게</b> 한다.
+        ///   [등급:…] 이 이미 그 방식으로 돌고 있으니 규약도 한 벌로 유지된다.
+        ///
+        /// ■ ⚠️ 지어낸 단서를 막는다
+        ///   AI가 아무 코드나 적으면 추리가 통째로 앞질러 간다. 그래서 <see cref="NpcProfile.CanGrant"/>
+        ///   — 그 인물이 실제로 줄 수 있다고 기획에 적힌 단서 — 만 통과시킨다.
+        ///   문서 「7. 배치 요약」이 그 목록의 원본이다.
+        ///
+        /// ■ 표식을 못 읽어도 벌하지 않는다
+        ///   표식이 없으면 단서를 주지 않을 뿐 대사는 그대로 뜬다. 등급 판정과 같은 방향이다.
+        /// </summary>
+        void ApplyMarkers(ref string text, TalkTone tone, string playerMessage)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+
+            string answerWithMarkers = text;
+            DialogueGrantValidator.ObserveFacts(Profile, playerMessage, answerWithMarkers);
+
+            // B7/A7/C8은 예전 첫 대화 단서였다. 이제 실제 질문과 답변이 맞을 때만 후보로 넣는다.
+            var candidates = new HashSet<ClueId>();
+            if (Profile.npcId == NpcId.Gyeonu) candidates.Add(ClueId.B7);
+            if (Profile.npcId == NpcId.Magistrate) candidates.Add(ClueId.C8);
+            if (Profile.npcId == NpcId.Jumo) candidates.Add(ClueId.A7);
+
+            foreach (var g in Matches(text, @"[\[\(【]\s*단서\s*[:：]?\s*([A-Ca-c]\s*[0-9])\s*[\]\)】]"))
+            {
+                string code = g.Replace(" ", "").ToUpperInvariant();
+                if (!ClueTable.TryParse(code, out var id)) continue;
+                candidates.Add(id);
+            }
+
+            foreach (var id in candidates)
+            {
+                if (!DialogueGrantValidator.CanGrant(Profile, id, playerMessage, answerWithMarkers)) continue;
+                if (GyeonuCase.AddClue(id))
+                {
+                    Debug.Log("[대화] " + Profile.displayName + " → 단서 " + ClueTable.Label(id));
+                    GyeonuCase.CheckContradictionsFromClues();
+                }
+                foreach (var f in Profile.grantableFlags) GyeonuCase.SetFlag(f);
+            }
+
+            if (Profile.tagAlertTopic)
+                foreach (var g in Matches(text, @"[\[\(【]\s*화제\s*[:：]?\s*(일반|실종|아버지|다리|서고)\s*[\]\)】]"))
+                    GyeonuCase.AskMagistrate(TopicOf(g));
+
+            if (DialogueGrantValidator.CanConfirmM1(Profile, playerMessage, answerWithMarkers))
+            {
+                GyeonuCase.AddContradiction(ContradictionId.M1);
+                GyeonuCase.AskMagistrate(AlertTopic.ContradictionM1);
+            }
+
+            if (DialogueGrantValidator.CanConfirmM2(Profile, playerMessage, answerWithMarkers))
+            {
+                GyeonuCase.SetFlag(GyeonuWorld.F_주모소문인정);
+                GyeonuCase.AddContradiction(ContradictionId.M2);
+            }
+
+            // ⚠️ 말로만 하는 허세는 여기로 들어오지 않는다 (문서 「12. 암행어사 신분」).
+            //    페르소나가 "증표를 실제로 내밀지 않았으면 [신분:증명]을 쓰지 마라"를 못 박는다.
+            // 신분 표식은 AI 의도일 뿐이다. 실제 마패 소지품 Present 경로만 RevealIdentity를 부를 수 있다.
+
+            // ── 단서 번호가 없는 비밀 한 조각 ──────────────────────
+            //    아이02의 개구멍, 최초의 견우가 아는 관아 통로. 둘 다 종막 진입의 열쇠인데
+            //    A~C 어느 계열에도 번호가 없다 — 플래그로만 남기고 모션 연출을 함께 깨운다.
+            if (DialogueGrantValidator.CanRevealSecret(Profile, tone, playerMessage, answerWithMarkers))
+            {
+                if (!GyeonuCase.HasFlag(Profile.secretFlag))
+                {
+                    GyeonuCase.SetFlag(Profile.secretFlag);
+                    Debug.Log("[대화] " + Profile.displayName + " → 비밀 " + Profile.secretFlag);
+                }
+                SecretTold?.Invoke();
+            }
+
+            // ── 고마움 ────────────────────────────────────────────
+            //    어머니와 최초의 직녀의 Thank는 랜덤이 아니라 필수 반응이다 (문서 「29·30」).
+            //    어머니는 이 순간이 곧 무례 3회의 <b>유일한</b> 회복 경로이기도 하다 (문서 「13」).
+            if (System.Text.RegularExpressions.Regex.IsMatch(text, @"[\[\(【]\s*고마움\s*[\]\)】]"))
+            {
+                GyeonuCase.RecoverNpc(Profile.npcId);
+                Thanked?.Invoke();
+            }
+
+            // 떼어 낸다 — 플레이어에게는 대사만 보여야 한다.
+            text = System.Text.RegularExpressions.Regex.Replace(
+                text, @"[\[\(【]\s*(단서|화제|모순|신분|비밀|고마움)\s*[:：]?\s*[^\]\)】]*[\]\)】]", "").Trim();
+            // 닫히지 않은 내부 표식도 줄 끝까지만 보수적으로 제거한다.
+            text = System.Text.RegularExpressions.Regex.Replace(
+                text, @"(?im)^\s*[\[【(]?\s*(단서|화제|모순|신분|비밀|고마움)\s*[:：][^\r\n\]】)]*[\]】)]?\s*$", "").Trim();
+            text = System.Text.RegularExpressions.Regex.Replace(
+                text, @"(?im)^\s*[\[【(]\s*(단서|화제|모순|신분|비밀|고마움)\s*$", "").Trim();
+        }
+
+        static IEnumerable<string> Matches(string text, string pattern)
+        {
+            foreach (System.Text.RegularExpressions.Match m in
+                     System.Text.RegularExpressions.Regex.Matches(text, pattern))
+                yield return m.Groups[1].Value;
+        }
+
+        static AlertTopic TopicOf(string word)
+        {
+            switch (word)
+            {
+                case "실종": return AlertTopic.Disappearance;
+                case "아버지": return AlertTopic.FatherCase;
+                case "다리": return AlertTopic.BridgeOrGate;
+                case "서고": return AlertTopic.Archive;
+                default: return AlertTopic.Ordinary;
+            }
         }
 
         /// <summary>등급을 점수로 옮긴다. 어느 축이 움직이는지는 상대가 정한다.</summary>
@@ -238,6 +404,11 @@ namespace IMUNROK.Gyeonu
         {
             var facts = new List<string>();
 
+            // 문서 「13. 다른 NPC의 태도」 — 견우 밖에는 수치가 없고 무례 3회로만 닫힌다.
+            // 회복 조건은 인물마다 다르므로 <see cref="GyeonuCase.RecoverNpc"/> 를 부르는 쪽은
+            // 그 조건을 아는 곳이다 (어머니는 Thank 이벤트, 상인·아이는 시간대 교체).
+            bool hostile = Profile.npcId != NpcId.Gyeonu && GyeonuCase.NpcHostile(Profile.npcId);
+
             if (Profile.useTrustBands)
             {
                 int trust = GyeonuCase.Trust;
@@ -246,6 +417,22 @@ namespace IMUNROK.Gyeonu
                 if (!string.IsNullOrEmpty(att))
                     facts.Add("[지금의 태도] " + att.Replace("\n", " "));
             }
+            else if (hostile && !string.IsNullOrEmpty(Profile.lockedAttitude))
+            {
+                facts.Add("[지금의 태도] " + Profile.lockedAttitude.Replace("\n", " "));
+            }
+
+            // 닫힌 상태에서는 조건부 태도(= 무엇까지 말해도 되는지)를 주지 않는다 — 그것이 곧 정보 차단이다.
+            if (!hostile) Profile.CollectConditionalFacts(facts);
+
+            if (!hostile && Profile.npcId == NpcId.Magistrate &&
+                GyeonuCase.HasFlag(GyeonuWorld.F_수령최초알리바이) &&
+                GyeonuCase.HasFlag(GyeonuWorld.F_상인수령당일목격))
+                facts.Add("[M1 후보] 상대가 동헌 알리바이와 사건 당일 오작교 목격을 직접 모순으로 지적할 때만, 잠시 순찰을 돌았을 뿐이라고 말을 바꿔라.");
+
+            if (!hostile && Profile.npcId == NpcId.Jumo &&
+                GyeonuCase.HasFlag(GyeonuWorld.F_주모죄인주장) && GyeonuCase.HasClue(ClueId.C7))
+                facts.Add("[M2 후보] 상대가 앞선 죄인 주장과 C7을 직접 대조해 출처를 캐물을 때만, 직접 본 것이 아니라 관아에서 들은 소문이었다고 인정하라.");
 
             facts.Add(GyeonuCase.Night ? "[지금] 밤이다. 마을은 어둡다." : "[지금] 낮이다.");
             if (GyeonuCase.Rain) facts.Add("[지금] 비가 내린다.");
@@ -312,6 +499,8 @@ namespace IMUNROK.Gyeonu
 
                 _presentables.Add(StandInFor(info));
             }
+            foreach (var item in Inventory.Items)
+                if (item != null && IsMapae(item) && !_presentables.Contains(item)) _presentables.Add(item);
             return _presentables;
         }
 
@@ -339,6 +528,8 @@ namespace IMUNROK.Gyeonu
         public void Dispose()
         {
             Changed = null;
+            SecretTold = null;
+            Thanked = null;
             if (_character != null) UnityEngine.Object.Destroy(_character);
             foreach (var s in _standIns) if (s != null) UnityEngine.Object.Destroy(s);
             _standIns.Clear();
@@ -351,6 +542,36 @@ namespace IMUNROK.Gyeonu
             var sb = new StringBuilder();
             foreach (var l in _lines) sb.AppendLine((l.fromPlayer ? "나: " : l.speaker + ": ") + l.text);
             return sb.ToString();
+        }
+
+        // ── IDialogueBackend ─────────────────────────────────
+        //
+        // 대화창이 묻는 것을 우리 것에 이어 준다 (2026-08-26).
+        // 화면은 이제 DialogueSession 도 Gemini 도 GyeonuCase 도 모른다 — 이 인터페이스만 안다.
+        // <c>Busy</c>·<c>Changed</c>·<c>Ask</c> 는 이름과 형이 이미 맞아 그대로 쓰인다.
+
+        string IDialogueBackend.SpeakerName => Profile != null ? Profile.displayName : "";
+        string IDialogueBackend.CurrentLine => CurrentNpcLine;
+
+        /// <summary><c>IReadOnlyList</c> 는 공변이지만 인터페이스 구현은 형이 정확히 맞아야 해서 감싼다.</summary>
+        IReadOnlyList<IUiItem> IDialogueBackend.Presentables() => Presentables();
+
+        /// <summary>
+        /// 증거를 내민다.
+        ///
+        /// ⚠️ <b>이 갈래가 예전에는 대화창 안에 있었다</b> (2026-08-26에 여기로 내렸다).
+        ///    화면이 <see cref="ClueTable"/> 을 알면 안 되기 때문이다 — 단서 코드는 사건의 것이다.
+        ///    <b>판정 순서와 결과는 예전 그대로다</b>: 먼저 정보 단서인지 보고(코드로 파싱되면
+        ///    <see cref="Present(ClueId)"/>), 아니면 물건으로 내민다. 둘 다 아니면 false 가 나가고
+        ///    화면이 「이건 내밀 것이 못 된다」를 띄운다.
+        /// </summary>
+        bool IDialogueBackend.Present(IUiItem item)
+        {
+            if (item == null) return false;
+            ClueId id;
+            if (ClueTable.TryParse(item.Key, out id)) { Present(id); return true; }
+            var inv = item as InventoryItem;
+            return inv != null && PresentItem(inv);
         }
     }
 }

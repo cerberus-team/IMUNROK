@@ -52,19 +52,10 @@ namespace IMUNROK.Gyeonu
         public AudioClip detentClip;
         public AudioClip latchClip;
 
-        // ── 나침반 UI 치수 ────────────────────────────────
-        // ⚠️ 중심을 반지름만큼만 띄우면 안 된다 — 이름표가 테두리 **바깥**(반지름+18)에 앉고
-        //    글자 높이의 절반이 더 나가므로, 그만큼 여유를 두지 않으면 北과 西가 화면 밖으로 잘린다
-        //    (2026-08-23 실측: 중심 106·반지름 74에서 위·왼쪽이 잘렸다).
-        const float Radius = 68f;
-        const float LabelOut = 18f;                       // 테두리에서 이름표까지
-        const float Margin = 30f;                          // 화면 모서리에서 띄우는 여백
-        static readonly Vector2 Center = new Vector2(Radius + LabelOut + Margin, Radius + LabelOut + Margin);
-
-        static readonly Color BrassDim = new Color(0.62f, 0.50f, 0.30f, 0.75f);
-        static readonly Color BrassLit = new Color(1.00f, 0.86f, 0.55f, 1f);
-        static readonly Color SelColor = new Color(0.95f, 0.44f, 0.28f, 1f);   // 고른 고리 — 주홍
-        static readonly Color Faint = new Color(0.80f, 0.74f, 0.62f, 0.55f);
+        // ── 나침반 ────────────────────────────────────────
+        // 2026-08-26: 그리는 일은 통째로 CompassPanel(월드 캔버스)로 옮겼다.
+        //   치수·색·"이름표가 테두리 바깥에 앉으니 여백을 더 두어야 한다"는 교훈까지 그쪽에 있다.
+        //   여기는 "지금 보여 줄 때인가"만 판단한다.
 
         bool focused;
         bool solved;
@@ -72,8 +63,7 @@ namespace IMUNROK.Gyeonu
 
         AudioSource oneShot, loopSrc;
         AudioClip madeFriction, madeDetent, madeLatch;
-        Texture2D dialTex, needleTex, dotTex;
-        GUIStyle bigStyle, smallStyle, hintStyle;
+        CompassPanel compass;
 
         /// <summary>다 맞췄는가 (세션 유지).</summary>
         public bool Solved => solved;
@@ -113,7 +103,7 @@ namespace IMUNROK.Gyeonu
                 rings.RingSettled -= OnSettled;
             }
             Kill(ref madeFriction); Kill(ref madeDetent); Kill(ref madeLatch);
-            Kill(ref dialTex); Kill(ref needleTex); Kill(ref dotTex);
+            if (compass != null) Destroy(compass.gameObject);
         }
 
         static void Kill<T>(ref T o) where T : Object
@@ -162,6 +152,26 @@ namespace IMUNROK.Gyeonu
             if (loopSrc.volume <= 0.001f && loopSrc.isPlaying) loopSrc.Stop();
         }
 
+        /// <summary>
+        /// 나침반을 판에 넘긴다 (2026-08-26 — 예전에는 <c>OnGUI</c>였다).
+        ///
+        /// 이 표시가 없으면 <b>여섯 고리가 어느 방위에 있는지 알 길이 없어 퍼즐을 풀 수 없다.</b>
+        /// IMGUI라 HMD에는 아예 안 보였다 — 조사에서 최우선으로 꼽힌 문제다.
+        /// 자리·크기·색은 <see cref="CompassPanel"/> 이 IMGUI 값 그대로 옮겨 담았다.
+        /// </summary>
+        void LateUpdate()
+        {
+            bool show = focused && rings != null && rings.RingCount > 0;
+            if (!show)
+            {
+                if (compass != null) compass.gameObject.SetActive(false);
+                return;
+            }
+            if (compass == null) compass = CompassPanel.Create(transform, rings);
+            if (!compass.gameObject.activeSelf) compass.gameObject.SetActive(true);
+            compass.solved = solved;
+        }
+
         // ── 판정 ──────────────────────────────────────────
 
         void OnSettled(int i)
@@ -208,158 +218,5 @@ namespace IMUNROK.Gyeonu
             running = false;
         }
 
-        // ── 나침반 UI ─────────────────────────────────────
-
-        void OnGUI()
-        {
-            if (!focused || rings == null || rings.RingCount == 0) return;
-            EnsureUi();
-
-            int sel = rings.Selected;
-            int selSlot = rings.Slot(sel);
-
-            // 어느 방위에 고리가 하나라도 놓였는가
-            bool[] occupied = new bool[8];
-            for (int i = 0; i < rings.RingCount; i++)
-            {
-                int s = rings.Slot(i);
-                if (s >= 0 && s < 8) occupied[s] = true;
-            }
-
-            // 판
-            GUI.color = Color.white;
-            float pad = Radius + 14f;
-            GUI.DrawTexture(new Rect(Center.x - pad, Center.y - pad, pad * 2f, pad * 2f), dialTex);
-
-            // 여덟 눈금 + 이름표
-            for (int s = 0; s < 8; s++)
-            {
-                bool isSel = (s == selSlot);
-                Color c = isSel ? SelColor : (occupied[s] ? BrassLit : Faint);
-
-                Vector2 tick = Polar(s * 45f, Radius - 9f);
-                GUI.color = c;
-                float dsz = isSel ? 11f : (occupied[s] ? 9f : 6f);
-                GUI.DrawTexture(new Rect(tick.x - dsz * 0.5f, tick.y - dsz * 0.5f, dsz, dsz), dotTex);
-
-                var style = CompassNames.Cardinal(s) ? bigStyle : smallStyle;
-                Vector2 lab = Polar(s * 45f, Radius + LabelOut);
-                float w = CompassNames.Cardinal(s) ? 30f : 34f;
-                float h = CompassNames.Cardinal(s) ? 26f : 18f;
-                var old = style.normal.textColor;
-                style.normal.textColor = c;
-                GUI.Label(new Rect(lab.x - w * 0.5f, lab.y - h * 0.5f, w, h), CompassNames.Han[s], style);
-                style.normal.textColor = old;
-            }
-
-            // 고리 바늘 — 고른 것은 맨 위에 굵고 길게, 색도 다르게
-            for (int pass = 0; pass < 2; pass++)
-                for (int i = 0; i < rings.RingCount; i++)
-                {
-                    bool isSel = (i == sel);
-                    if ((pass == 0) == isSel) continue;          // 고른 고리를 나중에 그려 위로 올린다
-                    Needle(rings.Bearing(i), isSel ? Radius - 16f : Radius - 30f,
-                           isSel ? 13f : 8f, isSel ? SelColor : BrassDim);
-                }
-
-            // 가운데 축
-            GUI.color = BrassLit;
-            GUI.DrawTexture(new Rect(Center.x - 5f, Center.y - 5f, 10f, 10f), dotTex);
-
-            // ⚠️ 안내 줄을 판 크기(pad)에 붙이면 **南 이름표와 겹친다** — 이름표는 판 바깥
-            //    (반지름+LabelOut)에 앉기 때문이다 (2026-08-23 실측). 이름표보다 더 내려 적는다.
-            GUI.color = new Color(1f, 0.92f, 0.78f, 0.8f);
-            GUI.Label(new Rect(Center.x - pad, Center.y + Radius + LabelOut + 14f, pad * 2f, 20f),
-                      solved ? "고리가 모두 물렸다" : "휠 — 고리 전환", hintStyle);
-            GUI.color = Color.white;
-        }
-
-        static Vector2 Polar(float bearingDeg, float r)
-        {
-            // 0° = 위(北), 시계 방향. GUI는 y가 아래로 커진다
-            float a = bearingDeg * Mathf.Deg2Rad;
-            return new Vector2(Center.x + Mathf.Sin(a) * r, Center.y - Mathf.Cos(a) * r);
-        }
-
-        void Needle(float bearing, float len, float width, Color c)
-        {
-            var m = GUI.matrix;
-            GUIUtility.RotateAroundPivot(bearing, Center);
-            GUI.color = c;
-            GUI.DrawTexture(new Rect(Center.x - width * 0.5f, Center.y - len, width, len), needleTex);
-            GUI.matrix = m;
-        }
-
-        void EnsureUi()
-        {
-            // ⚠️ 런타임 생성 텍스처를 static으로 캐시하지 말 것 — 도메인 리로드가 꺼진 프로젝트에서
-            //    참조만 다음 플레이 세션으로 살아남고 내용이 죽는다 (비네트에서 이미 당한 함정).
-            if (dialTex == null) dialTex = MakeDial();
-            if (needleTex == null) needleTex = MakeNeedle();
-            if (dotTex == null) dotTex = MakeDot();
-            if (bigStyle == null)
-            {
-                bigStyle = new GUIStyle(GUI.skin.label) { fontSize = 21, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-                smallStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, alignment = TextAnchor.MiddleCenter };
-                hintStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, alignment = TextAnchor.MiddleCenter };
-            }
-        }
-
-        /// <summary>어두운 원판 + 놋쇠 테두리 + 안쪽 실선 하나.</summary>
-        static Texture2D MakeDial()
-        {
-            const int res = 192;
-            var t = new Texture2D(res, res, TextureFormat.RGBA32, false) { hideFlags = HideFlags.DontSave };
-            float c = (res - 1) * 0.5f;
-            for (int y = 0; y < res; y++)
-                for (int x = 0; x < res; x++)
-                {
-                    float d = Mathf.Sqrt((x - c) * (x - c) + (y - c) * (y - c)) / c;
-                    Color col = new Color(0f, 0f, 0f, 0f);
-                    if (d < 0.90f) col = new Color(0.055f, 0.048f, 0.042f, 0.74f);          // 바탕
-                    if (d > 0.855f && d < 0.925f) col = new Color(0.72f, 0.56f, 0.30f, 0.95f); // 테두리
-                    if (d > 0.545f && d < 0.565f) col = new Color(0.55f, 0.45f, 0.28f, 0.55f); // 안쪽 실선
-                    // 가장자리 한 픽셀만 부드럽게
-                    if (d > 0.925f && d < 0.955f) col = new Color(0.72f, 0.56f, 0.30f, 0.95f * (1f - (d - 0.925f) / 0.03f));
-                    t.SetPixel(x, y, col);
-                }
-            t.Apply();
-            return t;
-        }
-
-        /// <summary>끝으로 갈수록 가늘어지는 바늘 (위가 끝).</summary>
-        static Texture2D MakeNeedle()
-        {
-            const int w = 16, h = 64;
-            var t = new Texture2D(w, h, TextureFormat.RGBA32, false) { hideFlags = HideFlags.DontSave };
-            for (int y = 0; y < h; y++)
-            {
-                float u = y / (float)(h - 1);                 // 0 = 중심 쪽, 1 = 끝
-                float half = Mathf.Lerp(3.4f, 0.9f, u * u);
-                for (int x = 0; x < w; x++)
-                {
-                    float dx = Mathf.Abs(x - (w - 1) * 0.5f);
-                    float a = Mathf.Clamp01(half - dx + 0.5f);
-                    t.SetPixel(x, y, new Color(1f, 1f, 1f, a));
-                }
-            }
-            t.Apply();
-            return t;
-        }
-
-        static Texture2D MakeDot()
-        {
-            const int res = 24;
-            var t = new Texture2D(res, res, TextureFormat.RGBA32, false) { hideFlags = HideFlags.DontSave };
-            float c = (res - 1) * 0.5f;
-            for (int y = 0; y < res; y++)
-                for (int x = 0; x < res; x++)
-                {
-                    float d = Mathf.Sqrt((x - c) * (x - c) + (y - c) * (y - c)) / c;
-                    t.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Clamp01((1f - d) * 3.2f)));
-                }
-            t.Apply();
-            return t;
-        }
     }
 }

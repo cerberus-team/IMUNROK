@@ -20,7 +20,7 @@ namespace IMUNROK.Gyeonu
     ///   <see cref="HandlePoint"/>·<see cref="HandleClick"/> 만 대화창으로 넘긴다.
     /// </summary>
     [RequireComponent(typeof(Collider))]
-    public class NpcDialogue : FocusInteractable
+    public class NpcDialogue : FocusInteractable, IDialogueSpeaker
     {
         [Header("인물")]
         [Tooltip("성격·프롬프트·신뢰도 구간이 담긴 정의. Create ▸ 이문록 ▸ 견우 NPC")]
@@ -29,12 +29,21 @@ namespace IMUNROK.Gyeonu
         [Tooltip("얼굴 대신 볼 지점. 비우면 발밑에서 profile.eyeHeight 만큼 올린 자리")]
         public Transform faceAnchor;
 
+        [Tooltip("자세가 바뀌면 얼굴 높이도 바뀐다 — 음수면 프로필의 값을 쓴다. " +
+                 "쓰러져 있던 선아가 몸을 일으키면 SeonaRescue 가 이 값을 갈아 끼운다")]
+        public float eyeHeightOverride = -1f;
+
         [Header("몸 돌리기")]
         [Tooltip("말을 걸면 플레이어 쪽으로 몸을 돌린다")]
         public bool turnToPlayer = true;
 
         [Tooltip("몸을 돌리는 데 걸리는 시간(초)")]
         public float turnTime = 0.45f;
+
+        [Tooltip("이 자세의 몸이 오브젝트 정면과 어긋나 있을 때의 보정각(도). " +
+                 "⚠️ 상인의 SitDrinking 은 몸이 오브젝트 정면의 <b>반대쪽</b>을 본다(2026-08-25 실측) — " +
+                 "보정 없이 말을 걸면 등을 돌린 채 대화한다. 그 자리만 180을 준다")]
+        public float faceYawOffset = 0f;
 
         DialogueSession session;
         Quaternion homeRot;          // 대화 전 방향 — 물러나면 여기로 돌아간다
@@ -58,23 +67,32 @@ namespace IMUNROK.Gyeonu
             get
             {
                 if (faceAnchor != null) return faceAnchor.position;
-                float h = profile != null ? profile.eyeHeight : 1.55f;
+                float h = eyeHeightOverride >= 0f ? eyeHeightOverride
+                        : (profile != null ? profile.eyeHeight : 1.55f);
                 return transform.position + Vector3.up * h;
             }
         }
 
         [Header("대화창 배치안")]
-        [Tooltip("A=좌측 판·NPC 우측 (확정안) / B=하단 얇은 띠 / C=말풍선 + 하단 채팅바")]
-        public DialogueLayout layout = DialogueLayout.A_좌측판;
+        [Tooltip("확정안 = 화면 아래 가로 바. 나머지는 지난 시안이니 새로 고르지 말 것")]
+        public DialogueLayout layout = DialogueLayout.하단바_확정;
 
         [Tooltip("목소리로 물었을 때, 받아 적은 글을 바로 보낼지. 끄면 입력칸에 올려 두고 Enter를 기다린다")]
         public bool voiceAutoSend = true;
+
+        // ── IDialogueSpeaker ─────────────────────────────────
+        //   대화창이 묻는 것을 우리 필드에 이어 준다 (2026-08-26). 화면은 이제 NpcDialogue 를
+        //   모르고 이 인터페이스만 안다. FocusPoint 는 이미 이름·형이 맞아 그대로 쓰인다.
+        DialogueLayout IDialogueSpeaker.Layout => layout;
+        bool IDialogueSpeaker.VoiceAutoSend => voiceAutoSend;
 
         [Tooltip("얼굴보다 이만큼(m) 아래를 겨눈다. 얼굴을 화면 위쪽으로 올려 대화창 위에 남긴다")]
         public float aimBelowFace = 0.10f;
 
         /// <summary>
         /// 배치안마다 다른 <b>서는 거리</b>와 <b>화면에서 NPC가 앉을 자리</b>.
+        ///   <b>확정안(하단 바)</b> — 판이 화면 아래쪽만 덮으므로 NPC는 <b>한가운데 그대로</b> 두고
+        ///     거리도 안 물린다. 아래 <c>default</c> 갈래가 이것이다.
         ///   A — 판이 화면 왼쪽을 넓게 덮으므로 NPC를 오른쪽(+22°)으로 밀고 조금 물러선다.
         ///   B — 판이 아래 1/4만 덮으므로 NPC는 한가운데 그대로.
         ///   C — 말풍선이 NPC 왼쪽에 서야 하므로 NPC를 살짝 오른쪽(+14°)으로 민다.
@@ -131,7 +149,11 @@ namespace IMUNROK.Gyeonu
             }
 
             session = new DialogueSession(profile, this);
+            session.SecretTold += OnSecretTold;
+            session.Thanked += OnThanked;
             DialogueUI.Ensure().Open(this, session);
+
+            BeginTalkMotion();
 
             if (turnToPlayer)
             {
@@ -143,7 +165,8 @@ namespace IMUNROK.Gyeonu
                     if (to.sqrMagnitude > 0.001f)
                     {
                         homeRot = transform.rotation;
-                        turnTarget = Quaternion.LookRotation(to.normalized, Vector3.up);
+                        turnTarget = Quaternion.LookRotation(to.normalized, Vector3.up)
+                                   * Quaternion.Euler(0f, -faceYawOffset, 0f);
                         turnT = 0f;
                         turning = true;
                     }
@@ -156,6 +179,8 @@ namespace IMUNROK.Gyeonu
 
         void End()
         {
+            EndTalkMotion();
+
             if (session != null)
             {
                 Debug.Log("[대화] " + profile.displayName + " — 끝\n" + session.Dump());
@@ -170,6 +195,50 @@ namespace IMUNROK.Gyeonu
                 turnT = 0f;
                 turning = true;
             }
+        }
+
+        // ── 모션 (문서 「23. 모션 운용 원칙」) ─────────────────────
+        //
+        //  ■ 왜 여기서 부르는가
+        //    대화의 시작·끝을 아는 곳은 여기뿐이다. 모션 고르기 자체는 NpcActor 한 곳에 모여 있고
+        //    여기서는 "말하기 시작했다 / 끝났다 / 비밀을 털어놨다 / 고마워한다"만 알린다.
+        //
+        //  ■ 대화 전용 모션이 없는 인물 (견우·주모·아이02)
+        //    문서가 "대화 중 Idle 유지"라고 못 박은 인물들이다. 이 경우 <b>랜덤만 멈춘다</b> —
+        //    말하는 도중에 LookAround 로 두리번거리거나 Jump 로 뛰면 대화가 아니라 딴짓이 된다.
+
+        NpcActor actor;
+        public NpcActor Actor => actor != null ? actor : (actor = GetComponent<NpcActor>());
+
+        void BeginTalkMotion()
+        {
+            var a = Actor;
+            if (a == null) return;
+            a.PauseRandom(true);
+            if (!string.IsNullOrEmpty(profile.talkState))
+                a.Play(profile.talkState, NpcActor.Pri.Talk, hold: true);
+        }
+
+        void EndTalkMotion()
+        {
+            var a = Actor;
+            if (a == null) return;
+            a.Release();
+            a.PauseRandom(false);
+        }
+
+        /// <summary>비밀을 털어놨다 — 아이02의 Secret 이 여기 붙는다.</summary>
+        void OnSecretTold()
+        {
+            var ev = GetComponent<NpcSecretEvent>();
+            if (ev != null) ev.Fire();
+        }
+
+        /// <summary>고마움 — 어머니·최초의 직녀의 Thank. 문서가 '필수 반응'이라 못 박았다.</summary>
+        void OnThanked()
+        {
+            var a = Actor;
+            if (a != null && a.Has("Thank")) a.Play("Thank", NpcActor.Pri.Story);
         }
 
         void Update()

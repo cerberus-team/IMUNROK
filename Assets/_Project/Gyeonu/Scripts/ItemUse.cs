@@ -17,6 +17,23 @@ namespace IMUNROK.Gyeonu
     public static class ItemUse
     {
         /// <summary>
+        /// 소지품 판이 보는 창구 (2026-08-26). 판은 이제 <c>ItemUse</c> 를 모르고
+        /// <see cref="IUiItemUse"/> 만 안다 — 다른 사건에서 화면만 가져다 쓸 수 있게 끊었다.
+        /// 하는 일은 아래 정적 함수 그대로다.
+        ///
+        /// ⚠️ 도메인 리로드가 꺼진 프로젝트라 <see cref="UiItems"/> 가 세션 시작에 자리를 비운다.
+        ///    여기서 세션마다 다시 꽂지 않으면 두 번째 Play 부터 「사용하기」가 먹통이 된다.
+        /// </summary>
+        class Bridge : IUiItemUse
+        {
+            public string LabelFor(IUiItem item) { return ItemUse.LabelFor(item as InventoryItem); }
+            public bool Try(IUiItem item, Action closePanel) { return ItemUse.Try(item as InventoryItem, closePanel); }
+        }
+
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void Install() { UiItems.Use = new Bridge(); }
+
+        /// <summary>
         /// 물건을 쓴다. 맡은 곳이 있으면 true (그쪽이 안내·연출까지 책임진다).
         /// </summary>
         /// <param name="item">쓰려는 물건</param>

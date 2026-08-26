@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 using UnityEngine.UI;
 
 namespace IMUNROK.Gyeonu
@@ -23,7 +24,7 @@ namespace IMUNROK.Gyeonu
 
         [HideInInspector] public Image frame;      // 호버 시 색이 바뀌는 테두리
         [HideInInspector] public RawImage icon;    // 칸에 뜨는 물건 그림
-        [HideInInspector] public Text label;       // 칸에 뜨는 이름
+        [HideInInspector] public TextMeshProUGUI label;       // 칸에 뜨는 이름
         [HideInInspector] public Color idleColor;
         [HideInInspector] public Color hoverColor;
 

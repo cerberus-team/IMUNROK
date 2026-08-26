@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -12,12 +13,104 @@ namespace IMUNROK.Gyeonu
     /// </summary>
     public enum DialogueLayout
     {
-        /// <summary>A — 판을 왼쪽 아래에 세우고 NPC를 오른쪽에 둔다. <b>확정안.</b></summary>
-        A_좌측판 = 0,
+        /// <summary>
+        /// <b>확정안</b> — 화면 아래 가로 바 (2026-08-27 확정).
+        /// PC 2900×461 · VR 1500×535 · 먹빛 65%.
+        /// 이름패 · 구분선 · 대사 · 입력줄 · 안내, 닫기 ×는 <b>창 안</b> 우측 상단.
+        ///
+        /// ⚠️ <b>번호가 0인 데 뜻이 있다.</b> 씬에 이미 놓인 NPC 스무 명이 전부 0으로 굳어 있다.
+        ///    확정안에 0을 주면 <b>씬을 한 곳도 안 고치고</b> 전부 확정안으로 선다.
+        ///    지난 시안들을 1부터 다시 매긴 것도 그래서다 — 어느 씬도 1~5를 쓰지 않아 안전하다.
+        /// </summary>
+        하단바_확정 = 0,
+
+        // ── 지난 시안 (2026-08-25~26) ────────────────────────────
+        //   확정 전에 눈으로 견주던 것들이다. 지우지 않고 남긴 이유는 하나 —
+        //   「그때 그 배치가 나았나」를 다시 보려면 코드가 남아 있어야 한다.
+        //   <b>새 NPC에 골라 붙일 것이 아니다.</b>
+
+        /// <summary>A — 판을 왼쪽 아래에 세우고 NPC를 오른쪽에 둔다.</summary>
+        A_좌측판 = 1,
         /// <summary>B — 화면 아래에 얇은 띠. NPC 전신이 거의 다 보인다.</summary>
-        B_하단띠 = 1,
+        B_하단띠 = 2,
         /// <summary>C — NPC 대사는 얼굴 옆 말풍선, 내 입력·제시만 아래 작은 채팅바.</summary>
-        C_말풍선 = 2,
+        C_말풍선 = 3,
+        /// <summary>E — 하단 바 <b>얇게</b>. 3000×300, 대사 2줄. 화면을 가장 덜 막는다.</summary>
+        E_하단바_얇게 = 4,
+        /// <summary>F — 하단 바 <b>여유</b>. 2760×440, 대사 4줄. 긴 대사가 잘 읽힌다.</summary>
+        F_하단바_여유 = 5,
+    }
+
+    /// <summary>
+    /// 하단 바의 색 한 벌 (2026-08-27).
+    ///
+    /// ■ 왜 색까지 바꾸나
+    ///   투명도만 올리면 <b>한지의 밝은 결이 그대로 비쳐</b> 뒤가 보이는데도 답답하다.
+    ///   여느 게임의 대사창처럼 <b>어두운 바탕 + 높은 투명도 + 밝은 글씨</b>로 간다.
+    ///   조선 배경이니 검정 대신 <b>먹빛·짙은 갈색</b>을 쓰고, 목재 테두리는 남긴다.
+    ///
+    /// ■ 글이 읽히는 선
+    ///   어두운 바탕에서는 글씨를 밝게 뒤집어야 한다. 밝은 배경(낮 야외) 앞에서도
+    ///   바탕이 충분히 어두워야 밝은 글씨가 뜬다 — 그래서 투명도의 하한이 생긴다.
+    /// </summary>
+    public struct BarPalette
+    {
+        public Color back;       // 뒤판 (알파 포함)
+        public Color border;     // 테두리
+        public Color text;       // 대사
+        public Color dim;        // 조작 안내·녹음 문구
+        public Color slotBack;   // 글쇠 칸 안쪽
+        public Color slotText;   // 글쇠 칸에 친 글
+        public Color slotHint;   // 글쇠 칸 안내글
+        /// <summary>한지결을 남길지 — false 면 민판(단색)이라 가장 깔끔하다.</summary>
+        public bool paperGrain;
+    }
+
+    /// <summary>
+    /// 하단 바 한 벌의 수치 (2026-08-26 시안 → 08-27 확정). PC와 VR이 값만 다르다.
+    /// 배치 코드는 하나뿐이고, 변형은 <b>이 값들만</b> 다르다 — 그래야 견주기가 공정하다.
+    /// </summary>
+    public struct BottomStyle
+    {
+        /// <summary>대사 자리의 높이(단위). <see cref="DialogueUI.LineBox"/> 가 줄 수로 계산해 준다.</summary>
+        public float lineBoxH;
+        public int lineSize;      // 대사 글자
+        public int nameSize;      // 이름패 글자
+        public int inputSize;     // 글쇠 칸·단추 글자
+        public int footSize;      // 아래 조작 안내
+        public float inputH;      // 입력줄 높이
+
+        // ── 여백 (2026-08-27) ───────────────────────────────────────────────
+        //   처음엔 자리마다 숫자를 흩어 놓았더니 <b>어디가 좁은지 눈으로만 알 수 있고</b>
+        //   하나를 고치면 아래가 다 밀렸다. 이제 <b>사이 간격을 이름 붙여</b> 두고,
+        //   판 높이(<see cref="DialogueUI.GeomOf"/>)를 이 값들의 <b>합으로 계산</b>한다.
+        //   그래서 여백을 키우면 판이 딱 그만큼만 커진다 — 배치가 어긋나지 않는다.
+
+        public float padX;          // 좌우 테두리 ↔ 내용
+        public float padTop;        // 위 테두리 ↔ 이름패
+        public float nameToRule;    // 이름패 ↔ 구분선
+        public float ruleH;         // 구분선 두께
+        public float ruleToLine;    // 구분선 ↔ 대사
+        public float lineToInput;   // 대사 ↔ 글쇠 칸
+        public float inputToFoot;   // 글쇠 칸 ↔ 아래 조작 안내
+        public float footToEdge;    // 조작 안내 ↔ 아래 테두리
+        public float footH;         // 조작 안내 줄 높이
+
+        /// <summary>이름패 높이 — 글자에 위아래 여유를 붙인 것. 닫기 ×도 같은 높이로 맞춘다.</summary>
+        public float NameH { get { return nameSize + 18f; } }
+
+        /// <summary>
+        /// 여백까지 더한 판 높이. 배치 코드와 <see cref="DialogueUI.GeomOf"/> 가 같은 값을 쓴다.
+        /// 위에서 아래로 <b>머리(이름패·구분선) → 대사 → 입력줄 → 안내</b> 순으로 쌓은 합이다.
+        /// </summary>
+        public float TotalHeight
+        {
+            get
+            {
+                return padTop + NameH + nameToRule + ruleH + ruleToLine
+                     + lineBoxH + lineToInput + inputH + inputToFoot + footH + footToEdge;
+            }
+        }
     }
 
     /// <summary>
@@ -65,12 +158,188 @@ namespace IMUNROK.Gyeonu
                 // 2.20×0.40m 띠 → 세로 −27.8°~−14.6°. 화면 아래 1/4만 덮는다.
                 case DialogueLayout.B_하단띠: return new Geom(2200f, 400f, 0.001f, 1.5f, 0f, -21.5f);
                 // 1.90×0.26m 채팅바 → 세로 −28.5°~−20.3°. 대사는 말풍선이 맡는다.
-                default: return new Geom(1900f, 260f, 0.001f, 1.5f, 0f, -24.5f);
+                case DialogueLayout.C_말풍선: return new Geom(1900f, 260f, 0.001f, 1.5f, 0f, -24.5f);
+
+                // ── 하단 가로 바 (2026-08-26) ────────────────────────────
+                //   1.5 m 앞, 세로 화각 60° 기준으로 화면 반높이가 866단위, 16:9 반너비가 1540단위다.
+                //   바를 화면 <b>아래 끝에서 46단위 띄워</b> 눕히려면 중심 y = −(866 − 높이/2 − 46).
+                //   그 y를 각도로 옮긴 것이 upDeg = atan(y·0.001 / 1.5) 다.
+                //   너비는 화면 폭(3080)의 90~97% — "거의 전체 폭"이라는 요구를 그렇게 잡았다.
+                //   높이는 <see cref="BottomStyle.TotalHeight"/> 가 여백까지 더해 계산한다 —
+                //   여백을 벌리면 판이 딱 그만큼만 커지고, 아래 끝에서 띄우는 거리는 그대로다.
+                case DialogueLayout.하단바_확정: return BarGeom(2900f, DialogueLayout.하단바_확정);
+                case DialogueLayout.E_하단바_얇게: return BarGeom(3000f, DialogueLayout.E_하단바_얇게);
+                default: return BarGeom(2760f, DialogueLayout.F_하단바_여유);
             }
+        }
+
+        /// <summary>
+        /// 하단 바의 치수를 짓는다 — 높이는 여백의 합, 자리는 <b>화면 아래 끝에서 46 띄운 곳</b>.
+        ///
+        /// 1.5 m 앞, 세로 화각 60° 기준으로 화면 반높이가 866단위다. 바 중심을
+        /// <c>−(866 − 높이/2 − 46)</c> 에 두면 아래 여백이 늘 46으로 일정하다.
+        /// 여백을 벌려 판이 커져도 <b>바닥에서 뜬 거리는 안 변한다</b> — 위로만 자란다.
+        /// </summary>
+        /// <summary>
+        /// VR에서 하단 바의 <b>폭</b> (단위). PC의 2900을 그대로 쓰면 안 된다 (2026-08-27).
+        ///
+        /// 2.9 m 짜리 판이 1.5 m 앞에 서면 <b>가로 88°</b> 다 — 양 끝을 보려고 고개를 돌려야 한다.
+        /// 1500 이면 1.5 m → <b>53°</b> 로, 눈만 굴려 훑을 수 있는 범위에 들어온다.
+        /// (좌측 판이 VR에서 68°였고 그것도 "겨우"였다 — 그보다 넉넉하게 잡았다.)
+        ///
+        /// 폭이 줄면 한 줄에 담기는 글자가 줄어 <b>줄 수를 늘려</b> 메운다 (아래 VR 수치 참고).
+        /// </summary>
+        const float VrBarWidth = 1500f;
+
+        /// <summary>
+        /// VR에서 하단 바가 눕는 높이(도). 판 반높이가 약 10°이므로 −16°면 위끝 −6°, 아래끝 −26° —
+        /// 아래를 보되 고개를 숙일 정도는 아닌 자리다. PC(−23°)보다 조금 올려 잡았다:
+        /// HMD는 아래쪽 시야가 화면보다 좁다.
+        /// </summary>
+        const float VrBarUpDeg = -16f;
+
+        static Geom BarGeom(float w, DialogueLayout l)
+        {
+            float h = StyleOf(l).TotalHeight;
+
+            // VR — 좁게 짓고 각도로 눕힌다 (판 자체를 VR용 치수로 만드는 것이 요점이다.
+            //      PC 판을 배율로 키우거나 줄이면 글자와 판의 비율이 어긋난다.)
+            if (UiModes.IsVr) return new Geom(VrBarWidth, h, 0.001f, 1.5f, 0f, VrBarUpDeg);
+
+            // PC — 화면 아래 끝에서 46 띄운 자리. 여백을 벌려 판이 커져도 이 거리는 안 변한다.
+            float y = -(866f - h * 0.5f - 46f);                      // 단위
+            float upDeg = Mathf.Atan2(y * 0.001f, 1.5f) * Mathf.Rad2Deg;
+            return new Geom(w, h, 0.001f, 1.5f, 0f, upDeg);
+        }
+
+        /// <summary>
+        /// <b>대사 상자를 줄 높이의 정수배로</b> 잡는다 (2026-08-27).
+        ///
+        /// ⚠️ 안 맞추면 틀(<see cref="RectMask2D"/>)이 <b>줄 한복판을 가로로 잘라</b> 글자가
+        ///    반토막 난 채 남는다 — 고장난 것처럼 보인다 (긴 대사에서 실측).
+        ///
+        /// 한 줄이 차지하는 높이 = 글자크기 × (<b>1.25</b> + <b>0.28</b>) 이다.
+        ///   · 1.25 — 조선 궁서체의 줄 높이 비율 (얼굴 지표 60 ÷ 표본 48)
+        ///   · 0.28 — 우리가 얹은 줄 간격 (<c>UiSkin.LineSpacing(1.28f)</c> 은 글자크기의 28%를 더한다)
+        /// 둘을 더해야 한다 — 줄 간격은 줄 높이에 <b>곱하는 것이 아니라 더하는 것</b>이다.
+        /// (여기를 곱셈으로 잘못 잡아 3줄짜리 상자가 2.5줄만 담고 있었다.)
+        /// </summary>
+        static float LineBox(int lineSize, int lines)
+        {
+            const float PerLine = 1.25f + 0.28f;
+            return Mathf.Ceil(lineSize * PerLine * lines) + 6f;   // 6 = 첫 줄 윗여유
+        }
+
+        /// <summary>배치안·모드별 수치. 얼개는 하나, 값만 다르다.</summary>
+        static BottomStyle StyleOf(DialogueLayout l)
+        {
+            switch (l)
+            {
+                // 대사 자리 높이 = 글자크기 × 1.25(궁서체 줄높이) × 줄 수 + 여유 6
+                case DialogueLayout.E_하단바_얇게:   // 2줄
+                    return new BottomStyle { lineBoxH = LineBox(38, 2), lineSize = 38,
+                                             nameSize = 28, inputSize = 26, footSize = 18, inputH = 56f,
+                                             padX = 76f, padTop = 12f, nameToRule = 8f, ruleH = 3f,
+                                             ruleToLine = 20f, lineToInput = 28f,
+                                             inputToFoot = 18f, footToEdge = 16f, footH = 22f };
+                case DialogueLayout.F_하단바_여유:   // 4줄
+                    return new BottomStyle { lineBoxH = LineBox(46, 4), lineSize = 46,
+                                             nameSize = 34, inputSize = 31, footSize = 21, inputH = 70f,
+                                             padX = 100f, padTop = 18f, nameToRule = 12f, ruleH = 3f,
+                                             ruleToLine = 30f, lineToInput = 42f,
+                                             inputToFoot = 28f, footToEdge = 24f, footH = 26f };
+                case DialogueLayout.하단바_확정 when UiModes.IsVr:
+                    // ── VR 확정안 (2026-08-27) ───────────────────────────────────────
+                    //   구성·색·투명도는 PC와 <b>똑같다</b>. 달라지는 것은 <b>치수</b>뿐이다.
+                    //
+                    //   ⚠️ PC 글자 크기를 그대로 쓰면 안 된다. 1.5 m 앞에서 19단위 안내줄은
+                    //      <b>0.73°</b> 인데, VR에서 편히 읽히는 하한이 약 1.3° 다 —
+                    //      헤드셋에서는 "글자가 있다"는 것만 알고 못 읽는 크기다.
+                    //      그래서 작은 글씨부터 키웠다: 안내 19→34 (1.30°), 입력 28→34,
+                    //      이름 32→36, 대사 42→46 (1.76°).
+                    //   ⚠️ 판이 좁아져(2900→1500) 한 줄에 담기는 글자가 줄었다 — 줄 수는 3줄 그대로 두되
+                    //      글자가 커진 만큼 상자도 커진다. 긴 대사는 PC보다 더 자주 굴려 읽게 된다.
+                    //   ⚠️ <b>헤드셋으로 검증하지 못했다.</b> 계산으로 잡은 값이다.
+                    return new BottomStyle { lineBoxH = LineBox(46, 3), lineSize = 46,
+                                             nameSize = 36, inputSize = 34, footSize = 34, inputH = 76f,
+                                             padX = 60f, padTop = 18f, nameToRule = 12f, ruleH = 3f,
+                                             ruleToLine = 28f, lineToInput = 40f,
+                                             inputToFoot = 26f, footToEdge = 24f, footH = 36f };
+
+                default:                             // D — 보통, 3줄 · 확정안 (PC)
+                    // 2026-08-27 (2차): <b>좌측 판(A안)의 구성을 그대로 옮겼다.</b>
+                    //   A안 세로 배열: 이름패(창 안 좌상) → 구분선 → 대사 → 입력줄 → 안내,
+                    //   닫기 ×는 창 <b>안</b> 우상. 그 순서와 켜 나눔을 여기 그대로 가져온다.
+                    //
+                    //   ⚠️ A안의 간격을 <b>숫자 그대로</b>는 못 옮긴다. A안 판은 620이 세로인데
+                    //      바는 461이다 — 그대로 넣으면 530이 넘어 안내줄이 판 밖으로 나간다.
+                    //      그래서 <b>순서와 비율은 지키고 값만 눌러</b> 담았다 (아래 합이 정확히 461).
+                    //      14 + 50 + 10 + 3 + 24 + 199 + 34 + 62 + 22 + 24 + 19 = 461
+                    return new BottomStyle { lineBoxH = LineBox(42, 3), lineSize = 42,
+                                             nameSize = 32, inputSize = 28, footSize = 19, inputH = 62f,
+                                             padX = 90f, padTop = 14f, nameToRule = 10f, ruleH = 3f,
+                                             ruleToLine = 24f, lineToInput = 34f,
+                                             inputToFoot = 22f, footToEdge = 19f, footH = 24f };
+            }
+        }
+
+        // ── 확정된 색 (2026-08-27) ────────────────────────────────────────────
+        //
+        // 시안 때는 색조·투명도를 정적 손잡이로 빼 두고 아홉 조합을 견주었다.
+        // <b>먹빛 65% 로 확정되어 손잡이는 지웠다</b> — 코드에 남겨 두면 나중에 누가 건드린다.
+        // 다시 견주어야 할 일이 생기면 아래 두 상수만 바꾸면 된다.
+
+        /// <summary>뒤판 불투명도. 낮은 쪽이 많이 비치지만 낮 야외에서 글이 흐려진다 —
+        /// 0.50 이 하한, 0.80 이면 거의 안 비친다. 두 조명에서 재어 0.65 로 정했다.</summary>
+        const float BackAlpha = 0.65f;
+
+        /// <summary>먹빛 — 푸른 기가 도는 검정. 낮 야외·밤 실내 양쪽에서 밝은 글씨가 뜬다.</summary>
+        static readonly Color BackRgb = new Color(0.062f, 0.066f, 0.086f);
+
+        /// <summary>확정된 색 한 벌.</summary>
+        public static BarPalette Palette()
+        {
+            const float a = BackAlpha;
+            var back = new Color(BackRgb.r, BackRgb.g, BackRgb.b, a);
+
+            return new BarPalette
+            {
+                back = back,
+                border = new Color(0.44f, 0.35f, 0.25f, Mathf.Clamp01(a + 0.22f)),
+                text = new Color(0.945f, 0.925f, 0.870f),
+                dim = new Color(0.82f, 0.79f, 0.73f, 0.78f),
+                // 글쇠 칸은 뒤판보다 <b>조금 더 짙고 조금 더 불투명</b>하게 — 칠 수 있는 자리임을 알린다
+                slotBack = new Color(back.r * 0.55f, back.g * 0.55f, back.b * 0.55f, Mathf.Clamp01(a + 0.16f)),
+                slotText = new Color(0.945f, 0.925f, 0.870f),
+                slotHint = new Color(0.945f, 0.925f, 0.870f, 0.42f),
+                paperGrain = false,   // 한지결은 투명해도 답답해 보여 뺐다 (시안에서 견주어 확인)
+            };
+        }
+
+        static bool IsBottomBar(DialogueLayout l)
+        {
+            return l == DialogueLayout.하단바_확정
+                || l == DialogueLayout.E_하단바_얇게
+                || l == DialogueLayout.F_하단바_여유;
         }
 
         /// <summary>말풍선 치수 (C안). 캔버스 단위 × 0.001 = m.</summary>
         const float BubbleW = 900f, BubbleH = 420f, BubbleScale = 0.001f;
+
+        /// <summary>
+        /// VR에서 판 전체에 곱하는 배율 (2026-08-26).
+        ///
+        /// 왜 필요한가: A안의 <b>안내 줄과 「더 있음」 표시가 22단위 = 0.84°</b> 다.
+        /// VR에서 편히 읽히는 하한이 약 1.3°이고 1°는 사실상 못 읽는 크기다.
+        /// 글자만 키우면 줄 높이를 넘쳐 배치가 깨지므로 <b>판을 통째로</b> 키운다 —
+        /// 글자·상자·여백이 함께 커져 A안 배치가 그대로 유지된다.
+        ///
+        /// 1.35 를 고른 이유: 판이 1.5 m 앞에서 53°×24° → <b>68°×32°</b> 가 된다.
+        /// 가운데에 두면 좌우 ±34° 로, 눈만 굴려 훑을 수 있는 범위 안에 겨우 들어온다.
+        /// 1.5 로 올리면 76°가 되어 모서리를 보려고 고개를 돌려야 한다.
+        /// ⚠️ 계산으로 잡은 값이다 — 헤드셋에서 22단위 줄이 실제로 읽히는지 확인할 것.
+        /// </summary>
+        const float VrScale = 1.35f;
 
         public static DialogueUI Instance { get; private set; }
 
@@ -79,7 +348,7 @@ namespace IMUNROK.Gyeonu
 
         public bool IsOpen { get; private set; }
         public DialogueHotspot Hovered { get; private set; }
-        public DialogueLayout Layout { get; private set; } = DialogueLayout.A_좌측판;
+        public DialogueLayout Layout { get; private set; } = DialogueLayout.하단바_확정;
 
         /// <summary>소지품 판(증거 고르기)이 떠 있는가 — Esc가 어디로 갈지를 이 값이 정한다.</summary>
         public bool IsPresenting => InventoryUI.Instance != null && InventoryUI.Instance.IsOpen;
@@ -87,28 +356,38 @@ namespace IMUNROK.Gyeonu
         readonly InventorySkin skin = new InventorySkin();
         readonly VoiceInput voice = new VoiceInput();
 
-        NpcDialogue owner;
-        DialogueSession session;
+        IDialogueSpeaker owner;
+        IDialogueBackend session;
         Transform eye;
         Geom geom;
         bool built;
+        /// <summary>지을 때의 모드. 하단 바는 PC와 VR의 <b>치수가 아예 다르므로</b>
+        /// F8로 모드를 바꾸면 다시 지어야 한다 (2026-08-27).</summary>
+        bool builtForVr;
 
-        Font font;
+        TMP_FontAsset font;
         RectTransform root;                    // 판 본체 (캔버스 = 이 오브젝트)
-        Text nameText, lineText, hintText, voiceText, overflowHint;
+        TextMeshProUGUI nameText, lineText, hintText, voiceText, overflowHint;
         RectTransform cursor, voiceBar, voiceBarFill;
         RectTransform lineViewport, lineRect;   // 대사 — 틀 안에서 굴려 읽는다
         string shownLine = "";
+        bool following;                 // VR — 판이 지금 시야를 따라가는 중인가
         float lineScroll;
         float scrollReadyAt;
-        InputField field;
+        TMP_InputField field;
+        TextMeshProUGUI placeholder;              // 칸이 비었을 때 뜨는 안내 — 모드에 따라 문구가 달라진다
         DialogueHotspot askSpot, presentSpot, closeSpot;
-        Text askLabel;
+        TextMeshProUGUI askLabel;
+
+        // 하단 바의 「말하기」 단추 — 누르고 있는 동안 녹음한다 (다른 배치안에는 없다)
+        DialogueHotspot micSpot;
+        TextMeshProUGUI micLabel;
+        RectTransform micIcon;
 
         // C안 — 말풍선 (자기 캔버스를 따로 가진다: 월드에서 NPC 곁에 떠 있어야 한다)
         GameObject bubbleGo;
         RectTransform bubbleRoot, bubbleTail;
-        Text bubbleName, bubbleLine;
+        TextMeshProUGUI bubbleName, bubbleLine;
 
         bool eventSystemMine;
         bool prevNavigation;
@@ -125,14 +404,17 @@ namespace IMUNROK.Gyeonu
             return Instance;
         }
 
-        public void Open(NpcDialogue npc, DialogueSession s)
+        public void Open(IDialogueSpeaker npc, IDialogueBackend s)
         {
             owner = npc;
             session = s;
             eye = Camera.main != null ? Camera.main.transform : null;
             if (eye == null) { Debug.LogError("[대화] Camera.main이 없다 — 대화창을 세울 수 없다."); return; }
 
-            if (!built || Layout != npc.layout) Rebuild(npc.layout);
+            // ⚠️ 모드가 바뀌었으면 다시 짓는다 — 하단 바는 PC와 VR의 <b>치수가 아예 다르다</b>
+            //    (폭 2900↔1500, 글자 크기도 다르다). 안 다시 지으면 F8로 모드를 바꿨을 때
+            //    PC 치수의 판이 VR 자리에 그대로 서서 시야를 통째로 덮는다.
+            if (!built || Layout != npc.Layout || builtForVr != UiModes.IsVr) Rebuild(npc.Layout);
 
             gameObject.SetActive(true);
             if (bubbleGo != null) bubbleGo.SetActive(Layout == DialogueLayout.C_말풍선);
@@ -148,12 +430,20 @@ namespace IMUNROK.Gyeonu
                 EventSystem.current.sendNavigationEvents = false;
             }
 
+            ApplyInputRowMode();
             hintText.text = HintLine;
             shownLine = "";              // 지난 대화의 마지막 줄을 물려받지 않게
             lineScroll = 0f;
             Refresh();
             field.text = "";
-            field.ActivateInputField();
+            ActivateField();
+        }
+
+        /// <summary>글쇠 칸을 잡는다. VR에는 칠 칸이 없으므로 아무 일도 하지 않는다.</summary>
+        void ActivateField()
+        {
+            if (UiModes.IsPc && field != null && field.gameObject.activeInHierarchy)
+                field.ActivateInputField();
         }
 
         public void Close()
@@ -188,19 +478,78 @@ namespace IMUNROK.Gyeonu
         {
             if (eye == null) return;
 
+            // ── 판이 서는 방향 ──
+            // PC : 카메라 회전 그대로 = 화면에 붙박이. 지금까지의 사용감을 그대로 둔다.
+            // VR : 죽은 구간 + 지연으로 시야를 느슨히 따라간다.
+            //   ⚠️ VR에서 붙박이로 두면 안 된다 — 판이 시야 왼쪽 −20°에 **영원히 붙어 있어**
+            //      고개를 돌려도 정면으로 가져올 수가 없다. 눈만 굴려 읽어야 하는 자리다.
+            //      데드존을 두면 판이 시야 가운데로 천천히 따라와, 보려고 하면 정면에 온다.
+            //      (소지품 판이 같은 이유로 이미 이 방식을 쓴다)
+            Quaternion rot;
+            if (UiModes.IsVr)
+            {
+                float off = Quaternion.Angle(transform.rotation, eye.rotation);
+                if (off > UiTuning.VrFollowDeadZone) following = true;
+                else if (off < UiTuning.VrFollowDeadZone * 0.35f) following = false;
+                rot = following
+                    ? Quaternion.Slerp(transform.rotation, eye.rotation,
+                                       1f - Mathf.Exp(-Time.unscaledDeltaTime / UiTuning.VrFollowLag))
+                    : transform.rotation;
+                if (!IsOpen) rot = eye.rotation;      // 막 열렸으면 즉시 정면에
+            }
+            else rot = eye.rotation;
+
+            // ── 화면 안에서의 자리 ──
+            //
+            // VR은 가로 치우침을 없앤다 — 렌즈 주변부는 흐리고 눈을 크게 굴려야 한다.
+            //
+            // ⚠️ 세로 치우침을 −12°로 <b>묶던 줄을 하단 바에서는 풀었다</b> (2026-08-27 확정).
+            //    그 묶음은 좌측 판(A안, −11°)을 위한 것이었다. 하단 바는 −23° 언저리에 눕는 것이
+            //    설계인데 −12°로 끌어올리면 <b>화면 한가운데로 올라와 NPC를 가린다</b> —
+            //    "아래에 낮게 깔아 NPC를 안 가린다"는 이 배치의 이유가 통째로 사라진다.
+            //    바는 VR에서도 제 각도로 눕히고, 대신 <b>판을 좁게</b> 만들어(BarGeom) 시야에 담는다.
+            bool bar = IsBottomBar(Layout);
+            float rightDeg = UiModes.IsVr ? 0f : geom.rightDeg;
+            float upDeg = UiModes.IsVr && !bar ? Mathf.Max(geom.upDeg, -12f) : geom.upDeg;
+            float scaleMul = UiModes.IsVr && !bar ? VrScale : 1f;   // 바는 치수 자체를 VR용으로 짓는다
+
             float dist = geom.dist;
-            // 실내에서 벽·가구에 판이 박히지 않게 막힌 만큼 당겨 온다 (보이는 각은 배율로 지킨다).
-            if (Physics.Raycast(eye.position, eye.forward, out var hit, geom.dist * 1.2f, ~0, QueryTriggerInteraction.Ignore))
-                dist = Mathf.Min(dist, hit.distance - 0.08f);
+
+            // ── 앞을 막은 것 피하기 ──
+            //
+            // ⚠️ 예전에는 <b>가운데로 광선 하나</b>만 쐈다. 좌측 판(1500)에서는 그럭저럭 맞았지만
+            //    폭 2900짜리 하단 바에서는 <b>옆에 있는 담·가구를 통째로 못 본다</b> —
+            //    실제로 낮 마을에서 앞의 돌담이 바 왼쪽을 잘라 대사가 가려졌다.
+            //    판의 네 귀퉁이까지 재고 가장 가까운 것에 맞춘다 (VrPanel 이 쓰는 것과 같은 수법).
+            //    당겨 온 만큼 배율도 함께 줄이므로 보이는 각은 그대로다.
+            Vector3 ahead = rot * Vector3.forward;
+            float halfW = geom.w * 0.5f * geom.scale * scaleMul;
+            float halfH = geom.h * 0.5f * geom.scale * scaleMul;
+            float upOff = geom.dist * Mathf.Tan(upDeg * Mathf.Deg2Rad);
+            float rightOff = geom.dist * Mathf.Tan(rightDeg * Mathf.Deg2Rad);
+            for (int i = 0; i < 5; i++)
+            {
+                float sx = i == 0 ? 0f : (i == 1 || i == 3 ? -1f : 1f);
+                float sy = i == 0 ? 0f : (i <= 2 ? 1f : -1f);
+                Vector3 local = new Vector3(rightOff + sx * halfW, upOff + sy * halfH, geom.dist);
+                Vector3 dir = (rot * local).normalized;
+                RaycastHit h2;
+                if (!Physics.Raycast(eye.position, dir, out h2, geom.dist * 1.3f, ~0, QueryTriggerInteraction.Ignore))
+                    continue;
+                // 비스듬한 광선의 거리를 판 면까지의 **수직** 거리로 환산한다
+                float along = h2.distance * Vector3.Dot(dir, ahead);
+                dist = Mathf.Min(dist, along - 0.08f);
+            }
             dist = Mathf.Max(0.35f, dist);
 
+            float k = dist / geom.dist;
             Vector3 pos = eye.position
-                        + eye.forward * dist
-                        + eye.up * (dist * Mathf.Tan(geom.upDeg * Mathf.Deg2Rad))
-                        + eye.right * (dist * Mathf.Tan(geom.rightDeg * Mathf.Deg2Rad));
+                        + ahead * dist
+                        + (rot * Vector3.up) * (upOff * k)
+                        + (rot * Vector3.right) * (rightOff * k);
 
-            transform.SetPositionAndRotation(pos, eye.rotation);
-            transform.localScale = Vector3.one * geom.scale * (dist / geom.dist);
+            transform.SetPositionAndRotation(pos, rot);
+            transform.localScale = Vector3.one * geom.scale * k * scaleMul;
 
             if (bubbleGo != null && bubbleGo.activeSelf) PlaceBubble();
         }
@@ -236,12 +585,16 @@ namespace IMUNROK.Gyeonu
                 return;
             }
 
-            // ── 목소리 (왼쪽 Ctrl 누르고 말하기) ──
-            HandleVoice(kb);
+            // 모드가 Play 중에 바뀔 수 있다 (F8) — 칸과 안내 줄을 그때그때 맞춘다
+            ApplyInputRowMode();
+            if (hintText != null && hintText.text != HintLine) hintText.text = HintLine;
+
+            // ── 목소리 (PC: 왼쪽 Ctrl / VR: 그립 — 누르고 말하기) ──
+            HandleVoice();
 
             // ── 글쇠 칸 되살리기 ──
             // 빈 곳 클릭 한 번으로 선택이 풀린다. 대화 화면에서는 늘 잡혀 있어야 한다.
-            if (!voice.Recording && !voiceBusy && !field.isFocused && !session.Busy) field.ActivateInputField();
+            if (!voice.Recording && !voiceBusy && !field.isFocused && !session.Busy) ActivateField();
 
             // ── Enter — 묻기 ──
             //   InputField의 이벤트를 쓰지 않는다: 판이 선택을 잃을 때도 함께 발화하는 판이라
@@ -250,14 +603,31 @@ namespace IMUNROK.Gyeonu
         }
 
         // ── 목소리 ────────────────────────────────────────────
-        void HandleVoice(Keyboard kb)
+        /// <summary>
+        /// 누르고 말하기. PC = 왼쪽 Ctrl, VR = 그립 — 어느 쪽인지는 <see cref="UiPointers"/> 가 안다.
+        ///
+        /// VR에서는 이것이 <b>묻는 유일한 길</b>이다 (글쇠를 칠 수 없으므로).
+        /// ⚠️ 그립 버튼 배치와 마이크 잡힘은 헤드셋으로 확인하지 못했다.
+        /// </summary>
+        void HandleVoice()
         {
-            bool held = kb.leftCtrlKey.isPressed;
+            var ptr = UiPointers.Get(eye);
 
-            if (!voice.Recording && kb.leftCtrlKey.wasPressedThisFrame && !session.Busy && !voiceBusy)
+            // 「말하기」 단추 위에서 누르고 있는 것을 <b>왼쪽 Ctrl 을 누른 것과 똑같이</b> 친다
+            // (2026-08-26, 하단 바 시안). 녹음을 시작·끝내는 조건도, 받아 적은 글을 어떻게
+            // 처리하는지도 하나도 안 달라졌다 — <b>손잡이가 하나 더 생겼을 뿐</b>이다.
+            bool onMic = micSpot != null && Hovered == micSpot && micSpot.interactable;
+            bool micHeld = onMic && ptr.PressHeld;
+            bool micDown = onMic && ptr.PressDown;
+
+            bool held = ptr.TalkHeld || micHeld;
+
+            if (!voice.Recording && (ptr.TalkDown || micDown) && !session.Busy && !voiceBusy)
             {
                 if (!VoiceInput.HasMicrophone) { DebugToast.Show("마이크를 찾지 못했다.", 2f); return; }
-                if (!GyeonuGeminiResponder.HasKey) { DebugToast.Show("API 키가 없어 목소리를 쓸 수 없다.", 2.5f); return; }
+                // 받아쓰기를 맡은 곳이 없으면 애초에 여기까지 오지 않는다(단추가 숨는다).
+                // 그래도 한 번 더 본다 — 실행 중에 뽑히는 경우가 있다.
+                if (!UiDialogue.CanTranscribe) { DebugToast.Show("목소리를 글로 옮길 수단이 없다.", 2.5f); return; }
                 if (voice.Begin())
                 {
                     field.DeactivateInputField();
@@ -270,7 +640,18 @@ namespace IMUNROK.Gyeonu
             {
                 voice.Tick();
                 UpdateVoiceMeter();
-                if (!held || kb.leftCtrlKey.wasReleasedThisFrame) EndVoice();
+                // ⚠️ <c>TalkUp</c>(Ctrl 뗌) 검사를 남겨 둔다 — 한 프레임에 눌렀다 떼면 held 가
+                //    이미 false 라 놓칠 수 있어서 원래 있던 안전줄이다. 단, 단추를 쥐고 있는
+                //    동안에는 무시한다(그때는 Ctrl 이 손잡이가 아니다).
+                if (!held || (ptr.TalkUp && !micHeld)) EndVoice();
+            }
+
+            // 단추가 지금 듣고 있음을 색으로 알린다 — 그린 마이크가 주칠로 물든다
+            if (micIcon != null)
+            {
+                var img = micIcon.GetComponent<Image>();
+                var want = voice.Recording ? InventorySkin.Vermilion : InventorySkin.Hanji;
+                if (img != null && img.color != want) img.color = want;
             }
         }
 
@@ -281,13 +662,13 @@ namespace IMUNROK.Gyeonu
             if (wav == null)
             {
                 Refresh();
-                field.ActivateInputField();
+                ActivateField();
                 return;
             }
 
             voiceBusy = true;
             Refresh();
-            GyeonuGeminiResponder.Transcribe(this, wav,
+            UiDialogue.Voice.Transcribe(this, wav,
                 text =>
                 {
                     voiceBusy = false;
@@ -295,15 +676,15 @@ namespace IMUNROK.Gyeonu
                     Refresh();
                     // 문서 요구: 떼면 곧바로 전달한다. 받아 적은 글은 대화 기록에 그대로 남아
                     // 무엇으로 전해졌는지 확인할 수 있다.
-                    if (owner != null && owner.voiceAutoSend) Ask();
-                    else field.ActivateInputField();
+                    if (owner != null && owner.VoiceAutoSend) Ask();
+                    else ActivateField();
                 },
                 err =>
                 {
                     voiceBusy = false;
                     Refresh();
                     DebugToast.Show("받아 적지 못했다 — " + err, 2.5f);
-                    field.ActivateInputField();
+                    ActivateField();
                 });
         }
 
@@ -325,8 +706,8 @@ namespace IMUNROK.Gyeonu
         void Refresh()
         {
             if (session == null) return;
-            string npcName = session.Profile.displayName;
-            string line = session.Busy ? "…" : session.CurrentNpcLine;
+            string npcName = session.SpeakerName;
+            string line = session.Busy ? "…" : session.CurrentLine;
 
             if (nameText != null) nameText.text = npcName;
             if (lineText != null && line != shownLine)
@@ -357,8 +738,25 @@ namespace IMUNROK.Gyeonu
         //    추리가 아니라 최적화가 된다. 신뢰도는 견우의 태도와 대사로만 느끼게 둔다.
         //    (등급 자체는 그대로 매겨져 GyeonuCase에 반영된다 — 감추는 것은 표시뿐이다.)
 
-        string HintLine =>
-            "Enter — 묻기     <color=#8E2C20>왼쪽 Ctrl — 누르고 말하기</color>     좌클릭 — 누르기     Esc / 우클릭 — 대화 끝내기";
+        /// <summary>
+        /// 아래 조작 안내. <b>받아쓰기를 맡은 곳이 없으면 목소리 줄을 통째로 뺀다</b> (2026-08-26).
+        /// 있지도 않은 기능을 누르라고 적어 두면 안 되기 때문이다 —
+        /// <see cref="IVoiceTranscriber"/> 를 구현하지 않은 사건에서는 글쓰기 안내만 남는다.
+        /// 견우는 <see cref="GyeonuVoice"/> 가 꽂혀 있어 예전과 똑같이 나온다.
+        /// </summary>
+        string HintLine
+        {
+            get
+            {
+                bool v = UiDialogue.CanTranscribe;
+                if (UiModes.IsVr)
+                    return (v ? "<color=#8E2C20>그립 — 누르고 말하기</color>     " : "")
+                         + "트리거 — 누르기     B·Y — 대화 끝내기";
+                return "Enter — 묻기     "
+                     + (v ? "<color=#8E2C20>왼쪽 Ctrl — 누르고 말하기</color>     " : "")
+                     + "좌클릭 — 누르기     Esc / 우클릭 — 대화 끝내기";
+            }
+        }
 
         // ── 행동 ─────────────────────────────────────────────
         void Ask()
@@ -368,7 +766,7 @@ namespace IMUNROK.Gyeonu
             if (string.IsNullOrWhiteSpace(text)) return;
             field.text = "";
             session.Ask(text);
-            field.ActivateInputField();
+            ActivateField();
         }
 
         /// <summary>증거 제시 — 소지품 판을 그대로 연다.</summary>
@@ -378,17 +776,18 @@ namespace IMUNROK.Gyeonu
             var input = eye.GetComponent<InventoryInput>();
             if (input == null) { DebugToast.Show("소지품 입력이 없다.", 2f); return; }
             field.DeactivateInputField();
-            input.OpenPresent(session.Presentables, OnPresentChosen);
+            input.OpenPresent(() => session.Presentables(), OnPresentChosen);
         }
 
-        void OnPresentChosen(InventoryItem item)
+        void OnPresentChosen(IUiItem item)
         {
             if (item == null || session == null) return;
             var input = eye != null ? eye.GetComponent<InventoryInput>() : null;
             if (input != null) input.ClosePanel();
-            if (ClueTable.TryParse(item.Key, out var id)) session.Present(id);
-            else DebugToast.Show("이건 내밀 것이 못 된다.", 2f);
-            field.ActivateInputField();
+            // 정보 단서인지 물건인지 가르는 일은 **말 상대 쪽**이 한다 (2026-08-26에 내렸다).
+            // 화면이 단서 코드표를 알면 안 된다 — 그건 사건의 것이다.
+            if (!session.Present(item)) DebugToast.Show("이건 내밀 것이 못 된다.", 2f);
+            ActivateField();
         }
 
         void RequestExit()
@@ -435,7 +834,7 @@ namespace IMUNROK.Gyeonu
             {
                 case DialogueHotspot.Kind.묻기: Ask(); break;
                 case DialogueHotspot.Kind.단서열기: OpenPresentPanel(); break;
-                case DialogueHotspot.Kind.입력칸: field.ActivateInputField(); break;
+                case DialogueHotspot.Kind.입력칸: ActivateField(); break;
                 case DialogueHotspot.Kind.끝내기: RequestExit(); break;
             }
         }
@@ -457,13 +856,20 @@ namespace IMUNROK.Gyeonu
         }
 
         /// <summary>글줄 하나의 높이 — 굴림 한 칸이 딱 한 줄이 되게 실제로 잰다.
-        /// 글꼴·글자크기가 바뀌어도 따라온다.</summary>
+        /// 글꼴·글자크기가 바뀌어도 따라온다.
+        ///
+        /// ⚠️ TMP 로 옮기며 재는 곳이 바뀌었다. 레거시의 <c>cachedTextGenerator.lineCount</c> 는
+        ///    <see cref="TMP_Text.textInfo"/> 의 <c>lineCount</c> 가 대신하는데, 이것은
+        ///    <b>메시를 한 번 짠 뒤에만</b> 채워진다 — 안 짜고 읽으면 0이라 되돌림 값으로 새고,
+        ///    그러면 휠 한 칸이 한 줄과 어긋난다. 그래서 먼저 <c>ForceMeshUpdate</c> 를 부른다.</summary>
         float LineHeight()
         {
-            var gen = lineText != null ? lineText.cachedTextGenerator : null;
-            int n = gen != null ? gen.lineCount : 0;
+            if (lineText == null) return 46f;
+            lineText.ForceMeshUpdate();
+            int n = lineText.textInfo != null ? lineText.textInfo.lineCount : 0;
             if (n > 0) return lineText.preferredHeight / n;
-            return lineText != null ? lineText.fontSize * lineText.lineSpacing : 46f;
+            // 되돌림 — TMP 의 lineSpacing 은 '더하는 여분(%)'이라 배수로 환산해서 곱한다
+            return lineText.fontSize * (1f + lineText.lineSpacing * 0.01f);
         }
 
         /// <summary>굴린 만큼 글을 올리고, 아직 남았으면 알려 준다.</summary>
@@ -492,6 +898,7 @@ namespace IMUNROK.Gyeonu
             if (bubbleGo != null) { DestroyImmediate(bubbleGo); bubbleGo = null; }
             nameText = lineText = hintText = voiceText = overflowHint = null;
             bubbleName = bubbleLine = null;
+            micSpot = null; micLabel = null; micIcon = null;
             voiceBar = voiceBarFill = null;
             lineViewport = lineRect = null;
             shownLine = "";
@@ -510,20 +917,58 @@ namespace IMUNROK.Gyeonu
             root.localScale = Vector3.one * geom.scale;
 
             // 목재 틀 ▸ 한지 ▸ 안쪽 테선 ▸ 한지 — 소지품 판과 같은 네 겹
-            Stretch(MakeImage(root, "틀", skin.Wood_, Color.white), 22f);
-            var paper = MakeImage(root, "바탕", skin.Hanji_, Color.white);
-            Stretch(paper, 0f);
+            //
+            // ⚠️ <b>투명도는 뒤판에만 먹인다</b> (2026-08-26, 하단 바 시안).
+            //    글씨·이름패·단추는 이 알파를 안 탄다 — 배경만 비쳐야 뒤의 NPC가 보이면서도
+            //    글은 그대로 읽힌다. 판 전체(캔버스 그룹)에 알파를 먹이면 글까지 흐려져
+            //    "투명하게 했더니 안 읽힌다"가 된다.
+            bool bar = IsBottomBar(layout);
+            RectTransform paper;
+
+            if (bar)
+            {
+                // ── 하단 바 — <b>한 겹만 깐다</b> (2026-08-26) ──────────────────────
+                //
+                // ⚠️ 여기서 한 번 헛디뎠다. 아래 A·B·C처럼 네 겹(틀·바탕·테선·속지)을 그대로 두고
+                //    <b>각 겹에 알파 0.72</b>를 먹였더니 화면에서는 거의 불투명하게 나왔다.
+                //    겹칠 때 알파는 곱이 아니라 <b>1−(1−a)ⁿ</b> 로 쌓인다 — 0.72 네 겹이면 0.994다.
+                //    "투명하게 했는데 왜 안 비치지"의 답이 이것이다.
+                //    그래서 바는 <b>한지 한 겹 + 겹치지 않는 얇은 테두리 넉 줄</b>로 짓는다.
+                //    그러면 화면에 나오는 투명도가 정확히 style.alpha 다.
+                // 2026-08-27: 밝은 한지 대신 <b>어두운 색 + 높은 투명도</b>로 바꿨다.
+                //   한지결을 그대로 두면 투명해도 밝은 결이 비쳐 답답했다 (시안 1차에서 확인).
+                //   한지결을 남기는 안도 견주었으나, 투명해도 답답해 보여 민판으로 정했다.
+                var pal = Palette();
+                paper = MakeImage(root, "바탕", pal.paperGrain ? skin.Hanji_ : UiSkin.White, pal.back);
+                Stretch(paper, 0f);
+
+                const float T = 5f;                      // 테두리 두께 (목재 느낌은 남긴다)
+                float hw0 = geom.w * 0.5f, hh0 = geom.h * 0.5f;
+                Place(MakeImage(root, "테_위", skin.Wood_, pal.border), new Vector2(0f, hh0 - T * 0.5f), new Vector2(geom.w, T));
+                Place(MakeImage(root, "테_아래", skin.Wood_, pal.border), new Vector2(0f, -hh0 + T * 0.5f), new Vector2(geom.w, T));
+                Place(MakeImage(root, "테_왼", skin.Wood_, pal.border), new Vector2(-hw0 + T * 0.5f, 0f), new Vector2(T, geom.h));
+                Place(MakeImage(root, "테_오른", skin.Wood_, pal.border), new Vector2(hw0 - T * 0.5f, 0f), new Vector2(T, geom.h));
+            }
+            else
+            {
+                // 목재 틀 ▸ 한지 ▸ 안쪽 테선 ▸ 한지 — 소지품 판과 같은 네 겹 (A·B·C 그대로)
+                Stretch(MakeImage(root, "틀", skin.Wood_, Color.white), 22f);
+                paper = MakeImage(root, "바탕", skin.Hanji_, Color.white);
+                Stretch(paper, 0f);
+                Stretch(MakeImage(root, "테선", skin.Wood_, InventorySkin.Wood), -12f);
+                Stretch(MakeImage(root, "속지", skin.Hanji_, Color.white), -16f);
+            }
+
             var board = paper.gameObject.AddComponent<BoxCollider>();
             board.isTrigger = true;
             board.size = new Vector3(geom.w, geom.h, 2f);
-            Stretch(MakeImage(root, "테선", skin.Wood_, InventorySkin.Wood), -12f);
-            Stretch(MakeImage(root, "속지", skin.Hanji_, Color.white), -16f);
 
             switch (layout)
             {
                 case DialogueLayout.A_좌측판: BuildA(); break;
                 case DialogueLayout.B_하단띠: BuildB(); break;
-                default: BuildC(); break;
+                case DialogueLayout.C_말풍선: BuildC(); break;
+                default: BuildBottom(); break;
             }
 
             // 조준점 — 판 위에 찍히는 커서 (VR에서도 그대로 보인다)
@@ -533,6 +978,7 @@ namespace IMUNROK.Gyeonu
             cursor.SetAsLastSibling();
 
             built = true;
+            builtForVr = UiModes.IsVr;
         }
 
         // ── A — 좌측 아래 판 (1500 × 620) · 확정안 ───────────
@@ -566,6 +1012,167 @@ namespace IMUNROK.Gyeonu
             //    입력 −146~−70, 안내 −187~−161 (판 아래끝 −200, 틀 22 안쪽).
             InputRow(-108f, geom.w - 90f, 76f, 0.60f);
             Footer(20, -geom.h * 0.5f + 26f, 26f);
+        }
+
+        // ── 하단 가로 바 — 확정안 + 지난 시안 E·F (PC·VR 공용) ─────────────
+        /// <summary>
+        /// <b>화면 아래에 가로로 길게 눕히는 배치.</b> 여느 게임의 대화 바와 같은 꼴이다.
+        ///
+        /// ■ 무엇을 노렸나
+        ///   ① <b>NPC를 안 가린다</b> — 화면의 아래 한 켜만 쓰고, 뒤판이 비쳐 뒤가 보인다.
+        ///   ② <b>조선 느낌은 남긴다</b> — 한지결·나뭇결 텍스처와 주칠 이름패를 그대로 쓰고
+        ///      투명도만 올렸다. 색을 바꾼 것이 아니라 <b>얇게 깐</b> 것이다.
+        ///
+        /// ■ 이름패가 윗변에 걸터앉는다
+        ///   낮은 바에서 이름 줄을 따로 두면 대사 자리가 두 줄로 줄어든다. 이름패를 판 <b>윗변에
+        ///   걸쳐</b> 절반을 밖으로 내보내면 그 한 줄이 통째로 대사 몫이 된다.
+        ///   현판을 처마에 건 모양이라 조선 배경과도 맞다.
+        ///
+        /// ■ 긴 대사는 <b>굴려 읽는다</b> (페이지·자동확장이 아니라)
+        ///   · 페이지 나누기 — 대사 길이를 LLM이 정하므로 마지막 장이 한 줄만 남는 일이 잦다.
+        ///   · 자동 확장 — 바 높이가 대사마다 들썩여 <b>NPC를 도로 가린다</b>. 이 배치의 목적과 어긋난다.
+        ///   · 굴려 읽기 — 높이가 고정이라 화면이 안 흔들리고, 이미 쓰던 방식이라 검증돼 있다.
+        ///   그래서 굴리기를 그대로 두되, <b>「더 있음」 표시를 대사 오른쪽 끝</b>으로 옮겨
+        ///   낮은 바에서도 눈에 띄게 했다.
+        /// </summary>
+        void BuildBottom()
+        {
+            var st = StyleOf(Layout);
+            var pal = Palette();
+            float hw = geom.w * 0.5f, hh = geom.h * 0.5f;
+
+            // ── 머리 — 이름패 · 녹음 · 닫기 × 를 <b>모두 창 안에</b> (2026-08-27 2차) ──
+            //
+            // ⚠️ 1차 시안에서는 이름패와 ×를 <b>윗변에 걸터앉혀</b> 절반을 밖으로 내보냈다.
+            //    대사 자리를 한 줄 벌려고 한 것인데, 창 밖으로 튀어나온 ×가 "창 범위를 벗어난다"는
+            //    지적을 받았다. 좌측 판(A안)이 그랬듯 <b>머리를 창 안에 두고 구분선으로 나눈다</b> —
+            //    창의 테두리가 곧 내용의 경계라야 어디까지가 창인지 한눈에 읽힌다.
+            float nameW = 300f, nameH = st.NameH;
+            float headY = hh - st.padTop - nameH * 0.5f;          // 머리 띠의 한가운데
+
+            var plate = MakeImage(root, "이름패", skin.Wood_, InventorySkin.Vermilion);
+            Place(plate, new Vector2(-hw + st.padX + nameW * 0.5f, headY), new Vector2(nameW, nameH));
+            nameText = MakeText(plate, "이름", st.nameSize, TextAnchor.MiddleCenter, InventorySkin.Hanji);
+            Stretch(nameText.rectTransform, -6f);
+            nameText.fontStyle = FontStyles.Bold;
+
+            // 닫기 × — 창 <b>안</b> 우측 상단. 이름패와 같은 띠에 앉혀 좌우 균형을 맞춘다 (A안과 같다).
+            CloseButton(new Vector2(hw - st.padX * 0.5f - nameH * 0.5f, headY), nameH, st.nameSize + 2);
+
+            // 녹음 상태 — 이름패 오른쪽. 폭은 ×까지 남는 만큼으로 잰다 (고정폭이면 판이 바뀔 때 겹친다).
+            float voiceX = -hw + st.padX + nameW + 36f;
+            VoiceMeter(new Vector2(voiceX + 65f, headY), 130f, 20f);
+            float voiceTextL = voiceX + 150f;
+            float voiceTextR = hw - st.padX - nameH - 20f;
+            float voiceTextW = Mathf.Max(160f, voiceTextR - voiceTextL);
+            voiceText = MakeText(root, "녹음", st.footSize, TextAnchor.MiddleLeft, pal.dim);
+            Place(voiceText.rectTransform, new Vector2(voiceTextL + voiceTextW * 0.5f, headY),
+                  new Vector2(voiceTextW, 30f));
+
+            // ── 구분선 — 머리와 대사를 가른다 (A안의 그 줄) ──
+            float ruleY = headY - nameH * 0.5f - st.nameToRule - st.ruleH * 0.5f;
+            Place(MakeImage(root, "구분선", skin.Wood_, pal.border),
+                  new Vector2(0f, ruleY), new Vector2(geom.w - st.padX * 2f, st.ruleH));
+
+            // ── 대사 ──
+            float lineTop = ruleY - st.ruleH * 0.5f - st.ruleToLine;
+            float lineY = lineTop - st.lineBoxH * 0.5f;
+            LineViewport(new Vector2(0f, lineY), new Vector2(geom.w - st.padX * 2f, st.lineBoxH), st.lineSize);
+
+            // ⚠️ <see cref="LineViewport"/> 는 A·B·C 와 함께 쓰는 부품이라 먹빛 글씨로 짓는다.
+            //    바는 바탕이 어두우므로 <b>지은 뒤에 색만 뒤집는다</b> — 그 부품을 고치면
+            //    다른 배치안까지 바뀌기 때문이다. 아래 Footer 도 같은 사정이다.
+            if (lineText != null) lineText.color = pal.text;
+
+            // 「더 있음」 — 대사 상자 <b>아래</b> 오른쪽 (A안과 같은 자리). 대사와 입력줄 사이의 틈에 앉는다.
+            if (overflowHint != null)
+                Place(overflowHint.rectTransform,
+                      new Vector2(hw - st.padX - 105f, lineY - st.lineBoxH * 0.5f - st.lineToInput * 0.5f),
+                      new Vector2(210f, 22f));
+
+            // ── 아래에서부터 쌓는다 ──
+            //   테두리 → footToEdge → 안내 → inputToFoot → 입력줄
+            //   위에서 내려오는 대사와 만나는 자리가 lineToInput 이고,
+            //   판 높이를 그 합으로 잡았으므로 (BarGeom) 셋이 정확히 맞아떨어진다.
+            float footY = -hh + st.footToEdge + st.footH * 0.5f;
+            float inputY = footY + st.footH * 0.5f + st.inputToFoot + st.inputH * 0.5f;
+            InputRowBottom(inputY, geom.w - st.padX * 2f, st.inputH, st.inputSize);
+
+            Footer(st.footSize, footY, st.footH);
+            if (hintText != null) hintText.color = pal.dim;
+        }
+
+        /// <summary>
+        /// 하단 바의 입력줄 — <c>[글쇠 칸] [말하기] [묻기] [증거 제시]</c> 를 한 줄에 눕힌다.
+        ///
+        /// <see cref="InputRow"/> 와 나누지 않고 따로 둔 까닭: 여기에만 <b>말하기 단추</b>가 있고,
+        /// 낮은 바라 폭 배분이 다르다. 기존 배치안(A·B·C)의 입력줄은 하나도 안 건드린다.
+        /// </summary>
+        void InputRowBottom(float y, float totalW, float h, int fontSize)
+        {
+            bool voiceOn = UiDialogue.CanTranscribe;
+
+            float gap = 16f;
+            float micW = voiceOn ? h : 0f;                 // 정사각 — 낮은 바에서 가장 안 튄다
+            float askW = Mathf.Max(120f, totalW * 0.105f);
+            float presentW = Mathf.Max(180f, totalW * 0.165f);
+            int gaps = voiceOn ? 3 : 2;
+            float fieldW = totalW - micW - askW - presentW - gap * gaps;
+
+            float x = -totalW * 0.5f;
+
+            var pal = Palette();
+
+            // 글쇠 칸 — 뒤판보다 조금 짙게 파 넣은 자리로 보이게 한다
+            //   ⚠️ 밝은 한지 칸을 그대로 두면 어두운 바에서 <b>거기만 하얗게 떠</b> 눈을 끈다.
+            var box = MakeImage(root, "글쇠칸", UiSkin.White, pal.slotBack);
+            Place(box, new Vector2(x + fieldW * 0.5f, y), new Vector2(fieldW, h));
+            Stretch(MakeImage(box, "칸테", skin.Wood_, pal.border), 3f);
+
+            var txt = MakeText(box, "글", fontSize, TextAnchor.MiddleLeft, pal.slotText);
+            Place(txt.rectTransform, new Vector2(10f, 0f), new Vector2(fieldW - 36f, h - 16f));
+            var ph = MakeText(box, "안내글", fontSize, TextAnchor.MiddleLeft, pal.slotHint);
+            Place(ph.rectTransform, new Vector2(10f, 0f), new Vector2(fieldW - 36f, h - 16f));
+            placeholder = ph;
+
+            field = box.gameObject.AddComponent<TMP_InputField>();
+            field.textComponent = txt;
+            field.placeholder = ph;
+            field.richText = false;          // ⚠️ 한글 조합 중 <u> 태그가 새는 것을 막는다 (InputRow 주석 참고)
+            field.lineType = TMP_InputField.LineType.SingleLine;
+            field.characterLimit = 120;
+            field.customCaretColor = true;
+            field.caretColor = pal.slotText;    // 어두운 칸에서는 커서도 밝아야 보인다
+            field.selectionColor = new Color(0.67f, 0.22f, 0.16f, 0.35f);
+            field.targetGraphic = box.GetComponent<Image>();
+            field.transition = Selectable.Transition.None;
+            AddSpot(box, DialogueHotspot.Kind.입력칸, new Vector2(fieldW, h), null, InventorySkin.Wood);
+            x += fieldW + gap;
+
+            // 말하기 — 누르고 있는 동안 녹음. 받아쓰기가 없으면 단추 자체가 안 선다.
+            TextMeshProUGUI l;
+            if (voiceOn)
+            {
+                micSpot = MakeButton(root, "말하기", new Vector2(x + micW * 0.5f, y), new Vector2(micW, h),
+                                     DialogueHotspot.Kind.말하기, InventorySkin.Wood, fontSize + 2, out l);
+                // 글자 대신 <b>그린 마이크</b>를 얹는다 (2026-08-27 확정).
+                //   그림글자(🎤)는 두 글꼴 어디에도 없어 네모로 뜨고, 낱자 「말」로 대신했더니
+                //   옆의 「묻 기」·「증거 제시」와 켜가 섞여 읽혔다.
+                l.text = "";
+                micIcon = MakeImage(micSpot.transform as RectTransform, "마이크그림", skin.Mic_, InventorySkin.Hanji);
+                Place(micIcon, Vector2.zero, new Vector2(h * 0.56f, h * 0.56f));
+                micLabel = l;
+                x += micW + gap;
+            }
+
+            askSpot = MakeButton(root, "묻기", new Vector2(x + askW * 0.5f, y), new Vector2(askW, h),
+                                 DialogueHotspot.Kind.묻기, InventorySkin.Vermilion, fontSize, out l);
+            askLabel = l; askLabel.text = "묻 기";
+            x += askW + gap;
+
+            presentSpot = MakeButton(root, "증거제시", new Vector2(x + presentW * 0.5f, y), new Vector2(presentW, h),
+                                     DialogueHotspot.Kind.단서열기, InventorySkin.Wood, fontSize, out l);
+            l.text = "증거 제시";
         }
 
         // ── C — 말풍선 + 하단 채팅바 (1900 × 260) ────────────
@@ -611,11 +1218,11 @@ namespace IMUNROK.Gyeonu
             Place(plate, new Vector2(-BubbleW * 0.5f + 130f, BubbleH * 0.5f - 52f), new Vector2(200f, 58f));
             bubbleName = MakeText(plate, "이름", 34, TextAnchor.MiddleCenter, InventorySkin.Hanji);
             Stretch(bubbleName.rectTransform, -6f);
-            bubbleName.fontStyle = FontStyle.Bold;
+            bubbleName.fontStyle = FontStyles.Bold;
 
             bubbleLine = MakeText(bubbleRoot, "대사", 40, TextAnchor.UpperLeft, InventorySkin.Ink);
             Place(bubbleLine.rectTransform, new Vector2(0f, -30f), new Vector2(BubbleW - 90f, 260f));
-            bubbleLine.lineSpacing = 1.28f;
+            bubbleLine.lineSpacing = UiSkin.LineSpacing(1.28f);
         }
 
         // ── 공통 부품 ────────────────────────────────────────
@@ -640,8 +1247,8 @@ namespace IMUNROK.Gyeonu
             lineRect.anchoredPosition = Vector2.zero;
             // ⚠️ 가로는 앵커가 늘려 준다. 여기 폭을 넣으면 두 배가 된다(소지품 판에서 실측).
             lineRect.sizeDelta = new Vector2(0f, size.y);
-            lineText.verticalOverflow = VerticalWrapMode.Overflow;
-            lineText.lineSpacing = 1.28f;
+            lineText.overflowMode = TextOverflowModes.Overflow;
+            lineText.lineSpacing = UiSkin.LineSpacing(1.28f);
 
             // ⚠️ 오른쪽 맞춤 글은 **rect의 오른쪽 끝**에 붙는다. 중심을 틀 오른쪽 끝에 두면
             //    글이 판 밖으로 삐져나간다(2026-08-25 실측). 중심을 폭의 절반만큼 당겨 온다.
@@ -664,7 +1271,7 @@ namespace IMUNROK.Gyeonu
             Place(plate, namePos, new Vector2(nameW, nameH));
             nameText = MakeText(plate, "이름", nameSize, TextAnchor.MiddleCenter, InventorySkin.Hanji);
             Stretch(nameText.rectTransform, -6f);
-            nameText.fontStyle = FontStyle.Bold;
+            nameText.fontStyle = FontStyles.Bold;
 
             VoiceMeter(new Vector2(namePos.x + nameW * 0.5f + 90f, namePos.y), 140f, 22f);
 
@@ -689,10 +1296,10 @@ namespace IMUNROK.Gyeonu
 
         void CloseButton(Vector2 pos, float size, int fontSize)
         {
-            Text l;
+            TextMeshProUGUI l;
             closeSpot = MakeButton(root, "끝내기", pos, new Vector2(size, size),
                                    DialogueHotspot.Kind.끝내기, InventorySkin.Wood, fontSize, out l);
-            l.text = "✕";
+            l.text = "×";
         }
 
         /// <summary>녹음 중 소리 크기 막대 — "듣고 있다"를 눈으로 보여 준다.</summary>
@@ -724,17 +1331,34 @@ namespace IMUNROK.Gyeonu
             int fs = Mathf.RoundToInt(h * 0.42f);
             var txt = MakeText(box, "글", fs, TextAnchor.MiddleLeft, InventorySkin.Ink);
             Place(txt.rectTransform, new Vector2(10f, 0f), new Vector2(fw - 40f, h - 18f));
-            txt.supportRichText = false;
+            txt.richText = false;
 
             var ph = MakeText(box, "안내글", fs, TextAnchor.MiddleLeft, new Color(0.45f, 0.40f, 0.35f, 0.75f));
             Place(ph.rectTransform, new Vector2(10f, 0f), new Vector2(fw - 40f, h - 18f));
-            ph.text = "묻고 싶은 것을 치거나, 왼쪽 Ctrl을 누르고 말하시오…";
-            ph.supportRichText = false;
+            ph.richText = false;
+            placeholder = ph;
 
-            field = box.gameObject.AddComponent<InputField>();
+            field = box.gameObject.AddComponent<TMP_InputField>();
             field.textComponent = txt;
             field.placeholder = ph;
-            field.lineType = InputField.LineType.SingleLine;
+
+            // ⚠️ <b>글쇠 칸의 리치 텍스트는 반드시 칸(TMP_InputField) 쪽에서 꺼야 한다</b>
+            //    (2026-08-26, 한글을 치면 화면에 「계셨&lt;u&gt;스&lt;/u&gt;」 처럼 태그가 그대로 보이던 문제).
+            //
+            //    TMP_InputField 는 <b>한글 조합 중인 글자에 밑줄을 그으려고</b> 그 글자를
+            //    <c>&lt;u&gt;…&lt;/u&gt;</c> 로 감싼다 (TMP_InputField.UpdateLabel). 그런데 감쌀지 말지는
+            //    <b>칸 자신의</b> richText 값(기본 true)을 보고 정하고, 그 태그를 <b>해석할지</b>는
+            //    글 부품의 richText 값이 정한다. 이 둘을 맞춰 주는 SetTextComponentRichTextMode() 는
+            //    richText <b>속성 설정자</b>와 OnValidate(에디터에서 인스펙터를 만질 때)에서만 불린다 —
+            //    판을 코드로 짓는 우리에게는 <b>한 번도 불리지 않는다</b>.
+            //    그래서 글 부품에 richText=false 만 넣어 두면 <b>칸은 태그를 넣고 글은 글자로 그리는</b>
+            //    어긋난 상태가 된다. 아래 한 줄이 두 값을 함께 끈다 — 칸이 태그를 아예 안 만든다.
+            //
+            //    ⚠️ txt.richText=false 만 되돌려 놓지 말 것. 그러면 조합 밑줄은 살지만
+            //       플레이어가 친 &lt;b&gt;·&lt;color&gt; 가 서식으로 먹어 버린다. 이 글은 Gemini에게 그대로 넘어간다.
+            field.richText = false;
+
+            field.lineType = TMP_InputField.LineType.SingleLine;
             field.characterLimit = 120;
             field.customCaretColor = true;
             field.caretColor = InventorySkin.Ink;
@@ -743,7 +1367,7 @@ namespace IMUNROK.Gyeonu
             field.transition = Selectable.Transition.None;
             AddSpot(box, DialogueHotspot.Kind.입력칸, new Vector2(fw, h), null, InventorySkin.Wood);
 
-            Text pl;
+            TextMeshProUGUI pl;
             askSpot = MakeButton(root, "묻기", new Vector2(left + fw + 20f + askW * 0.5f, y), new Vector2(askW, h),
                                  DialogueHotspot.Kind.묻기, InventorySkin.Vermilion, Mathf.RoundToInt(h * 0.40f), out pl);
             askLabel = pl; askLabel.text = "묻 기";
@@ -761,7 +1385,7 @@ namespace IMUNROK.Gyeonu
         }
 
         DialogueHotspot MakeButton(RectTransform parent, string name, Vector2 pos, Vector2 size,
-                                   DialogueHotspot.Kind kind, Color baseColor, int fontSize, out Text label)
+                                   DialogueHotspot.Kind kind, Color baseColor, int fontSize, out TextMeshProUGUI label)
         {
             var btn = MakeImage(parent, name, skin.Wood_, baseColor);
             Place(btn, pos, size);
@@ -788,9 +1412,22 @@ namespace IMUNROK.Gyeonu
             return spot;
         }
 
-        /// <summary>글쇠 입력을 받으려면 EventSystem이 하나 있어야 한다. 없으면 만든다(런타임 전용).</summary>
+        /// <summary>
+        /// 글쇠 칸(<see cref="InputField"/>)을 살릴 EventSystem — <b>PC 모드에서만</b> 만든다.
+        ///
+        /// ■ 왜 EventSystem이 여기 하나 남아 있나
+        ///   이 프로젝트의 <b>가리키기·누르기는 전부 콜라이더 광선</b>이다(조사에서 확인).
+        ///   EventSystem이 필요한 곳은 오직 <b>글자를 받아 적는 칸</b> 하나뿐이다 —
+        ///   한글 IME 조합을 UGUI가 대신 처리해 주기 때문이다. 직접 글쇠를 읽는 방식으로 바꾸면
+        ///   <b>한글을 못 치게 된다</b>. PC로 계속 플레이해야 하므로 그럴 수 없다.
+        ///
+        /// ■ VR에서는 만들지 않는다
+        ///   HMD를 쓴 채로는 물리 글쇠를 칠 수 없다. VR에서는 <b>목소리</b>(그립 유지)가
+        ///   묻는 길이고, 글쇠 칸 자체를 감춘다 — <see cref="ApplyInputRowMode"/>.
+        /// </summary>
         void EnsureEventSystem()
         {
+            if (UiModes.IsVr) return;
             if (EventSystem.current != null) return;
             var go = new GameObject("대화_EventSystem", typeof(EventSystem));
             go.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
@@ -798,13 +1435,40 @@ namespace IMUNROK.Gyeonu
             eventSystemMine = true;
         }
 
-        // ── 작은 도구들 (소지품 판과 같은 것들) ──────────────────
-        static Font MakeFont()
+        /// <summary>
+        /// 글쇠 칸을 모드에 맞게 손본다 (2026-08-26).
+        ///
+        /// PC — 지금까지 그대로. 치거나 왼쪽 Ctrl로 말한다.
+        /// VR — <b>칸은 그대로 두되 칠 수는 없게</b> 한다.
+        ///   칸을 통째로 감춰 봤더니 <b>받아 적힌 말이 어디에도 안 보였다</b> —
+        ///   무엇으로 전해지는지 확인하지 못한 채 던지게 된다. 칸을 남겨 두면
+        ///   말한 것이 글로 떠서 눈으로 확인하고 「묻 기」를 누를 수 있다.
+        /// ⚠️ VR 쪽은 헤드셋으로 확인하지 못했다. 목소리 경로 자체는 PC에서 이미 도는 것이다.
+        /// </summary>
+        void ApplyInputRowMode()
         {
-            var f = Font.CreateDynamicFontFromOSFont(
-                new[] { "Malgun Gothic", "맑은 고딕", "NanumGothic", "나눔고딕", "Gulim", "굴림", "Batang", "Arial Unicode MS" }, 56);
-            return f != null ? f : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (field == null) return;
+            bool typing = UiModes.IsPc;
+            if (!field.gameObject.activeSelf) field.gameObject.SetActive(true);
+            field.interactable = typing;
+            field.readOnly = !typing;
+            // ⚠️ 받아쓰기를 맡은 곳이 없으면 목소리 이야기를 꺼내지 않는다 (2026-08-26).
+            //    안내 줄과 같은 규칙이다 — 있지도 않은 조작을 하라고 적어 두면 안 된다.
+            //    VR + 받아쓰기 없음은 <b>물을 방법이 아예 없는</b> 조합이라 그렇게 적어 준다
+            //    (VR에는 칠 칸이 없다). 견우는 GyeonuVoice 가 꽂혀 있어 예전 문구 그대로 나온다.
+            if (placeholder != null)
+            {
+                bool v = UiDialogue.CanTranscribe;
+                placeholder.text = typing
+                    ? (v ? "묻고 싶은 것을 치거나, 왼쪽 Ctrl을 누르고 말하시오…" : "묻고 싶은 것을 치시오…")
+                    : (v ? "그립을 누르고 말하시오…" : "물을 수단이 없다 — 받아쓰기를 붙일 것");
+            }
         }
+
+        // ── 작은 도구들 (소지품 판과 같은 것들) ──────────────────
+        /// <summary>본문 글꼴 — 판마다 따로 만들지 않고 <see cref="UiSkin.Font"/> 하나를 함께 쓴다.
+        /// 2026-08-26 에 OS 글꼴(맑은 고딕)에서 TMP 폰트 에셋(조선 궁서체)으로 옮겼다.</summary>
+        static TMPro.TMP_FontAsset MakeFont() { return UiSkin.Font; }
 
         static RectTransform MakeRect(Transform parent, string name)
         {
@@ -824,19 +1488,21 @@ namespace IMUNROK.Gyeonu
             return (RectTransform)go.transform;
         }
 
-        Text MakeText(Transform parent, string name, int size, TextAnchor anchor, Color color)
+        TextMeshProUGUI MakeText(Transform parent, string name, int size, TextAnchor anchor, Color color)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
-            var t = go.GetComponent<Text>();
-            t.font = font;
-            t.fontSize = size;
-            t.alignment = anchor;
-            t.color = color;
-            t.raycastTarget = false;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.verticalOverflow = VerticalWrapMode.Truncate;
-            t.supportRichText = true;
+            var t = UiSkin.Dress(go.GetComponent<TextMeshProUGUI>(), size, anchor, color);
+            t.textWrappingMode = TextWrappingModes.Normal;
+            // ⚠️ 레거시의 Truncate 를 TMP 의 Truncate 로 그대로 옮기면 안 된다 (2026-08-26 실측).
+            //    TMP 는 상자 높이에 <b>온전히 들어가지 않는 줄을 통째로 버린다</b>. 조선 궁서체는
+            //    줄 높이가 글자 크기의 1.25배라 맑은 고딕(약 1.18배)보다 높은데, IMGUI 시절 숫자로
+            //    잡아 둔 상자들이 그만큼의 여유가 없다 — 대화창 아래 조작 안내(22px 글, 26px 상자)가
+            //    <b>한 줄 통째로 사라졌다</b>. 1.5px 모자란 것이 원인이라 화면에서는 원인이 안 보인다.
+            //    레거시가 실제로 그리던 모습은 Overflow 쪽이다 — 여러 줄 글은 어차피 판(RectMask2D)이
+            //    잘라 주므로 여기서 버릴 이유가 없다.
+            t.overflowMode = TextOverflowModes.Overflow;
+            t.richText = true;
             return t;
         }
 

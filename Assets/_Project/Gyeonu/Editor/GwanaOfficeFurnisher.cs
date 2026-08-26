@@ -488,6 +488,13 @@ namespace IMUNROK.Gyeonu.Editor
                                                 (float)(rnd.NextDouble() * 0.03 - 0.015f)),
                                jy, y);
                 if (go == null) return;
+                if (i == 0 && name == "장부더미_동")
+                {
+                    var clue = go.AddComponent<CaseClueInspectable>();
+                    clue.clue = ClueId.C5;
+                    clue.onlyAt = new[] { TimeOfDay.LateNight };
+                    clue.prompt = "장부의 필체와 먹색 살피기";
+                }
                 y = WorldBounds(go).max.y;
             }
         }

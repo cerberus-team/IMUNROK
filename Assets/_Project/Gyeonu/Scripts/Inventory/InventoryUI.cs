@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 using UnityEngine.UI;
 
 namespace IMUNROK.Gyeonu
@@ -62,7 +63,7 @@ namespace IMUNROK.Gyeonu
         public bool IsOpen { get; private set; }
         public InventoryHotspot Hovered { get; private set; }
         /// <summary>지금 상세로 보고 있는 물건 (목록 화면이면 null).</summary>
-        public InventoryItem Viewing { get; private set; }
+        public IUiItem Viewing { get; private set; }
 
         /// <summary>획득 직후 자동으로 뜬 상세 화면인가 — 이때는 물러나기가 곧 닫기다.</summary>
         public bool PickupMode { get; private set; }
@@ -106,28 +107,29 @@ namespace IMUNROK.Gyeonu
         /// 한 판에서 골라야 하는데, 정보 단서는 소지품 목록에 담기지 않는다.
         /// 그래서 판이 목록의 <b>출처</b>만 남에게 물어보게 했다 — 판은 여전히 물건만 그린다.
         /// </summary>
-        public System.Func<IReadOnlyList<InventoryItem>> ItemSource;
+        public System.Func<IReadOnlyList<IUiItem>> ItemSource;
 
         /// <summary>제시 모드에서 「제시하기」를 눌렀다.</summary>
-        public event System.Action<InventoryItem> PresentRequested;
+        public event System.Action<IUiItem> PresentRequested;
 
         /// <summary>지금 목록이 보여 줄 것들.</summary>
-        IReadOnlyList<InventoryItem> Source => ItemSource != null ? ItemSource() : Inventory.Items;
+        IReadOnlyList<IUiItem> Source => ItemSource != null ? ItemSource() : UiItems.Source.Items;
         int SourceCount => Source != null ? Source.Count : 0;
 
         readonly InventorySkin skin = new InventorySkin();
         readonly InventoryPreview preview = new InventoryPreview();
         readonly List<InventoryHotspot> slots = new List<InventoryHotspot>();
 
-        Font font;
+        TMP_FontAsset font;
         Canvas canvas;
+        CanvasScaler scaler;
         BoxCollider board;                 // 판 전체 — 커서 위치를 얻는 데 쓴다
         RectTransform listView, detailView;
-        Text titleText, hintText, emptyText, pageText;
+        TextMeshProUGUI titleText, hintText, emptyText, pageText;
         RectTransform cursor;
         // 상세
         RawImage previewImage;
-        Text detailName, detailDesc, useLabel, backLabel;
+        TextMeshProUGUI detailName, detailDesc, useLabel, backLabel;
         RectTransform descViewport, descRect;
         InventoryHotspot useSpot, backSpot, prevSpot, nextSpot, zoomSpot;
         Image useFrame;
@@ -158,7 +160,7 @@ namespace IMUNROK.Gyeonu
 
         /// <summary>눈 위치 기준으로 판을 세우고 연다.
         /// <paramref name="showItem"/>을 주면 목록을 건너뛰고 그 물건의 상세로 바로 들어간다.</summary>
-        public void Open(Transform eyeTf, InventoryItem showItem = null, bool pickup = false)
+        public void Open(Transform eyeTf, IUiItem showItem = null, bool pickup = false)
         {
             if (eyeTf == null) return;
             eye = eyeTf;
@@ -174,7 +176,7 @@ namespace IMUNROK.Gyeonu
             if (PickupMode) ShowInspect(showItem, Mode.목록);
             else if (showItem != null) ShowDetail(showItem);
             else ShowList();
-            Inventory.Changed += OnInventoryChanged;
+            UiItems.Source.Changed += OnInventoryChanged;
         }
 
         /// <summary>
@@ -182,8 +184,8 @@ namespace IMUNROK.Gyeonu
         /// 판·칸·상세·3D 미리보기는 소지품과 완전히 같은 것을 쓴다 — 플레이어에게 새 화면을
         /// 익히게 하지 않는다. 달라지는 건 목록의 출처와 버튼 문구뿐이다.
         /// </summary>
-        public void OpenForPresent(Transform eyeTf, System.Func<IReadOnlyList<InventoryItem>> source,
-                                   System.Action<InventoryItem> onPresent)
+        public void OpenForPresent(Transform eyeTf, System.Func<IReadOnlyList<IUiItem>> source,
+                                   System.Action<IUiItem> onPresent)
         {
             PresentMode = true;
             ItemSource = source;
@@ -251,6 +253,25 @@ namespace IMUNROK.Gyeonu
         void LateUpdate()
         {
             if (!IsOpen || eye == null) return;
+
+            // 모드에 따라 글리프 굽는 밀도만 갈아 끼운다.
+            // ⚠️ 판의 **각 크기**(84°×55°)와 거리(1.5 m)는 모드에 상관없이 그대로 둔다.
+            //    이 판은 처음부터 VR 기준으로 잡힌 것이다 — 본문 34단위 × 0.0014 ÷ 1.5 m = 1.8°로,
+            //    이미 VR에서 편히 읽히는 하한(약 1.3°) 언저리다. 여기서 각을 줄이면 글자가
+            //    같이 작아져 못 읽게 되고, 늘리면 모서리 칸을 보려고 목을 돌려야 한다.
+            //    바꾸려면 배치를 다시 짜야 하는 일이라, 헤드셋으로 재 보기 전에는 건드리지 않는다.
+            if (scaler != null)
+            {
+                float dpu = UiModes.IsVr ? UiTuning.VrPixelsPerUnit : UiTuning.PcPixelsPerUnit;
+                if (!Mathf.Approximately(scaler.dynamicPixelsPerUnit, dpu)) scaler.dynamicPixelsPerUnit = dpu;
+            }
+            // 조작 이름(좌클릭/트리거 …)이 모드 따라 갈린다 — 바뀌었으면 곧바로 고쳐 적는다
+            if (hintText != null && CurrentMode != Mode.조사)
+            {
+                string h = HintFor();
+                if (hintText.text != h) hintText.text = h;
+            }
+
             TargetPose(out _, out var rot, out _);
             float off = Quaternion.Angle(transform.rotation, rot);
             if (off > FollowDeadZone) following = true;
@@ -273,7 +294,7 @@ namespace IMUNROK.Gyeonu
         public void Close()
         {
             if (!IsOpen) return;
-            Inventory.Changed -= OnInventoryChanged;
+            UiItems.Source.Changed -= OnInventoryChanged;
             IsOpen = false;
             PickupMode = false;
             PresentMode = false;
@@ -292,7 +313,7 @@ namespace IMUNROK.Gyeonu
 
         void OnDestroy()
         {
-            Inventory.Changed -= OnInventoryChanged;
+            UiItems.Source.Changed -= OnInventoryChanged;
             preview.Dispose();
             skin.Dispose();
             if (Instance == this) Instance = null;
@@ -313,13 +334,11 @@ namespace IMUNROK.Gyeonu
             detailView.gameObject.SetActive(false);
             wheelReadyAt = Time.unscaledTime + 0.35f;
             titleText.text = PresentMode ? "무 엇 을  내 밀 까" : "소  지  품";
-            hintText.text = PresentMode
-                ? "바라보고 좌클릭 — 고르기        휠 — 쪽 넘기기        Esc / 우클릭 — 대화로"
-                : "바라보고 좌클릭 — 자세히 보기        휠 — 쪽 넘기기        I / Esc — 닫기";
+            hintText.text = HintFor();
             RefreshList();
         }
 
-        public void ShowDetail(InventoryItem item)
+        public void ShowDetail(IUiItem item)
         {
             if (item == null) return;
             CurrentMode = Mode.상세;
@@ -327,10 +346,10 @@ namespace IMUNROK.Gyeonu
             Hovered = null;
             listView.gameObject.SetActive(false);
             detailView.gameObject.SetActive(true);
-            titleText.text = PresentMode ? "내밀 것  ▸  살펴보기" : (PickupMode ? "새로  얻은  것" : "소 지 품  ▸  자세히");
+            titleText.text = PresentMode ? "내밀 것  ▶  살펴보기" : (PickupMode ? "새로  얻은  것" : "소 지 품  ▶  자세히");
 
-            detailName.text = item.displayName;
-            detailDesc.text = string.IsNullOrEmpty(item.description) ? "(적힌 것이 없다)" : item.description;
+            detailName.text = item.DisplayName;
+            detailDesc.text = string.IsNullOrEmpty(item.Description) ? "(적힌 것이 없다)" : item.Description;
             descScroll = 0f;
             wheelReadyAt = Time.unscaledTime + 0.35f;
             ApplyDescScroll();
@@ -348,7 +367,7 @@ namespace IMUNROK.Gyeonu
             {
                 useSpot.interactable = true;
                 // 문구도 ItemUse에 물어본다 — 하는 일이 상황에 따라 달라지는 물건이 있다
-                useLabel.text = PresentMode ? "내 밀 기" : ItemUse.LabelFor(item);
+                useLabel.text = PresentMode ? "내 밀 기" : UiItems.Use.LabelFor(item);
                 useLabel.color = InventorySkin.Hanji;
                 useFrame.color = InventorySkin.Vermilion;
                 useSpot.idleColor = useFrame.color;
@@ -356,7 +375,7 @@ namespace IMUNROK.Gyeonu
             }
 
             // 획득 직후에는 목록이 아니라 게임으로 돌아간다 — 버튼 문구도 그렇게 읽히게
-            backLabel.text = PickupMode ? "✕   닫기" : "◀   목록으로";
+            backLabel.text = PickupMode ? "×   닫기" : "◀   목록으로";
             // 버튼이 하나뿐이면 가운데로 — 오른쪽에 홀로 치우쳐 있으면 빈 자리가 눈에 걸린다
             ((RectTransform)backSpot.transform).anchoredPosition = new Vector2(showUse ? 570f : 390f, -300f);
             bool many = !PickupMode && SourceCount > 1;
@@ -365,14 +384,27 @@ namespace IMUNROK.Gyeonu
 
             zoomSpot.gameObject.SetActive(preview.HasModel);
 
-            hintText.text = preview.HasModel
-                ? "드래그 — 돌리기        🔍 — 크게 보기        휠(글 위) — 굴려 읽기        Esc — 목록"
-                : "휠(글 위) — 굴려 읽기        Esc / 우클릭 — 물러나기";
+            hintText.text = HintFor();
+        }
+
+        /// <summary>
+        /// 지금 화면의 조작 안내. 조작 <b>이름</b>만 모드에 따라 갈린다 (<see cref="UiWords"/>) —
+        /// 문장을 두 벌로 두지 않는다. 매 프레임 다시 만들어 F8로 모드를 바꿔도 곧바로 따라온다.
+        /// </summary>
+        string HintFor()
+        {
+            if (CurrentMode == Mode.상세)
+                return preview.HasModel
+                    ? "드래그 — 돌리기        돋보기 — 크게 보기        " + UiWords.Wheel + "(글 위) — 굴려 읽기        " + UiWords.BackShort + " — 목록"
+                    : UiWords.Wheel + "(글 위) — 굴려 읽기        " + UiWords.Back + " — 물러나기";
+            return PresentMode
+                ? UiWords.Aim + " " + UiWords.Press + " — 고르기        " + UiWords.Wheel + " — 쪽 넘기기        " + UiWords.Back + " — 대화로"
+                : UiWords.Aim + " " + UiWords.Press + " — 자세히 보기        " + UiWords.Wheel + " — 쪽 넘기기        " + UiWords.Menu + " — 닫기";
         }
 
         // ── 전체 화면 조사 ────────────────────────────────────
         /// <summary>물건 하나만 어두운 막 위에 크게 띄운다. 글은 없다 — 생김새만 본다.</summary>
-        public void ShowInspect(InventoryItem item, Mode back)
+        public void ShowInspect(IUiItem item, Mode back)
         {
             if (item == null) return;
             inspect = InventoryInspect.Ensure(eye, skin, font);
@@ -500,9 +532,9 @@ namespace IMUNROK.Gyeonu
                     if (PresentMode) { PresentRequested?.Invoke(Viewing); break; }
                     // 무엇을 할지는 판이 알 바가 아니다 — ItemUse가 물건 id로 갈라 보낸다.
                     // 맡은 데가 없으면(아직 동작이 안 붙은 물건) 그 물건의 안내 문구만 띄운다.
-                    if (ItemUse.Try(Viewing, () => CloseRequested?.Invoke())) break;
-                    DebugToast.Show(string.IsNullOrEmpty(Viewing.useNotReadyHint)
-                        ? "아직 여기서 쓸 수 없다." : Viewing.useNotReadyHint, 2.5f);
+                    if (UiItems.Use.Try(Viewing, () => CloseRequested?.Invoke())) break;
+                    DebugToast.Show(string.IsNullOrEmpty(Viewing.UseNotReadyHint)
+                        ? "아직 여기서 쓸 수 없다." : Viewing.UseNotReadyHint, 2.5f);
                     break;
             }
         }
@@ -570,7 +602,7 @@ namespace IMUNROK.Gyeonu
                 spot.gameObject.SetActive(on);
                 if (!on) continue;
                 var item = Source[idx];
-                spot.label.text = item.displayName;
+                spot.label.text = item.DisplayName;
                 var tex = preview.Thumbnail(item);
                 spot.icon.texture = tex;
                 spot.icon.enabled = tex != null;
@@ -592,7 +624,11 @@ namespace IMUNROK.Gyeonu
             canvas.renderMode = RenderMode.WorldSpace;
             // ⚠️ dynamicPixelsPerUnit을 높이면 오히려 흐려진다 — 1캔버스단위 ≒ 0.6화면픽셀이라
             //    3으로 구우면 5배 축소되며 뭉갠다(2026-08-23 실측). 실제 화면 밀도에 맞춘 1이 가장 또렷하다.
-            gameObject.AddComponent<CanvasScaler>().dynamicPixelsPerUnit = 1f;
+            //    ⚠️ 단 그 "0.6"은 **모니터** 밀도다. HMD는 눈당 렌더 해상도가 더 촘촘하고 Link가
+            //       슈퍼샘플링까지 하므로 VR에서는 더 높은 값이 맞다 — UiTuning이 모드별로 준다.
+            //       (VR 쪽 값은 계산상 타당할 뿐 실측이 아니다. 헤드셋에서 견주어 볼 것)
+            scaler = gameObject.AddComponent<CanvasScaler>();
+            scaler.dynamicPixelsPerUnit = UiTuning.PcPixelsPerUnit;
             var canvasRt = (RectTransform)transform;
             canvasRt.sizeDelta = new Vector2(PanelW, PanelH);
             canvasRt.localScale = Vector3.one * CanvasScale;
@@ -622,10 +658,10 @@ namespace IMUNROK.Gyeonu
             Place(hintText.rectTransform, new Vector2(0f, -516f), new Vector2(1840f, 40f));
 
             // 왼쪽 위 닫기 — 참고 이미지의 ✕ 자리
-            Text xLabel; Image xFrame;
+            TextMeshProUGUI xLabel; Image xFrame;
             MakeButton(rt, "닫기", new Vector2(-836f, 470f), new Vector2(92f, 92f),
                                        InventoryHotspot.Kind.닫기, InventorySkin.Wood, 44, out xFrame, out xLabel);
-            xLabel.text = "✕";
+            xLabel.text = "×";
 
             BuildList(rt);
             BuildDetail(rt);
@@ -703,7 +739,7 @@ namespace IMUNROK.Gyeonu
             Stretch((RectTransform)img.transform, -10f);
 
             // 그림자리 오른쪽 아래 — 돋보기 (쇼핑몰 상품 확대 버튼 자리)
-            Text zl; Image zf;
+            TextMeshProUGUI zl; Image zf;
             zoomSpot = MakeButton(stageFrame, "돋보기", new Vector2(280f, -280f), new Vector2(148f, 148f),
                                   InventoryHotspot.Kind.돋보기, InventorySkin.Wood, 52, out zf, out zl);
             zl.text = "";   // 글꼴에 돋보기 글리프가 없다 — 직접 그린 것을 얹는다
@@ -713,7 +749,7 @@ namespace IMUNROK.Gyeonu
             const float TextX = 410f, TextW = 940f;
             detailName = MakeText(detailView, "이름", 46, TextAnchor.MiddleLeft, InventorySkin.Ink);
             Place(detailName.rectTransform, new Vector2(TextX, 340f), new Vector2(TextW, 72f));
-            detailName.fontStyle = FontStyle.Bold;
+            detailName.fontStyle = FontStyles.Bold;
 
             var nameRule = MakeImage(detailView, "이름줄", skin.Wood_, InventorySkin.Wood);
             Place(nameRule, new Vector2(TextX, 296f), new Vector2(TextW, 4f));
@@ -729,8 +765,8 @@ namespace IMUNROK.Gyeonu
             descRect.pivot = new Vector2(0.5f, 1f);
             descRect.anchoredPosition = Vector2.zero;
             descRect.sizeDelta = new Vector2(0f, 440f);   // 가로는 앵커로 늘어난다 — 여기 값을 주면 폭이 두 배가 된다
-            detailDesc.verticalOverflow = VerticalWrapMode.Overflow;
-            detailDesc.lineSpacing = 1.3f;
+            detailDesc.overflowMode = TextOverflowModes.Overflow;
+            detailDesc.lineSpacing = UiSkin.LineSpacing(1.3f);
 
             // 설명 영역도 자리 — 휠을 여기서 굴리면 글이 움직인다
             var descBox = descViewport.gameObject.AddComponent<BoxCollider>();
@@ -748,18 +784,18 @@ namespace IMUNROK.Gyeonu
             backLabel.text = "◀   목록으로";
 
             // 좌우 화살표 — 소지품 사이를 넘긴다
-            Text pl, nl; Image pf, nf;
+            TextMeshProUGUI pl, nl; Image pf, nf;
             prevSpot = MakeButton(detailView, "이전", new Vector2(-898f, 34f), new Vector2(64f, 150f),
                                   InventoryHotspot.Kind.이웃, InventorySkin.Wood, 40, out pf, out pl);
-            prevSpot.index = -1; pl.text = "‹";
+            prevSpot.index = -1; pl.text = "◀";
             nextSpot = MakeButton(detailView, "다음", new Vector2(898f, 34f), new Vector2(64f, 150f),
                                   InventoryHotspot.Kind.이웃, InventorySkin.Wood, 40, out nf, out nl);
-            nextSpot.index = 1; nl.text = "›";
+            nextSpot.index = 1; nl.text = "▶";
         }
 
         InventoryHotspot MakeButton(RectTransform parent, string name, Vector2 pos, Vector2 size,
                                     InventoryHotspot.Kind kind, Color baseColor, int fontSize,
-                                    out Image frame, out Text label)
+                                    out Image frame, out TextMeshProUGUI label)
         {
             var btn = MakeImage(parent, name, skin.Wood_, baseColor);
             Place(btn, pos, size);
@@ -781,13 +817,9 @@ namespace IMUNROK.Gyeonu
         }
 
         // ── 작은 도구들 ───────────────────────────────────────
-        static Font MakeFont()
-        {
-            // 한글이 나오는 OS 폰트를 순서대로 시도 — 동적 폰트라 글리프 에셋을 만들 필요가 없다
-            var f = Font.CreateDynamicFontFromOSFont(
-                new[] { "Malgun Gothic", "맑은 고딕", "NanumGothic", "나눔고딕", "Gulim", "굴림", "Batang", "Arial Unicode MS" }, 56);
-            return f != null ? f : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        }
+        /// <summary>본문 글꼴 — 판마다 따로 만들지 않고 <see cref="UiSkin.Font"/> 하나를 함께 쓴다.
+        /// 2026-08-26 에 OS 글꼴(맑은 고딕)에서 TMP 폰트 에셋(조선 궁서체)으로 옮겼다.</summary>
+        static TMPro.TMP_FontAsset MakeFont() { return UiSkin.Font; }
 
         static RectTransform MakeRect(Transform parent, string name)
         {
@@ -807,19 +839,21 @@ namespace IMUNROK.Gyeonu
             return (RectTransform)go.transform;
         }
 
-        Text MakeText(Transform parent, string name, int size, TextAnchor anchor, Color color)
+        TextMeshProUGUI MakeText(Transform parent, string name, int size, TextAnchor anchor, Color color)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
-            var t = go.GetComponent<Text>();
-            t.font = font;
-            t.fontSize = size;
-            t.alignment = anchor;
-            t.color = color;
-            t.raycastTarget = false;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.verticalOverflow = VerticalWrapMode.Truncate;
-            t.supportRichText = true;
+            var t = UiSkin.Dress(go.GetComponent<TextMeshProUGUI>(), size, anchor, color);
+            t.textWrappingMode = TextWrappingModes.Normal;
+            // ⚠️ 레거시의 Truncate 를 TMP 의 Truncate 로 그대로 옮기면 안 된다 (2026-08-26 실측).
+            //    TMP 는 상자 높이에 <b>온전히 들어가지 않는 줄을 통째로 버린다</b>. 조선 궁서체는
+            //    줄 높이가 글자 크기의 1.25배라 맑은 고딕(약 1.18배)보다 높은데, IMGUI 시절 숫자로
+            //    잡아 둔 상자들이 그만큼의 여유가 없다 — 대화창 아래 조작 안내(22px 글, 26px 상자)가
+            //    <b>한 줄 통째로 사라졌다</b>. 1.5px 모자란 것이 원인이라 화면에서는 원인이 안 보인다.
+            //    레거시가 실제로 그리던 모습은 Overflow 쪽이다 — 여러 줄 글은 어차피 판(RectMask2D)이
+            //    잘라 주므로 여기서 버릴 이유가 없다.
+            t.overflowMode = TextOverflowModes.Overflow;
+            t.richText = true;
             return t;
         }
 

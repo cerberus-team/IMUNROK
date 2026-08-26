@@ -97,7 +97,7 @@ namespace IMUNROK.Gyeonu
         public bool Solved => door != null && door.PuzzleSolved;
 
         public override string FocusStatus => null;   // 진행 상황을 글로 보여 주지 않는다
-        public override string FocusHint => "돌을 눌러 본다   Esc/우클릭: 물러나기";
+        public override string FocusHint => "돌을 눌러 본다   " + UiWords.Back + ": 물러나기";
         public override bool CanExitFocus => !busy;
 
         public override Vector3 FocusPoint

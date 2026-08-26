@@ -1471,6 +1471,235 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3915738783716229310, guid: 8e6f5bc1d33955e45ab1d7c2933ec212, type: 3}
   m_PrefabInstance: {fileID: 52507177}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &55334343
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -3.4
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 13.2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_Name
+      value: "Seona_\uAD00\uC544"
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 55334350}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 55334349}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 55334348}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 55334347}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 55334346}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 55334345}
+  m_SourcePrefab: {fileID: 100100000, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+--- !u!1 &55334344 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+  m_PrefabInstance: {fileID: 55334343}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &55334345
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 55334344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 816f4bf1ee44b284783d3fa4b2bab107, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcFollow
+  walkState: Walk
+  idleState: StandingIdle
+  startDistance: 2.6
+  stopDistance: 1.9
+  catchUpDistance: 14
+  speed: 1.35
+  turnSpeed: 220
+  catchUpBehind: 2.2
+  requireRescued: 1
+--- !u!114 &55334346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 55334344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab6a774c7703910428becf0eda4fc1a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcSchedule
+  activeAt: 
+  requireFlags: []
+  forbidFlags: []
+  ignoreFlagsAt: 
+  rescueState: 2
+  guardDistance: 20
+  guardAngle: 70
+  checkInterval: 0.5
+  maxDefer: 8
+--- !u!114 &55334347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 55334344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ab2c2742f4c3264999cec0bd496edd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcActor
+  profile: {fileID: 11400000, guid: 0240a692692c91a4388177763856246e, type: 2}
+  animator: {fileID: 55334350}
+  motions:
+  - state: FallIdle
+    length: 1.5000001
+    loops: 1
+  - state: StandingIdle
+    length: 6.0000005
+    loops: 1
+  - state: StandingUp
+    length: 7.6000004
+    loops: 0
+  - state: Walk
+    length: 1.0333334
+    loops: 1
+  overrideRandom: []
+  overrideStartDelay: -1
+  fade: 0.18
+  returnLead: 0.12
+--- !u!114 &55334348
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 55334344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4455dd990ca8859429e5df3117f89d67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcDialogue
+  displayName: "\uC120\uC544"
+  focusDistance: 1.5
+  transitionTime: 0.55
+  dimStrength: 0.35
+  focusAnchor: {fileID: 0}
+  showReticle: 1
+  reticleSize: 0
+  reticleLift: 0.004
+  reticleFront: 0
+  reticleRadius: 0
+  profile: {fileID: 11400000, guid: 0240a692692c91a4388177763856246e, type: 2}
+  faceAnchor: {fileID: 0}
+  eyeHeightOverride: -1
+  turnToPlayer: 1
+  turnTime: 0.45
+  faceYawOffset: 0
+  layout: 0
+  voiceAutoSend: 1
+  aimBelowFace: 0.1
+--- !u!136 &55334349
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 55334344}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.32
+  m_Height: 1.95
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.95550007, z: 0}
+--- !u!95 &55334350
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 55334344}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 7fd4188a31debdf4aba4fe5b0c64aed4, type: 2}
+  m_CullingMode: 1
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &57904812
 GameObject:
   m_ObjectHideFlags: 0
@@ -8882,8 +9111,197 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 64e61db4bad4f2f4dbced1c3d76a71b5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 172801426}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 64e61db4bad4f2f4dbced1c3d76a71b5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 172801425}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 64e61db4bad4f2f4dbced1c3d76a71b5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 172801424}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 64e61db4bad4f2f4dbced1c3d76a71b5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 172801423}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 64e61db4bad4f2f4dbced1c3d76a71b5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 172801422}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 64e61db4bad4f2f4dbced1c3d76a71b5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 172801421}
   m_SourcePrefab: {fileID: 100100000, guid: 64e61db4bad4f2f4dbced1c3d76a71b5, type: 3}
+--- !u!1 &172801420 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 64e61db4bad4f2f4dbced1c3d76a71b5, type: 3}
+  m_PrefabInstance: {fileID: 172801419}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &172801421
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 172801420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e605252cbf6cbc44cbf650f4a74bfcd2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcPatrol
+  points:
+  - {x: 0, y: 0, z: -3}
+  - {x: -2.6, y: 0, z: -2.5}
+  walkState: Walk
+  standIdle: StandIdle
+  sitIdle: SittingIdle
+  sitToStand: SitToStand
+  standToSit: StandToSit
+  speed: 0.8
+  turnSpeed: 120
+  restRange: {x: 3, y: 5}
+  pointsPerTrip: 2
+  idleRange: {x: 60, y: 110}
+  roamForever: 0
+  stickToGround: 1
+  groundProbeAbove: 1.5
+  onlyAt: 00000000
+--- !u!114 &172801422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 172801420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab6a774c7703910428becf0eda4fc1a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcSchedule
+  activeAt: 00000000
+  requireFlags: []
+  forbidFlags: []
+  ignoreFlagsAt: 
+  rescueState: 0
+  guardDistance: 20
+  guardAngle: 70
+  checkInterval: 0.5
+  maxDefer: 8
+--- !u!114 &172801423
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 172801420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ab2c2742f4c3264999cec0bd496edd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcActor
+  profile: {fileID: 11400000, guid: 2543a27888248e84f8d39958b787d448, type: 2}
+  animator: {fileID: 172801426}
+  motions:
+  - state: SitGun
+    length: 4.8
+    loops: 0
+  - state: SitTalk
+    length: 5.0000005
+    loops: 1
+  - state: SittingIdle
+    length: 7.966667
+    loops: 1
+  - state: SitToStand
+    length: 2.266667
+    loops: 0
+  - state: StandIdle
+    length: 13.933334
+    loops: 1
+  - state: StandToSit
+    length: 2.2333333
+    loops: 0
+  - state: Walk
+    length: 1.0333334
+    loops: 1
+  overrideRandom: []
+  overrideStartDelay: -1
+  fade: 0.18
+  returnLead: 0.12
+--- !u!114 &172801424
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 172801420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4455dd990ca8859429e5df3117f89d67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcDialogue
+  displayName: "\uC218\uB839"
+  focusDistance: 2.1
+  transitionTime: 0.55
+  dimStrength: 0.35
+  focusAnchor: {fileID: 0}
+  showReticle: 1
+  reticleSize: 0
+  reticleLift: 0.004
+  reticleFront: 0
+  reticleRadius: 0
+  profile: {fileID: 11400000, guid: 2543a27888248e84f8d39958b787d448, type: 2}
+  faceAnchor: {fileID: 0}
+  eyeHeightOverride: -1
+  turnToPlayer: 1
+  turnTime: 0.45
+  faceYawOffset: 0
+  layout: 0
+  voiceAutoSend: 1
+  aimBelowFace: 0.1
+--- !u!136 &172801425
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 172801420}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.4
+  m_Height: 1.35
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.66150004, z: 0}
+--- !u!95 &172801426
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 172801420}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: f1f4ebf5c8c02e140a9e5479c4f38056, type: 2}
+  m_CullingMode: 1
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &179444545
 GameObject:
   m_ObjectHideFlags: 0
@@ -36527,6 +36945,211 @@ Transform:
   - {fileID: 142523363}
   m_Father: {fileID: 1927122025}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &790408346
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1.8
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -4.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      propertyPath: m_Name
+      value: "Gyeonu_\uAD00\uC544_\uC7AC\uD68C"
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 790408352}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 790408351}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 790408350}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 790408349}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 790408348}
+  m_SourcePrefab: {fileID: 100100000, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+--- !u!1 &790408347 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
+  m_PrefabInstance: {fileID: 790408346}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &790408348
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 790408347}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab6a774c7703910428becf0eda4fc1a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcSchedule
+  activeAt: 
+  requireFlags: []
+  forbidFlags: []
+  ignoreFlagsAt: 
+  rescueState: 2
+  guardDistance: 20
+  guardAngle: 70
+  checkInterval: 0.5
+  maxDefer: 8
+--- !u!114 &790408349
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 790408347}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ab2c2742f4c3264999cec0bd496edd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcActor
+  profile: {fileID: 11400000, guid: 2aacb6d0d59b2d94783ebf596ea2e145, type: 2}
+  animator: {fileID: 790408352}
+  motions:
+  - state: GiveKey
+    length: 3.766667
+    loops: 0
+  - state: Idle
+    length: 9.933333
+    loops: 1
+  - state: LookAround
+    length: 6.3333335
+    loops: 0
+  - state: Walk
+    length: 1.0333334
+    loops: 1
+  overrideRandom: []
+  overrideStartDelay: -1
+  fade: 0.18
+  returnLead: 0.12
+--- !u!114 &790408350
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 790408347}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4455dd990ca8859429e5df3117f89d67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcDialogue
+  displayName: "\uACAC\uC6B0"
+  focusDistance: 1.65
+  transitionTime: 0.55
+  dimStrength: 0.35
+  focusAnchor: {fileID: 0}
+  showReticle: 1
+  reticleSize: 0
+  reticleLift: 0.004
+  reticleFront: 0
+  reticleRadius: 0
+  profile: {fileID: 11400000, guid: 2aacb6d0d59b2d94783ebf596ea2e145, type: 2}
+  faceAnchor: {fileID: 0}
+  eyeHeightOverride: -1
+  turnToPlayer: 1
+  turnTime: 0.45
+  faceYawOffset: 0
+  layout: 0
+  voiceAutoSend: 1
+  aimBelowFace: 0.1
+--- !u!136 &790408351
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 790408347}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.32
+  m_Height: 1.95
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.95550007, z: 0}
+--- !u!95 &790408352
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 790408347}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: d173829ca679aff4b8025f16a05ca40d, type: 2}
+  m_CullingMode: 1
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &793549167
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -62798,6 +63421,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.WorldTimeSync
   kind: 0
   isReference: 0
+  seedIfUnseeded: 0
+  seedNight: 1
+  seedRain: 0
   forceClear: 0
   sun: {fileID: 0}
   "\uB0AE_\uB9D1\uC74C": {fileID: 11400000, guid: a81640dbe767694448c36a822baf6219, type: 2}
@@ -62959,6 +63585,8 @@ MonoBehaviour:
   sprintSpeed: 9
   mouseSensitivity: 0.12
   eye: {fileID: 1629861601}
+  uiOpen: 0
+  lookLocked: 0
 --- !u!143 &1336070184
 CharacterController:
   m_ObjectHideFlags: 0
@@ -96027,6 +96655,7 @@ GameObject:
   - component: {fileID: 1766204035}
   - component: {fileID: 1766204037}
   - component: {fileID: 1766204036}
+  - component: {fileID: 1766204038}
   m_Layer: 0
   m_Name: "\uCD9C\uAD6C_\uC9D1\uBB34\uC2E4"
   m_TagString: Untagged
@@ -96097,6 +96726,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.5, y: 1.86, z: 2.45}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1766204038
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1766204034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bf7919498e385d4cbcc646504ec413c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.OfficeDayGate
+  dayMessage: "\uAD00\uB178\uAC00 \uC55E\uC744 \uB9C9\uC544\uC120\uB2E4. \u300C\uC218\uB839
+    \uC5B4\uB978\uC758 \uC9D1\uBB34\uC2E4\uC774\uC624. \uB098\uADF8\uB124\uAC00 \uB4E4
+    \uACF3\uC774 \uC544\uB2C8\uC678\uB2E4.\u300D\n\uB5A0\uBC00\uB9AC\uB4EF \uB9C8\uB2F9\uC73C\uB85C
+    \uBB3C\uB7EC\uB0AC\uB2E4."
+  nightPrompt: "\uB4E4\uC5B4\uAC00\uAE30"
 --- !u!1001 &1769378906
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -113906,3 +114552,5 @@ SceneRoots:
   - {fileID: 491280695}
   - {fileID: 172801419}
   - {fileID: 1206423559}
+  - {fileID: 790408346}
+  - {fileID: 55334343}

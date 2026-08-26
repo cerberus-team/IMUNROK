@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 using UnityEngine.UI;
 
 namespace IMUNROK.Gyeonu
@@ -13,13 +14,19 @@ namespace IMUNROK.Gyeonu
     [RequireComponent(typeof(BoxCollider))]
     public class DialogueHotspot : MonoBehaviour
     {
-        public enum Kind { 묻기, 단서열기, 끝내기, 입력칸 }
+        /// <summary>
+        /// ⚠️ <c>말하기</c> 는 <b>누르고 있는 동안</b> 녹음하는 자리다 (2026-08-26, 하단 바 시안).
+        ///    나머지처럼 눌렀다 떼는 순간 한 번 발화하는 것이 아니라서
+        ///    <c>ClickHovered</c> 가 아니라 <c>HandleVoice</c> 가 직접 본다.
+        ///    보내는 것·점수 매기는 것은 하나도 안 달라졌다 — 왼쪽 Ctrl 을 누르는 것과 같은 길이다.
+        /// </summary>
+        public enum Kind { 묻기, 단서열기, 끝내기, 입력칸, 말하기 }
 
         public Kind kind;
         public bool interactable = true;
 
         [HideInInspector] public Image frame;
-        [HideInInspector] public Text label;
+        [HideInInspector] public TextMeshProUGUI label;
         [HideInInspector] public Color idleColor;
         [HideInInspector] public Color hoverColor;
 

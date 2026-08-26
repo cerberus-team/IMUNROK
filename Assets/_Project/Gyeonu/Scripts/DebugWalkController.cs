@@ -57,12 +57,26 @@ namespace IMUNROK.Gyeonu
             //   DebugInteractor가 빠져 있었다. 그러면 어떤 오브젝트도 조준되지 않아
             //   "이 씬만 상호작용이 안 된다"로 보인다 — 원인 찾기 어려운 종류의 결함이다.
             //   워커가 있으면 조준 입력도 반드시 있게 여기서 보강한다.
-            if (eye != null && eye.GetComponent<DebugInteractor>() == null)
-                eye.gameObject.AddComponent<DebugInteractor>();
-            // 소지품 판 입력도 같은 이유로 여기서 보강한다 — 씬마다 설치 메뉴가 따로라 빠뜨리기 쉽다
-            if (eye != null && eye.GetComponent<InventoryInput>() == null)
-                eye.gameObject.AddComponent<InventoryInput>();
+            if (eye == null) return;
+            if (eye.GetComponent<DebugInteractor>() == null) eye.gameObject.AddComponent<DebugInteractor>();
+            if (eye.GetComponent<InventoryInput>() == null) eye.gameObject.AddComponent<InventoryInput>();
+            if (EyeSetup != null) EyeSetup(eye.gameObject);
         }
+
+        /// <summary>
+        /// <b>눈에 더 붙일 것이 있으면 채워 넣는 자리</b> (2026-08-26).
+        ///
+        /// 위의 조준·소지품 입력은 UI 꾸러미와 함께 다니므로 늘 붙는다. 그 밖에 자기 사건에만
+        /// 필요한 부품이 있으면 여기에 등록하면 된다. 비워 두어도 된다 — 기본값이 비어 있다.
+        ///
+        /// ⚠️ 도메인 리로드가 꺼진 프로젝트다. 등록하는 쪽은
+        ///    <see cref="RuntimeInitializeOnLoadMethod"/> 로 <b>세션마다 다시 걸 것.</b>
+        /// </summary>
+        public static System.Action<GameObject> EyeSetup;
+
+        // 도메인 리로드가 꺼진 프로젝트 — 정적 훅이 세션을 넘겨 살아남으므로 직접 비운다
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() { EyeSetup = null; }
 
         void OnEnable() => SetCursorLock(true);
         void OnDisable() => SetCursorLock(false);

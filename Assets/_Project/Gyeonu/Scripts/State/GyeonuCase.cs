@@ -315,9 +315,8 @@ namespace IMUNROK.Gyeonu
         /// <summary>두 단서를 다 가졌을 때 모순이 성립하는지 자동 판정 — 대화 쪽에서 불러 쓴다.</summary>
         public static void CheckContradictionsFromClues()
         {
-            // M1: 수령의 알리바이 ↔ C6 유독 심했던 순찰 (수령 재질문이 전제라 대화 쪽에서 확정한다)
-            // M2: 주모의 '죄인' 진술 ↔ C7 죄인이 아니었다
-            if (HasClue(ClueId.C7) && HasClue(ClueId.A7)) AddContradiction(ContradictionId.M2);
+            // 모순은 단서 조합만으로 자동 확정하지 않는다.
+            // M1/M2 모두 실제 상충 진술과 재질문·답변을 DialogueGrantValidator가 확인한 뒤 등록한다.
         }
 
         // ─────────────────────────────────────────────────────────

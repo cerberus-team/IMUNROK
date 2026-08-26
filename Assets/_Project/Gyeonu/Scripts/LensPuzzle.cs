@@ -70,6 +70,7 @@ namespace IMUNROK.Gyeonu
         // ── 상태 ──────────────────────────────────────────
         bool focused, solved, solving;
         float focusedAt;
+        NotePanel notePanel;   // 문제 제시 글 — 월드 판 (2026-08-26, 예전엔 OnGUI)
         LensBead grabbed;
         Vector2 grabOffset;
         GameObject lastActor;
@@ -83,8 +84,8 @@ namespace IMUNROK.Gyeonu
 
         public override string Prompt => "살펴보기";
         public override string FocusHint => solved
-            ? "Esc/우클릭: 물러나기"
-            : "좌클릭 드래그: 렌즈 옮기기   Esc/우클릭: 물러나기";
+            ? UiWords.Back + ": 물러나기"
+            : UiWords.Press + " 드래그: 렌즈 옮기기   " + UiWords.Back + ": 물러나기";
         public override bool CanExitFocus => !solving;
         public override float FocusFov => focusFov;
         public override Vector3 FocusPoint => PanelTransform.position;
@@ -358,27 +359,35 @@ namespace IMUNROK.Gyeonu
         // ── 힌트 (좌측 상단) ─────────────────────────────
 
         /// <summary>좌측 상단 문제 제시. **머리말도 성공 문구도 없다** — 풀고 나면 그냥 사라진다.</summary>
-        void OnGUI()
+        /// <summary>
+        /// 문제 제시 글 (2026-08-26 — 예전에는 <c>OnGUI</c>였다).
+        ///
+        /// IMGUI 시절 자리·크기를 그대로 옮겼다: 왼쪽 위 (26, 26), 폭 520, 안쪽 여백 14,
+        /// 본문 17px 굵게, 0.45초에 걸쳐 서서히 뜬다.
+        /// 그리는 일은 <see cref="NotePanel"/>(월드 캔버스)이 맡는다 — HMD에서도 보이게.
+        /// </summary>
+        void LateUpdate()
         {
-            if (!focused || solved || string.IsNullOrEmpty(hintText)) return;
-            float a = Mathf.Clamp01((Time.time - focusedAt) / 0.45f);
-            if (a <= 0.01f) return;
-
-            const float w = 520f, x = 26f, y = 26f, pad = 14f;
-            var body = new GUIStyle(GUI.skin.label)
+            bool show = focused && !solved && !string.IsNullOrEmpty(hintText);
+            if (!show)
             {
-                fontSize = 17,
-                wordWrap = true,
-                alignment = TextAnchor.UpperLeft,
-                fontStyle = FontStyle.Bold,
-            };
-            body.normal.textColor = new Color(1f, 0.92f, 0.72f, a);
-            float h = body.CalcHeight(new GUIContent(hintText), w - pad * 2f);
-
-            GUI.color = new Color(0f, 0f, 0f, 0.52f * a);
-            GUI.DrawTexture(new Rect(x, y, w, h + pad * 2f), Texture2D.whiteTexture);
-            GUI.color = Color.white;
-            GUI.Label(new Rect(x + pad, y + pad, w - pad * 2f, h + 4f), hintText, body);
+                if (notePanel != null) notePanel.body = null;
+                return;
+            }
+            if (notePanel == null)
+            {
+                notePanel = NotePanel.Create(transform, "렌즈_문제판");
+                notePanel.title = null;
+                notePanel.width = 520f;
+                notePanel.topLeftPx = new Vector2(26f, 26f);
+                notePanel.bodySize = 17;
+                notePanel.bodyBold = true;
+                notePanel.padX = notePanel.padTop = notePanel.padBottom = 14f;
+                notePanel.backColor = UiSkin.FromImgui(new Color(0f, 0f, 0f, 0.52f));
+                notePanel.bodyColor = new Color(1f, 0.92f, 0.72f, 1f);
+            }
+            notePanel.body = hintText;
+            notePanel.alpha = Mathf.Clamp01((Time.time - focusedAt) / 0.45f);
         }
     }
 }

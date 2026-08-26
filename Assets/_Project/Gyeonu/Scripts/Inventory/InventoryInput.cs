@@ -15,9 +15,9 @@ namespace IMUNROK.Gyeonu
     ///   좌드래그 ...... 상세에서 모델 돌리기 (버튼 위가 아닐 때)
     ///   휠 ............ 확대·축소 / 글 굴리기 / 쪽 넘기기
     ///
-    /// ■ VR로 갈 때 바꿀 곳은 여기 하나뿐이다
-    ///   <see cref="Ray"/>를 컨트롤러 광선으로, 좌클릭을 트리거로, I를 메뉴 버튼으로 바꾸고
-    ///   InventoryUI의 PointAt/Activate/Drag/Scroll/Back을 그대로 부르면 된다.
+    /// ■ VR (2026-08-26 — 이제 갈아끼움이 끝났다)
+    ///   조준·버튼은 <see cref="UiPointers"/> 가 준다. PC면 마우스, VR이면 컨트롤러 광선이
+    ///   같은 자리로 들어온다. 여기 코드는 <b>어느 쪽인지 알지 못한다</b> — 그게 목표였다.
     ///   판·미리보기 코드는 손대지 않는다.
     ///
     /// ■ 왜 I 인가 (Tab이 아니라)
@@ -35,7 +35,6 @@ namespace IMUNROK.Gyeonu
         DebugWalkController walk;
         DebugInteractor interactor;
         DebugFocusRig focus;
-        Camera eyeCam;                // 화면 커서 → 광선 변환용 (VR에서는 컨트롤러가 대신한다)
 
         InventoryUI ui;
         InventoryHotspot pressed;     // 누르기 시작한 자리
@@ -57,32 +56,38 @@ namespace IMUNROK.Gyeonu
         // 같은 물건은 두 번 담기지 않으므로 이 알림도 물건당 한 번뿐이다 — 두 번째부터는
         // ItemPickup의 획득 문구만 뜬다. 입력 측이 맡는 까닭: 판을 여는 순간 걷기·조준을
         // 잠가야 하는데 그 권한이 여기 있다.
-        void OnEnable() => Inventory.Added += OnItemAdded;
+        void OnEnable() => UiItems.Source.Added += OnItemAdded;
 
         void OnDisable()
         {
-            Inventory.Added -= OnItemAdded;
+            UiItems.Source.Added -= OnItemAdded;
             ReleaseLocks();
         }
 
-        void OnItemAdded(InventoryItem item)
+        void OnItemAdded(IUiItem item)
         {
-            if (item == null || !item.autoShowOnPickup) return;
+            if (item == null || !item.AutoShowOnPickup) return;
             if (!isActiveAndEnabled) return;
             OpenUI(item, true);
         }
 
         void Update()
         {
-            var kb = Keyboard.current;
-            var mouse = Mouse.current;
-            if (kb == null || mouse == null) return;
+            // 가리키개 하나로 마우스/컨트롤러를 갈아끼운다 (2026-08-26).
+            // PC = 마우스 커서 광선 + 좌/우클릭 + 휠 + I·Esc, VR = 컨트롤러 광선 + 트리거 + 스틱 + 메뉴·B.
+            var ptr = UiPointers.Get(transform);
+            if (!ptr.Available) return;
 
             if (focus == null) focus = GetComponent<DebugFocusRig>();
             bool focusing = focus != null && focus.IsFocusing;
 
             // ── 여닫기 ──
-            if (kb[toggleKey].wasPressedThisFrame)
+            // 가리키개의 '메뉴'(PC=I, VR=메뉴 버튼)와, 인스펙터에서 바꿔 둔 글쇠 둘 다 받는다 —
+            // toggleKey 를 다른 키로 바꿔 둔 씬이 있어도 그대로 돈다.
+            var kbNow = Keyboard.current;
+            bool toggle = ptr.MenuDown
+                       || (UiModes.IsPc && toggleKey != Key.I && kbNow != null && kbNow[toggleKey].wasPressedThisFrame);
+            if (toggle)
             {
                 if (ui != null && ui.IsOpen) CloseUI();
                 else if (!focusing) OpenUI();          // 퍼즐 조작 중에는 판을 열지 않는다
@@ -92,17 +97,17 @@ namespace IMUNROK.Gyeonu
             if (ui == null || !ui.IsOpen) return;
 
             // ── 물러나기 (상세 ▸ 목록 ▸ 닫기) ──
-            if (kb.escapeKey.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame)
+            if (ptr.BackDown)
             {
                 if (!ui.Back()) CloseUI();
                 return;
             }
 
             // ── 가리키기 ──
-            ui.PointAt(PointerRay());
+            ui.PointAt(ptr.PointRay);
 
             // ── 누르기 / 드래그 ──
-            if (mouse.leftButton.wasPressedThisFrame)
+            if (ptr.PressDown)
             {
                 pressed = ui.Hovered;
                 dragDist = 0f;
@@ -111,14 +116,14 @@ namespace IMUNROK.Gyeonu
                 rotating = pressed == null && ui.CanRotate;
             }
 
-            if (mouse.leftButton.isPressed)
+            if (ptr.PressHeld)
             {
-                Vector2 d = mouse.delta.ReadValue();
+                Vector2 d = ptr.Delta;
                 dragDist += d.magnitude;
                 if (rotating && d.sqrMagnitude > 0.0001f) ui.Drag(d);
             }
 
-            if (mouse.leftButton.wasReleasedThisFrame)
+            if (ptr.PressUp)
             {
                 // 같은 자리에서 떼었고 거의 안 움직였으면 누른 것
                 if (!rotating && pressed != null && pressed == ui.Hovered && dragDist <= clickSlop)
@@ -131,27 +136,10 @@ namespace IMUNROK.Gyeonu
             // ⚠️ 매 프레임 값을 그대로 흘려 보내면, 값이 한 번 붙어 있는 동안 수십 번 호출돼
             //    상세 화면을 열자마자 설명이 끝까지 굴러가 버린다(실측 — 첫 줄이 안 보였다).
             //    떨어졌다 올라오는 순간만 잡으면 실제 휠 한 칸 = 한 번이 된다.
-            float sc = mouse.scroll.ReadValue().y;
+            //    (VR 스틱도 같은 규칙을 탄다 — 가리키개가 ±1로 정규화해 준다)
+            float sc = ptr.ScrollRaw;
             if (Mathf.Abs(sc) > 0.5f && Mathf.Abs(prevScroll) <= 0.5f) ui.Scroll(sc);
             prevScroll = sc;
-        }
-
-        /// <summary>
-        /// 판을 가리키는 광선 — **VR로 갈 때 갈아끼울 곳은 여기 한 군데다.**
-        /// 지금은 화면 커서 위치에서 쏜다. 컨트롤러 리그가 붙으면
-        /// `new Ray(controller.position, controller.forward)` 한 줄로 바뀌고,
-        /// 판·조준·클릭 판정 코드는 그대로 쓴다.
-        ///
-        /// ⚠️ 카메라 정면(transform.forward)으로 쏘면 안 된다 — 그러면 조준점이 화면
-        ///    한가운데 못 박혀 마우스로 칸을 고를 수가 없다(2026-08-24 실측).
-        /// </summary>
-        Ray PointerRay()
-        {
-            var cam = eyeCam != null ? eyeCam : (eyeCam = GetComponent<Camera>());
-            var m = Mouse.current;
-            if (cam != null && m != null)
-                return cam.ScreenPointToRay(m.position.ReadValue());
-            return new Ray(transform.position, transform.forward);   // 마우스가 없으면 시선 조준
         }
 
         /// <summary>
@@ -164,7 +152,7 @@ namespace IMUNROK.Gyeonu
         ///
         /// <paramref name="traits"/>를 주면 물건 곁에 "살펴본 것"이 함께 적힌다.
         /// </summary>
-        public void InspectExternal(InventoryItem item, string[] traits = null)
+        public void InspectExternal(IUiItem item, string[] traits = null)
         {
             if (item == null) return;
             InventoryUI.Ensure().ExternalTraits = traits;
@@ -176,15 +164,15 @@ namespace IMUNROK.Gyeonu
         /// 여는 문이 하나여야 걷기·조준·커서 잠금이 갈라지지 않으므로 소지품과 같은 길로 낸다 —
         /// <see cref="InspectExternal"/> 과 같은 규약이다.
         /// </summary>
-        public void OpenPresent(System.Func<System.Collections.Generic.IReadOnlyList<InventoryItem>> source,
-                                System.Action<InventoryItem> onPresent)
+        public void OpenPresent(System.Func<System.Collections.Generic.IReadOnlyList<IUiItem>> source,
+                                System.Action<IUiItem> onPresent)
         {
             OpenUI(null, false, source, onPresent);
         }
 
-        void OpenUI(InventoryItem showItem = null, bool pickup = false,
-                    System.Func<System.Collections.Generic.IReadOnlyList<InventoryItem>> presentSource = null,
-                    System.Action<InventoryItem> onPresent = null)
+        void OpenUI(IUiItem showItem = null, bool pickup = false,
+                    System.Func<System.Collections.Generic.IReadOnlyList<IUiItem>> presentSource = null,
+                    System.Action<IUiItem> onPresent = null)
         {
             if (ui != null && ui.IsOpen) ui.Close();
             ui = InventoryUI.Ensure();
@@ -197,8 +185,12 @@ namespace IMUNROK.Gyeonu
 
             // 커서를 창 안에 가두되 **하드웨어 커서는 숨긴다** — 판 위에 우리가 그리는 조준점이
             // 진짜 커서다. 그래야 VR HMD에서도, 스크린샷에서도 같은 것이 보인다.
-            Cursor.lockState = CursorLockMode.Confined;
-            Cursor.visible = false;
+            // VR에서는 커서라는 것이 아예 없으므로 건드리지 않는다 (컨트롤러가 가리킨다).
+            if (UiModes.IsPc)
+            {
+                Cursor.lockState = CursorLockMode.Confined;
+                Cursor.visible = false;
+            }
         }
 
         /// <summary>바깥에서 판을 닫는다 (증거를 골라 내민 뒤 등). 잠금 해제까지 같은 길로 처리된다.</summary>
@@ -220,8 +212,8 @@ namespace IMUNROK.Gyeonu
             if (interactor != null && !focusing) interactor.enabled = true;
             pressed = null;
             rotating = false;
-            // 걷기로 복귀 — 커서를 다시 화면 중앙에 붙잡아 마우스가 시선이 된다
-            if (walk != null && walk.enabled)
+            // 걷기로 복귀 — 커서를 다시 화면 중앙에 붙잡아 마우스가 시선이 된다 (PC 전용 규약)
+            if (UiModes.IsPc && walk != null && walk.enabled)
             {
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;

@@ -21,7 +21,7 @@ namespace IMUNROK.Gyeonu
     ///   되살아난 것을 다시 감춘다 — Destroy로는 이 판정을 할 자리가 없다.
     ///   (LanternPickup이 소모/복귀를 다루는 방식과 같은 결)
     /// </summary>
-    public class ItemPickup : Interactable
+    public class ItemPickup : Interactable, IInnerTarget
     {
         [Tooltip("집으면 들어갈 소지품 정의")]
         public InventoryItem item;

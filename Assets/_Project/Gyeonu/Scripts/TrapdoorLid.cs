@@ -49,8 +49,12 @@ namespace IMUNROK.Gyeonu
             open = !open;
             // 여는 즉시 띄운다 — 애니메이션(1.1s)이 끝난 뒤에 띄우면 그 사이 플레이어가
             // 조금만 움직여도 이동 감지 기준점이 어긋나 뜨자마자 사라진다 (v4 실측: "안 뜨는" 원인)
-            if (open) DebugToast.ShowPinned(ActorY(actor) > floorSplitY ? openMessageUpper : openMessageLower);
+            bool fromUpper = ActorY(actor) > floorSplitY;
+            if (open) DebugToast.ShowPinned(fromUpper ? openMessageUpper : openMessageLower);
             else DebugToast.HidePinned();
+
+            // 지도 중첩(A2) 뒤 위층에서 문틈을 직접 열어 아래 흔적을 확인한 경우에만 B2.
+            if (open && fromUpper && GyeonuCase.HasClue(ClueId.A2)) GyeonuCase.AddClue(ClueId.B2);
         }
 
         /// <summary>연 사람의 높이 — actor(보통 워커 카메라)가 없으면 워커를 찾고, 그마저 없으면 위층 취급.</summary>

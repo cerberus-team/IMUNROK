@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 using UnityEngine.UI;
 
 namespace IMUNROK.Gyeonu
@@ -31,19 +32,20 @@ namespace IMUNROK.Gyeonu
 
 
         RawImage curtain;
+        TextMeshProUGUI hintLabel;
 
         Canvas board;
         RectTransform boardRt;
         RawImage image;
         RectTransform cursor;
         InventorySkin skin;
-        Font font;
+        TMP_FontAsset font;
 
         public bool IsOpen => gameObject.activeSelf;
         /// <summary>조사 판의 평면 — 조준점을 찍을 면 (InventoryUI가 커서를 여기 올린다).</summary>
         public Transform Surface => boardRt;
 
-        public static InventoryInspect Ensure(Transform eye, InventorySkin skin, Font font)
+        public static InventoryInspect Ensure(Transform eye, InventorySkin skin, TMP_FontAsset font)
         {
             var found = eye.GetComponentInChildren<InventoryInspect>(true);
             if (found != null) return found;
@@ -110,11 +112,11 @@ namespace IMUNROK.Gyeonu
             image.raycastTarget = false;
             Place((RectTransform)img.transform, new Vector2(0f, 40f), new Vector2(1120f, 1120f));
 
-            MakeButton("닫기", new Vector2(600f, 600f), new Vector2(120f, 120f), InventoryHotspot.Kind.조사닫기, 56, "✕");
+            MakeButton("닫기", new Vector2(600f, 600f), new Vector2(120f, 120f), InventoryHotspot.Kind.조사닫기, 56, "×");
 
             var hint = MakeText("안내", 40, TextAnchor.MiddleCenter, new Color(0.86f, 0.82f, 0.74f, 0.85f));
             Place(hint.rectTransform, new Vector2(0f, -628f), new Vector2(1360f, 60f));
-            hint.text = "드래그 — 돌리기        휠 — 확대·축소        Esc / 우클릭 — 그만 보기";
+            hintLabel = hint;   // 조작 이름이 모드 따라 갈린다 — 매 프레임 다시 적는다
 
             var dot = new GameObject("조준", typeof(RectTransform), typeof(Image));
             dot.transform.SetParent(boardRt, false);
@@ -130,14 +132,25 @@ namespace IMUNROK.Gyeonu
         void ResizeBoard()
         {
             if (boardRt == null) return;
-            // ⚠️ 판 크기를 **지금 카메라의 화각**으로 잡는다 (2026-08-24).
+            // ⚠️ PC에서는 판 크기를 **지금 카메라의 화각**으로 잡는다 (2026-08-24).
             //    포커스 퍼즐 도중에 조사를 열면 화각이 38°까지 좁아져 있는데, 52°에 맞춘
             //    고정 크기를 쓰면 판이 화면보다 커져 **닫기(✕) 버튼과 조작 안내가 화면 밖으로
             //    밀려난다** (서고 장부에서 실측). 평소(60°)에는 52°가 그대로 뽑힌다.
-            float fov = 60f;
-            var cam = GetComponentInParent<Camera>();
-            if (cam != null) fov = cam.fieldOfView;
-            float deg = Mathf.Min(FillDegrees, fov * 0.92f);
+            //
+            // ⚠️⚠️ VR에서는 이 계산을 하면 **안 된다** (2026-08-26).
+            //    HMD가 붙으면 투영은 기기가 정하고 <c>cam.fieldOfView</c> 는 뜻을 잃는다 —
+            //    직렬화된 값(대개 60)이 그대로 읽혀 판이 엉뚱한 크기로 뜬다. 게다가 VR에서는
+            //    화각을 좁히는 연출(FocusFov) 자체가 먹지 않으므로 좁혀질 일도 없다.
+            //    그래서 VR에서는 <see cref="FillDegrees"/> 를 그대로 쓴다.
+            float deg;
+            if (UiModes.IsVr) deg = FillDegrees;
+            else
+            {
+                float fov = 60f;
+                var cam = GetComponentInParent<Camera>();
+                if (cam != null) fov = cam.fieldOfView;
+                deg = Mathf.Min(FillDegrees, fov * 0.92f);
+            }
             float h = 2f * BoardZ * Mathf.Tan(deg * 0.5f * Mathf.Deg2Rad);
             boardRt.localScale = Vector3.one * (h / CanvasUnits);
         }
@@ -150,6 +163,15 @@ namespace IMUNROK.Gyeonu
             image.texture = rt;
             image.enabled = rt != null;
             ShowTraits(traits);
+        }
+
+        /// <summary>조작 안내를 지금 모드의 이름으로 적는다 (F8로 바꿔도 곧바로 따라온다).</summary>
+        void LateUpdate()
+        {
+            if (hintLabel == null) return;
+            string h = "드래그 — 돌리기        " + UiWords.Wheel + " — 확대·축소        "
+                     + UiWords.Back + " — 그만 보기";
+            if (hintLabel.text != h) hintLabel.text = h;
         }
 
         /// <summary>
@@ -187,7 +209,7 @@ namespace IMUNROK.Gyeonu
                 traitBody = MakeText("줄", 36, TextAnchor.UpperLeft, new Color(0.90f, 0.86f, 0.78f, 0.95f));
                 traitBody.transform.SetParent(traitPanel, false);
                 Place(traitBody.rectTransform, new Vector2(6f, -32f), new Vector2(480f, 360f));
-                traitBody.lineSpacing = 1.35f;
+                traitBody.lineSpacing = UiSkin.LineSpacing(1.35f);
             }
             traitPanel.gameObject.SetActive(on);
             if (!on) return;
@@ -198,7 +220,7 @@ namespace IMUNROK.Gyeonu
         }
 
         RectTransform traitPanel;
-        Text traitHead, traitBody;
+        TextMeshProUGUI traitHead, traitBody;
 
         public void Hide() => gameObject.SetActive(false);
 
@@ -246,19 +268,13 @@ namespace IMUNROK.Gyeonu
             return spot;
         }
 
-        Text MakeText(string name, int size, TextAnchor anchor, Color color)
+        TextMeshProUGUI MakeText(string name, int size, TextAnchor anchor, Color color)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(boardRt, false);
-            var t = go.GetComponent<Text>();
-            t.font = font;
-            t.fontSize = size;
-            t.alignment = anchor;
-            t.color = color;
-
-            t.raycastTarget = false;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
+            var t = UiSkin.Dress(go.GetComponent<TextMeshProUGUI>(), size, anchor, color);
+            t.textWrappingMode = TextWrappingModes.Normal;
+            t.overflowMode = TextOverflowModes.Overflow;
             return t;
         }
 

@@ -4,9 +4,14 @@ using UnityEngine.InputSystem;
 namespace IMUNROK.Gyeonu
 {
     /// <summary>
-    /// 임시 상호작용 입력 (마우스 — VR 컨트롤러/공통 시스템으로 교체 예정).
-    /// 워커 카메라에 붙어 화면 중앙으로 레이캐스트 → Interactable 조준 시 조준점 강조 +
-    /// 이름/행동 표시, 좌클릭으로 Interact() 호출. 교체 시 이 컴포넌트만 갈아끼우면 된다.
+    /// 세상을 조준하는 입력 (2026-08-26 개편).
+    /// 워커 카메라에 붙어 조준 광선을 쏘고, Interactable을 맞히면 조준점을 밝히며
+    /// 이름/행동을 적는다. 누르면 Interact() 를 부른다.
+    ///
+    /// ■ 광선과 그림을 둘 다 밖으로 뺐다
+    ///   광선 — <see cref="UiPointers"/> (PC = 화면 정중앙 시선, VR = 컨트롤러 광선)
+    ///   그림 — <see cref="AimPanel"/> (월드 스페이스 캔버스. 예전엔 IMGUI라 HMD에 안 보였다)
+    ///   그래서 이 클래스에는 <b>무엇을 맞혔는가</b> 판정만 남는다 — 그 부분은 안 건드렸다.
     /// </summary>
     public class DebugInteractor : MonoBehaviour
     {
@@ -14,11 +19,27 @@ namespace IMUNROK.Gyeonu
         public float maxDistance = 3.5f;
 
         Interactable target;
+        AimPanel aim;
+
+        void OnDisable()
+        {
+            // 조준이 꺼지면 조준점도 함께 사라져야 한다 (소지품 판이 열릴 때 등)
+            if (aim != null) aim.gameObject.SetActive(false);
+        }
+
+        void OnDestroy()
+        {
+            if (aim != null) Destroy(aim.gameObject);
+        }
 
         void Update()
         {
+            if (aim == null) aim = AimPanel.Create(transform);
+            if (!aim.gameObject.activeSelf) aim.gameObject.SetActive(true);
+
+            var ptr = UiPointers.Get(transform);
             target = null;
-            var ray = new Ray(transform.position, transform.forward);
+            var ray = ptr.GazeRay;
             // ⚠️ 급하게 내려보면 레이가 워커 자신의 캡슐에 먼저 맞는다 (낮은 기물 조준 시 실측, 2026-08-14).
             //    자기 몸통은 건너뛰고, 그 다음 가장 가까운 표면에서만 판정한다 (벽 뒤 투시 방지)
             var hits = Physics.RaycastAll(ray, maxDistance);
@@ -43,43 +64,35 @@ namespace IMUNROK.Gyeonu
                 break;
             }
 
-            if (target != null && Cursor.lockState == CursorLockMode.Locked
-                && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+            // ⚠️ 커서 잠금 검사는 PC 전용 규약이다 — 판이 열리면 커서가 풀리고, 그동안에는
+            //    세상을 만지면 안 된다. VR에는 커서라는 것이 없으므로 그 조건을 건너뛴다.
+            bool canPress = UiModes.IsVr || Cursor.lockState == CursorLockMode.Locked;
+            if (target != null && canPress && ptr.PressDown)
                 target.Interact(gameObject);
+
+            aim.SetTarget(target == null ? null
+                : (string.IsNullOrEmpty(target.displayName) ? target.Prompt
+                                                            : target.displayName + " — " + target.Prompt));
         }
 
         /// <summary>주어진 거리보다 뒤에 있는 첫 **가구 속 대상** — 열린 가구를 들여다볼 때만 쓴다.
-        /// 집을 수 있는 물건(<see cref="ItemPickup"/>)과 안에서 조작하는 것(<see cref="IInnerTarget"/>)만
-        /// 한정한다: 아무 Interactable이나 통과시키면 열린 문 너머 엉뚱한 것이 조준되고,
-        /// 궤를 다시 닫을 방법도 사라진다.</summary>
+        /// <see cref="IInnerTarget"/> 표식이 달린 것만 한정한다: 아무 Interactable이나 통과시키면
+        /// 열린 문 너머 엉뚱한 것이 조준되고, 궤를 다시 닫을 방법도 사라진다.
+        ///
+        /// ⚠️ 2026-08-26에 <c>ItemPickup</c> 을 이름으로 찾던 줄을 지웠다. 그 표식은 원래
+        ///    "집는 것 말고 안에서 조작하는 것도 같은 사정"이라 뽑아 둔 것이라
+        ///    (<see cref="IInnerTarget"/> 주석 참고), <c>ItemPickup</c> 에 표식을 달아 하나로 합쳤다.
+        ///    조준 담당이 소지품 획득을 알 이유가 없다 — UI 뼈대를 다른 사건에 건네는 데 걸리던 매듭이다.</summary>
         Interactable InnerBehind(RaycastHit[] sorted, float from)
         {
             foreach (var h in sorted)
             {
                 if (h.distance <= from) continue;
-                var pick = h.collider.GetComponentInParent<ItemPickup>();
-                if (pick != null && pick.CanInteract(gameObject)) return pick;
                 var inner = h.collider.GetComponentInParent<Interactable>();
                 if (inner is IInnerTarget && inner.CanInteract(gameObject)) return inner;
             }
             return null;
         }
 
-        void OnGUI()
-        {
-            float cx = Screen.width * 0.5f, cy = Screen.height * 0.5f;
-            var dot = new GUIStyle(GUI.skin.label) { fontSize = 20, alignment = TextAnchor.MiddleCenter };
-            dot.normal.textColor = target != null ? Color.yellow : new Color(1f, 1f, 1f, 0.45f);
-            GUI.Label(new Rect(cx - 20f, cy - 20f, 40f, 40f), target != null ? "◆" : "·", dot);
-
-            if (target != null)
-            {
-                var label = new GUIStyle(GUI.skin.label) { fontSize = 15, alignment = TextAnchor.MiddleCenter };
-                label.normal.textColor = Color.yellow;
-                // displayName을 비워 두면(예: 관아 개구멍) 접두사 없이 행동 문구만 뜬다.
-                string text = string.IsNullOrEmpty(target.displayName) ? target.Prompt : target.displayName + " — " + target.Prompt;
-                GUI.Label(new Rect(cx - 120f, cy + 16f, 240f, 22f), text, label);
-            }
-        }
     }
 }

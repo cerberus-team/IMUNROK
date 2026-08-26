@@ -82,11 +82,26 @@ namespace IMUNROK.Gyeonu
         /// <summary>3단계 — 셋이 모두 같은 손(崔)을 거쳐 같은 곳(後庫)으로 갔음이 드러났다.
         /// 이때부터 서고 안쪽 창고방 서랍장을 뒤질 수 있다 — 게임은 어디로 가라 말하지 않는다.</summary>
         public const string F_후고단서 = "backstore_lead";
+        public const string F_수령최초알리바이 = "heard_magistrate_initial_alibi";
+        public const string F_상인수령당일목격 = "merchant_saw_magistrate_that_night";
+        public const string F_주모죄인주장 = "heard_jumomo_father_criminal_claim";
+        public const string F_주모소문인정 = "jumomo_admitted_rumor_source";
+        public const string F_선아협력요청 = "seona_identity_or_help_offered";
+        public const string F_아이노래들음 = "village_children_song_heard";
 
         /// <summary>마을 아이들에게 관아 담장 개구멍 이야기를 들었다 — 밤에만, 이 단서가 있어야
         /// 개구멍이 그냥 담장이 아니라 밀어서 여는 자리라는 걸 알아본다 (2026-08-21).
         /// 조건 미달이면 커서를 올려도 아무 반응이 없다 — 문인 줄도 모르는 상태다.</summary>
         public const string F_개구멍이야기 = "gwana_gap_hole_story_heard";
+
+        /// <summary>최초의 직녀를 직접 만났다 (2026-08-25). 어머니의 <c>Thank</c> 조건이자
+        /// 무례 3회의 <b>유일한</b> 회복 경로다 — 사과로는 풀리지 않는다 (문서 「13」·「29」).</summary>
+        public const string F_최초직녀만남 = "first_jiknyeo_met";
+
+        /// <summary>최초의 견우에게서 관측실 아래 길이 관아 쪽으로도 이어진다는 말을 들었다
+        /// (2026-08-25). 단서 번호가 붙지 않은 정보라 플래그로만 남는다 (문서 「30」).
+        /// ⚠️ 상대가 <b>관측실 아래를 봤다고 말해야만</b> 열린다 (B2 보유 + 실제 발화).</summary>
+        public const string F_관아통로 = "gwana_passage_known";
 
         /// <summary>
         /// 알려진 플래그 전부 — (키, 한글 이름). 디버그 창이 이 순서로 그린다.
@@ -110,6 +125,8 @@ namespace IMUNROK.Gyeonu
             (F_비밀문_안내함,   "비밀문 안내 봄"),
             (F_병풍_치움,      "병풍 치움"),
             (F_개구멍이야기,    "개구멍 이야기 들음"),
+            (F_최초직녀만남,    "최초의 직녀를 만남"),
+            (F_관아통로,       "관아 쪽 통로를 들음"),
             (F_아버지검수기록,  "아버지 검수 기록 (C1)"),
             (F_선아풀이표,     "선아의 풀이표 (C3)"),
             (F_장부복원,       "서고 ① 장부 복원"),

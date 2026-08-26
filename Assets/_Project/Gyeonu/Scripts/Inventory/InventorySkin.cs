@@ -23,7 +23,7 @@ namespace IMUNROK.Gyeonu
         public static readonly Color Vermilion = new Color(0.667f, 0.216f, 0.161f);
         public static readonly Color Gold = new Color(0.847f, 0.706f, 0.427f);
 
-        Sprite hanji, wood, slot, dot, glass;
+        Sprite hanji, wood, slot, dot, glass, mic;
 
         public Sprite Hanji_ => hanji ?? (hanji = Make("한지", 256, PaperPixel));
         public Sprite Wood_ => wood ?? (wood = Make("목재", 128, WoodPixel));
@@ -31,6 +31,15 @@ namespace IMUNROK.Gyeonu
         public Sprite Dot_ => dot ?? (dot = Make("점", 64, DotPixel));
         /// <summary>돋보기 — 글꼴에 돋보기 글리프가 없는 경우가 많아 직접 그린다.</summary>
         public Sprite Glass_ => glass ?? (glass = Make("돋보기", 128, GlassPixel));
+
+        /// <summary>
+        /// 마이크 — 대화창의 「말하기」 단추 (2026-08-27).
+        ///
+        /// ⚠️ 그림글자(🎤)는 <b>조선 궁서체·방송체 어디에도 없다</b> — 네모로 뜬다.
+        ///    잠시 「말」 이라는 낱자로 대신했는데, 단추 하나에 글자가 들어앉으니
+        ///    옆의 「묻 기」·「증거 제시」와 켜가 섞여 읽혔다. 돋보기와 같은 길로 직접 그린다.
+        /// </summary>
+        public Sprite Mic_ => mic ?? (mic = Make("마이크", 128, MicPixel));
 
         /// <summary>
         /// 가장자리 두 값 사이를 0→1로 부드럽게 넘기는 함수 (셰이더의 smoothstep).
@@ -133,9 +142,48 @@ namespace IMUNROK.Gyeonu
             return c;
         }
 
+        /// <summary>
+        /// 마이크 — 통(둥근 머리) + 대 + 받침, 그리고 통을 감싸는 반쪽 테.
+        /// 돋보기와 같은 이유로 <b>굵게</b> 그린다 — 단추 위에서 화면 30px 남짓이라
+        /// 가는 선은 축소되며 뭉개진다.
+        /// </summary>
+        static Color MicPixel(float u, float v)
+        {
+            var p = new Vector2(u, v);
+            float a = 0f;
+
+            // ① 통 — 위아래가 둥근 기둥 (선분에서의 거리로 그린다)
+            var b0 = new Vector2(0.5f, 0.50f);
+            var b1 = new Vector2(0.5f, 0.76f);
+            Vector2 bd = b1 - b0;
+            float bt = Mathf.Clamp01(Vector2.Dot(p - b0, bd) / bd.sqrMagnitude);
+            float bDist = Vector2.Distance(p, b0 + bd * bt);
+            a = Mathf.Max(a, 1f - Ramp(0.105f, 0.130f, bDist));
+
+            // ② 감싸는 테 — 통 아래 절반을 두르는 반원 (마이크임을 알아보게 하는 획)
+            float rDist = Mathf.Abs(Vector2.Distance(p, new Vector2(0.5f, 0.545f)) - 0.205f);
+            float ring = 1f - Ramp(0.030f, 0.052f, rDist);
+            if (v > 0.545f) ring = 0f;                       // 위쪽 반은 지운다
+            a = Mathf.Max(a, ring);
+
+            // ③ 대 — 받침까지 내려오는 짧은 기둥
+            float stem = 1f - Ramp(0.030f, 0.050f, Mathf.Abs(u - 0.5f));
+            if (v < 0.185f || v > 0.345f) stem = 0f;
+            a = Mathf.Max(a, stem);
+
+            // ④ 받침 — 가로 막대
+            float baseBar = 1f - Ramp(0.150f, 0.178f, Mathf.Abs(u - 0.5f));
+            if (v < 0.150f || v > 0.190f) baseBar = 0f;
+            a = Mathf.Max(a, baseBar);
+
+            var c = new Color(0.96f, 0.93f, 0.84f);
+            c.a = Mathf.Clamp01(a);
+            return c;
+        }
+
         public void Dispose()
         {
-            Kill(ref hanji); Kill(ref wood); Kill(ref slot); Kill(ref dot); Kill(ref glass);
+            Kill(ref hanji); Kill(ref wood); Kill(ref slot); Kill(ref dot); Kill(ref glass); Kill(ref mic);
         }
 
         static void Kill(ref Sprite s)

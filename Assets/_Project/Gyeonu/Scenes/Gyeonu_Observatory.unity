@@ -7314,6 +7314,11 @@ MonoBehaviour:
   transitionTime: 0.6
   dimStrength: 0.72
   focusAnchor: {fileID: 1995420032}
+  showReticle: 1
+  reticleSize: 0
+  reticleLift: 0.004
+  reticleFront: 0
+  reticleRadius: 0
   boardRoot: {fileID: 1751981018}
   chestDoors: {fileID: 1255221317}
   recordSheet: {fileID: 773100293}
@@ -48800,8 +48805,177 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 892586677}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 892586676}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 892586675}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 892586674}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 892586673}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 892586672}
   m_SourcePrefab: {fileID: 100100000, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+--- !u!1 &892586671 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+  m_PrefabInstance: {fileID: 892586670}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &892586672
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 892586671}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 816f4bf1ee44b284783d3fa4b2bab107, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcFollow
+  walkState: Walk
+  idleState: StandingIdle
+  startDistance: 2.6
+  stopDistance: 1.9
+  catchUpDistance: 14
+  speed: 1.35
+  turnSpeed: 220
+  catchUpBehind: 2.2
+  requireRescued: 1
+--- !u!114 &892586673
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 892586671}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 778d83d2abec1d94db519f98e70f7696, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.SeonaRescue
+  fallIdle: FallIdle
+  standingUp: StandingUp
+  standingIdle: StandingIdle
+  standUpSeconds: 7.6
+  eyeFallen: 0.55
+  eyeStanding: 1.5
+--- !u!114 &892586674
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 892586671}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ab2c2742f4c3264999cec0bd496edd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcActor
+  profile: {fileID: 11400000, guid: dfd6c2e286f812048afa761578394c40, type: 2}
+  animator: {fileID: 892586677}
+  motions:
+  - state: FallIdle
+    length: 1.5000001
+    loops: 1
+  - state: StandingIdle
+    length: 6.0000005
+    loops: 1
+  - state: StandingUp
+    length: 7.6000004
+    loops: 0
+  - state: Walk
+    length: 1.0333334
+    loops: 1
+  overrideRandom: []
+  overrideStartDelay: -1
+  fade: 0.18
+  returnLead: 0.12
+--- !u!114 &892586675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 892586671}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4455dd990ca8859429e5df3117f89d67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcDialogue
+  displayName: "\uC120\uC544"
+  focusDistance: 1.4
+  transitionTime: 0.55
+  dimStrength: 0.35
+  focusAnchor: {fileID: 0}
+  showReticle: 1
+  reticleSize: 0
+  reticleLift: 0.004
+  reticleFront: 0
+  reticleRadius: 0
+  profile: {fileID: 11400000, guid: dfd6c2e286f812048afa761578394c40, type: 2}
+  faceAnchor: {fileID: 0}
+  eyeHeightOverride: -1
+  turnToPlayer: 1
+  turnTime: 0.45
+  faceYawOffset: 0
+  layout: 0
+  voiceAutoSend: 1
+  aimBelowFace: 0.1
+--- !u!136 &892586676
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 892586671}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.4
+  m_Height: 1.35
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.66150004, z: 0}
+--- !u!95 &892586677
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 892586671}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 7fd4188a31debdf4aba4fe5b0c64aed4, type: 2}
+  m_CullingMode: 1
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &894561925
 GameObject:
   m_ObjectHideFlags: 0
@@ -64544,6 +64718,11 @@ MonoBehaviour:
   transitionTime: 0.6
   dimStrength: 0.72
   focusAnchor: {fileID: 1582410105}
+  showReticle: 1
+  reticleSize: 0
+  reticleLift: 0.004
+  reticleFront: 0
+  reticleRadius: 0
   boardRoot: {fileID: 1861423875}
   chestDoors: {fileID: 0}
   recordSheet: {fileID: 603047495}

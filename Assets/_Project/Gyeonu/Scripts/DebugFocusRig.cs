@@ -26,6 +26,7 @@ namespace IMUNROK.Gyeonu
         float t;       // 보간 진행 0~1
         float dim;     // 현재 비네트 강도
         float savedFov, fromFov, toFov;   // 화각 확대 (FocusInteractable.FocusFov)
+        FocusHintPanel hintPanel;   // 조작 안내 — 월드 판 (2026-08-26, 예전엔 OnGUI)
         Renderer vignetteQuad;   // 카메라 앞 쿼드 — OnGUI가 아니라 3D 렌더 (VR·캡처에서도 보인다)
         MaterialPropertyBlock vignetteMpb;
         // ⚠️ static 캐시 금지 (2026-08-14 실측): 도메인 리로드가 꺼진 프로젝트에서 static 참조가
@@ -109,6 +110,13 @@ namespace IMUNROK.Gyeonu
             target.OnFocusChanged(false);
         }
 
+        void LateUpdate() => UpdateHintPanel();
+
+        void OnDestroy()
+        {
+            if (hintPanel != null) Destroy(hintPanel.gameObject);
+        }
+
         void Update()
         {
             if (phase == Phase.Idle || target == null) return;
@@ -151,57 +159,51 @@ namespace IMUNROK.Gyeonu
             // 어두운 막 뒤에서 퍼즐 조각이 끌려다닌다 (서고 장부에서 실측).
             if (InventoryUI.Instance != null && InventoryUI.Instance.IsOpen) return;
 
-            var mouse = Mouse.current;
-            var kb = Keyboard.current;
-            if (mouse == null || kb == null) return;
-            if ((kb.escapeKey.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame) && target.CanExitFocus)
+            // ── 조작 입력은 전부 가리키개를 거친다 (2026-08-26) ──
+            //    PC = 마우스 커서 광선 + 좌클릭/우클릭/휠, VR = 컨트롤러 광선 + 트리거/B·Y/스틱.
+            //    퍼즐 쪽(HandleClick·HandleDrag·HandlePoint·HandleScroll)은 한 줄도 안 고쳤다.
+            var ptr = UiPointers.Get(transform);
+            if (!ptr.Available) return;
+
+            if (ptr.BackDown && target.CanExitFocus)
             {
                 ExitFocus();
                 return;
             }
-            // 누르는 대상(암문 자물쇠) — 커서가 가리킨 곳으로 레이를 쏴 준다.
-            // 포커스 중에는 걷기 컨트롤러가 꺼져 커서 잠금이 풀려 있으므로 마우스로 직접 가리킬 수 있다.
-            if (mouse.leftButton.wasPressedThisFrame)
+            // 누르는 대상(암문 자물쇠) — 가리킨 곳으로 레이를 쏴 준다.
+            if (ptr.PressDown) target.HandleClick(ptr.PointRay);
+            if (ptr.PressHeld)
             {
-                var cam = GetComponent<Camera>();
-                if (cam != null) target.HandleClick(cam.ScreenPointToRay(mouse.position.ReadValue()));
+                Vector2 d = ptr.Delta;
+                if (d.sqrMagnitude > 0.0001f) target.HandleDrag(ptr.PointRay, d);
             }
-            if (mouse.leftButton.isPressed)
-            {
-                Vector2 d = mouse.delta.ReadValue();
-                if (d.sqrMagnitude > 0.0001f)
-                {
-                    var camD = GetComponent<Camera>();
-                    if (camD != null) target.HandleDrag(camD.ScreenPointToRay(mouse.position.ReadValue()), d);
-                    else target.HandleDrag(d);
-                }
-            }
-            if (mouse.leftButton.wasReleasedThisFrame) target.HandleRelease();
-            float sc = mouse.scroll.ReadValue().y;
+            if (ptr.PressUp) target.HandleRelease();
+            float sc = ptr.ScrollRaw;
             if (Mathf.Abs(sc) > 0.01f) target.HandleScroll(sc);
 
             // 누르지 않았어도 어디를 겨누는지 알려 준다 — 대상이 조준점을 그린다
-            var camP = GetComponent<Camera>();
-            if (camP != null) target.HandlePoint(camP.ScreenPointToRay(mouse.position.ReadValue()));
+            target.HandlePoint(ptr.PointRay);
         }
 
-        void OnGUI()
+        /// <summary>
+        /// 조작 안내를 판에 넘긴다 (2026-08-26 — 예전에는 <c>OnGUI</c>였다).
+        ///
+        /// 자리 다툼 규칙 둘은 그대로 옮겼다:
+        ///   ① 소지품 판·조사 화면이 떠 있으면 그쪽 안내가 화면을 맡는다 (2026-08-24)
+        ///   ② 하단 고정 안내(<see cref="DebugToast.ShowPinned"/>)가 뜨면 조작 힌트가 자리를 내준다
+        /// </summary>
+        void UpdateHintPanel()
         {
-            if (phase != Phase.Hold || target == null) return;
-            // 소지품 판·조사 화면이 떠 있으면 그쪽 안내가 화면을 맡는다 (2026-08-24)
-            if (InventoryUI.Instance != null && InventoryUI.Instance.IsOpen) return;
-            var hint = new GUIStyle(GUI.skin.label) { fontSize = 14, alignment = TextAnchor.MiddleCenter };
-            hint.normal.textColor = new Color(1f, 1f, 1f, 0.55f);
-            string status = target.FocusStatus;
-            if (!string.IsNullOrEmpty(status))
+            bool show = phase == Phase.Hold && target != null
+                     && !(InventoryUI.Instance != null && InventoryUI.Instance.IsOpen);
+            if (!show)
             {
-                var stat = new GUIStyle(hint) { fontSize = 16 };
-                stat.normal.textColor = new Color(1f, 0.92f, 0.7f, 0.9f);
-                GUI.Label(new Rect(0, Screen.height - 64f, Screen.width, 22f), status, stat);
+                if (hintPanel != null) hintPanel.Set(null, null);
+                return;
             }
-            // 하단 고정 안내(DebugToast.ShowPinned)가 뜨면 조작 힌트는 그 자리를 내준다
-            if (!DebugToast.PinnedActive && !string.IsNullOrEmpty(target.FocusHint))
-                GUI.Label(new Rect(0, Screen.height - 40f, Screen.width, 22f), target.FocusHint, hint);
+            if (hintPanel == null) hintPanel = FocusHintPanel.Create(transform);
+            string hint = DebugToast.PinnedActive ? null : target.FocusHint;
+            hintPanel.Set(target.FocusStatus, hint);
         }
 
         /// <summary>비네트 쿼드 준비 — 카메라 앞 0.4m, 화면을 덮는 크기. Sprites/Default(알파 블렌드)

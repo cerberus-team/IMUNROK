@@ -174,12 +174,13 @@ namespace IMUNROK.Gyeonu
                 if (Locked) return "고리가 모두 제자리에 물렸다.";
                 int s = Slot(sel);
                 string dir = s >= 0 ? CompassNames.Ko[s] : "―";
-                return $"조작 중: {RingName(sel)}   /   현재 방위: {dir}   (휠: 고리 전환)";
+                return $"조작 중: {RingName(sel)}   /   현재 방위: {dir}   ({UiWords.Wheel}: 고리 전환)";
             }
         }
 
         public override string FocusHint =>
-            Locked ? "Esc/우클릭: 물러나기" : "드래그: 고리 돌리기   휠: 고리 전환   Esc/우클릭: 물러나기";
+            Locked ? UiWords.Back + ": 물러나기"
+                   : "드래그: 고리 돌리기   " + UiWords.Wheel + ": 고리 전환   " + UiWords.Back + ": 물러나기";
 
         // ── 조작 ──────────────────────────────────────────
 

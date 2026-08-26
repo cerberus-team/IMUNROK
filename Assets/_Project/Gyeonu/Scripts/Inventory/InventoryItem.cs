@@ -18,7 +18,7 @@ namespace IMUNROK.Gyeonu
     ///   획득 순간 공통 수첩(<see cref="Journal"/>)에도 자동으로 한 줄 남는다.
     /// </summary>
     [CreateAssetMenu(menuName = "이문록/소지품", fileName = "Item_새소지품")]
-    public class InventoryItem : ScriptableObject
+    public class InventoryItem : ScriptableObject, IUiItem
     {
         [Header("식별")]
         [Tooltip("단서 코드와 같은 값 (예: C4). 중복 획득 판정의 기준 — 반드시 유일하게")]
@@ -80,5 +80,21 @@ namespace IMUNROK.Gyeonu
 
         /// <summary>상세 보기에 쓰임 버튼을 그릴 것인가 — 켜져 있고 문구도 있어야 그린다.</summary>
         public bool ShowUseButton => usable && !string.IsNullOrEmpty(useLabel);
+
+        // ── IUiItem ──────────────────────────────────────────
+        //
+        // 소지품 판이 묻는 것을 우리 필드에 이어 준다 (2026-08-26).
+        // ⚠️ **필드는 하나도 안 바꿨다.** 이름만 파스칼로 다시 내보이는 얇은 껍데기다 —
+        //    그래야 이미 만들어 둔 .asset 일곱 개가 그대로 읽힌다.
+        //    판은 이제 InventoryItem 을 모르고 IUiItem 만 안다.
+
+        string IUiItem.DisplayName => displayName;
+        string IUiItem.Description => description;
+        GameObject IUiItem.ModelPrefab => modelPrefab;
+        Vector3 IUiItem.PreviewEuler => previewEuler;
+        float IUiItem.PreviewZoom => previewZoom;
+        string IUiItem.UseLabel => useLabel;
+        string IUiItem.UseNotReadyHint => useNotReadyHint;
+        bool IUiItem.AutoShowOnPickup => autoShowOnPickup;
     }
 }

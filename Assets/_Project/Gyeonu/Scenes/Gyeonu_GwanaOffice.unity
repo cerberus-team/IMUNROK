@@ -11053,6 +11053,11 @@ MonoBehaviour:
   transitionTime: 0.6
   dimStrength: 0.72
   focusAnchor: {fileID: 0}
+  showReticle: 1
+  reticleSize: 0
+  reticleLift: 0.004
+  reticleFront: 0
+  reticleRadius: 0
   panel: {fileID: 1530476835}
   panelSize: {x: 0.375, y: 0.28125}
   beadLift: 0.0004
@@ -12523,6 +12528,235 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 29b7037919b66d541902df19627a9047, type: 3}
   m_PrefabInstance: {fileID: 1797338206}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1813216646
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.9499998
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 9.6
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.00000004371139
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      propertyPath: m_Name
+      value: "Seona_\uC9D1\uBB34\uC2E4"
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1813216653}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1813216652}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1813216651}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1813216650}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1813216649}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1813216648}
+  m_SourcePrefab: {fileID: 100100000, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+--- !u!1 &1813216647 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: bc6c699a536efe14aad2470fb9a14703, type: 3}
+  m_PrefabInstance: {fileID: 1813216646}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1813216648
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1813216647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 816f4bf1ee44b284783d3fa4b2bab107, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcFollow
+  walkState: Walk
+  idleState: StandingIdle
+  startDistance: 2.6
+  stopDistance: 1.9
+  catchUpDistance: 14
+  speed: 1.35
+  turnSpeed: 220
+  catchUpBehind: 2.2
+  requireRescued: 1
+--- !u!114 &1813216649
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1813216647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab6a774c7703910428becf0eda4fc1a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcSchedule
+  activeAt: 
+  requireFlags: []
+  forbidFlags: []
+  ignoreFlagsAt: 
+  rescueState: 2
+  guardDistance: 20
+  guardAngle: 70
+  checkInterval: 0.5
+  maxDefer: 8
+--- !u!114 &1813216650
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1813216647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ab2c2742f4c3264999cec0bd496edd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcActor
+  profile: {fileID: 11400000, guid: 0240a692692c91a4388177763856246e, type: 2}
+  animator: {fileID: 1813216653}
+  motions:
+  - state: FallIdle
+    length: 1.5000001
+    loops: 1
+  - state: StandingIdle
+    length: 6.0000005
+    loops: 1
+  - state: StandingUp
+    length: 7.6000004
+    loops: 0
+  - state: Walk
+    length: 1.0333334
+    loops: 1
+  overrideRandom: []
+  overrideStartDelay: -1
+  fade: 0.18
+  returnLead: 0.12
+--- !u!114 &1813216651
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1813216647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4455dd990ca8859429e5df3117f89d67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcDialogue
+  displayName: "\uC120\uC544"
+  focusDistance: 1.5
+  transitionTime: 0.55
+  dimStrength: 0.35
+  focusAnchor: {fileID: 0}
+  showReticle: 1
+  reticleSize: 0
+  reticleLift: 0.004
+  reticleFront: 0
+  reticleRadius: 0
+  profile: {fileID: 11400000, guid: 0240a692692c91a4388177763856246e, type: 2}
+  faceAnchor: {fileID: 0}
+  eyeHeightOverride: -1
+  turnToPlayer: 1
+  turnTime: 0.45
+  faceYawOffset: 0
+  layout: 0
+  voiceAutoSend: 1
+  aimBelowFace: 0.1
+--- !u!136 &1813216652
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1813216647}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.32
+  m_Height: 1.95
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.95550007, z: 0}
+--- !u!95 &1813216653
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1813216647}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 7fd4188a31debdf4aba4fe5b0c64aed4, type: 2}
+  m_CullingMode: 1
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &1820217563
 GameObject:
   m_ObjectHideFlags: 0
@@ -16321,3 +16555,4 @@ SceneRoots:
   - {fileID: 583357959}
   - {fileID: 1230735375}
   - {fileID: 772119438}
+  - {fileID: 1813216646}

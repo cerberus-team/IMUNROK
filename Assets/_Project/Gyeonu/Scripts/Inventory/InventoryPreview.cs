@@ -35,7 +35,7 @@ namespace IMUNROK.Gyeonu
         public RenderTexture Texture => rt;
         public bool HasModel => model != null;
         /// <summary>지금 무대에 올라 있는 물건 — 상세→조사로 넘어갈 때 각도·배율을 이어 가려고 본다.</summary>
-        public InventoryItem ShowingItem { get; private set; }
+        public IUiItem ShowingItem { get; private set; }
 
         public void EnsureStage()
         {
@@ -68,6 +68,10 @@ namespace IMUNROK.Gyeonu
             cam.nearClipPlane = 0.02f;
             cam.farClipPlane = 20f;
             cam.targetTexture = rt;
+            // ⚠️ VR에서 이걸 빠뜨리면 XR이 이 카메라까지 **스테레오로** 그리려 든다 —
+            //    미리보기는 판에 얹는 납작한 한 장이므로 양안이 필요 없다 (2026-08-26).
+            //    ⚠️ 헤드셋으로 확인하지 못했다. 리그가 붙으면 미리보기가 제대로 나오는지 볼 것.
+            cam.stereoTargetEye = StereoTargetEyeMask.None;
             // ⚠️ URP에서는 Camera.Render()를 직접 부를 수 없다 (SRP 비지원 — 에러만 뜬다).
             //    상세 보기일 때만 카메라를 켜는 방식으로 비용을 아낀다.
             cam.enabled = false;
@@ -97,22 +101,22 @@ namespace IMUNROK.Gyeonu
         }
 
         /// <summary>모델을 무대에 올리고 화면에 꽉 차게 자동 프레이밍한다.</summary>
-        public void Show(InventoryItem item)
+        public void Show(IUiItem item)
         {
             EnsureStage();
             // 자동 프레이밍이 Renderer.bounds를 읽는다 — 무대가 꺼져 있으면 0이 나온다. 먼저 켠다.
             stage.gameObject.SetActive(true);
             Clear();
-            if (item == null || item.modelPrefab == null) return;
+            if (item == null || item.ModelPrefab == null) return;
 
             ShowingItem = item;
-            model = Object.Instantiate(item.modelPrefab, pivot);
-            model.name = "미리보기_" + item.displayName;
+            model = Object.Instantiate(item.ModelPrefab, pivot);
+            model.name = "미리보기_" + item.DisplayName;
             foreach (var c in model.GetComponentsInChildren<Collider>()) c.enabled = false;
             foreach (var b in model.GetComponentsInChildren<MonoBehaviour>()) b.enabled = false;
 
             model.transform.localPosition = Vector3.zero;
-            model.transform.localRotation = Quaternion.Euler(item.previewEuler);
+            model.transform.localRotation = Quaternion.Euler(item.PreviewEuler);
 
             // 자동 프레이밍: 모델 바운즈 중심을 회전축 원점으로 끌어오고, 반지름에서 거리를 낸다.
             var b2 = WorldBounds(model);
@@ -120,7 +124,7 @@ namespace IMUNROK.Gyeonu
             float radius = Mathf.Max(0.02f, b2.extents.magnitude);
             baseDistance = radius / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * 1.25f;
 
-            zoom = 1f / Mathf.Max(0.1f, item.previewZoom);
+            zoom = 1f / Mathf.Max(0.1f, item.PreviewZoom);
             pivot.localRotation = Quaternion.identity;
             ApplyCamera();
         }
@@ -172,15 +176,15 @@ namespace IMUNROK.Gyeonu
 
         // ── 목록 칸에 붙일 작은 그림 ──────────────────────────
         const int ThumbSize = 256;
-        readonly System.Collections.Generic.Dictionary<InventoryItem, Texture2D> thumbs =
-            new System.Collections.Generic.Dictionary<InventoryItem, Texture2D>();
+        readonly System.Collections.Generic.Dictionary<IUiItem, Texture2D> thumbs =
+            new System.Collections.Generic.Dictionary<IUiItem, Texture2D>();
 
         /// <summary>목록 칸용 썸네일. 같은 무대에서 한 장 찍어 두고 재사용한다.
         /// URP는 Camera.Render()를 막으므로 <c>SubmitRenderRequest</c>로 그 자리에서 한 프레임 뽑는다 —
         /// 카메라를 켜 두고 다음 프레임을 기다리는 방식이면 목록이 뜨는 첫 프레임에 칸이 비어 보인다.</summary>
-        public Texture2D Thumbnail(InventoryItem item)
+        public Texture2D Thumbnail(IUiItem item)
         {
-            if (item == null || item.modelPrefab == null) return null;
+            if (item == null || item.ModelPrefab == null) return null;
             if (thumbs.TryGetValue(item, out var cached) && cached != null) return cached;
 
             EnsureStage();

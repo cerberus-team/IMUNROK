@@ -91,6 +91,7 @@ namespace IMUNROK.Gyeonu
         bool inspecting;
         bool focusing;
         string memo;
+        NotePanel memoPanel;   // 선아의 메모 — 월드 판 (2026-08-26, 예전엔 OnGUI)
 
         // 조준점 — ⚠️ static 캐시 금지 (도메인 리로드가 꺼진 프로젝트, 비네트에서 물린 자리)
         GameObject reticle;
@@ -135,6 +136,7 @@ namespace IMUNROK.Gyeonu
 
         protected override void OnDestroy()
         {
+            if (memoPanel != null) Destroy(memoPanel.gameObject);
             foreach (var c in new[] { sfxMetal, sfxGlass, sfxPaper, sfxPick, sfxChime, sfxReject })
                 if (c != null) Destroy(c);
             if (reticleTex != null) Destroy(reticleTex);
@@ -212,8 +214,8 @@ namespace IMUNROK.Gyeonu
 
         public override string FocusHint =>
             stage == Stage.완료
-                ? "우클릭 / Esc — 물러나기"
-                : "드래그 — 옮기기      클릭 — 자세히 보기      우클릭 / Esc — 물러나기";
+                ? UiWords.Back + " — 물러나기"
+                : "드래그 — 옮기기      " + UiWords.Press + " — 자세히 보기      " + UiWords.Back + " — 물러나기";
 
         /// <summary>
         /// 화면 아래 상태 줄은 **판정 문구가 뜰 때만** 쓴다.
@@ -257,26 +259,32 @@ namespace IMUNROK.Gyeonu
         ///    넘기면 가운데만 남고 앞뒤가 잘려 나간다(Play 실측). 퍼즐을 푸는 내내 곁에
         ///    두고 읽어야 하는 글이라 자리도 아래가 아니라 옆이 맞다.
         /// </summary>
-        void OnGUI()
+        void LateUpdate()
         {
             // 확대 조사 중에는 물러난다 — 조사 화면의 「살펴본 것」이 같은 자리를 쓴다
-            if (!focusing || inspecting || string.IsNullOrEmpty(memo)) return;
-
-            float w = Mathf.Min(360f, Screen.width * 0.26f);
-            float x = 22f, y = Screen.height * 0.22f;
-            var head = new GUIStyle(GUI.skin.label) { fontSize = 15, fontStyle = FontStyle.Bold, wordWrap = true };
-            head.normal.textColor = new Color(1f, 0.88f, 0.62f, 0.95f);
-            var body = new GUIStyle(GUI.skin.label) { fontSize = 14, wordWrap = true };
-            body.normal.textColor = new Color(0.93f, 0.90f, 0.83f, 0.92f);
-
-            string title = stage == Stage.완료 ? "장부에 드러난 것" : "선아의 메모";
-            float bodyH = body.CalcHeight(new GUIContent(memo), w - 28f);
-
-            GUI.color = new Color(0f, 0f, 0f, 0.62f);
-            GUI.DrawTexture(new Rect(x, y, w, bodyH + 56f), Texture2D.whiteTexture);
-            GUI.color = Color.white;
-            GUI.Label(new Rect(x + 14f, y + 10f, w - 28f, 22f), title, head);
-            GUI.Label(new Rect(x + 14f, y + 36f, w - 28f, bodyH), memo, body);
+            bool show = focusing && !inspecting && !string.IsNullOrEmpty(memo);
+            if (!show)
+            {
+                if (memoPanel != null) memoPanel.body = null;
+                return;
+            }
+            if (memoPanel == null)
+            {
+                memoPanel = NotePanel.Create(transform, "장부_메모판");
+                memoPanel.topLeftPx = new Vector2(22f, 0f);
+                memoPanel.topFraction = 0.22f;      // IMGUI의 y = Screen.height * 0.22 와 같다
+                memoPanel.headSize = 15;
+                memoPanel.bodySize = 14;
+                memoPanel.padX = 14f; memoPanel.padTop = 10f; memoPanel.padBottom = 20f;
+                memoPanel.titleBlock = 26f;
+                memoPanel.backColor = UiSkin.NoteBack;
+                memoPanel.headColor = UiSkin.NoteHead;
+                memoPanel.bodyColor = UiSkin.NoteBody;
+            }
+            // 폭은 '화면' 너비를 따라간다 — IMGUI의 min(360, width*0.26) 을 그대로
+            memoPanel.width = Mathf.Min(360f, memoPanel.ScreenWidthUnits * 0.26f);
+            memoPanel.title = stage == Stage.완료 ? "장부에 드러난 것" : "선아의 메모";
+            memoPanel.body = memo;
         }
 
         // ── 드래그 ───────────────────────────────────────────

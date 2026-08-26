@@ -425,6 +425,12 @@ namespace IMUNROK.Gyeonu.Editor
             var wood = PackMat(ref _wood, "MI_Wood02A");
             // ⚠️ 스케일을 준 조각에 자식을 달면 그 스케일이 상속돼 축이 찌그러진다 — 무스케일 루트를 둔다.
             var root = new GameObject(name); root.transform.SetParent(_items, false);
+            if (name == "두루마리_1")
+            {
+                var clue = root.AddComponent<CaseClueInspectable>();
+                clue.clue = ClueId.B6;
+                clue.prompt = "선아가 남긴 밤 외출과 관측 흔적 살피기";
+            }
             float y = (float.IsNaN(supportY) ? FloorAt(xz) : supportY) + 0.026f;
             var pos = new Vector3(xz.x, y, xz.y);
             var rot = Quaternion.Euler(0f, yaw, 90f);      // 눕힌다

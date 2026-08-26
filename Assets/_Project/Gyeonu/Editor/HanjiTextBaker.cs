@@ -258,13 +258,29 @@ namespace IMUNROK.Gyeonu.EditorTools
                 }
         }
 
+        /// <summary>
+        /// 종이에 얹을 글자를 빌려 올 글꼴 (2026-08-26 교체).
+        ///
+        /// 전에는 OS의 바탕·궁서를 빌렸다. 지금은 <b>팀 공용 조선 궁서체</b>를 쓴다 —
+        /// 화면 UI(<see cref="UiSkin.Font"/>)와 표찰의 글씨체가 갈라지지 않게 하기 위해서다.
+        ///
+        /// ⚠️ 여기서 쓰는 것은 TMP 에셋이 아니라 <b>레거시 동적 <see cref="Font"/></b> 다.
+        ///    이 도구는 글꼴 아틀라스의 글리프를 직접 잘라 붙이는 방식이라 TMP 로는 못 한다.
+        ///    같은 .ttf 를 두 갈래로 쓰는 셈이고, 그래서 글씨체는 화면 UI와 똑같이 나온다.
+        /// ⚠️ .ttf 는 gitignore 대상이다 — 없으면 OS 글꼴로 내려가 <b>표찰만 글씨체가 다르게</b>
+        ///    구워진다. 그때는 경고를 남긴다.
+        /// </summary>
         static Font MakeFont()
         {
-            // 명조 계열이 붓글씨에 가깝다 — 없으면 고딕으로 내려간다 (소지품 UI와 같은 목록)
-            var f = Font.CreateDynamicFontFromOSFont(
+            const string path = "Assets/_Project/_Common/Art/Fonts/ChosunCentennial_ttf.ttf";
+            var own = AssetDatabase.LoadAssetAtPath<Font>(path);
+            if (own != null) return own;
+
+            Debug.LogWarning("[장부] 조선 궁서체를 찾지 못했다 (" + path + ") — OS 글꼴로 굽는다. "
+                             + "표찰 글씨체가 화면 UI와 달라진다. .ttf 를 받아 넣고 다시 구울 것.");
+            return Font.CreateDynamicFontFromOSFont(
                 new[] { "Batang", "바탕", "BatangChe", "궁서", "Gungsuh", "Malgun Gothic", "맑은 고딕",
                         "NanumGothic", "나눔고딕", "Gulim", "굴림", "Arial Unicode MS" }, 64);
-            return f;
         }
 
         /// <summary>
