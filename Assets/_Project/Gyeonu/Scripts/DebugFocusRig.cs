@@ -33,6 +33,23 @@ namespace IMUNROK.Gyeonu
         //    플레이 세션을 넘겨 살아남는데 텍스처 내용은 죽어, 다음 세션 비네트가 흰 화면이 된다
         Texture2D vignetteTex;
 
+        // ── 비네트 차림새 (2026-08-27 공개) ──────────────────────────────
+        //   ⚠️ 값은 그대로다. 어둡히기 <b>강도</b>는 대상마다 다르므로 예전처럼
+        //      <see cref="FocusInteractable.dimStrength"/> 가 정한다 — 여기 있는 것은 <b>모양</b>이다.
+
+        /// <summary>비네트 쿼드를 눈에서 띄우는 거리(m).</summary>
+        public const float VignetteQuadZ = 0.4f;
+        /// <summary>화면을 확실히 덮게 주는 여유 (1.25 = 25% 더 크게).</summary>
+        public const float VignetteMargin = 1.25f;
+        /// <summary>이 반지름(0~1) 안쪽은 <b>전혀 어두워지지 않는다</b> — 대상이 앉는 자리다.</summary>
+        public const float VignetteInner = 0.34f;
+        /// <summary>안쪽 끝에서 바깥까지의 폭 (= 1 − <see cref="VignetteInner"/>).</summary>
+        public const float VignetteSpan = 0.66f;
+        /// <summary>어두워지는 기울기. 1보다 크면 가장자리에 몰린다.</summary>
+        public const float VignetteFalloff = 1.5f;
+        /// <summary>정렬 순서 — 투명한 것들보다 뒤라 늘 마지막에 덮인다.</summary>
+        public const int VignetteQueue = 3900;
+
         /// <summary>입력 측 진입점 — actor(워커 카메라)에 리그를 붙이고 포커스를 연다.</summary>
         public static void Begin(FocusInteractable it, GameObject actor)
         {
@@ -215,18 +232,18 @@ namespace IMUNROK.Gyeonu
             go.name = "포커스_비네트";
             Destroy(go.GetComponent<Collider>());
             go.transform.SetParent(transform, false);
-            go.transform.localPosition = new Vector3(0f, 0f, 0.4f);
+            go.transform.localPosition = new Vector3(0f, 0f, VignetteQuadZ);
             go.transform.localRotation = Quaternion.identity;
             var cam = GetComponent<Camera>();
             // ⚠️ 화각을 좁히는 대상(FocusFov)이면 **좁아진 화각**으로 크기를 잡아야 한다.
             //    원래 화각으로 만들면 비네트가 화면 밖까지 커져 어두운 가장자리가 안 보인다.
             float fov = toFov > 0.1f ? toFov : (cam != null ? cam.fieldOfView : 60f);
-            float hgt = 2f * 0.4f * Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad) * 1.25f;   // 여유 25%
+            float hgt = 2f * VignetteQuadZ * Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad) * VignetteMargin;   // 여유 25%
             float asp = cam != null ? cam.aspect : 1.78f;
             go.transform.localScale = new Vector3(hgt * asp, hgt, 1f);
             var mat = new Material(Shader.Find("Sprites/Default"));
             mat.mainTexture = VignetteTex();
-            mat.renderQueue = 3900;   // 투명 뒤 — 항상 마지막에 덮인다
+            mat.renderQueue = VignetteQueue;   // 투명 뒤 — 항상 마지막에 덮인다
             vignetteQuad = go.GetComponent<Renderer>();
             vignetteQuad.sharedMaterial = mat;
             vignetteQuad.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -265,7 +282,7 @@ namespace IMUNROK.Gyeonu
                 for (int x = 0; x < res; x++)
                 {
                     float d = Mathf.Sqrt((x - c) * (x - c) + (y - c) * (y - c)) / c;
-                    float a = Mathf.Pow(Mathf.Clamp01((d - 0.34f) / 0.66f), 1.5f);
+                    float a = Mathf.Pow(Mathf.Clamp01((d - VignetteInner) / VignetteSpan), VignetteFalloff);
                     vignetteTex.SetPixel(x, y, new Color(0f, 0f, 0f, a));
                 }
             vignetteTex.Apply();

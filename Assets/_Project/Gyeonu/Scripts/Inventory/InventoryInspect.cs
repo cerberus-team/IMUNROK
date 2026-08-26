@@ -24,11 +24,11 @@ namespace IMUNROK.Gyeonu
     public class InventoryInspect : MonoBehaviour
     {
         // 캔버스 단위 — 실제 크기는 눈앞 거리에서 시야각으로 환산해 정한다
-        const float CanvasUnits = 1400f;
+        public const float CanvasUnits = 1400f;
 
-        const float CurtainZ = 0.12f;     // 어두운 막까지 (m) — 어떤 벽·가구보다 앞
-        const float BoardZ = 0.86f;       // 물건·버튼 판까지 (m)
-        const float FillDegrees = 52f;    // 물건 판이 덮는 세로 시야각
+        public const float CurtainZ = 0.12f;     // 어두운 막까지 (m) — 어떤 벽·가구보다 앞
+        public const float BoardZ = 0.86f;       // 물건·버튼 판까지 (m)
+        public const float FillDegrees = 52f;    // 물건 판이 덮는 세로 시야각
 
 
         RawImage curtain;

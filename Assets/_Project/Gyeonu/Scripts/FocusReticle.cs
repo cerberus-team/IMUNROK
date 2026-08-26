@@ -20,6 +20,20 @@ namespace IMUNROK.Gyeonu
     /// </summary>
     public class FocusReticle
     {
+        // ── 차림새 (2026-08-27 공개) ─────────────────────────────────────
+        //   ⚠️ 값은 그대로다. 자기 조준점을 그리는 사람이 <b>같은 색·같은 굵기</b>로
+        //      맞출 수 있게 이름을 붙여 열어 둔 것뿐이다.
+
+        /// <summary>조준점 색 — 한지빛 미색. 알파는 <see cref="Place"/> 가 받은 값으로 덮는다.</summary>
+        public static readonly Color Tint = new Color(1f, 0.93f, 0.72f, 1f);
+
+        /// <summary>테 동그라미의 반지름 (0~1, 텍스처 중심에서의 거리).</summary>
+        public const float RingRadius = 0.78f;
+        /// <summary>테의 굵기 · 가운데 점의 크기 (같은 값을 쓴다).</summary>
+        public const float RingWidth = 0.16f;
+        /// <summary>정렬 순서 — 투명한 것들보다 뒤라 판·조각 위에 늘 얹힌다.</summary>
+        public const int RenderQueue = 3850;
+
         GameObject go;
         Renderer rend;
         MaterialPropertyBlock mpb;
@@ -36,7 +50,8 @@ namespace IMUNROK.Gyeonu
             //    보여 주게 돼 통째로 안 보인다(서고 장부에서 실측). 반대쪽을 향하게 세운다.
             go.transform.rotation = Quaternion.LookRotation(-faceNormal, up);
             go.transform.localScale = Vector3.one * size;
-            mpb.SetColor("_Color", new Color(1f, 0.93f, 0.72f, alpha));
+            var tint = Tint; tint.a = alpha;
+            mpb.SetColor("_Color", tint);
             rend.SetPropertyBlock(mpb);
         }
 
@@ -65,7 +80,7 @@ namespace IMUNROK.Gyeonu
             go.transform.SetParent(parent, false);
 
             var mat = new Material(Shader.Find("Sprites/Default")) { mainTexture = MakeTex() };
-            mat.renderQueue = 3850;   // 투명한 것들보다 뒤 — 판·조각 위에 늘 얹힌다
+            mat.renderQueue = RenderQueue;   // 투명한 것들보다 뒤 — 판·조각 위에 늘 얹힌다
             rend = go.GetComponent<Renderer>();
             rend.sharedMaterial = mat;
             rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -87,8 +102,8 @@ namespace IMUNROK.Gyeonu
                 for (int x = 0; x < res; x++)
                 {
                     float d = Mathf.Sqrt((x - c) * (x - c) + (y - c) * (y - c)) / c;
-                    float ring = Mathf.Clamp01(1f - Mathf.Abs(d - 0.78f) / 0.16f);
-                    float dot = Mathf.Clamp01(1f - d / 0.16f);
+                    float ring = Mathf.Clamp01(1f - Mathf.Abs(d - RingRadius) / RingWidth);
+                    float dot = Mathf.Clamp01(1f - d / RingWidth);
                     tex.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Max(ring * ring, dot)));
                 }
             tex.Apply();

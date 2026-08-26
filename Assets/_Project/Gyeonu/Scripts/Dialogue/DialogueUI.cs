@@ -145,7 +145,7 @@ namespace IMUNROK.Gyeonu
         }
 
         //  세로 화각 60°(±30°), 16:9 기준 가로 ±45.8° 안에 들어가게 잡은 값들.
-        static Geom GeomOf(DialogueLayout l)
+        public static Geom GeomOf(DialogueLayout l)
         {
             switch (l)
             {
@@ -189,16 +189,16 @@ namespace IMUNROK.Gyeonu
         ///
         /// 폭이 줄면 한 줄에 담기는 글자가 줄어 <b>줄 수를 늘려</b> 메운다 (아래 VR 수치 참고).
         /// </summary>
-        const float VrBarWidth = 1500f;
+        public const float VrBarWidth = 1500f;
 
         /// <summary>
         /// VR에서 하단 바가 눕는 높이(도). 판 반높이가 약 10°이므로 −16°면 위끝 −6°, 아래끝 −26° —
         /// 아래를 보되 고개를 숙일 정도는 아닌 자리다. PC(−23°)보다 조금 올려 잡았다:
         /// HMD는 아래쪽 시야가 화면보다 좁다.
         /// </summary>
-        const float VrBarUpDeg = -16f;
+        public const float VrBarUpDeg = -16f;
 
-        static Geom BarGeom(float w, DialogueLayout l)
+        public static Geom BarGeom(float w, DialogueLayout l)
         {
             float h = StyleOf(l).TotalHeight;
 
@@ -224,14 +224,14 @@ namespace IMUNROK.Gyeonu
         /// 둘을 더해야 한다 — 줄 간격은 줄 높이에 <b>곱하는 것이 아니라 더하는 것</b>이다.
         /// (여기를 곱셈으로 잘못 잡아 3줄짜리 상자가 2.5줄만 담고 있었다.)
         /// </summary>
-        static float LineBox(int lineSize, int lines)
+        public static float LineBox(int lineSize, int lines)
         {
             const float PerLine = 1.25f + 0.28f;
             return Mathf.Ceil(lineSize * PerLine * lines) + 6f;   // 6 = 첫 줄 윗여유
         }
 
         /// <summary>배치안·모드별 수치. 얼개는 하나, 값만 다르다.</summary>
-        static BottomStyle StyleOf(DialogueLayout l)
+        public static BottomStyle StyleOf(DialogueLayout l)
         {
             switch (l)
             {
@@ -291,10 +291,17 @@ namespace IMUNROK.Gyeonu
 
         /// <summary>뒤판 불투명도. 낮은 쪽이 많이 비치지만 낮 야외에서 글이 흐려진다 —
         /// 0.50 이 하한, 0.80 이면 거의 안 비친다. 두 조명에서 재어 0.65 로 정했다.</summary>
-        const float BackAlpha = 0.65f;
+        public const float BackAlpha = 0.65f;
 
         /// <summary>먹빛 — 푸른 기가 도는 검정. 낮 야외·밤 실내 양쪽에서 밝은 글씨가 뜬다.</summary>
-        static readonly Color BackRgb = new Color(0.062f, 0.066f, 0.086f);
+        public static readonly Color BackRgb = new Color(0.062f, 0.066f, 0.086f);
+
+        /// <summary>
+        /// 하단 바의 <b>목재 테두리 두께</b>(단위). 넉 줄을 겹치지 않게 두르는 폭이다.
+        /// 바탕 한 겹 + 테두리 넉 줄로 짓는 까닭은 판을 짓는 자리의 주석에 적어 두었다 —
+        /// 겹을 쌓으면 알파가 1−(1−a)ⁿ 로 불어나 투명도가 뜻대로 안 나온다.
+        /// </summary>
+        public const float BarBorder = 5f;
 
         /// <summary>확정된 색 한 벌.</summary>
         public static BarPalette Palette()
@@ -316,7 +323,7 @@ namespace IMUNROK.Gyeonu
             };
         }
 
-        static bool IsBottomBar(DialogueLayout l)
+        public static bool IsBottomBar(DialogueLayout l)
         {
             return l == DialogueLayout.하단바_확정
                 || l == DialogueLayout.E_하단바_얇게
@@ -324,7 +331,7 @@ namespace IMUNROK.Gyeonu
         }
 
         /// <summary>말풍선 치수 (C안). 캔버스 단위 × 0.001 = m.</summary>
-        const float BubbleW = 900f, BubbleH = 420f, BubbleScale = 0.001f;
+        public const float BubbleW = 900f, BubbleH = 420f, BubbleScale = 0.001f;
 
         /// <summary>
         /// VR에서 판 전체에 곱하는 배율 (2026-08-26).
@@ -339,7 +346,7 @@ namespace IMUNROK.Gyeonu
         /// 1.5 로 올리면 76°가 되어 모서리를 보려고 고개를 돌려야 한다.
         /// ⚠️ 계산으로 잡은 값이다 — 헤드셋에서 22단위 줄이 실제로 읽히는지 확인할 것.
         /// </summary>
-        const float VrScale = 1.35f;
+        public const float VrScale = 1.35f;
 
         public static DialogueUI Instance { get; private set; }
 
@@ -1050,7 +1057,7 @@ namespace IMUNROK.Gyeonu
                 paper = MakeImage(root, "바탕", pal.paperGrain ? skin.Hanji_ : UiSkin.White, pal.back);
                 Stretch(paper, 0f);
 
-                const float T = 5f;                      // 테두리 두께 (목재 느낌은 남긴다)
+                const float T = BarBorder;               // 테두리 두께 (목재 느낌은 남긴다)
                 float hw0 = geom.w * 0.5f, hh0 = geom.h * 0.5f;
                 Place(MakeImage(root, "테_위", skin.Wood_, pal.border), new Vector2(0f, hh0 - T * 0.5f), new Vector2(geom.w, T));
                 Place(MakeImage(root, "테_아래", skin.Wood_, pal.border), new Vector2(0f, -hh0 + T * 0.5f), new Vector2(geom.w, T));
