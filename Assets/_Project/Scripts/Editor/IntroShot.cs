@@ -38,6 +38,14 @@ namespace IMUNROK.Common.EditorTools
 
         private static void Run(bool forShot)
         {
+            // 재생 중에는 손대지 않는다. 씬을 더럽히고 저장하려다 유니티에게
+            // "This cannot be used during play mode" 를 듣고 반쯤 고쳐진 채로 끝난다.
+            if (EditorApplication.isPlaying)
+            {
+                Debug.LogWarning("[영상] 재생을 멈추고 다시 누르십시오 — 재생 중에는 씬을 못 고칩니다.");
+                return;
+            }
+
             var scene = SceneManager.GetActiveScene();
             if (scene.path != ScenePath)
             {
@@ -48,17 +56,27 @@ namespace IMUNROK.Common.EditorTools
             var log = new System.Text.StringBuilder(forShot ? "[영상] 봉서 굴러오는 장면 채비\n"
                                                             : "[영상] 채비를 되돌린다\n");
 
-            // ① 표제와 어명을 재운다 — 찍을 것은 그림뿐이다
+            // ① 씬에 없이 제 발로 서는 것들을 막는다.
+            //
+            // VR 몸짓기는 링크를 두드리는데, 링크가 꺼져 있으면 오큘러스 런타임은
+            // 실패를 돌려주기까지 <b>5초 넘게 주 실을 붙잡는다</b>. 그것이 봉서가
+            // 굴러오는 참에 걸리면 굴러오다 멈춰 선다 — 재 보니 8초마다 5초씩이었다.
+            // 소리계도 마이크를 여느라 한 번 걸린다. 둘 다 씬에 놓여 있지 않아
+            // 재울 것이 없으므로, 런타임이 읽는 스위치로 막는다.
+            ShotMode.On = forShot;
+            log.AppendLine("── VR 두드림과 마이크 " + (forShot ? "막음 — 멈춤의 임자다" : "도로 품"));
+
+            // ② 표제와 어명을 재운다 — 찍을 것은 그림뿐이다
             Sleep<TitleGate>(scene, !forShot, log, "표제");
             Sleep<IntroController>(scene, !forShot, log, "어명");
             Sleep<NoiseMeter>(scene, !forShot, log, "소리계");
 
-            // ② 어전 불. 표제가 재워졌으면 불을 켤 사람이 없다
+            // ③ 어전 불. 표제가 재워졌으면 불을 켤 사람이 없다
             var amb = forShot ? new Color(0.10f, 0.10f, 0.12f) : new Color(0.012f, 0.012f, 0.018f);
             RenderSettings.ambientLight = amb;
             log.AppendLine("── 환경광 " + (forShot ? "밝힘(표제가 재워져 불 켤 사람이 없다)" : "도로 어둡게"));
 
-            // ③ 문서 셋 — 굴리기를 붙이거나 뗀다
+            // ④ 문서 셋 — 굴리기를 붙이거나 뗀다
             var docs = Find(scene, "Documents");
             if (docs == null) { log.AppendLine("── Documents 를 못 찾았다"); }
             else
@@ -71,7 +89,10 @@ namespace IMUNROK.Common.EditorTools
                     so.FindProperty("_playOnStart").boolValue = true;
                     so.ApplyModifiedPropertiesWithoutUndo();
                     EditorUtility.SetDirty(roll);
-                    log.AppendLine("── 문서 셋이 재생과 함께 굴러온다 (여섯 바퀴 · 2.6초 · 0.45초 시차)");
+                    log.AppendLine("── 문서 셋이 재생과 함께 굴러온다 ("
+                                 + so.FindProperty("_delay").floatValue + "초 뒤부터 · 한 통에 "
+                                 + so.FindProperty("_seconds").floatValue + "초 · "
+                                 + so.FindProperty("_stagger").floatValue + "초 시차)");
                 }
                 else if (roll != null)
                 {

@@ -579,6 +579,7 @@ GameObject:
   m_Component:
   - component: {fileID: 498567541}
   - component: {fileID: 498567542}
+  - component: {fileID: 498567543}
   m_Layer: 0
   m_Name: Documents
   m_TagString: Untagged
@@ -616,13 +617,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae1bf90e515195c4d9f53684056140f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.ScrollRollIn
-  _turns: 6
+  _fromDistance: 1.6
   _seconds: 2.6
   _stagger: 0.45
-  _radius: 0
-  _fromDirection: {x: 0, y: 0, z: 1}
-  _playOnStart: 1
   _delay: 0.6
+  _playOnStart: 1
+--- !u!114 &498567543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 498567540}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 957eb114413b08a4aa06c9348b3b1cbe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.FrameHitchProbe
 --- !u!1001 &536229945
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2457,7 +2468,7 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 2
-  m_Color: {r: 1, g: 0.86, b: 0.66, a: 1}
+  m_Color: {r: 0.68361604, g: 0.88139534, b: 0.9748427, a: 1}
   m_Intensity: 2.4
   m_Range: 7
   m_SpotAngle: 30

@@ -262,6 +262,11 @@ namespace IMUNROK.Common
         private static void Install()
         {
             if (Instance != null) return;
+            // 찍는 중이면 서지 않는다. 이놈은 씬에 없고 제 발로 서므로,
+            // 편집 모드에서 재우려 해도 재울 것이 없었다 — [영상 채비] 가
+            // 소리계를 재웠다고 적어 놓고도 재생하면 마이크가 열리던 까닭이다.
+            if (ShotMode.On) return;
+
             var go = new GameObject("[소리계]");
             Instance = go.AddComponent<NoiseMeter>();
             DontDestroyOnLoad(go);

@@ -47,6 +47,9 @@ namespace IMUNROK.Common
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()
         {
+            // 찍는 중이면 아예 서지 않는다 — 두드림 한 번이 5초씩 화면을 붙잡는다.
+            if (ShotMode.On) return;
+
             var go = new GameObject("_VR_몸짓기");
             go.AddComponent<VRRig>();
             DontDestroyOnLoad(go);
@@ -66,20 +69,34 @@ namespace IMUNROK.Common
             // "Unable to start Oculus XR Plugin" 한 줄을 남기고 그 판은 끝까지 <b>평면</b>이다 —
             // 헤드셋을 뒤늦게 켜도 소용이 없어서, 링크 → 재생 순서를 지키지 못하면
             // 매번 재생을 껐다 켜야 했다. 그래서 여기서 <b>몇 번 더 두드려 본다</b>.
-            float waited = 0f, knock = 0f;
-            while (waited < WaitSeconds)
+            // <b>두드림은 공짜가 아니다.</b> 링크가 꺼져 있으면 오큘러스 런타임은
+            // 실패를 돌려주기까지 <b>5초 넘게 주 실을 붙잡는다</b>. 3초마다 45초를
+            // 두드리던 때에는 8초마다 5초씩 화면이 통째로 얼어붙어서, 인트로에서
+            // 봉서가 굴러오다 멈춰 섰다 — 재 보니 멈춘 횟수와 "Unable to start
+            // Oculus XR Plugin" 줄 수가 정확히 같았다.
+            //
+            // 그러니 <b>몇 번만</b> 두드리고, 그 사이도 벌린다. 늦게 켜도 붙는 창은
+            // 그만큼 좁아지지만, 안 켤 사람에게 45초를 얼려 두는 것보다는 낫다.
+            // 그 창을 놓쳤으면 재생을 껐다 켜면 된다 — 그렇게 적어 준다.
+            float waited = 0f, knock = FirstKnock;
+            int knocks = 0;
+            while (waited < WaitSeconds && knocks < MaxKnocks)
             {
                 if (XRSettings.isDeviceActive && InputDevices.GetDeviceAtXRNode(XRNode.Head).isValid) break;
 
                 knock -= Time.unscaledDeltaTime;
                 if (knock <= 0f)
                 {
-                    knock = 3f;
+                    knocks++;
+                    knock = FirstKnock + knocks * 4f;     // 두 번째는 더 오래 기다린다
                     yield return TryStartXR();
                 }
                 waited += Time.unscaledDeltaTime;
                 yield return null;
             }
+            if (!XRSettings.isDeviceActive && knocks >= MaxKnocks)
+                Debug.Log("[VR] 링크를 못 잡았다 — 이 판은 평면으로 간다. 헤드셋으로 하려면 "
+                          + "링크를 켠 뒤 재생을 껐다 다시 누르십시오.");
             if (!XRSettings.isDeviceActive) yield break;   // 책상 앞 그대로
 
             // 바닥을 원점으로 삼는다 — 그래야 헤드셋이 주는 높이가 곧 <b>키</b>가 된다.
@@ -92,6 +109,14 @@ namespace IMUNROK.Common
 
         /// <summary>기다리는 시간(초). 이 안에 링크가 켜지면 붙는다.</summary>
         private const float WaitSeconds = 45f;
+
+        /// <summary>첫 두드림까지(초).</summary>
+        private const float FirstKnock = 2f;
+
+        /// <summary>
+        /// 몇 번까지 두드리나. <b>한 번이 5초짜리 멈춤</b>이라 인색해야 한다.
+        /// </summary>
+        private const int MaxKnocks = 2;
 
         /// <summary>
         /// XR 을 한 번 올려 본다. 이미 올라와 있으면 아무 일도 안 한다.
