@@ -1,0 +1,390 @@
+<title>이문록 받는 법</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap">
+
+<style>
+  /* ── 빛깔 ────────────────────────────────────────
+     한지(닥종이)는 크림이 아니라 <b>식은 잿빛</b>이다. 먹은 순검정이 아니라
+     푸르스름하게 죽은 검정이고, 낙관은 주(朱)다. 셋만 쓰고 나머지는 그 사이에서 뽑는다. */
+  :root {
+    --paper:      #E7E8E2;   /* 한지 — 초록기 도는 잿빛 */
+    --paper-2:    #DFE1DA;   /* 한 겹 눌린 자리 */
+    --rule:       #C6C9C0;   /* 실선 */
+    --ink:        #171C1D;   /* 먹 */
+    --ink-2:      #4C5553;   /* 묽은 먹 */
+    --ink-3:      #737C79;   /* 더 묽은 것 */
+    --seal:       #9C2B22;   /* 낙관 — 하지 말 것 */
+    --seal-wash:  #F1E0DD;
+    --celadon:    #4E7566;   /* 청자 — 됐다 */
+    --celadon-wash:#DFE7E2;
+    --brass:      #96762F;   /* 놋쇠 — 살펴야 할 것 */
+    --brass-wash: #EDE6D5;
+    --shadow:     0 1px 0 var(--rule);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #131718;
+      --paper-2:    #1B2021;
+      --rule:       #2E3537;
+      --ink:        #DFE1DA;
+      --ink-2:      #A3ACA9;
+      --ink-3:      #78827F;
+      --seal:       #CE5548;
+      --seal-wash:  #2A1917;
+      --celadon:    #82A899;
+      --celadon-wash:#182421;
+      --brass:      #C9A45C;
+      --brass-wash: #241F13;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:      #131718;
+    --paper-2:    #1B2021;
+    --rule:       #2E3537;
+    --ink:        #DFE1DA;
+    --ink-2:      #A3ACA9;
+    --ink-3:      #78827F;
+    --seal:       #CE5548;
+    --seal-wash:  #2A1917;
+    --celadon:    #82A899;
+    --celadon-wash:#182421;
+    --brass:      #C9A45C;
+    --brass-wash: #241F13;
+  }
+
+  /* ── 판 ─────────────────────────────────────── */
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans KR", system-ui, -apple-system, sans-serif;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 1.78;
+    -webkit-font-smoothing: antialiased;
+  }
+  .sheet {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: clamp(2rem, 5vw, 4.5rem) clamp(1.1rem, 4vw, 2.5rem) 6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.25rem;
+  }
+  h1, h2, h3 { font-family: "Gowun Batang", "Nanum Myeongjo", serif; font-weight: 700; text-wrap: balance; }
+
+  /* ── 머리 ───────────────────────────────────── */
+  header { display: flex; flex-direction: column; gap: .9rem; }
+  .stamp {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--seal);
+  }
+  h1 { font-size: clamp(2.1rem, 6vw, 3rem); line-height: 1.18; margin: 0; letter-spacing: -.01em; }
+  .lede { font-size: 1.06rem; color: var(--ink-2); max-width: 34rem; margin: 0; }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: .4rem 1.4rem;
+    font-family: "IBM Plex Mono", monospace; font-size: .74rem;
+    color: var(--ink-3); border-top: 1px solid var(--rule); padding-top: .9rem; margin-top: .4rem;
+  }
+  .meta b { color: var(--ink-2); font-weight: 500; }
+
+  /* ── 절 ─────────────────────────────────────── */
+  section { display: flex; flex-direction: column; gap: 1.1rem; }
+  h2 {
+    font-size: 1.42rem; margin: 0; display: flex; align-items: baseline; gap: .7rem;
+  }
+  h2 .n {
+    font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 500;
+    color: var(--seal); letter-spacing: .06em;
+  }
+  h3 { font-size: 1.02rem; margin: 0 0 .1rem; }
+  p { margin: 0; }
+  .sub { color: var(--ink-2); font-size: .95rem; }
+  strong { font-weight: 600; color: var(--ink); }
+  code, .path {
+    font-family: "IBM Plex Mono", "IBM Plex Sans KR", monospace;
+    font-size: .84em; background: var(--paper-2);
+    border: 1px solid var(--rule); padding: .06em .38em;
+    word-break: break-all;
+  }
+
+  /* ── 차례 ───────────────────────────────────── */
+  ol.steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
+  ol.steps > li {
+    display: grid; grid-template-columns: 2.6rem 1fr; gap: 0 1rem;
+    padding: 1.15rem 0; border-top: 1px solid var(--rule);
+  }
+  ol.steps > li:last-child { border-bottom: 1px solid var(--rule); }
+  .step-n {
+    font-family: "IBM Plex Mono", monospace; font-size: 1.5rem; font-weight: 400;
+    color: var(--rule); line-height: 1.2; font-variant-numeric: tabular-nums;
+  }
+  .step-body { display: flex; flex-direction: column; gap: .45rem; }
+
+  /* ── 하지 말 것 ─────────────────────────────── */
+  .forbid { display: flex; flex-direction: column; gap: 0; }
+  .forbid > div {
+    border-left: 3px solid var(--seal);
+    background: var(--seal-wash);
+    padding: 1rem 1.15rem;
+    display: flex; flex-direction: column; gap: .35rem;
+  }
+  .forbid > div + div { margin-top: .55rem; }
+  .forbid h3 { color: var(--seal); }
+  .forbid p { font-size: .93rem; color: var(--ink-2); }
+
+  /* ── 표 ─────────────────────────────────────── */
+  .scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--paper-2); }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; min-width: 30rem; }
+  th, td { text-align: left; padding: .62rem .85rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th {
+    font-family: "IBM Plex Mono", monospace; font-size: .68rem; font-weight: 500;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3);
+    background: var(--paper); white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.num { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; color: var(--ink-2); }
+  td .path { background: none; border: none; padding: 0; }
+
+  /* ── 확인 ───────────────────────────────────── */
+  ul.check { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .55rem; }
+  ul.check li { display: grid; grid-template-columns: 1.5rem 1fr; gap: .7rem; align-items: start; }
+  ul.check .box {
+    width: 1.05rem; height: 1.05rem; margin-top: .38rem;
+    border: 1.5px solid var(--celadon); background: var(--celadon-wash);
+  }
+
+  /* ── 왜 ─────────────────────────────────────── */
+  .why {
+    border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule);
+    padding: 1.4rem 0 1.5rem; display: flex; flex-direction: column; gap: .8rem;
+  }
+  .why h2 { font-size: 1.18rem; }
+  .why p { color: var(--ink-2); font-size: .95rem; }
+
+  .note {
+    border-left: 3px solid var(--brass); background: var(--brass-wash);
+    padding: .85rem 1.1rem; font-size: .9rem; color: var(--ink-2);
+  }
+  .note b { color: var(--brass); font-weight: 600; }
+
+  footer {
+    border-top: 1px solid var(--rule); padding-top: 1.2rem;
+    font-family: "IBM Plex Mono", monospace; font-size: .72rem; color: var(--ink-3);
+    display: flex; flex-wrap: wrap; gap: .3rem 1.2rem;
+  }
+  a { color: var(--seal); text-underline-offset: .18em; }
+  a:focus-visible, li:focus-visible { outline: 2px solid var(--seal); outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="sheet">
+
+  <header>
+    <div class="stamp">이문록 · 팀원용</div>
+    <h1>이문록 받는 법</h1>
+    <p class="lede">
+      이 프로젝트는 <strong>git 에 배선만</strong> 들어 있습니다. 무거운 아트는 공유폴더로 옵니다.
+      그래서 <strong>받는 순서와 방법</strong>이 결과를 가릅니다 — 잘못 받으면 오류 한 줄 없이
+      사람이 사라집니다.
+    </p>
+    <div class="meta">
+      <span><b>유니티</b> 6000.3.19f1</span>
+      <span><b>파이프라인</b> URP · Linear</span>
+      <span><b>공유폴더에서 받을 양</b> 1.76 GB</span>
+      <span><b>갱신</b> 2026-08-26</span>
+    </div>
+  </header>
+
+  <!-- 차례는 진짜 차례다. 순서를 바꾸면 안 된다 — 그래서 번호를 붙인다. -->
+  <section>
+    <h2><span class="n">차례</span>다섯 걸음</h2>
+    <p class="sub">순서가 중요합니다. 아트를 먼저 넣고 git 을 받으면 유니티가 그 사이에 임포트를 시작해 버립니다.</p>
+
+    <ol class="steps">
+      <li>
+        <div class="step-n">1</div>
+        <div class="step-body">
+          <h3>유니티를 먼저 맞춥니다</h3>
+          <p class="sub"><strong>6000.3.19f1</strong> 이라야 합니다. 다른 버전에서 열면 재질이 죄 분홍으로 뜹니다.
+            Unity Hub 에서 이 버전을 먼저 깔아 두십시오.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-n">2</div>
+        <div class="step-body">
+          <h3>git 을 받습니다 — <em>유니티는 아직 열지 않습니다</em></h3>
+          <p class="sub"><code>git clone</code> 또는 <code>git pull</code>. 씬·프리팹·재질·애니메이터·
+            <code>.meta</code> 가 다 여기 들어 있습니다.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-n">3</div>
+        <div class="step-body">
+          <h3>공유폴더의 아트를 <strong>폴더째</strong> 제자리에 덮어씁니다</h3>
+          <p class="sub">아래 <b>어디에 무엇을</b> 표대로 넣습니다. 폴더를 통째로 끌어다 놓으면 됩니다 —
+            안에 든 <code>.meta</code> 가 같이 와야 하고, git 에서 받은 <code>.meta</code> 와 겹치면 <strong>그냥
+            덮어쓰십시오</strong>. 같은 파일입니다.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-n">4</div>
+        <div class="step-body">
+          <h3>말하기 설정은 각자 만듭니다</h3>
+          <p class="sub">토큰이 들어가는 파일이라 git 에 없습니다. 유니티를 연 뒤
+            <code>Meta ▸ Voice SDK ▸ Get Started</code> 에서 <strong>Built-In Models ▸ Korean</strong> 을 고르면
+            <code>Assets/WitConfiguration.asset</code> 이 생깁니다. 그다음
+            <code>이문록 ▸ 소리 ▸ 말하기 붙이기</code> 를 한 번 누르십시오.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-n">5</div>
+        <div class="step-body">
+          <h3>이제 유니티를 엽니다</h3>
+          <p class="sub">첫 임포트에 <strong>십몇 분</strong> 걸립니다. 텍스처 몇 천 장을 굽는 중이니 그대로 두십시오.
+            끝나면 아래 <b>됐는지 보는 법</b>으로 확인합니다.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <!-- 금지 셋. 셋 다 같은 뿌리(GUID)에서 나온다. -->
+  <section>
+    <h2><span class="n">금지</span>이 셋만은 하지 마십시오</h2>
+    <p class="sub">셋 다 뿌리가 하나입니다 — <strong>GUID</strong>. 유니티는 파일을 이름이 아니라
+      <code>.meta</code> 에 적힌 GUID 로 가리킵니다. 그 번호가 갈리는 순간 씬은 아무것도 못 찾습니다.
+      그런데 <strong>오류가 안 납니다.</strong> 그냥 조용히 빕니다.</p>
+
+    <div class="forbid">
+      <div>
+        <h3>fbx · png 를 유니티 창에 끌어다 놓지 마십시오</h3>
+        <p>끌어다 놓는 순간 유니티가 <strong>새 GUID 를 지어냅니다.</strong> 씬이 가리키던 번호와 달라지고,
+          관아 뜰에 서 있던 <strong>사람 일곱이 통째로 사라집니다.</strong>
+          아트는 <em>탐색기에서 폴더째 복사</em>해서 넣는 것입니다.</p>
+      </div>
+      <div>
+        <h3><code>.meta</code> 를 빼고 복사하지 마십시오</h3>
+        <p>탐색기에서 <code>.meta</code> 가 안 보이면 <strong>숨김 파일이 꺼져 있는 것</strong>입니다.
+          보기 ▸ 숨긴 항목을 켜고 다시 복사하십시오. GUID 는 그 파일에만 적혀 있습니다.</p>
+      </div>
+      <div>
+        <h3>에셋스토어 팩을 <em>통째로</em> 다시 임포트하지 마십시오</h3>
+        <p>안 쓰는 조각 <strong>2.2 GB</strong> 를 이미 걷어냈습니다. 통째로 임포트하면 그게 도로 들어옵니다.
+          공유폴더에 있는 것이 <strong>이미 추려 놓은 것</strong>입니다.</p>
+      </div>
+      <div>
+        <h3><code>WitConfiguration.asset</code> 을 커밋하지 마십시오</h3>
+        <p>안에 <strong>계정 토큰</strong>이 들어 있습니다. <code>.gitignore</code> 로 막아 두었으니
+          <code>git add -f</code> 로 억지로 올리지만 마십시오.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">배치</span>어디에 무엇을</h2>
+    <p class="sub">왼쪽이 공유폴더, 오른쪽이 이 프로젝트 안의 자리입니다. 없는 폴더는 만들어서 넣으십시오.</p>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>공유폴더</th><th>놓을 자리</th><th>크기</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>관아세트</td><td><span class="path">Assets/_Project/_Common/Sets/Gwana/</span></td><td class="num">360 MB</td></tr>
+          <tr><td>김명관고택</td><td><span class="path">Assets/_Project/Onggojip/Art/KimMyeonggwanHouse/</span></td><td class="num">308 MB</td></tr>
+          <tr><td>Fristy 2 (풀·바위)</td><td><span class="path">Assets/Fristy stylize Modular Assets 2/</span></td><td class="num">274 MB</td></tr>
+          <tr><td>옹고집 소품</td><td><span class="path">Assets/_Project/Onggojip/Art/Props/</span></td><td class="num">196 MB</td></tr>
+          <tr><td>소쇄원 (나무)</td><td><span class="path">Assets/Soswaewon/</span></td><td class="num">157 MB</td></tr>
+          <tr><td>공통 소품</td><td><span class="path">Assets/_Project/Art/Props/</span></td><td class="num">132 MB</td></tr>
+          <tr><td><strong>인물 일곱</strong></td><td><span class="path">Assets/_Project/Onggojip/Art/Characters/</span></td><td class="num">105 MB</td></tr>
+          <tr><td>화성행궁 (담장)</td><td><span class="path">Assets/HwaseongHaenggung/</span></td><td class="num">93 MB</td></tr>
+          <tr><td>하늘</td><td><span class="path">Assets/SkySeries Freebie/</span></td><td class="num">40 MB</td></tr>
+          <tr><td>도구 (등불·돋보기·마패·유척)</td><td><span class="path">Assets/_Project/Art/Tools/</span></td><td class="num">42 MB</td></tr>
+          <tr><td>음원·소리</td><td><span class="path">…/Audio/</span> 두 군데</td><td class="num">30 MB</td></tr>
+          <tr><td>폰트·UI</td><td><span class="path">…/_Common/Art/Fonts/</span> · <span class="path">…/Art/UI/</span></td><td class="num">12 MB</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <b>공유폴더가 없거나 낡았다면</b> — 아래 다섯은 <strong>에셋스토어에서 받아도 됩니다.</strong>
+      스토어 팩은 GUID 가 팩 안에 박혀 있어 각자 받아도 번호가 같습니다.
+      소쇄원 · 김명관고택 · 화성행궁(KOREA HERITAGE SERVICE / kcisa) · Skybox Series Free · Fristy 2.
+      다만 <strong>용량이 2 GB 쯤 더 늡니다</strong>. 인물·소품·도구·관아세트는 스토어에 없으니 반드시 공유폴더로 받으십시오.
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">확인</span>됐는지 보는 법</h2>
+    <p class="sub">넷 다 맞으면 제대로 받은 것입니다.</p>
+    <ul class="check">
+      <li><span class="box"></span><span><strong>씬 일곱을 하나씩 엽니다.</strong> 분홍색 물체가 하나도 없어야 합니다.
+        (분홍 = 재질이 없다 = 팩이 안 들어왔다)</span></li>
+      <li><span class="box"></span><span><strong>관아 씬</strong>(<code>Onggojip_Gwana</code>)에서 <strong>뜰에 사람 다섯</strong>과
+        <strong>대문 앞 서리</strong>가 서 있어야 합니다. 비어 있으면 인물 폴더를 잘못 넣은 것입니다.</span></li>
+      <li><span class="box"></span><span>계층 창에 <strong>“The referenced script is missing”</strong> 경고가 없어야 합니다.</span></li>
+      <li><span class="box"></span><span>자막·수첩의 <strong>한글이 네모로 안 깨져야</strong> 합니다.
+        깨지면 폰트를 안 넣은 것입니다.</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="n">고장</span>이럴 때는</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>이런 일이</th><th>까닭</th><th>이렇게</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>사람이 한 명도 안 보인다</td>
+            <td><code>.meta</code> 없이 넣었거나, 유니티에 끌어다 놓았다</td>
+            <td>인물 폴더를 <strong>지우고</strong> 공유폴더에서 다시 통째로 복사</td>
+          </tr>
+          <tr>
+            <td>물체가 죄 분홍이다</td>
+            <td>팩이 없거나 파이프라인이 URP 가 아니다</td>
+            <td>배치 표대로 넣기 · 유니티 버전 확인</td>
+          </tr>
+          <tr>
+            <td>사람이 T 자세로 미끄러진다</td>
+            <td>애니메이터 컨트롤러가 안 왔다</td>
+            <td><code>git pull</code> 을 다시 (컨트롤러는 <strong>git 쪽</strong>에 있습니다)</td>
+          </tr>
+          <tr>
+            <td>한글이 네모다</td>
+            <td>폰트가 없다</td>
+            <td><span class="path">_Common/Art/Fonts/</span> 를 넣기</td>
+          </tr>
+          <tr>
+            <td>심문에서 말이 안 들린다</td>
+            <td>Wit 설정을 안 만들었다</td>
+            <td>차례 <strong>4</strong> 를 다시</td>
+          </tr>
+          <tr>
+            <td>헤드셋에서 아무것도 안 눌린다</td>
+            <td>링크를 재생 뒤에 켰다</td>
+            <td>그대로 45초 기다리면 붙습니다</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="why">
+    <h2>왜 이렇게까지 하나</h2>
+    <p>아트를 git 에 올리면 저장소가 몇 GB 가 되고, 텍스처 한 장을 고칠 때마다 그 한 장이
+      통째로 다시 쌓입니다. 그래서 <strong>무거운 것은 공유폴더, 배선은 git</strong> 으로 갈라 두었습니다.</p>
+    <p>그런데 그 둘을 잇는 끈이 <code>.meta</code> 하나입니다. 끈이 끊어져도
+      유니티는 <strong>아무 말도 안 합니다</strong> — 씬은 열리고, 오류는 없고, 그저 사람이 없습니다.
+      위의 금지 셋은 전부 <strong>그 끈을 끊지 않기 위한 것</strong>입니다.</p>
+    <p class="sub">막히면 그냥 물어보십시오. 잘못 받은 것을 한참 붙들고 있는 것보다
+      폴더를 지우고 다시 받는 편이 늘 빠릅니다.</p>
+  </div>
+
+  <footer>
+    <span>이문록(異聞錄)</span>
+    <span>브랜치 feature/case-onggojip</span>
+    <span>자세한 내력은 Docs/에셋출처조사.md</span>
+  </footer>
+
+</div>
