@@ -33,14 +33,25 @@ namespace IMUNROK.Common
         /// <summary>별표로 감싼 낱말을 굵고 조금 도드라진 글로 바꾼다. 표시가 없으면 그대로 온다.</summary>
         /// <param name="text">원래 글(별표 표시가 섞여 있을 수 있다)</param>
         /// <param name="tint">도드라질 색. 비우면 굵기만 준다</param>
-        public static string Rich(string text, Color? tint = null)
+        /// <param name="bold">
+        /// 굵게도 할 것인가.
+        ///
+        /// <b>한지 위에서는 끄는 것이 낫다.</b> 어두운 자막판의 큰 글씨에서는 굵기가
+        /// "한 켜 도드라짐" 이지만, 종이에 열세 눈금으로 적힌 작은 글씨에서는 획 사이가
+        /// 메워져 <b>먹이 번진 것</b>처럼 뭉친다 — 사목에서 실제로 그렇게 됐다.
+        /// 작은 글씨에서는 색만으로도 충분히 떨어진다.
+        /// </param>
+        public static string Rich(string text, Color? tint = null, bool bold = true)
         {
             if (string.IsNullOrEmpty(text) || text.IndexOf(Mark) < 0) return text;
 
+            string b0 = bold ? "<b>" : "";
+            string b1 = bold ? "</b>" : "";
             string open = tint.HasValue
-                        ? "<b><color=#" + ColorUtility.ToHtmlStringRGB(tint.Value) + ">"
-                        : "<b>";
-            string close = tint.HasValue ? "</color></b>" : "</b>";
+                        ? b0 + "<color=#" + ColorUtility.ToHtmlStringRGB(tint.Value) + ">"
+                        : (bold ? b0 : "");
+            string close = tint.HasValue ? "</color>" + b1 : b1;
+            if (!bold && !tint.HasValue) return Plain(text);   // 줄 것이 없으면 표시만 걷는다
 
             var sb = new System.Text.StringBuilder(text.Length + 32);
             bool inside = false;

@@ -410,10 +410,16 @@ namespace IMUNROK.Common
             // 종이 아래에 한 줄 폭으로 나 있다. 사목처럼 구워 둔 면이 없고 조목만
             // 있는 문서를 그대로 넣었더니, 여섯 조목이 그 한 줄 칸에 쏟아져 종이도
             // 없이 방 위에 떠 버렸다. 그림이 없을 때는 글을 <b>종이 위로</b> 올린다.
-            PlaceBody(page == null);
-            _body.text = string.IsNullOrEmpty(body) ? "" : Emphasis.Rich(body, Emphasis.OnDark);
+            // 도드라짐도 <b>바탕을 따라간다</b>. 어두운 요약 칸에서는 밝게·굵게,
+            // 한지 위에서는 진하게·<b>굵기 없이</b> — 열세 눈금짜리 글씨를 굵히면
+            // 획 사이가 메워져 먹이 번진 것처럼 뭉친다.
+            bool onPaper = page == null;
+            PlaceBody(onPaper);
+            _body.text = string.IsNullOrEmpty(body)
+                       ? ""
+                       : Emphasis.Rich(body, onPaper ? Emphasis.OnPaper : Emphasis.OnDark, !onPaper);
             _body.gameObject.SetActive(!string.IsNullOrEmpty(body));
-            if (page == null) FitBody();
+            if (onPaper) FitBody();
 
             bool hasFine = !string.IsNullOrEmpty(finePrint);
             _finePrint = hasFine ? finePrint : "";
