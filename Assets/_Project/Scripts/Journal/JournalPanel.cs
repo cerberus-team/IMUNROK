@@ -26,6 +26,10 @@ namespace IMUNROK.Common
         [SerializeField] private Font _font;
         [SerializeField] private int _titleFontSize = 34;
         [SerializeField] private int _clueFontSize = 26;
+        [Tooltip("켜면 색을 <b>꾸러미(IMUNROK.Ui)</b> 에서 받아 온다 — 견우팀 판과 결이 같아진다. " +
+                 "뜯어고칠 일이 아니었다: 꾸러미의 소지품 판도 <b>한지</b>다(InventorySkin 의 " +
+                 "색 한 벌이 한지·먹·주칠이다). 우리와 같은 결이라 값만 옮기면 된다")]
+        [SerializeField] private bool _useCommonLook = true;
         [SerializeField] private Color _paperColor = new Color(0.90f, 0.86f, 0.74f, 0.96f);
         [SerializeField] private Color _inkColor = new Color(0.16f, 0.11f, 0.07f);
         [SerializeField] private Color _cardColor = new Color(1f, 1f, 1f, 0.35f);
@@ -134,6 +138,22 @@ namespace IMUNROK.Common
             UiLook.WarnIfTooSmall(this, "수첩");
         }
 
+        /// <summary>테두리 넉 줄. 상자 하나에 외곽선을 그릴 길이 없어 얇은 띠 넷을 두른다.</summary>
+        private void Edge(RectTransform page, float w, float h, Color c)
+        {
+            const float t = 5f;
+            Strip(page, "테_위", new Vector2(0f, h * 0.5f - t * 0.5f), new Vector2(w, t), c);
+            Strip(page, "테_아래", new Vector2(0f, -h * 0.5f + t * 0.5f), new Vector2(w, t), c);
+            Strip(page, "테_좌", new Vector2(-w * 0.5f + t * 0.5f, 0f), new Vector2(t, h), c);
+            Strip(page, "테_우", new Vector2(w * 0.5f - t * 0.5f, 0f), new Vector2(t, h), c);
+        }
+
+        private void Strip(RectTransform parent, string name, Vector2 at, Vector2 size, Color c)
+        {
+            var rt = NewRect(name, at, size, parent);
+            rt.gameObject.AddComponent<Image>().color = c;
+        }
+
         private void SetVisible(bool on)
         {
             if (_group == null) return;
@@ -146,8 +166,26 @@ namespace IMUNROK.Common
 
         private void BuildFrame()
         {
+            // ── 색을 꾸러미에서 물어 온다 ────────────────
+            //
+            // 자막 바에 이어 여기도 <b>손으로 정한 색을 안 남긴다</b>. 견우팀이 고치면
+            // 우리 수첩도 따라간다. 알파(비침)만 우리 값을 지킨다 — 저쪽은 낱색만 주고
+            // 얼마나 비칠지는 판마다 다르다.
+            if (_useCommonLook)
+            {
+                _paperColor = new Color(UiLook.Paper.r, UiLook.Paper.g, UiLook.Paper.b, _paperColor.a);
+                _inkColor = UiLook.Ink;
+                _cardColor = new Color(UiLook.PaperDim.r, UiLook.PaperDim.g, UiLook.PaperDim.b, 0.45f);
+                _presentColor = new Color(UiLook.Seal.r, UiLook.Seal.g, UiLook.Seal.b, _presentColor.a);
+                _readColor = new Color(UiLook.InkSoft.r, UiLook.InkSoft.g, UiLook.InkSoft.b, _readColor.a);
+            }
+
             var page = NewRect("한지", Vector2.zero, new Vector2(PageW, PageH), transform);
             page.gameObject.AddComponent<Image>().color = _paperColor;
+
+            // <b>나뭇결 테두리</b> — 꾸러미 판에 있고 우리에게 없던 것이다.
+            // 한지 판이 밝은 배경(낮 마당) 앞에 서면 종이의 가장자리가 녹아 사라진다.
+            Edge(page, PageW, PageH, UiLook.Wood);
 
             _title = NewText("제목", "수첩", new Vector2(0f, PageH * 0.5f - 60f),
                              new Vector2(PageW - 80f, 60f), page, _titleFontSize, _inkColor);
@@ -155,12 +193,12 @@ namespace IMUNROK.Common
             var close = NewRect("닫기", new Vector2(PageW * 0.5f - 140f, PageH * 0.5f - 60f),
                                 new Vector2(200f, 66f), page);
             var closeBg = close.gameObject.AddComponent<Image>();
-            closeBg.color = new Color(0.30f, 0.12f, 0.10f, 0.85f);
+            closeBg.color = new Color(UiLook.Wood.r, UiLook.Wood.g, UiLook.Wood.b, 0.85f);
             var closeBtn = close.gameObject.AddComponent<Button>();
             closeBtn.targetGraphic = closeBg;
             closeBtn.onClick.AddListener(() => _owner?.Close());
             NewText("라벨", "✕ 덮기", Vector2.zero, new Vector2(200f, 66f), close, _clueFontSize,
-                    new Color(0.98f, 0.94f, 0.86f));
+                    UiLook.SealText);
 
             // 사건 개요는 제목 바로 밑에 한 줄로 눕힌다 — 조사종이를 안 읽고 지나갔어도
             // 첫 장에는 남아 있어야 한다.
@@ -304,7 +342,7 @@ namespace IMUNROK.Common
                     _owner?.Close();
                 });
                 NewText("라벨", "들이밀기", Vector2.zero, new Vector2(cw - 40f, 44f), b, _clueFontSize - 6,
-                        new Color(0.98f, 0.94f, 0.86f));
+                        UiLook.SealText);
             }
         }
 

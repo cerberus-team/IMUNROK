@@ -52,6 +52,30 @@ namespace IMUNROK.Common
         /// <summary>이름패 위의 글씨 — 한지빛. 주칠 위에서는 이것이 뜬다.</summary>
         public static Color SealText { get { return Ui.InventorySkin.Hanji; } }
 
+        // ── 한지 판(수첩·문서) ───────────────────────
+        //
+        // <b>꾸러미의 소지품 판도 한지다.</b> 검은 반투명으로 갈아엎어야 하는 줄 알았는데
+        // 찾아보니 저쪽 палette 가 한지·먹·주칠이었다 — 우리와 <b>같은 결</b>이다.
+        // 그래서 수첩은 뜯어고칠 일이 아니라 <b>값을 옮길</b> 일이었다.
+
+        /// <summary>한지 바탕.</summary>
+        public static Color Paper { get { return Ui.InventorySkin.Hanji; } }
+
+        /// <summary>한지에서 한 켜 어두운 것 — 카드·덧면.</summary>
+        public static Color PaperDim { get { return Ui.InventorySkin.HanjiDim; } }
+
+        /// <summary>먹빛 글씨.</summary>
+        public static Color Ink { get { return Ui.InventorySkin.Ink; } }
+
+        /// <summary>묽은 먹 — 곁글·이미 읽은 것.</summary>
+        public static Color InkSoft { get { return Ui.InventorySkin.InkSoft; } }
+
+        /// <summary>나뭇결 — 테두리·표지.</summary>
+        public static Color Wood { get { return Ui.InventorySkin.Wood; } }
+
+        /// <summary>밝은 나뭇결.</summary>
+        public static Color WoodLit { get { return Ui.InventorySkin.WoodLit; } }
+
         // ── 크기 ───────────────────────────────────
 
         /// <summary>
