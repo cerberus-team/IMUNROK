@@ -41,6 +41,27 @@ namespace IMUNROK.Common
         private RectTransform _nameplate;
         private NoticeCloseTab _closeTab;
 
+        /// <summary>
+        /// <b>닫을 수 있는 자막인가.</b>
+        ///
+        /// 자막판은 대개 <b>거치적거리는 것</b>이라 닫는 길이 있어야 한다 — 물건 이름이
+        /// 뜬 채로 방을 뒤지면 판이 앞을 가린다. 그런데 <b>닫을 수 없어야 하는 자리</b>도
+        /// 있다. 엔딩이 그렇다 — 왕의 마지막 말과 만든 사람 이름을 「닫기」로 치울 수
+        /// 있으면, 그건 읽으라고 띄운 것이 아니라 <b>지나가는 알림</b>이 된다.
+        /// 게다가 닫아 버리면 그 뒤로는 아무것도 안 뜨고 어전만 남는다.
+        ///
+        /// 기본은 참이다. 닫는 길을 막을 쪽이 잠깐 내렸다가 끝나면 도로 올린다.
+        /// </summary>
+        public static bool Closable = true;
+
+        /// <summary>
+        /// 판이 새로 시작될 때 되돌린다. 정적 값은 도메인 리로드가 꺼진 프로젝트에서
+        /// <b>플레이 세션을 넘겨 산다</b> — 엔딩에서 내려 둔 채로 재생이 끝나면
+        /// 다음 판에서 자막을 영영 못 닫는다.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetClosable() { Closable = true; }
+
         /// <summary>자막이 닫힐 때 알린다. 도구 익히기처럼 자막에 얹혀 도는 것이 참고한다.</summary>
         public static event System.Action OnClosed;
 
@@ -188,7 +209,15 @@ namespace IMUNROK.Common
             _group.blocksRaycasts = on;
             // 안 보이는 동안에는 닫기 표의 콜라이더도 꺼야 한다. 켜 둔 채로 두면
             // 눈앞에 보이지 않는 판이 남아 뒤쪽 물건으로 가는 레이를 가로챈다.
-            if (_closeTab != null) _closeTab.SetActive(on);
+            if (_closeTab != null)
+            {
+                // <b>둘을 따로 꺼야 한다.</b> NoticeCloseTab.SetActive 는 짚는
+                // 콜라이더만 여닫는다 — 그것만 꺼 두면 <b>글씨는 그대로 남아</b>
+                // 「닫기 ✕」가 눌리지도 않으면서 화면에 붙어 있다.
+                // 엔딩에서 실제로 그렇게 됐다.
+                _closeTab.SetActive(on && Closable);
+                _closeTab.gameObject.SetActive(on && Closable);
+            }
             if (was && !on && byUser) OnClosed?.Invoke();
         }
 

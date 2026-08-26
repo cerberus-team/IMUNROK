@@ -145,6 +145,11 @@ namespace IMUNROK.Common
                 for (int i = 0; i < _sourceLines.Length; i++)
                     if (!string.IsNullOrEmpty(_sourceLines[i])) _lines.Add(_sourceLines[i]);
 
+            // <b>엔딩은 닫을 수 없다.</b> 왕의 마지막 말과 만든 사람 이름에 「닫기 ✕」가
+            // 붙어 있으면, 읽으라고 띄운 것이 아니라 지나가는 알림처럼 보인다.
+            // 게다가 정말 닫으면 그 뒤로는 아무것도 안 뜨고 빈 어전만 남는다.
+            SubtitleView.Closable = false;
+
             _index = 0;
             _timer = 0f;
             _finished = false;
@@ -204,7 +209,10 @@ namespace IMUNROK.Common
 
             // H: 조사청으로 돌아가기
             if (kb.hKey.wasPressedThisFrame && Application.CanStreamedLevelBeLoaded(_hubSceneName))
+            {
+                SubtitleView.Closable = true;   // 어전을 나서면 도로 닫을 수 있어야 한다
                 SceneManager.LoadScene(_hubSceneName);
+            }
 
             // Esc: 종료(에디터에선 Play 정지, 빌드에선 앱 종료)
             if (kb.escapeKey.wasPressedThisFrame)
