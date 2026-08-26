@@ -119,6 +119,9 @@ namespace IMUNROK.Common
             _lines.Add(_introLine);
 
             // 2) 사건별 판결 낭독(Case1→2→3 순서)
+            //    <b>이 줄들에서 봉서가 한 통씩 왕에게 굴러 올라간다</b>(복명).
+            //    몇 번째 줄인지 적어 두어야 그때를 안다.
+            _verdictFrom = _lines.Count;
             foreach (CaseId id in Enum.GetValues(typeof(CaseId)))
             {
                 Verdict v = gs.GetVerdict(id);
@@ -137,7 +140,12 @@ namespace IMUNROK.Common
             // 4) 마지막 대사
             _lines.Add(_finalLine);
 
-            // 5) 맺음 — 여기부터는 왕이 아니라 만든 사람이 말한다
+            // 5) 맺음.
+            //
+            // <b>여기서 자막으로 크레딧을 띄우지 않는다.</b> 자막 바는 대사 그릇이라,
+            // 거기에 이름과 출처를 넣으니 짜쳤다. 왕의 마지막 말이 끝나면
+            // <see cref="OutroCeremony"/> 가 발을 걷고 어전을 저물게 하고, 크레딧은
+            // <b>종이 위에</b> 적힌다. 그릇이 맞아야 읽힌다.
             _fromLine = _lines.Count;
             if (!string.IsNullOrEmpty(_thanksLine)) _lines.Add(_thanksLine);
             if (!string.IsNullOrEmpty(_creditsLine)) _lines.Add(_creditsLine);
@@ -255,6 +263,36 @@ namespace IMUNROK.Common
         /// <summary>지금 띄워 둔 줄. 바뀔 때만 다시 띄운다.</summary>
         private int _shown = -1;
 
+        [Header("복명 의식")]
+        [Tooltip("발을 걷고 어전을 저물게 하는 것. 비우면 예전처럼 끄고 자막으로 적는다")]
+        [SerializeField] private OutroCeremony _ceremony;
+
+        /// <summary>판결을 읊는 첫 줄. 그 줄부터 셋 동안 봉서가 한 통씩 올라간다.</summary>
+        private int _verdictFrom = -1;
+        private int _sentUpTo = -1;
+        private bool _closing;
+
+        /// <summary>
+        /// <b>크레딧은 종이 위에 적는다.</b>
+        ///
+        /// 이 게임의 모든 글은 종이 위에 있었는데 크레딧만 자막 바에 있었다.
+        /// 그릇이 틀렸으니 짜쳤던 것이다. <see cref="DocumentView"/> 는 그림이 없으면
+        /// 한지를 깔고 글씨를 종이에 맞춰 준다 — 그대로 쓴다.
+        /// 내려놓을 수 없게 막는다. 크레딧을 「내려놓기」로 치울 일이 아니다.
+        /// </summary>
+        private void Credits()
+        {
+            var body = new System.Text.StringBuilder();
+            if (!string.IsNullOrEmpty(_thanksLine)) body.Append(_thanksLine).Append("\n\n");
+            if (!string.IsNullOrEmpty(_creditsLine)) body.Append(_creditsLine).Append("\n\n");
+            if (_sourceLines != null)
+                for (int i = 0; i < _sourceLines.Length; i++)
+                    if (!string.IsNullOrEmpty(_sourceLines[i])) body.Append(_sourceLines[i]).Append("\n\n");
+
+            DocumentView.SetCanPutDown(false);
+            DocumentView.Show(null, "", body.ToString().TrimEnd());
+        }
+
         private void LateUpdate()
         {
             if (_lines.Count == 0) return;
@@ -263,13 +301,29 @@ namespace IMUNROK.Common
             _shown = at;
             _justFinished = false;
 
-            // 맺음말에 들어서면 어전을 끈다. 왕의 목소리도 여기서 끝난다.
-            bool ending = _fromLine >= 0 && at >= _fromLine;
-            if (ending && _worldToHide != null && _worldToHide.activeSelf)
+            // 판결을 읊는 줄마다 봉서 한 통이 어도를 따라 왕에게 굴러 올라간다.
+            if (_ceremony != null && _verdictFrom >= 0
+                && at >= _verdictFrom && at < _verdictFrom + 3 && at > _sentUpTo)
             {
-                _worldToHide.SetActive(false);
-                RenderSettings.ambientIntensity = 0f;
+                _sentUpTo = at;
+                _ceremony.SendScroll(at - _verdictFrom);
             }
+
+            // 왕의 말이 다 끝났다. <b>어전을 끄지 않는다</b> — 저물게 한다.
+            bool ending = _fromLine >= 0 && at >= _fromLine;
+            if (ending && !_closing)
+            {
+                _closing = true;
+                if (_ceremony != null) { _ceremony.Close(Credits); return; }
+
+                // 의식이 없으면 예전처럼 끄고 자막으로 적는다(안전망)
+                if (_worldToHide != null && _worldToHide.activeSelf)
+                {
+                    _worldToHide.SetActive(false);
+                    RenderSettings.ambientIntensity = 0f;
+                }
+            }
+            if (ending && _ceremony != null) return;   // 의식이 도는 동안엔 자막을 안 띄운다
 
             // <b>붉은 글씨는 여기 것이 아니다.</b> 마지막 인자는 「결정적 한마디」 표시라,
             // 심문에서 <b>물증이 상대의 말을 뒤집는 순간</b>에만 붉게 지나가라고 둔 것이다.
