@@ -41,7 +41,10 @@ namespace IMUNROK.Common.EditorTools
     {
         private const string Art = "Assets/_Project/Onggojip/Art/Characters/";
 
-        /// <summary>뜰에서 기다리는 줄이 서는 x. 甲·乙 을 나란히 두어 <b>둘이 닮았음</b>을 눈으로 말한다.</summary>
+        /// <summary>
+        /// 뜰에서 기다리는 줄이 서는 x. 甲·乙 을 나란히 둔다 — <b>둘은 얼자 형제라</b>
+        /// 닮았으되 같은 사람이 아니다. 그래서 몸도 서로 다른 것을 쓴다.
+        /// </summary>
         private const float WaitX = 5.60f;
 
         private class Who
@@ -50,6 +53,7 @@ namespace IMUNROK.Common.EditorTools
             public string fbx;         // Art 아래 상대 경로
             public string 재질;        // Art 아래 상대 경로. 비면 그림으로 새로 만든다
             public string 그림;        // 재질을 만들 때 쓸 텍스처
+            public string 자료;        // 심문 자료(Data 아래). 베껴 세울 때 남의 것을 물려받지 않도록 못 박는다
             public float 키;           // 정수리~발
             public float 대기z;        // 뜰에서 서는 자리. NaN 이면 뜰에 안 선다
             public string 베낄것;      // 씬에 없을 때 베낄 사람
@@ -59,20 +63,31 @@ namespace IMUNROK.Common.EditorTools
         {
             new Who { 씬이름 = "서리",        fbx = "서리/Seori_Merged.fbx",
                       그림 = "서리/Meshy_AI_Seonbi_in_a_Hanbok_wi_0825101955_texture.png",
-                      키 = 1.66f, 대기z = float.NaN },
-            new Who { 씬이름 = "甲",      fbx = "옹덕구/Ongdeokgu_Act2.fbx", 재질 = "옹덕구/옹덕구_병합_Mat.mat",
-                      키 = 1.66f, 대기z = -4.50f },
-            new Who { 씬이름 = "乙", fbx = "옹덕구/Ongdeokgu_Act2.fbx", 재질 = "옹덕구/옹덕구_병합_Mat.mat",
-                      키 = 1.66f, 대기z = -2.70f },
+                      자료 = "Seori_Interrogation", 키 = 1.66f, 대기z = float.NaN },
+
+            // 甲 은 <b>복동</b>이다 — 스무 해 이 집 문서를 다루던 얼자 출신 종이 한 달 전부터
+            // 주인 자리에 앉아 있다. 그러니 甲 이 입는 몸은 복동의 것이라야 한다.
+            new Who { 씬이름 = "甲",          fbx = "복동/Bokdong_Act2.fbx", 재질 = "복동/복동_보라_Mat.mat",
+                      자료 = "Gap_Interrogation", 키 = 1.64f, 대기z = -4.50f },
+
+            // 乙 이 <b>진짜 옹덕구</b>다. 온 마을이 이 사람을 죽은 종 복동으로 안다.
+            new Who { 씬이름 = "乙",          fbx = "옹덕구/Ongdeokgu_Act2.fbx", 재질 = "옹덕구/옹덕구_병합_Mat.mat",
+                      자료 = "EulOng_Interrogation", 키 = 1.66f, 대기z = -2.70f },
+
             new Who { 씬이름 = "아내",        fbx = "아내/Hanbok_Woman_Merged.fbx", 재질 = "아내/M_아내.mat",
-                      키 = 1.60f, 대기z = -0.90f },
+                      자료 = "Wife_Interrogation", 키 = 1.60f, 대기z = -0.90f },
             new Who { 씬이름 = "늙은하인",     fbx = "늙은하인/Hain_Act2.fbx", 재질 = "늙은하인/M_늙은하인.mat",
-                      키 = 1.60f, 대기z = 0.90f },
+                      자료 = "Servant_Interrogation", 키 = 1.60f, 대기z = 0.90f },
             new Who { 씬이름 = "마름",        fbx = "마름/Mareum_Act2.fbx", 재질 = "마름/마름_Mat.mat",
-                      키 = 1.68f, 대기z = 2.70f, 베낄것 = "늙은하인" },
-            new Who { 씬이름 = "복동",        fbx = "복동/Bokdong_Act2.fbx", 재질 = "복동/복동_보라_Mat.mat",
-                      키 = 1.62f, 대기z = 4.50f, 베낄것 = "늙은하인" },
+                      자료 = "Mareum_Interrogation", 키 = 1.68f, 대기z = 2.70f, 베낄것 = "늙은하인" },
         };
+
+        /// <summary>
+        /// 뜰에서 걷어낼 사람. <b>복동은 따로 서지 않는다</b> — 甲 이 복동이기 때문이다.
+        /// 乙 은 "복동이는 저 안에 앉아 있소"라 외치는데 뜰에 복동이 또 서 있으면
+        /// 그 외침이 헛말이 된다. 예전에 몸만 보고 한 사람으로 세워 두었던 것을 지운다.
+        /// </summary>
+        private static readonly string[] 걷어낼것 = { "복동" };
 
         /// <summary>돌아야 하는 클립.</summary>
         private static readonly string[] Loops = { "Idle", "Walking", "Running", "Sitting_Idle" };
@@ -88,6 +103,19 @@ namespace IMUNROK.Common.EditorTools
             }
 
             var log = new System.Text.StringBuilder("[관아] 2막 사람들을 들인다\n");
+            // 세우기 전에 먼저 걷어낸다 — 안 그러면 자리만 겹쳐 놓고 끝난다.
+            foreach (var 이름 in 걷어낼것)
+            {
+                var 군더더기 = FindDeep(scene, 이름);
+                if (군더더기 != null)
+                {
+                    Undo.DestroyObjectImmediate(군더더기.gameObject);
+                    log.AppendLine("── " + 이름 + " 을 뜰에서 걷어냈다 — 甲 이 곧 복동이다");
+                }
+                var 자리 = FindDeep(scene, "뜰_대기_" + 이름);
+                if (자리 != null) Undo.DestroyObjectImmediate(자리.gameObject);
+            }
+
             foreach (var w in Cast)
             {
                 log.AppendLine("── " + w.씬이름);
@@ -443,6 +471,22 @@ namespace IMUNROK.Common.EditorTools
             {
                 if (mat != null) smr.sharedMaterial = mat;
                 smr.updateWhenOffscreen = true;
+            }
+
+            // <b>심문 자료를 못 박는다.</b>
+            //
+            // 남을 베껴 세우면 부품이 통째로 딸려 오는데, 거기엔 <b>베낀 사람의 자료</b>도
+            // 들어 있다. 그래서 마름과 복동이 둘 다 늙은하인의 자료를 물고 있었다 —
+            // 셋한테 물으면 같은 늙은이가 세 번 대답했다. 이름은 표에 적어 두었으니
+            // 세울 때마다 다시 걸어 준다.
+            if (!string.IsNullOrEmpty(w.자료))
+            {
+                var 자료 = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
+                    "Assets/_Project/Onggojip/Data/" + w.자료 + ".asset");
+                var 심문 = host.GetComponent<InterrogationController>();
+                if (자료 == null) log.AppendLine("   ※ 심문 자료 " + w.자료 + " 을 못 찾았다");
+                else if (심문 == null) log.AppendLine("   ※ 심문 부품이 없어 자료를 못 걸었다");
+                else Set(심문, so => so.FindProperty("_character").objectReferenceValue = 자료);
             }
 
             // <b>숨을 쉬게 한다.</b>
