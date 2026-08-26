@@ -76,6 +76,52 @@ namespace IMUNROK.Common
         /// <summary>등불을 손에 들고 있나.</summary>
         private bool Holding => ToolbeltHud.SelectedToolId == _toolId;
 
+        // ── 어두운 데 서 있으면 한 번 일러 준다 ──
+
+        [Header("일러 주기")]
+        [Tooltip("이 거리(m) 안에서 이만큼 서성이면 한 마디 한다. 0 이면 아무 말도 안 한다")]
+        [SerializeField] private float _nudgeWithin = 7f;
+        [SerializeField] private float _nudgeAfter = 5f;
+
+        [TextArea(2, 3)] [SerializeField] private string _nudgeEmptyHanded =
+            "어둡다. 등불을 들고 와 등경에 얹어야 뒤질 만하겠다.";
+        [TextArea(2, 3)] [SerializeField] private string _nudgeHolding =
+            "등불을 든 채로는 한 손뿐이다. *등경*에 얹으면 두 손이 빈다.";
+
+        private float _near;
+        private bool _nudged;
+
+        /// <summary>
+        /// <b>어두운데 아무 말도 없으면 그건 고장으로 읽힌다.</b>
+        ///
+        /// 서고는 일부러 어둡다(<see cref="RoomDarkness"/>). 그래야 등불이 걸치는
+        /// 물건이 아니라 <b>쓰는</b> 물건이 된다. 그런데 들어선 사람에게는 그 뜻이
+        /// 안 보인다 — 캄캄한 방에 대장이 어디 있는지도 모르고 서 있으면, 어둠이
+        /// 설계인지 탈인지 알 길이 없다.
+        ///
+        /// 그래서 <b>서성이면</b> 한 마디 한다. 문을 열자마자 말하지 않는 까닭은,
+        /// 들어서는 그 순간에는 스스로 둘러볼 틈을 주어야 하기 때문이다. 다섯 셈쯤
+        /// 헤매고 나서야 일러 준다 — 그리고 <b>한 번만</b> 한다.
+        ///
+        /// 손에 등불이 있으면 말이 달라진다. 없으면 "가져와야겠다", 있으면
+        /// "얹으면 두 손이 빈다" — 사람이 지금 어디쯤 와 있는지에 대고 말한다.
+        /// </summary>
+        private void Update()
+        {
+            if (_nudged || _nudgeWithin <= 0f || Loaded) return;
+
+            var cam = Camera.main;
+            if (cam == null) return;
+            if (Vector3.Distance(cam.transform.position, transform.position) > _nudgeWithin)
+            { _near = 0f; return; }
+
+            _near += Time.deltaTime;
+            if (_near < _nudgeAfter) return;
+
+            _nudged = true;
+            SubtitleView.Show("", Holding ? _nudgeHolding : _nudgeEmptyHanded, "", true);
+        }
+
         // ── 누르기 ──
         public void OnHoverEnter() { }
         public void OnHoverExit() { }

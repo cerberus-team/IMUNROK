@@ -15,7 +15,7 @@ namespace IMUNROK.Common
     ///  - 세 판결의 경향(다수결)에 따라 왕의 총평이 분기.
     ///  - 마지막 대사 "그래서, 그 이야기들은 거짓이었느냐." 로 종료.
     ///
-    /// 자막은 OnGUI로 그린다(한글 폰트 에셋 없이 확실히 표시되며, 디버그 오버레이와 동일 방식).
+    /// 자막은 <see cref="SubtitleView"/> 로 세상 속에 띄운다 — OnGUI 는 헤드셋에 안 보인다.
     /// 진행: 자동으로 넘어가거나(줄당 시간), 스페이스/클릭으로 즉시 다음 줄.
     /// </summary>
     public class EndingController : MonoBehaviour
@@ -54,10 +54,6 @@ namespace IMUNROK.Common
         private float _timer;
         private bool _finished;
 
-        // OnGUI 스타일 캐시
-        private GUIStyle _speakerStyle;
-        private GUIStyle _lineStyle;
-        private GUIStyle _hintStyle;
 
         private void Start()
         {
@@ -148,6 +144,7 @@ namespace IMUNROK.Common
             {
                 _index = _lines.Count - 1;
                 _finished = true;
+                _justFinished = true;
                 Debug.Log("[EndingController] 복명을 마칩니다.");
             }
         }
@@ -188,56 +185,47 @@ namespace IMUNROK.Common
         }
 
         // ─────────────────────────────────────────────
-        //  자막 그리기(OnGUI)
+        //  자막 — <b>세상 속에 띄운다</b>
         // ─────────────────────────────────────────────
-        private void OnGUI()
+        //
+        // 여태 이 대목만 OnGUI 였다. 그때는 그것이 편했다 — 폰트 에셋 없이도 한글이
+        // 확실히 찍히니까. 그런데 <b>OnGUI 는 헤드셋에 안 보인다</b>. 화면 위에 덧그리는
+        // 그림이라 두 눈으로 갈리는 그림에는 아예 끼지 못한다. 그러니 헤드셋을 쓰고
+        // 복명에 들어서면 왕의 말이 <b>한 줄도 안 뜬다</b> — 캄캄한 데 서서 아무 일도
+        // 안 일어나는 것으로 보인다.
+        //
+        // 이 게임은 이미 세상 속에 뜨는 자막을 가지고 있다(<see cref="SubtitleView"/>).
+        // 어전이라고 다를 까닭이 없다. 줄이 바뀔 때마다 그쪽에 넘긴다.
+
+        /// <summary>지금 띄워 둔 줄. 바뀔 때만 다시 띄운다.</summary>
+        private int _shown = -1;
+
+        private void LateUpdate()
         {
-            EnsureStyles();
+            if (_lines.Count == 0) return;
+            int at = Mathf.Clamp(_index, 0, _lines.Count - 1);
+            if (at == _shown && !_justFinished) return;
+            _shown = at;
+            _justFinished = false;
 
-            float w = Screen.width * 0.8f;
-            float h = 170f;
-            float x = (Screen.width - w) * 0.5f;
-            float y = Screen.height - h - 48f;
+            SubtitleView.Show(_speakerName, _lines[at], Hint(), true);
+        }
 
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
-            GUI.Label(new Rect(x + 24, y + 12, w - 48, 30), _speakerName, _speakerStyle);
-            GUI.Label(new Rect(x + 24, y + 48, w - 48, h - 60), CurrentLine(), _lineStyle);
+        private bool _justFinished;
 
-            string hint = _finished
-                ? "— 복명을 마친다 —    (H: 조사청으로,  Esc: 종료)"
-                : "(스페이스 / 클릭: 다음)";
-            GUI.Label(new Rect(x, y + h + 6, w, 24), hint, _hintStyle);
+        /// <summary>
+        /// 아랫줄. <b>헤드셋에서는 자판 이름을 안 적는다</b> — 누를 손이 없다.
+        /// </summary>
+        private string Hint()
+        {
+            if (!_finished) return Controls.Skip;
+            return Controls.Vr ? "— 복명을 마친다 —" : "— 복명을 마친다 —    (H: 조사청으로,  Esc: 종료)";
         }
 
         private string CurrentLine()
         {
             if (_lines.Count == 0) return "";
             return _lines[Mathf.Clamp(_index, 0, _lines.Count - 1)];
-        }
-
-        private void EnsureStyles()
-        {
-            if (_lineStyle != null) return;
-
-            _speakerStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 18,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(1f, 0.85f, 0.4f) }
-            };
-            _lineStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 22,
-                wordWrap = true,
-                richText = true,
-                normal = { textColor = Color.white }
-            };
-            _hintStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 13,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = new Color(1f, 1f, 1f, 0.5f) }
-            };
         }
 
         // ─────────────────────────────────────────────

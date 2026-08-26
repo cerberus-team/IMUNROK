@@ -288,8 +288,6 @@ namespace IMUNROK.Common
             DrawOnTop(glassMat);
             _glass.sharedMaterial = glassMat;
 
-            BuildRim(unlit);
-
             // 테도 자루도 <b>만들지 않는다</b>.
             //
             // 한때 소품을 못 찾으면 여기서 원판과 테와 자루를 빚어 썼다. 없는 것보다
@@ -721,69 +719,6 @@ namespace IMUNROK.Common
         private Vector3 GlassLocal => (_measureProp ? _propGlassLocal : _glassCenterManual) + _glassNudge;
 
         /// <summary>반지름 1의 원판. UV는 (-1,1) 을 (0,1) 로 편다.</summary>
-        /// <summary>
-        /// <b>알 둘레에 놋테를 두른다.</b>
-        ///
-        /// 돋보기가 손에 들려 있는데 <b>안 보인다</b>는 말이 오래 돌았다. 재 보면
-        /// 원판은 켜져 있고 화면 안에도 들어 있었다 — 안 그려진 것이 아니라
-        /// <b>알아볼 수가 없었다</b>. 유리에 비치는 것은 뒤에 있는 그것이고, 배율이
-        /// 2.8배래야 어두운 서고에서는 어두운 책장이 조금 크게 비칠 뿐이다.
-        /// 게다가 소품의 놋쇠 테는 빛을 받아야 놋빛이 나는데 서고는 캄캄하니
-        /// 테마저 시커멓다. 결국 <b>가장자리가 없는 그림</b>이 되어, 어디부터가
-        /// 유리인지 눈이 못 가른다.
-        ///
-        /// 그래서 테를 <b>빛과 상관없이</b> 한 겹 두른다(Unlit). 유리와 겹치지 않게
-        /// 도넛으로 만들어, 알 바깥에서만 보인다 — 겹쳐 놓고 앞뒤를 다투게 하면
-        /// 기울일 때마다 한쪽이 먹힌다(그 함정은 이미 한 번 밟았다).
-        ///
-        /// 이것은 소품 대신 그리는 <b>흉내가 아니다</b>. 소품의 테는 그대로 있고,
-        /// 이 고리는 그 위에 놋빛 한 줄을 얹어 <b>어디까지가 알인지</b>만 말해 준다.
-        /// </summary>
-        private void BuildRim(Shader unlit)
-        {
-            var go = new GameObject("놋테");
-            go.transform.SetParent(_lens, false);
-            go.AddComponent<MeshFilter>().sharedMesh = Ring(48, 1f, RimOuter);
-            _rim = go.AddComponent<MeshRenderer>();
-            _rim.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            _rim.receiveShadows = false;
-
-            var mat = new Material(unlit) { name = "돋보기_놋테" };
-            SetColor(mat, new Color(0.82f, 0.62f, 0.28f));   // 놋빛 — 어두운 데서도 이 빛이다
-            DrawOnTop(mat);
-            _rim.sharedMaterial = mat;
-        }
-
-        /// <summary>알 반지름의 이 배까지 테가 나간다. 얇아야 알을 안 먹는다.</summary>
-        private const float RimOuter = 1.13f;
-
-        private Renderer _rim;
-
-        /// <summary>도넛 하나. <paramref name="inner"/>~<paramref name="outer"/> 사이만 그린다.</summary>
-        private static Mesh Ring(int seg, float inner, float outer)
-        {
-            var m = new Mesh { name = "돋보기_놋테" };
-            var v = new Vector3[seg * 2];
-            var tri = new int[seg * 6];
-            for (int i = 0; i < seg; i++)
-            {
-                float a = (float)i / seg * Mathf.PI * 2f;
-                var d = new Vector3(Mathf.Cos(a), Mathf.Sin(a), 0f);
-                v[i * 2] = d * inner;
-                v[i * 2 + 1] = d * outer;
-            }
-            for (int i = 0; i < seg; i++)
-            {
-                int n = (i + 1) % seg;
-                int a0 = i * 2, a1 = i * 2 + 1, b0 = n * 2, b1 = n * 2 + 1;
-                tri[i * 6] = a0; tri[i * 6 + 1] = b1; tri[i * 6 + 2] = a1;
-                tri[i * 6 + 3] = a0; tri[i * 6 + 4] = b0; tri[i * 6 + 5] = b1;
-            }
-            m.vertices = v; m.triangles = tri;
-            m.RecalculateNormals();
-            return m;
-        }
-
         private static Mesh Disc(int seg)
         {
             var m = new Mesh { name = "돋보기_원판" };
@@ -1039,10 +974,6 @@ namespace IMUNROK.Common
             float shrink = _propRoot != null ? Mathf.Max(0.05f, dist - push) / dist : 1f;
             _glass.transform.localScale = Vector3.one * (_glassRadius * shrink * _glassScaleTweak);
 
-            // 놋테는 알을 그대로 따라다닌다 — 자리도 기울기도 크기도 같다.
-            if (_rim != null)
-                _rim.transform.SetPositionAndRotation(_glass.transform.position, _glass.transform.rotation);
-            if (_rim != null) _rim.transform.localScale = _glass.transform.localScale;
         }
 
         /// <summary>
@@ -1118,7 +1049,6 @@ namespace IMUNROK.Common
 
             HideSelf(_holder != null ? _holder : _propRoot, _hiddenRenderers);
             if (_glass != null && _glass.enabled) { _glass.enabled = false; _hiddenRenderers.Add(_glass); }
-            if (_rim != null && _rim.enabled) { _rim.enabled = false; _hiddenRenderers.Add(_rim); }
         }
 
         private void EndLens(UnityEngine.Rendering.ScriptableRenderContext ctx, Camera cam)
