@@ -76,6 +76,9 @@ namespace IMUNROK.Common.EditorTools
             int sown = Sow(covered, log);
             log.AppendLine("── 둔덕 위에 잔 알갱이 " + sown + "알을 흩었다 (숯 부스러기 섞음)");
 
+            // ── ④ 재를 아궁이 아가리 안으로 ─────────────
+            Tuck(rake.transform, covered, raked, log);
+
             // ── ③ 튀는 가루 ─────────────────────────
             var grit = MakeGrit(rake.transform, log);
             so.Update();
@@ -298,6 +301,110 @@ namespace IMUNROK.Common.EditorTools
             if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.06f);
             EditorUtility.SetDirty(m);
             return m;
+        }
+
+        // ───────── ④ 아가리 안으로 ─────────
+
+        /// <summary>아가리 안으로 이만큼 들어간다(m). 너무 깊으면 어둠에 묻혀 안 보인다.</summary>
+        private const float Inset = 0.26f;
+
+        /// <summary>
+        /// <b>재를 아궁이 안으로 들여놓고, 잔불을 재 밑으로 내린다.</b>
+        ///
+        /// 결을 다 넣고도 「가루 느낌이 없다」는 말이 남아서, 사람 눈높이에서 찍어 보고
+        /// 알았다 — <b>결의 문제가 아니라 자리와 빛의 문제였다.</b>
+        ///
+        ///   · 아궁이는 x 4.09~5.09 에 서 있고 아가리가 이쪽으로 열려 있는데,
+        ///     재는 3.87~4.24 라 <b>거의 다 밖에 나와</b> 있었다. 아치 안의 재가 아니라
+        ///     길바닥의 검은 얼룩이었다.
+        ///   · 잔불이 재에서 <b>26cm 옆</b>에 세기 1.04 로 켜져 있었다. 화면에서 그 자리가
+        ///     새하얗게 타 버려, 그 옆의 재는 무엇을 발라도 실루엣으로만 보인다.
+        ///     게다가 빛이 <b>옆에서</b> 스치니 알갱이가 그림자를 못 만든다.
+        ///
+        /// 그래서 재를 아가리 안으로 들이고, 잔불을 <b>재 밑</b>으로 내려 약하게 켠다.
+        /// 밑에서 올라오는 잉걸빛이라야 알갱이마다 그림자가 서고, 그제야 결이 보인다.
+        ///
+        /// <b>미는 쪽은 재지 않고 뽑는다</b> — 재에서 아궁이 몸통 쪽으로 난 수평 방향이다.
+        /// 아궁이를 돌려 놓아도 따라간다. 이미 들어가 있으면 아무 일도 안 한다.
+        /// </summary>
+        private static void Tuck(Transform body, Transform covered, GameObject raked,
+                                 System.Text.StringBuilder log)
+        {
+            // <b>몸피를 잴 때 파티클은 빼야 한다.</b> 뿜는 것은 자리가 없어서(원점) 몸피에
+            // 넣으면 아궁이가 <b>x 0 부터</b> 걸쳐 있는 것이 된다 — 재 보고 알았다.
+            // 한가운데가 (2.55, −0.89, −5.75) 로 잡혀서, 재가 아가리에서 0.79m 나
+            // 들어가 있다는 엉뚱한 답이 나왔다. 하필 그 파티클을 이 도구가 만들었으니
+            // <b>제가 만든 것이 제 잣대를 망친</b> 꼴이다.
+            Bounds hb = Solid(body), ab = Solid(covered);
+            if (hb.size.sqrMagnitude < 1e-6f || ab.size.sqrMagnitude < 1e-6f)
+            { log.AppendLine("── ⚠ 아궁이나 재의 몸피를 못 재 자리를 안 옮겼다"); return; }
+
+            // 재에서 아궁이 속으로 난 수평 방향
+            Vector3 into = hb.center - ab.center;
+            into.y = 0f;
+            if (into.sqrMagnitude < 1e-4f) { log.AppendLine("── 재가 이미 아궁이 한가운데다"); return; }
+            into.Normalize();
+
+            // 아가리는 아궁이 몸피에서 <b>재 쪽</b> 면이다. 그 면에서 얼마나 들어가 있나.
+            Vector3 half = hb.extents;
+            float reach = Mathf.Abs(into.x) * half.x + Mathf.Abs(into.z) * half.z;   // 중심에서 아가리까지
+            float now = Vector3.Dot(ab.center - hb.center, -into);                    // 재가 중심에서 밖으로 나온 거리
+            float deep = reach - now;                                                 // 아가리에서 안으로 들어간 깊이
+            float push = Inset - deep;
+
+            log.AppendLine("── 재는 아가리에서 " + deep.ToString("F2") + "m 들어가 있다 (들일 깊이 " + Inset.ToString("F2") + "m)");
+            if (push <= 0.02f) { log.AppendLine("── 이미 들어가 있다 — 안 옮긴다"); }
+            else
+            {
+                Vector3 d = into * push;
+                covered.position += d;
+                if (raked != null) raked.transform.position += d;
+                log.AppendLine("── 재를 " + push.ToString("F2") + "m 들여놓았다 "
+                             + ab.center.ToString("F2") + " → " + (ab.center + d).ToString("F2")
+                             + " (덮인 재와 헤집힌 재를 함께 — 그 밑의 서찰과 잉걸도 딸려 간다)");
+
+                // 들여놓은 자리 밑에 바닥이 있나. 없으면 재가 허공에 뜬다.
+                RaycastHit floor;
+                Vector3 at = ab.center + d;
+                if (Physics.Raycast(at + Vector3.up * 0.5f, Vector3.down, out floor, 2f, ~0, QueryTriggerInteraction.Ignore))
+                    log.AppendLine("── 들여놓은 자리 발밑: '" + floor.collider.name + "' y " + floor.point.y.ToString("F2")
+                                 + " (재 밑면 y " + (ab.min.y).ToString("F2") + ")");
+                else log.AppendLine("── ⚠ 들여놓은 자리 밑에 바닥이 없다 — 재가 떠 보일 수 있다");
+            }
+
+            // ── ⑤ 잔불을 재 밑으로, 약하게 ──────────
+            Light ember = null;
+            foreach (var li in body.GetComponentsInChildren<Light>(true))
+                if (li.name.Contains("잔불")) ember = li;
+            if (ember == null) { log.AppendLine("── 잔불을 못 찾았다"); return; }
+
+            Bounds now2 = Solid(covered);
+
+            float wasI = ember.intensity;
+            var wasP = ember.transform.position;
+            // 재 <b>밑</b>이다 — 옆에서 때리면 알갱이가 그림자를 못 만들고 눈만 찌른다.
+            ember.transform.position = new Vector3(now2.center.x, now2.min.y - 0.035f, now2.center.z);
+            ember.intensity = 0.35f;
+            ember.range = 1.6f;
+            log.AppendLine("── 잔불: 세기 " + wasI.ToString("F2") + " → 0.35 · 자리 " + wasP.ToString("F2")
+                         + " → " + ember.transform.position.ToString("F2") + " (재 밑에서 올라온다)");
+        }
+
+        /// <summary>
+        /// <b>눈에 보이는 덩이만</b> 골라 몸피를 잰다 — 파티클은 뺀다.
+        /// 뿜는 것은 제 자리가 없어(원점) 몸피에 넣으면 잣대가 통째로 어긋난다.
+        /// </summary>
+        private static Bounds Solid(Transform t)
+        {
+            Bounds b = new Bounds();
+            bool first = true;
+            foreach (var r in t.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r is ParticleSystemRenderer) continue;
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                if (first) { b = r.bounds; first = false; } else b.Encapsulate(r.bounds);
+            }
+            return first ? new Bounds(t.position, Vector3.zero) : b;
         }
 
         // ───────── ③ 튀는 가루 ─────────
