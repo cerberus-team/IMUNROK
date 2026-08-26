@@ -37,6 +37,9 @@ namespace IMUNROK.Common
         [Tooltip("물증을 다시 펼쳐 보는 단추. 들이밀기(붉은색)와 헷갈리지 않게 먹빛으로")]
         [SerializeField] private Color _readColor = new Color(0.24f, 0.22f, 0.18f, 0.90f);
 
+        /// <summary>꾸러미의 결. 정적으로 들면 판을 넘겨 살아남되 내용이 죽는다 — 판마다 제 것.</summary>
+        private readonly IMUNROK.Ui.InventorySkin _skin = new IMUNROK.Ui.InventorySkin();
+
         private static JournalPanel _instance;
 
         private JournalView _owner;
@@ -151,7 +154,15 @@ namespace IMUNROK.Common
         private void Strip(RectTransform parent, string name, Vector2 at, Vector2 size, Color c)
         {
             var rt = NewRect(name, at, size, parent);
-            rt.gameObject.AddComponent<Image>().color = c;
+            Skin(rt.gameObject.AddComponent<Image>(), _skin.Wood_, c);
+        }
+
+        /// <summary>무늬를 깔고 그 위에 색을 얹는다 — 꾸러미가 판을 그리는 방식이다.</summary>
+        private static void Skin(Image im, Sprite sp, Color c)
+        {
+            im.sprite = sp;
+            im.type = Image.Type.Simple;
+            im.color = c;
         }
 
         private void SetVisible(bool on)
@@ -181,7 +192,7 @@ namespace IMUNROK.Common
             }
 
             var page = NewRect("한지", Vector2.zero, new Vector2(PageW, PageH), transform);
-            page.gameObject.AddComponent<Image>().color = _paperColor;
+            Skin(page.gameObject.AddComponent<Image>(), _skin.Hanji_, _paperColor);
 
             // <b>나뭇결 테두리</b> — 꾸러미 판에 있고 우리에게 없던 것이다.
             // 한지 판이 밝은 배경(낮 마당) 앞에 서면 종이의 가장자리가 녹아 사라진다.
@@ -193,7 +204,7 @@ namespace IMUNROK.Common
             var close = NewRect("닫기", new Vector2(PageW * 0.5f - 140f, PageH * 0.5f - 60f),
                                 new Vector2(200f, 66f), page);
             var closeBg = close.gameObject.AddComponent<Image>();
-            closeBg.color = new Color(UiLook.Wood.r, UiLook.Wood.g, UiLook.Wood.b, 0.85f);
+            Skin(closeBg, _skin.Wood_, new Color(UiLook.Wood.r, UiLook.Wood.g, UiLook.Wood.b, 0.85f));
             var closeBtn = close.gameObject.AddComponent<Button>();
             closeBtn.targetGraphic = closeBg;
             closeBtn.onClick.AddListener(() => _owner?.Close());
@@ -284,7 +295,7 @@ namespace IMUNROK.Common
                                    new Vector2(x0 + k * (cw + gap), y - ch * 0.5f - r * (ch + gap)),
                                    new Vector2(cw, ch), col);
                 var bg = card.gameObject.AddComponent<Image>();
-                bg.color = _cardColor;
+                Skin(bg, _skin.Slot_, _cardColor);
                 _cards.Add(card.gameObject);
 
                 var doc = Journal.Instance.GetDocument(caseId, c.key);

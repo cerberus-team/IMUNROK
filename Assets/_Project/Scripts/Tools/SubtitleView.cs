@@ -39,6 +39,18 @@ namespace IMUNROK.Common
         [Tooltip("새로 알아낸 것을 말할 때의 글빛. 수첩에 안 적히는 말이라 여기서 한 번 눈에 박혀야 한다")]
         [SerializeField] private Color _keyColor = new Color(0.95f, 0.34f, 0.28f);
 
+        /// <summary>
+        /// 꾸러미의 <b>결(무늬)</b>. 한지·나뭇결·칸을 코드로 그려 들고 있다.
+        ///
+        /// <b>정적으로 들면 안 된다</b> — 저쪽 주석의 경고다. 도메인 리로드가 꺼진
+        /// 프로젝트에서 정적 텍스처 참조는 판을 넘겨 살아남는데 <b>내용은 죽는다</b>.
+        /// 판마다 제 것을 들고, 판이 죽으면 같이 죽는다.
+        ///
+        /// 색만 맞추고 이걸 안 썼더니 「같은 주칠인데 왜 달라 보이지」가 됐다 —
+        /// 저쪽은 나뭇결이 비치고 우리는 판판했다.
+        /// </summary>
+        private readonly IMUNROK.Ui.InventorySkin _skin = new IMUNROK.Ui.InventorySkin();
+
         private static SubtitleView _instance;
         private CanvasGroup _group;
         private WorldHudAnchor _anchor;
@@ -375,7 +387,7 @@ namespace IMUNROK.Common
             _nameplate = NewRect("이름판",
                 new Vector2(-w * 0.5f + PadX + nameW * 0.5f, y - nameH * 0.5f),
                 new Vector2(nameW, nameH), panel);
-            _nameplate.gameObject.AddComponent<Image>().color = _nameplateColor;
+            Skin(_nameplate.gameObject.AddComponent<Image>(), _skin.Wood_, _nameplateColor);
             // 이름 글씨는 대사와 다른 색이다 — 주칠 위에서는 한지빛이라야 뜬다
             _nameText = NewText("이름", "", Vector2.zero, new Vector2(nameW, nameH),
                                 _nameplate, _nameFontSize,
@@ -385,7 +397,7 @@ namespace IMUNROK.Common
             // 구분선 — 이름과 말을 가른다
             var rule = NewRect("구분선", new Vector2(0f, y - RuleH * 0.5f),
                                new Vector2(w - PadX * 2f, RuleH), panel);
-            rule.gameObject.AddComponent<Image>().color = pal.border;
+            Skin(rule.gameObject.AddComponent<Image>(), _skin.Wood_, pal.border);
             y -= RuleH + RuleToLine;
 
             _lineText = NewText("대사", "", new Vector2(0f, y - lineBoxH * 0.5f),
@@ -423,7 +435,15 @@ namespace IMUNROK.Common
         private void Strip(RectTransform parent, string name, Vector2 at, Vector2 size, Color c)
         {
             var rt = NewRect(name, at, size, parent);
-            rt.gameObject.AddComponent<Image>().color = c;
+            Skin(rt.gameObject.AddComponent<Image>(), _skin.Wood_, c);
+        }
+
+        /// <summary>무늬를 깔고 그 위에 색을 얹는다 — 꾸러미가 판을 그리는 방식이다.</summary>
+        private static void Skin(Image im, Sprite sp, Color c)
+        {
+            im.sprite = sp;
+            im.type = Image.Type.Simple;
+            im.color = c;
         }
 
         private void BuildCloseTab(RectTransform panel, float w, float h)
@@ -436,7 +456,7 @@ namespace IMUNROK.Common
                 size, panel);
             // 이 딱지 색도 손으로 정하지 않는다. 꾸러미의 <b>글쇠 칸</b> 색을 쓴다 —
             // 저쪽에서 「눌러도 되는 자리」를 알리는 데 쓰는 색이라 뜻이 맞는다.
-            rt.gameObject.AddComponent<Image>().color = IMUNROK.Ui.DialogueUI.Palette().slotBack;
+            Skin(rt.gameObject.AddComponent<Image>(), _skin.Slot_, IMUNROK.Ui.DialogueUI.Palette().slotBack);
             NewText("글", "✕", Vector2.zero, size, rt, _hintFontSize, _hintColor);
 
             _closeTab = rt.gameObject.AddComponent<NoticeCloseTab>();

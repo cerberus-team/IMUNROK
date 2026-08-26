@@ -51,6 +51,9 @@ namespace IMUNROK.Common
 
         [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
 
+        /// <summary>꾸러미의 결. 정적으로 들면 판을 넘겨 살아남되 내용이 죽는다 — 판마다 제 것.</summary>
+        private readonly IMUNROK.Ui.InventorySkin _skin = new IMUNROK.Ui.InventorySkin();
+
         private static InterrogationPanel _instance;
 
         private InterrogationController _owner;
@@ -329,16 +332,28 @@ namespace IMUNROK.Common
         /// <summary>낱색은 꾸러미 것, 비침은 우리 것.</summary>
         private static Color Keep(Color c, float alpha) { return new Color(c.r, c.g, c.b, alpha); }
 
+        /// <summary>무늬를 깔고 그 위에 색을 얹는다 — 꾸러미가 판을 그리는 방식이다.</summary>
+        private static void Skin(Image im, Sprite sp, Color c)
+        {
+            im.sprite = sp;
+            im.type = Image.Type.Simple;
+            im.color = c;
+        }
+
         private void BuildFixedParts()
         {
             // 마이크 — 가장 크게. VR에서 주된 입력 수단이다.
             _micRt = NewRect("마이크", new Vector2(-250f, 88f), new Vector2(560f, 96f), transform);
             _micBg = _micRt.gameObject.AddComponent<Image>();
-            _micBg.color = _micColor;
+            Skin(_micBg, _skin.Slot_, _micColor);
             var micBtn = _micRt.gameObject.AddComponent<Button>();
             micBtn.targetGraphic = _micBg;
             micBtn.onClick.AddListener(() => MicInput.Instance?.Toggle());
-            _micLabel = NewText("라벨", "🎤 눌러서 말하기", Vector2.zero, new Vector2(560f, 96f), _micRt, _fontSize);
+            // <b>그림글자 🎤 는 조선 궁서체에 없다</b> — 네모로 뜬다. 꾸러미도 같은 데서
+            // 걸려 마이크를 직접 그려 두었다(InventorySkin.Mic_). 그 그림을 얻어 쓴다.
+            var micIcon = NewRect("마이크그림", new Vector2(-200f, 0f), new Vector2(56f, 56f), _micRt);
+            Skin(micIcon.gameObject.AddComponent<Image>(), _skin.Mic_, _textColor);
+            _micLabel = NewText("라벨", "눌러서 말하기", new Vector2(30f, 0f), new Vector2(460f, 96f), _micRt, _fontSize);
 
             // 마치기 — 이건 되돌릴 수 없다. 상대가 자리를 뜬다.
             //
@@ -348,7 +363,7 @@ namespace IMUNROK.Common
             // 얻을 것이 아니라 <b>이 버튼 자신이</b> 두 번 물어 얻는 것이다.
             _endRt = NewRect("마치기", new Vector2(300f, 88f), new Vector2(340f, 96f), transform);
             _endBg = _endRt.gameObject.AddComponent<Image>();
-            _endBg.color = _endColor;
+            Skin(_endBg, _skin.Wood_, _endColor);
             var endBtn = _endRt.gameObject.AddComponent<Button>();
             endBtn.targetGraphic = _endBg;
             endBtn.onClick.AddListener(OnEndPressed);
@@ -384,7 +399,7 @@ namespace IMUNROK.Common
                 if (t == null) continue;
                 var rt = NewRect($"질문{i}", new Vector2(x0 + i * (w + gap), 0f), new Vector2(w, 84f), _chipRow);
                 var bg = rt.gameObject.AddComponent<Image>();
-                bg.color = _chipColor;
+                Skin(bg, _skin.Slot_, _chipColor);
                 var btn = rt.gameObject.AddComponent<Button>();
                 btn.targetGraphic = bg;
                 var captured = t;
@@ -419,7 +434,7 @@ namespace IMUNROK.Common
                 var o = live[i];
                 var rt = NewRect($"명령{i}", new Vector2(x0 + i * (w + gap), 0f), new Vector2(w, 66f), _orderRow);
                 var bg = rt.gameObject.AddComponent<Image>();
-                bg.color = _orderColor;
+                Skin(bg, _skin.Wood_, _orderColor);
                 var btn = rt.gameObject.AddComponent<Button>();
                 btn.targetGraphic = bg;
                 var captured = o;
@@ -456,7 +471,8 @@ namespace IMUNROK.Common
 
                 var rt = NewRect($"사람{i}", new Vector2(x0 + i * (w + gap), 0f), new Vector2(w, 70f), _seatRow);
                 var bg = rt.gameObject.AddComponent<Image>();
-                bg.color = !here ? _seatEmptyColor : (up ? _seatUpColor : _seatColor);
+                Skin(bg, up ? _skin.Wood_ : _skin.Slot_,
+                     !here ? _seatEmptyColor : (up ? _seatUpColor : _seatColor));
                 var btn = rt.gameObject.AddComponent<Button>();
                 btn.targetGraphic = bg;
                 var captured = s;
