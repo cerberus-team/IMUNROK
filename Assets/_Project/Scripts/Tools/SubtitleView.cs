@@ -27,6 +27,11 @@ namespace IMUNROK.Common
         [SerializeField] private int _hintFontSize = 30;
 
         [Header("색")]
+        [Tooltip("켜면 색을 <b>꾸러미(IMUNROK.Ui)</b> 에서 받아 온다 — 견우팀 판과 결이 같아진다. " +
+                 "끄면 아래 값을 그대로 쓴다.\n\n" +
+                 "우리에게 없는 판은 부품째 받고, 있는 판은 <b>디자인만</b> 맞추기로 한 그 갈래다. " +
+                 "자막 바는 물증 제시·자막 흐름과 얽혀 있어 통째로 못 갈아 끼운다")]
+        [SerializeField] private bool _useCommonLook = true;
         [SerializeField] private Color _panelColor = new Color(0.03f, 0.035f, 0.05f, 0.86f);
         [SerializeField] private Color _nameplateColor = new Color(0.62f, 0.14f, 0.11f, 0.95f);
         [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
@@ -225,8 +230,52 @@ namespace IMUNROK.Common
         /// 눈앞의 말을 치운다. 헤드셋에는 Esc 가 없으니 <b>보이는 표</b>가 본길이고,
         /// 키는 모니터로 시험할 때 쓰는 곁길이다.
         /// </summary>
+        private bool _fitted;
+
+        /// <summary>
+        /// <b>글씨가 하한(1.30도) 밑으로 안 내려가게 한 번 재서 키운다.</b>
+        ///
+        /// 재 보니 안내 줄이 30단위로 <b>1.29도</b>였다 — 하한에서 0.01도 모자란다.
+        /// 눈으로는 못 가리는 차이인데, 그런 자리가 헤드셋에서 「읽히긴 하는데 눈이
+        /// 피로한」 것이 된다.
+        ///
+        /// <b>지을 때 재면 안 된다.</b> 처음에 Build 에서 쟀더니 아무것도 안 커졌다 —
+        /// 그때는 판이 아직 제자리에 안 가 있어 배율이 1 이고, 1단위가 37도로 잡혀
+        /// 「넉넉하다」는 답이 나온다. 앵커가 판을 옮기고 줄인 <b>뒤</b>에 재야 한다.
+        /// 그래서 첫 칸이 아니라 <b>자리를 잡은 첫 칸</b>에 한 번 한다.
+        /// </summary>
+        private void FitToEye()
+        {
+            if (_fitted || _lineText == null) return;
+            float scale = transform.lossyScale.y;
+            if (scale > 0.5f) return;              // 아직 앵커가 안 줄였다
+            var cam = Camera.main;
+            if (cam == null) return;
+            float dist = Vector3.Distance(cam.transform.position, transform.position);
+            if (dist < 0.05f || dist > 20f) return;   // 아직 제자리가 아니다
+
+            _fitted = true;
+            Bump(_lineText, ref _lineFontSize, scale, dist);
+            Bump(_nameText, ref _nameFontSize, scale, dist);
+            Bump(_hintText, ref _hintFontSize, scale, dist);
+            // 닫기 딱지의 글씨도 안내 줄과 같은 크기로 짓는다 — 같이 키운다
+            if (_closeTab != null)
+                foreach (var t in _closeTab.GetComponentsInChildren<Text>(true))
+                    if (t.fontSize < _hintFontSize) t.fontSize = _hintFontSize;
+        }
+
+        private void Bump(Text t, ref int size, float scale, float dist)
+        {
+            if (t == null) return;
+            int want = UiLook.AtLeast(size, scale, dist);
+            if (want == size) return;
+            size = want;
+            t.fontSize = want;
+        }
+
         private void Update()
         {
+            FitToEye();
             if (_group == null || _group.alpha < 0.5f) return;
 #if ENABLE_INPUT_SYSTEM
             // 옛 Input 클래스를 쓰면 안 된다. 이 프로젝트는 입력을 Input System 으로
@@ -267,6 +316,20 @@ namespace IMUNROK.Common
             _font = UiFont.Resolve(_font);
             _group = gameObject.GetComponent<CanvasGroup>();
             if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
+
+            // ── 결을 꾸러미에서 받아 온다 ───────────────
+            //
+            // 색값을 여기 옮겨 적지 않고 <see cref="UiLook"/> 을 지나 물어 온다.
+            // 베끼면 그 순간 두 벌이 되고, 저쪽이 고칠 때 우리만 옛 색으로 남는다.
+            // <b>낙관만은 우리 것</b>이다 — 꾸러미에 없는 색이고, 말하는 이를 붉은
+            // 낙관으로 찍는 것은 이 게임의 글투다.
+            if (_useCommonLook)
+            {
+                _panelColor = UiLook.Back;
+                _textColor = UiLook.Body;
+                _hintColor = UiLook.Hint;
+                _nameplateColor = UiLook.Seal;
+            }
 
             const float w = 1200f, h = 380f;
 
