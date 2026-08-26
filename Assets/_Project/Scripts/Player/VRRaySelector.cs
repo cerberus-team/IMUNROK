@@ -93,13 +93,19 @@ namespace IMUNROK.Common
             Draw(hit != null, end);
         }
 
+        /// <summary>
+        /// <b>마지막으로 방아쇠를 당긴 손.</b> 손을 울릴 때(<see cref="Haptics"/>) 쓴다 —
+        /// 양손을 다 울리면 어느 손으로 쳤는지 몸이 헷갈린다.
+        /// </summary>
+        public static XRNode LastHand { get; private set; } = XRNode.RightHand;
+
         /// <summary>방아쇠를 당기고 있나. 검지 방아쇠와 손아귀 중 어느 쪽이든 친다.</summary>
         private bool Trigger()
         {
             var dev = InputDevices.GetDeviceAtXRNode(_hand);
             if (!dev.isValid) return false;
-            if (dev.TryGetFeatureValue(CommonUsages.triggerButton, out bool t) && t) return true;
-            if (dev.TryGetFeatureValue(CommonUsages.gripButton, out bool g) && g) return true;
+            if (dev.TryGetFeatureValue(CommonUsages.triggerButton, out bool t) && t) { LastHand = _hand; return true; }
+            if (dev.TryGetFeatureValue(CommonUsages.gripButton, out bool g) && g) { LastHand = _hand; return true; }
             return false;
         }
 

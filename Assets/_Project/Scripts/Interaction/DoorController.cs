@@ -366,6 +366,10 @@ namespace IMUNROK.Common
 
             if (_locked)
             {
+                // 두드리는 것은 소리보다 손에 먼저 온다. 소리(문_두드림_셋)와 같은
+                // 박자로 쿵·쿵·쿵 세 번 울려, 문 소리를 튼 것이 아니라 제가 친 것이
+                // 되게 한다. 헤드셋이 없으면 저절로 아무 일도 안 한다.
+                Haptics.Knock();
                 OnKnock?.Invoke();   // 두드리기 → 시퀀스가 받아 처리
                 return;
             }
