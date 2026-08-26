@@ -73,16 +73,12 @@ namespace IMUNROK.Common
         /// 낱낱의 목록은 Docs/에셋_출처와_라이선스.md 에 있다 — 화면에는
         /// <b>어디서 왔는지</b>만 적는다. 스무 줄을 띄워 봐야 아무도 안 읽는다.
         /// </summary>
-        [Tooltip("빌려 온 것의 출처. 줄을 바꿔 여럿 적으면 그대로 뜬다. 비우면 안 뜬다")]
-        [TextArea(4, 12)] [SerializeField] private string _sourcesLine =
-            "쓰인 것들\n" +
-            "\n" +
-            "한국공예디자인문화진흥원 (KCDF)   전통 공예 3D\n" +
-            "운현궁 소장품 3D\n" +
-            "경복궁 3D 데이터\n" +
-            "한국저작권위원회 공유마당   음향\n" +
-            "\n" +
-            "CC BY · 공공누리 제1유형";
+        [Tooltip("빌려 온 것의 출처. <b>한 칸이 한 판</b>이다 — 자막 바는 세 줄이 한계라, " +
+                 "한 칸에 몰아 넣으면 위아래로 넘쳐 안내줄과 겹친다")]
+        [TextArea(2, 4)] [SerializeField] private string[] _sourceLines = {
+            "쓰인 것들\n\n한국공예디자인문화진흥원 (KCDF) · 운현궁 · 경복궁 3D",
+            "한국저작권위원회 공유마당 — 음향\n\nCC BY · 공공누리 제1유형",
+        };
 
         [Header("종료 후")]
         [SerializeField] private string _hubSceneName = "HubScene";
@@ -145,7 +141,9 @@ namespace IMUNROK.Common
             _fromLine = _lines.Count;
             if (!string.IsNullOrEmpty(_thanksLine)) _lines.Add(_thanksLine);
             if (!string.IsNullOrEmpty(_creditsLine)) _lines.Add(_creditsLine);
-            if (!string.IsNullOrEmpty(_sourcesLine)) _lines.Add(_sourcesLine);
+            if (_sourceLines != null)
+                for (int i = 0; i < _sourceLines.Length; i++)
+                    if (!string.IsNullOrEmpty(_sourceLines[i])) _lines.Add(_sourceLines[i]);
 
             _index = 0;
             _timer = 0f;
@@ -265,7 +263,12 @@ namespace IMUNROK.Common
                 RenderSettings.ambientIntensity = 0f;
             }
 
-            SubtitleView.Show(ending ? "" : _speakerName, _lines[at], Hint(), true);
+            // <b>붉은 글씨는 여기 것이 아니다.</b> 마지막 인자는 「결정적 한마디」 표시라,
+            // 심문에서 <b>물증이 상대의 말을 뒤집는 순간</b>에만 붉게 지나가라고 둔 것이다.
+            // 그것을 엔딩 전 줄에 걸어 두었더니 왕의 맺음말도, 만든 사람 이름도, 출처도
+            // 죄 붉었다. 다 붉으면 붉은 것이 아무 뜻도 없다 — 게다가 어전은 어둡고
+            // 발은 검어서, 그 위의 붉은 글씨는 <b>경고문</b>처럼 읽힌다.
+            SubtitleView.Show(ending ? "" : _speakerName, _lines[at], Hint(), false);
         }
 
         private bool _justFinished;
