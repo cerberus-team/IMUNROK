@@ -29,11 +29,13 @@ namespace IMUNROK.Gyeonu
                     return p.npcId == NpcId.Gyeonu &&
                            HasAny(q, "그날", "실종 당일", "사라진 날", "마지막으로") &&
                            HasAny(q, "어디", "무엇을", "뭘 했", "행적", "선아를 본 뒤") &&
-                           HasAny(a, "말할 수 없", "말하기 어렵", "말하고 싶지", "드릴 말 없", "대답할 수 없", "대답하지 않", "묻지 말", "묻지 마", "밝힐 수 없", "기억이 나지", "기억이 안", "더는 물어", "할 말이 없") &&
+                           (HasAny(a, "말할 수 없", "말하기 어렵", "말하고 싶지", "드릴 말 없", "드릴 말씀", "대답할 수 없", "대답하지 않", "묻지 말", "묻지 마", "밝힐 수 없", "기억이 나지", "기억이 안", "더는 물어", "할 말이 없", "이만 가", "가보겠", "가봐야") ||
+                            (HasAny(a, "집에 있", "집에만 있") && HasAny(a, "그날", "그날 밤", "밤은", "밤에"))) &&
                            !HasAny(a, "옛길", "길목", "오작교 건너", "기다렸", "기다리다", "선아가 오지", "혼자 돌아", "탈출", "도망", "타공 지도");
                 case ClueId.C8:
                     return p.npcId == NpcId.Magistrate && HasAny(q, "선아 실종", "이 사건", "사건을", "누가 가장 의심", "어떻게 조사", "어떻게 보고") &&
-                           HasAny(a, "견우", "그 사내", "올해의 견우") && HasAny(a, "의심", "수상", "캐물", "행적", "조사");
+                           HasAny(a, "견우", "그 사내", "올해의 견우") &&
+                           HasAny(a, "의심", "수상", "캐물", "행적", "조사", "먼저 찾아", "찾아보라", "찾아보는");
                 case ClueId.A7:
                     return p.npcId == NpcId.Jumo && HasAny(q, "정말", "사실", "믿", "생각") && HasAny(q, "칠석", "전설", "하늘로 사라", "직녀") &&
                            HasAny(a, "사실", "틀림없", "분명", "믿") && HasAny(a, "하늘", "전설", "직녀", "칠석") && !HasAny(a, "소문일 뿐", "믿지 않");
@@ -43,7 +45,7 @@ namespace IMUNROK.Gyeonu
                            HasAny(a, "그때", "그 해", "실종", "칠석") && HasAny(a, "맑", "비가 오지", "비 없는", "구름 없");
                 case ClueId.B3:
                     return p.npcId == NpcId.Jumo && HasAny(q, "선아", "그 아씨", "아씨") &&
-                           HasAny(q, "실종 전", "최근", "밤", "해 진", "늦은", "평소와 달") &&
+                           HasAny(q, "실종 전", "최근", "밤", "해 진", "해가 진", "늦은", "평소와 달") &&
                            HasAny(a, "밤마다", "밤에", "해 진", "늦은 시각") && HasAny(a, "나갔", "나서", "외출", "드나들", "돌아다니", "나다니", "밖에서 봤", "밖에 있");
                 case ClueId.B4:
                     return p.npcId == NpcId.FestivalMerchant && HasAny(q, "견우", "사내") && HasAny(q, "그날", "당일") && HasAny(q, "밤", "오작교", "다리", "건너편") &&
@@ -53,7 +55,7 @@ namespace IMUNROK.Gyeonu
                            HasAny(a, "해마다", "실종이 있던", "그런 해", "사라진 해", "예전에도") && HasAny(a, "순찰", "포졸", "관아") && HasAny(a, "많", "심했", "늘었", "유독", "잦", "자주 돌", "빈번", "평소보다");
                 case ClueId.A4:
                     return p.npcId == NpcId.Mother && HasAny(q, "은하담") && HasAny(q, "이름", "부르", "언제부터", "왜") &&
-                           HasAny(a, "은하담", "그 이름", "이 이름") && HasAny(a, "딸", "직녀", "그 일", "그 사건", "사건 뒤", "사건 이후") && HasAny(a, "이름 붙", "부르게", "부르기 시작", "붙여 부");
+                           HasAny(a, "은하담", "그 이름", "이 이름") && HasAny(a, "딸", "직녀", "그 일", "그 사건", "사건 뒤", "사건 이후") && HasAny(a, "이름 붙", "이름을 붙", "붙였", "붙여", "붙었다", "부르게", "부르기 시작", "붙여 부");
                 case ClueId.C7:
                     return p.npcId == NpcId.Mother && HasAny(q, "아버지", "검수관") && HasAny(q, "죄인", "관물", "훔", "빼돌", "잡혀") &&
                            HasAny(a, "죄인 아니", "죄인이 아니", "죄인이 아님", "빼돌리지", "훔치지", "누명") && HasAny(a, "관아를 조사", "관아를 캐", "비리를 조사", "비리를 캐", "고발", "검수");
@@ -64,7 +66,8 @@ namespace IMUNROK.Gyeonu
                 case ClueId.C3:
                     return p.npcId == NpcId.Seona && GyeonuCase.SeonaRescued && GyeonuCase.HasFlag(GyeonuWorld.F_선아협력요청) &&
                            HasAny(q, "돕", "도와", "수사", "조사", "협력", "증거", "풀이", "대조", "밝히") &&
-                           HasAny(a, "풀이표", "비교표", "비교 기준", "대조 기준", "판독 기준");
+                           (HasAny(a, "풀이표", "비교표", "비교 기준", "비교하는 기준", "대조 기준", "판독 기준") ||
+                            (HasAny(a, "맞대어 보", "대조해 보") && HasAny(a, "기준")));
                 case ClueId.B1:
                     return p.npcId == NpcId.Gyeonu && GyeonuCase.Trust >= 70 && HasAny(q, "그날", "선아", "약속", "행적") && HasAny(a, "약속", "길목", "오지 않았", "기다렸");
                 default:
