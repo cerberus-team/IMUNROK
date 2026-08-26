@@ -88,6 +88,27 @@ namespace IMUNROK.Common
         [Tooltip("그 소리가 되풀이되나. 잡는 시간보다 짧은 소리면 켠다")]
         [SerializeField] private bool _soundLoops = true;
 
+        [Header("재 헤집기 — 옆으로 젓는 것")]
+        [Tooltip("<b>재는 들리는 것이 아니라 젓는 것이다.</b>\n\n" +
+                 "이 장치는 원래 보료·서랍처럼 <b>들어 올리는</b> 것을 위해 만들었다. " +
+                 "그것을 아궁이에 그대로 썼더니, 헤집는 짓의 전부가 <b>재가 3cm 가라앉는 것</b> " +
+                 "하나였다 — 3cm 는 눈에 안 보인다. 그래서 「재를 헤집는 느낌이 전혀 안 난다」가 됐다.\n\n" +
+                 "재를 젓는 손은 <b>옆으로 오간다</b>. 그 왕복 폭(m). 0 이면 안 젓는다 " +
+                 "(보료·서랍은 0으로 둔다)")]
+        [SerializeField] private float _stirWidth = 0f;
+        [Tooltip("젓는 빠르기(초당 왕복). <b>느려야 한다</b> — 예전에 손 떨림을 초당 11번으로 " +
+                 "넣었다가 무거운 것이 아니라 덜컹거리는 것이 되어 걷어냈다. 젓는 손은 그보다 훨씬 느리다")]
+        [SerializeField] private float _stirHz = 0.85f;
+        [Tooltip("헤집는 만큼 재가 눌려 <b>얇아지는</b> 몫(0~1). 0.5 면 절반 두께로 주저앉는다. " +
+                 "가라앉기만 하면 재판이 통째로 내려가는 것으로 보이고, 얇아져야 <b>파인다</b>")]
+        [Range(0f, 0.9f)] [SerializeField] private float _flatten = 0f;
+        [Tooltip("헤집는 <b>내내</b> 먼지가 인다. 끄면 다 헤집은 순간에 한 번만 풀썩한다 — " +
+                 "그러면 헤집는 동안에는 아무 일도 안 일어나는 것처럼 보인다")]
+        [SerializeField] private bool _dustWhileRaking = false;
+        [Tooltip("헤집는 동안 이는 먼지의 양(초당 알). 다 헤집었을 때의 <b>풀썩</b>은 이것과 " +
+                 "별개로 그대로 터진다 — 이건 그 앞의 <b>자욱함</b>이다")]
+        [SerializeField] private float _dustPerSecond = 26f;
+
         [Header("두 가지 모습")]
         [Tooltip("헤집기 전 — 고르게 덮인 재")]
         [SerializeField] private GameObject _before;
@@ -157,7 +178,7 @@ namespace IMUNROK.Common
         private void Start()
         {
             _locked = _lockedAtStart;
-            if (_hinge != null) { _restPos = _hinge.localPosition; _restRot = _hinge.localRotation; }
+            if (_hinge != null) { _restPos = _hinge.localPosition; _restRot = _hinge.localRotation; _restScale = _hinge.localScale; _restScaleTaken = true; }
 
             _box = GetComponent<BoxCollider>();
             if (_box != null) { _boxCenter = _box.center; _boxSize = _box.size; }
@@ -313,7 +334,7 @@ namespace IMUNROK.Common
         public void BindHinge(Transform hinge)
         {
             _hinge = hinge;
-            if (_hinge != null) { _restPos = _hinge.localPosition; _restRot = _hinge.localRotation; }
+            if (_hinge != null) { _restPos = _hinge.localPosition; _restRot = _hinge.localRotation; _restScale = _hinge.localScale; _restScaleTaken = true; }
             ApplyLift();
         }
 
@@ -342,7 +363,69 @@ namespace IMUNROK.Common
             if (_soft != null) _soft.SetLift(e);
             else _hinge.localRotation = _restRot * Quaternion.Euler(_liftEuler * e);
             _hinge.localPosition = _restPos + _liftOffset * e;
+
+            Stir(e);
+            Dust(e);
         }
+
+        /// <summary>
+        /// <b>재를 옆으로 젓는다.</b>
+        ///
+        /// 젓는 방향은 <b>경첩이 놓인 자세의 오른쪽</b>이다. 부모 좌표의 x 를 그대로 쓰면
+        /// 아궁이를 돌려 놓는 순간 엉뚱한 쪽으로 젓는다.
+        ///
+        /// 왕복은 손을 대고 있는 동안만 나오는 것이 아니라 <b>진행에 비례</b>한다 —
+        /// 막 손을 댔을 때는 살살, 깊이 파고들수록 크게 젓는다. 처음부터 크게 저으면
+        /// 손을 대는 순간 재가 벌떡 튀어 놀란다.
+        /// </summary>
+        private void Stir(float e)
+        {
+            if (_hinge == null) return;
+
+            // <b>얇아지는 것은 늘 진행에 매단다.</b> 젓는 것과 함께 묶어 두었더니, 다 헤집고
+            // 손을 뗀 순간 여기서 곧장 돌아서는 바람에 <b>눌린 두께가 그대로 굳었다</b> —
+            // 그 상태에서 도로 덮으면 납작해진 재가 되살아난다.
+            if (_flatten > 0.0001f && _restScaleTaken)
+            {
+                var s = _restScale;
+                s.y *= 1f - _flatten * e;
+                _hinge.localScale = s;
+            }
+
+            if (_stirWidth <= 0.0001f) return;
+            if (Raked && !_holdingNow) return;      // 다 헤집은 뒤에는 젓지 않는다
+
+            float swing = Mathf.Sin(Time.time * _stirHz * Mathf.PI * 2f) * _stirWidth * e;
+            _hinge.localPosition += (_restRot * Vector3.right) * swing;
+        }
+
+        /// <summary>
+        /// 헤집는 <b>동안</b> 먼지가 인다. 세기는 진행에 비례한다.
+        ///
+        /// 여태 먼지는 다 헤집은 순간에 한 번만 터졌다. 그래서 잡고 있는 1초 남짓
+        /// 동안에는 화면에서 아무 일도 안 일어났고, 다 되고 나서야 풀썩했다 —
+        /// <b>내가 지금 무엇을 하고 있는지</b>가 그 1초 동안 안 보였던 것이다.
+        /// </summary>
+        private void Dust(float e)
+        {
+            if (!_dustWhileRaking || _puff == null || Raked) return;
+            if (e <= 0.03f) { _dustCarry = 0f; return; }
+
+            // <b>배율을 만지지 않고 직접 뿜는다.</b> 재먼지는 「0.9초 동안 40알을 한 번에」
+            // 터뜨리는 <b>버스트</b>로 짜여 있어서 rateOverTime 이 0이다. 거기에 배수를
+            // 곱해 봐야 0 × 무엇이라 <b>한 알도 안 나온다</b>. 게다가 Play() 를 부르면
+            // 그 버스트 40알이 통째로 터져 「다 헤집었을 때의 풀썩」을 미리 써 버린다.
+            // Emit 으로 필요한 만큼만 얹으면 버스트는 마지막 순간을 위해 남는다.
+            _dustCarry += _dustPerSecond * Mathf.Clamp01(e) * Time.deltaTime;
+            int n = Mathf.FloorToInt(_dustCarry);
+            if (n <= 0) return;
+            _dustCarry -= n;
+            _puff.Emit(n);
+        }
+
+        private float _dustCarry;
+        private Vector3 _restScale;
+        private bool _restScaleTaken;
 
         /// <summary>들린 것 위에 붙는 손자리. 들춘 뒤에만 켜진다.</summary>
         private BoxCollider _liftedGrab;

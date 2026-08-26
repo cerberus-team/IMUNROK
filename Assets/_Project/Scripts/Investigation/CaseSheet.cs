@@ -13,8 +13,16 @@ namespace IMUNROK.Common
     ///
     /// 그래서 두 가지를 함께 한다:
     ///   ① <b>펴 보인다</b> — 들어서자마자 눈앞에 한 장. 내려놓으면 조사가 시작된다.
-    ///   ② <b>수첩에 넣는다</b> — 이것이 <b>첫 물증</b>이다. 심문에서 내밀 수 있고,
-    ///      "그 봉서에 뭐라 했더라" 하고 되짚을 때 방으로 돌아갈 필요가 없다.
+    ///   ② <b>수첩에 넣는다</b> — "그 봉서에 뭐라 했더라" 하고 되짚을 때 방으로
+    ///      돌아갈 필요가 없다.
+    ///
+    /// <b>다만 들이밀 수는 없다.</b> 수첩에는 남되 심문의 「제시」 단추는 안 붙는다
+    /// (<see cref="ClueEntry.presentable"/> = false). <see cref="CaseBriefing"/> 이
+    /// 먼저 세워 둔 규칙인데 이쪽이 물려받지 못했다 —
+    /// <b>처음부터 쥐고 있던 것은 증거가 아니라 출발점이다.</b>
+    /// 어전에서 받아 온 봉서를 옹덕구 앞에 들이밀며 「이걸 어떻게 설명할 테냐」 하는 것은
+    /// 말이 안 된다. 게다가 제시 목록의 <b>맨 첫 줄</b>을 늘 차지하고 있어서,
+    /// 정작 파헤쳐 찾은 물증들이 그 아래로 밀렸다.
     ///
     /// <b>두 번째 판에는 안 편다.</b> 이미 수첩에 있으면 아는 사람이다 —
     /// 이어하기로 들어온 사람 앞을 종이 한 장이 가로막을 이유가 없다.
@@ -63,7 +71,14 @@ namespace IMUNROK.Common
 
             string body = string.IsNullOrEmpty(_body) ? journal.GetBrief(_caseId) : _body;
 
-            journal.AddClue(_caseId, _key, _clueLine, _page);
+            // presentable: false — 수첩에는 남되 심문에서 들이밀 수는 없다.
+            journal.AddClue(_caseId, _key, _clueLine, _page, ClueKind.물증, false);
+
+            // <b>이미 적혀 있던 것도 내린다.</b> AddClue 는 같은 key 가 있으면 그냥
+            // 돌아서므로, 이 고침 이전에 저장된 판으로 이어하면 옛 줄이 들이밀 수 있는
+            // 채로 남는다. 저장을 지우게 할 일이 아니라 여기서 한 번 내려 주면 된다.
+            foreach (var c in journal.GetClues(_caseId))
+                if (c != null && c.key == _key) c.presentable = false;
             if (_page != null)
                 journal.AttachDocument(_caseId, _key, _page, _title, body,
                                        string.IsNullOrEmpty(_fine) ? null : _fine);

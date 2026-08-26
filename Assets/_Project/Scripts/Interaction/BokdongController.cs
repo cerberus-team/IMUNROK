@@ -398,7 +398,7 @@ namespace IMUNROK.Common
         /// 자리 높이는 밑에 깔린 것 중 가장 높은 면을 쓴다. 보료에 콜라이더가 있으면
         /// 방석 위에, 없으면 마루에 앉는다.
         /// </summary>
-        private void SeatOnFloor()
+        private void SeatOnFloor(bool useSitSpot = true)
         {
             var sk = GetComponentInChildren<SkinnedMeshRenderer>();
             if (sk == null || sk.bones == null || sk.bones.Length == 0) return;
@@ -417,7 +417,7 @@ namespace IMUNROK.Common
             // 마루(-0.80)를 짚고, 그러면 보료 윗면(-0.65)보다 15cm 파묻힌 채 앉는다.
             // 자리 표식(甲_보료자리)이 이미 보료 윗면 높이에 놓여 있으므로 그 값을 쓴다.
             float surface;
-            if (_sitSpot != null) surface = _sitSpot.position.y;
+            if (useSitSpot && _sitSpot != null) surface = _sitSpot.position.y;
             else
             {
                 Vector3 from = transform.position + Vector3.up * 1.5f;
@@ -539,6 +539,10 @@ namespace IMUNROK.Common
             // 일어서는 중 — 앉을 때 거꾸로 돌린 클립을 이번엔 바로 돌린다.
             if (_phase == Phase.StandingUp)
             {
+                // 앉은 자세에서 선 자세로 넘어가는 3초 동안, 가장 낮은 뼈를 <b>마루</b>에
+                // 붙여 따라간다. 보료가 아니라 마루인 까닭: 일어서는 발은 보료를 딛는 것이
+                // 아니라 그 옆 마루를 딛는다.
+                SeatOnFloor(false);
                 if (StateDone(_standUpState)) { SnapToStandSpot(); DoLeaveWalk(); }
                 return;
             }
@@ -733,11 +737,19 @@ namespace IMUNROK.Common
         /// <summary>일어선다. 일어서기 클립이 없으면 그냥 선 자세로 돌아간다.</summary>
         private void DoStandUp()
         {
-            // 앉힐 때 꺼 둔 발 붙이기를 되돌린다. 이걸 안 켜면 서서 걷는 내내
-            // 앉은 자세로 잡아 둔 높이를 그대로 끌고 다녀 마루 위에 떠 보인다.
-            var feet = GetComponent<GroundFeet>();
-            if (feet != null) feet.PinHeight = true;
-
+            // <b>발 붙이기는 여기서 켜지 않는다.</b>
+            //
+            // 앉힐 때 이것을 껐던 까닭이 그대로 여기에도 걸린다 — 발 붙이기는
+            // <b>선 자세를 기준으로</b> 높이를 보정하는데, 일어서기 클립의 첫 1초는
+            // 아직 앉은 자세다. 켜는 순간 그 보정이 앉은 몸에 걸려 <b>몸이 마루 밑으로
+            // 꺼진다</b>. 재 보니 y −1.37 — 마루가 −0.80 이니 <b>57cm 아래</b>다.
+            // 화면에는 갓만 마루 위에 동동 떠 있었다. 「이상한 몸 모양으로 일어난다」가
+            // 이것이었다.
+            //
+            // 대신 일어서는 동안에는 <b>매 칸 가장 낮은 뼈를 마루에 붙여</b> 따라간다
+            // (Update 의 StandingUp 대목). 앉을 때 보료 윗면에 붙이던 것과 같은 수인데,
+            // 짚는 면만 보료가 아니라 마루다. 다 일어선 뒤에 <see cref="SnapToStandSpot"/>
+            // 이 자리를 잡고 그때 발 붙이기를 켠다.
             _phase = Phase.StandingUp;
             if (_animator == null || string.IsNullOrEmpty(_standUpState)) { DoLeaveWalk(); return; }
             float rise = _standSpeed > 0f ? _standSpeed : _sitSpeed;
@@ -900,6 +912,12 @@ namespace IMUNROK.Common
                 transform.position = _beforeSitPos;
                 transform.rotation = _beforeSitRot;
             }
+
+            // <b>발 붙이기는 여기서 켠다.</b> 일어서기 클립이 끝나 이제야 선 자세이므로,
+            // 선 자세를 기준으로 잡는 그 보정이 비로소 맞는다.
+            var feet = GetComponent<GroundFeet>();
+            if (feet != null) feet.PinHeight = true;
+
             _groundInit = false;      // 새 자리에서 발밑을 다시 잡는다
             SnapToGround();
         }

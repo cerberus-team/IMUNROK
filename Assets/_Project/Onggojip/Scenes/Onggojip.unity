@@ -1991,7 +1991,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8510b609d1740a645a8067e4f9c7f801, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.047329307
+      value: -0.043196082
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8510b609d1740a645a8067e4f9c7f801, type: 3}
       propertyPath: m_LocalPosition.z
@@ -4396,7 +4396,7 @@ MonoBehaviour:
   _liftEuler: {x: 0, y: 0, z: 0}
   _liftOffset: {x: 0, y: -0.03, z: 0}
   _soft: {fileID: 0}
-  _holdSeconds: 0.8
+  _holdSeconds: 1.4
   _hoverHint: 0.06
   _fallBackSpeed: 2.5
   _catchAt: 0.62
@@ -4412,6 +4412,11 @@ MonoBehaviour:
   _noise: 0.35
   _sound: {fileID: 8300000, guid: 4c8e8ab7a7ffd6e41b84acd4e96b5e9b, type: 3}
   _soundLoops: 1
+  _stirWidth: 0.035
+  _stirHz: 1.4
+  _flatten: 0.6
+  _dustWhileRaking: 1
+  _dustPerSecond: 26
   _before: {fileID: 2007637631}
   _after: {fileID: 564063997}
   _puff: {fileID: 1353964249}
@@ -12090,7 +12095,6 @@ MonoBehaviour:
   _sitIdleState: Sit_and_Doze_Off
   _sitDownSpot: {fileID: 1923173201}
   _dozeSpot: {fileID: 467883253}
-  _delayBeforeOpen: 0.4
   _answerLine: 
   _answerSpeaker: "\uBB38 \uC548\uCABD"
   _delayBeforeAsk: 1.6
