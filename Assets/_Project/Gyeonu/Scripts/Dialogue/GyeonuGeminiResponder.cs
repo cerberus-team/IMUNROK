@@ -78,13 +78,44 @@ namespace IMUNROK.Gyeonu
 
         IEnumerator Send(NpcRequest req, Action<string> onReply, Action<string> onError)
         {
-            string body = BuildJson(req);
-            yield return Post(Model, body, raw =>
+            string rawJson = null, firstError = null;
+            yield return Post(Model, BuildJson(req, null), raw => rawJson = raw, error => firstError = error);
+            if (!string.IsNullOrEmpty(firstError)) { onError?.Invoke(firstError); yield break; }
+
+            string reply = ParseText(rawJson)?.Trim();
+            if (string.IsNullOrEmpty(reply)) { onError?.Invoke("빈 응답(안전필터 등)"); yield break; }
+
+            var profile = ProfileOf(req);
+            if (!DialogueResponseGuard.Violates(profile, req.playerInput, reply, out string correction))
             {
-                string reply = ParseText(raw);
-                if (string.IsNullOrEmpty(reply)) onError?.Invoke("빈 응답(안전필터 등)");
-                else onReply?.Invoke(reply.Trim());
-            }, onError);
+                onReply?.Invoke(reply);
+                yield break;
+            }
+
+            // P0 정보가 화면에 닿기 전에 동일 요청을 딱 한 번만 바로잡아 다시 보낸다.
+            Debug.LogWarning("[Gemini] Response Guard가 금지 정보 응답을 차단했다. 한 번만 재요청한다: " +
+                             (profile != null ? profile.npcId.ToString() : "Unknown"));
+            string retryJson = null, retryError = null;
+            yield return Post(Model, BuildJson(req, correction), raw => retryJson = raw, error => retryError = error);
+            string retry = string.IsNullOrEmpty(retryError) ? ParseText(retryJson)?.Trim() : "";
+            if (!string.IsNullOrEmpty(retry) && !DialogueResponseGuard.Violates(profile, req.playerInput, retry, out _))
+            {
+                onReply?.Invoke(retry);
+                yield break;
+            }
+
+            Debug.LogWarning("[Gemini] Response Guard 재요청도 사용할 수 없어 안전 대사로 대체했다: " +
+                             (profile != null ? profile.npcId.ToString() : "Unknown"));
+            onReply?.Invoke(DialogueResponseGuard.Fallback(profile));
+        }
+
+        static NpcProfile ProfileOf(NpcRequest req)
+        {
+            if (req?.character == null) return null;
+            string name = req.character.characterName;
+            var profiles = Resources.FindObjectsOfTypeAll<NpcProfile>();
+            foreach (var p in profiles) if (p != null && p.displayName == name) return p;
+            return null;
         }
 
         // ─────────────────────────────────────────────────────────
@@ -157,11 +188,11 @@ namespace IMUNROK.Gyeonu
         }
 
         // ── 요청 만들기 ──────────────────────────────────────────
-        string BuildJson(NpcRequest req)
+        string BuildJson(NpcRequest req, string correction)
         {
             var reqObj = new GReq
             {
-                systemInstruction = new GSystem { parts = new[] { new GPart { text = BuildSystem(req) } } },
+                systemInstruction = new GSystem { parts = new[] { new GPart { text = BuildSystem(req, correction) } } },
                 contents = BuildContents(req),
                 generationConfig = new GGenConfig { maxOutputTokens = MaxOutputTokens, temperature = 0.6f },
             };
@@ -169,7 +200,7 @@ namespace IMUNROK.Gyeonu
         }
 
         /// <summary>공통 대답기와 <b>같은 뼈대</b>로 짠다 — 나중에 공통으로 되돌아가도 프롬프트가 안 바뀐다.</summary>
-        string BuildSystem(NpcRequest req)
+        string BuildSystem(NpcRequest req, string correction)
         {
             var sb = new StringBuilder();
             sb.AppendLine(req.character != null ? req.character.persona : "너는 심문받는 인물이다.");
@@ -180,6 +211,13 @@ namespace IMUNROK.Gyeonu
             sb.AppendLine("질문과 별개의 단서·비밀·사건 사실이 떠올라도 덧붙이지 말고, 여러 단서 표식을 한 답에 함께 쓰지 마라.");
             sb.AppendLine("실제로 입으로 말하는 대사와 지정된 내부 태그만 출력하라. 괄호·별표·대괄호로 몸짓, 표정, 이동, 감정 행동을 묘사하지 마라. 연출은 게임 애니메이션이 담당한다.");
             AppendNpcBoundary(sb, req);
+            if (!string.IsNullOrEmpty(correction))
+            {
+                sb.AppendLine();
+                sb.AppendLine("[방금 응답 교정 — 이번 재요청에서 반드시 지켜라]");
+                sb.AppendLine(correction);
+                sb.AppendLine("앞선 답을 반복하거나 해명하지 말고, 금지된 내용을 완전히 뺀 새 답만 출력하라.");
+            }
             sb.AppendLine();
             sb.AppendLine("[밝혀진 사실]");
             if (req.unlockedFacts != null && req.unlockedFacts.Count > 0)
