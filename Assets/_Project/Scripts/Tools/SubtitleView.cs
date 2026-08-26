@@ -311,55 +311,126 @@ namespace IMUNROK.Common
             foreach (var g in GetComponentsInChildren<Graphic>(true)) DrawOnTop(g);
         }
 
+        // ── 꾸러미 하단바의 세로 차림 ─────────────────
+        //
+        // 견우팀 꾸러미의 <b>하단바 확정안(VR)</b>을 그대로 옮긴 값이다.
+        // 위에서부터: 여백 → 이름패 → 사이 → 구분선 → 사이 → 대사 → 사이 → 안내 → 여백.
+        //
+        // <b>입력줄만 뺐다.</b> 꾸러미 바에는 글쇠로 쳐 넣는 칸이 한 줄 있는데,
+        // 우리는 <b>말로 묻는다</b>(Wit.ai). 칠 데가 없는 칸을 남겨 두면 판만 높아지고
+        // 「여기에 뭘 치라는 거지」가 된다.
+        //
+        // ⚠ 숫자를 <b>베껴 왔다</b>. 색은 <c>DialogueUI.Palette()</c> 가 공개라 물어 오는데,
+        //   치수를 쥔 <c>StyleOf</c> 는 비공개다. 견우팀에 그것도 열어 달라고 적어 둘 것 —
+        //   열리면 이 상수들을 지우고 그쪽을 부르면 된다.
+        private const float BarW = 1500f;
+        private const float PadX = 60f, PadTop = 18f;
+        private const float NameToRule = 12f, RuleH = 3f, RuleToLine = 28f;
+        private const float LineToFoot = 40f, FootH = 36f, FootToEdge = 24f;
+
         private void Build()
         {
             _font = UiFont.Resolve(_font);
             _group = gameObject.GetComponent<CanvasGroup>();
             if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
 
-            // ── 결을 꾸러미에서 받아 온다 ───────────────
+            // ── 색은 꾸러미에서 물어 온다 ───────────────
             //
-            // 색값을 여기 옮겨 적지 않고 <see cref="UiLook"/> 을 지나 물어 온다.
-            // 베끼면 그 순간 두 벌이 되고, 저쪽이 고칠 때 우리만 옛 색으로 남는다.
-            // <b>낙관만은 우리 것</b>이다 — 꾸러미에 없는 색이고, 말하는 이를 붉은
-            // 낙관으로 찍는 것은 이 게임의 글투다.
+            // 베끼지 않는다. 베끼면 그 순간 두 벌이 되고, 견우팀이 고칠 때 우리만
+            // 옛 색으로 남는다. 낙관의 붉은색만 우리 것이다 — 꾸러미에 없는 색이고,
+            // 말하는 이를 낙관으로 찍는 것은 이 게임의 글투다.
+            var pal = IMUNROK.Ui.DialogueUI.Palette();
             if (_useCommonLook)
             {
-                _panelColor = UiLook.Back;
-                _textColor = UiLook.Body;
-                _hintColor = UiLook.Hint;
+                _panelColor = pal.back;          // 먹빛 65%
+                _textColor = pal.text;
+                _hintColor = pal.dim;
                 _nameplateColor = UiLook.Seal;
+                _lineFontSize = 46; _nameFontSize = 36; _hintFontSize = 34;
             }
 
-            const float w = 1200f, h = 380f;
+            float nameH = _nameFontSize + 18f;
+            float lineBoxH = Mathf.Round(_lineFontSize * 1.28f) * 3f;   // 대사 세 줄
+            float h = PadTop + nameH + NameToRule + RuleH + RuleToLine
+                    + lineBoxH + LineToFoot + FootH + FootToEdge;
+            const float w = BarW;
 
             var panel = NewRect("바탕", Vector2.zero, new Vector2(w, h), transform);
             panel.gameObject.AddComponent<Image>().color = _panelColor;
 
-            // 화자 이름표 — 바탕 왼쪽 위에 걸치는 낙관
-            _nameplate = NewRect("이름판", new Vector2(-w * 0.5f + 150f, h * 0.5f), new Vector2(260f, 74f), panel);
+            // <b>목재 테두리</b> — 꾸러미 바에 있고 우리에게 없던 것이다.
+            // 먹빛 판이 밤 배경에 얹히면 어디까지가 판인지 경계가 사라진다.
+            Edge(panel, w, h, pal.border);
+
+            // 위에서부터 쌓아 내려간다. 자리를 하나씩 손으로 잡으면 값 하나만 고쳐도
+            // 아래가 죄 어긋난다 — 커서를 두고 내린다.
+            float top = h * 0.5f;
+            float y = top - PadTop;
+
+            // 이름표 — 낙관. 판 <b>안</b> 왼쪽 위다(꾸러미와 같은 자리).
+            float nameW = 300f;
+            _nameplate = NewRect("이름판",
+                new Vector2(-w * 0.5f + PadX + nameW * 0.5f, y - nameH * 0.5f),
+                new Vector2(nameW, nameH), panel);
             _nameplate.gameObject.AddComponent<Image>().color = _nameplateColor;
-            _nameText = NewText("이름", "", Vector2.zero, new Vector2(260f, 74f), _nameplate, _nameFontSize, _textColor);
+            _nameText = NewText("이름", "", Vector2.zero, new Vector2(nameW, nameH),
+                                _nameplate, _nameFontSize, _textColor);
+            y -= nameH + NameToRule;
 
-            _lineText = NewText("대사", "", new Vector2(0f, 16f), new Vector2(w - 140f, h - 140f),
+            // 구분선 — 이름과 말을 가른다
+            var rule = NewRect("구분선", new Vector2(0f, y - RuleH * 0.5f),
+                               new Vector2(w - PadX * 2f, RuleH), panel);
+            rule.gameObject.AddComponent<Image>().color = pal.border;
+            y -= RuleH + RuleToLine;
+
+            _lineText = NewText("대사", "", new Vector2(0f, y - lineBoxH * 0.5f),
+                                new Vector2(w - PadX * 2f, lineBoxH),
                                 panel, _lineFontSize, _textColor);
-            _lineText.alignment = TextAnchor.MiddleLeft;
+            _lineText.alignment = TextAnchor.UpperLeft;
             _lineText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _lineText.verticalOverflow = VerticalWrapMode.Truncate;
+            y -= lineBoxH + LineToFoot;
 
-            _hintText = NewText("힌트", "", new Vector2(0f, -h * 0.5f + 40f), new Vector2(w - 140f, 44f),
+            _hintText = NewText("힌트", "", new Vector2(0f, y - FootH * 0.5f),
+                                new Vector2(w - PadX * 2f, FootH),
                                 panel, _hintFontSize, _hintColor);
+            _hintText.alignment = TextAnchor.MiddleCenter;
 
             BuildCloseTab(panel, w, h);
             AllOnTop();
         }
 
-        /// <summary>바탕 오른쪽 위 귀퉁이에 걸치는 작은 닫기 표.</summary>
+        /// <summary>
+        /// 테두리 넉 줄. 꾸러미 바의 목재 테두리다.
+        ///
+        /// 상자 하나에 외곽선을 그릴 방법이 없어(Image 는 테두리를 안 그린다)
+        /// 얇은 띠 넷을 두른다. 값은 싸고 결과는 같다.
+        /// </summary>
+        private void Edge(RectTransform panel, float w, float h, Color c)
+        {
+            const float t = 4f;
+            Strip(panel, "테_위", new Vector2(0f, h * 0.5f - t * 0.5f), new Vector2(w, t), c);
+            Strip(panel, "테_아래", new Vector2(0f, -h * 0.5f + t * 0.5f), new Vector2(w, t), c);
+            Strip(panel, "테_좌", new Vector2(-w * 0.5f + t * 0.5f, 0f), new Vector2(t, h), c);
+            Strip(panel, "테_우", new Vector2(w * 0.5f - t * 0.5f, 0f), new Vector2(t, h), c);
+        }
+
+        private void Strip(RectTransform parent, string name, Vector2 at, Vector2 size, Color c)
+        {
+            var rt = NewRect(name, at, size, parent);
+            rt.gameObject.AddComponent<Image>().color = c;
+        }
+
         private void BuildCloseTab(RectTransform panel, float w, float h)
         {
-            var size = new Vector2(150f, 68f);
-            var rt = NewRect("닫기", new Vector2(w * 0.5f - size.x * 0.5f, h * 0.5f), size, panel);
-            rt.gameObject.AddComponent<Image>().color = new Color(0.18f, 0.17f, 0.16f, 0.95f);
-            NewText("글", "닫기 ✕", Vector2.zero, size, rt, _hintFontSize, _hintColor);
+            // 꾸러미와 같이 <b>판 안</b> 오른쪽 위다. 예전에는 판 밖에 걸터앉아 있어서
+            // 어디에 딸린 단추인지 알 수 없었다.
+            var size = new Vector2(120f, 56f);
+            var rt = NewRect("닫기",
+                new Vector2(w * 0.5f - PadX - size.x * 0.5f, h * 0.5f - PadTop - size.y * 0.5f),
+                size, panel);
+            rt.gameObject.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.35f);
+            NewText("글", "✕", Vector2.zero, size, rt, _hintFontSize, _hintColor);
 
             _closeTab = rt.gameObject.AddComponent<NoticeCloseTab>();
             _closeTab.Bind(() => SetVisible(false, true), new Vector3(size.x, size.y, 8f));
