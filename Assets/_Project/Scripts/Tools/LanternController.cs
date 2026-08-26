@@ -110,8 +110,13 @@ namespace IMUNROK.Common
             if (want && !_shown) Swing();
             _shown = want;
 
-            // 종이 뒤로 넘어가는 움직임
-            if (_model != null)
+            // 종이 뒤로 넘어가는 움직임.
+            //
+            // <b>손에 들었으면 안 한다.</b> 이 값(_upPose)은 「눈앞 0.88m」처럼
+            // <b>머리에 매달린 것</b>을 옮기는 셈이라, 컨트롤러에 매달린 등불에 쓰면
+            // 손아귀에서 0.88m 앞으로 튕겨 나간다. 그리고 손에 들었으면 종이 뒤로
+            // 넘기는 일은 <b>사람이 팔로 한다</b> — 그것이 헤드셋을 쓰는 값이다.
+            if (_model != null && !HeldHand.InHand)
             {
                 if (!_restTaken) { _restPose = _model.transform.localPosition; _restTaken = true; }
                 _raise = Mathf.MoveTowards(_raise, want ? _wantRaise : 0f, _raiseSpeed * Time.deltaTime);
