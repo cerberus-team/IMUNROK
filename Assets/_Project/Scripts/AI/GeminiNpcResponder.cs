@@ -116,6 +116,30 @@ namespace IMUNROK.Common
                           "양반은 하오체(…소/…오/…구려/…시오)로만, 아랫사람은 합쇼체(…습니다/…습니까/…지요)로만 말한다. " +
                           "'소이다까'처럼 두 말씨를 겹친 어미는 없는 말이다. 현대 말씨(…했어요/…네요/…거든요)도 쓰지 마라.");
             sb.AppendLine("아래 '밝혀진 사실'에 없는 핵심 비밀은 절대 먼저 말하지 마라. 시치미를 떼라.");
+
+            // ── 이름 ──
+            //
+            // <b>여태 인물에게 제 이름을 알려 주지 않았다.</b> 성격만 통째로 주었는데,
+            // 가짜 옹덕구의 성격에는 「실은 종 '복동'이 주인 행세를 한다」가 적혀 있다.
+            // 그러니 이름을 물으면 AI는 그것을 <b>제가 아는 사실</b>로 읽고 그대로 답한다 —
+            // 「복동이오」. 첫 마디에 사건이 통째로 샌다.
+            //
+            // 이름패를 그대로 물려 줄 수도 없다. 진짜 옹덕구의 이름패는
+            // 「행색 사나운 사내」인데, 그건 <b>손님이 아직 모르니 그렇게 보인다</b>는
+            // 뜻이지 그가 제 입으로 댈 이름이 아니다. 그래서 대는 이름을 따로 둔다.
+            if (req.character != null)
+            {
+                string spoken = string.IsNullOrEmpty(req.character.spokenName)
+                              ? req.character.characterName : req.character.spokenName;
+                if (!string.IsNullOrEmpty(spoken))
+                    sb.AppendLine("[네 이름] 너는 스스로를 '" + spoken + "'이라 한다. "
+                                + "이름을 묻거든 그리 답하고, 그 밖의 이름으로 제 자신을 부르지 마라.");
+
+                if (!string.IsNullOrEmpty(req.character.secretWords))
+                    sb.AppendLine("[입에 담지 않는 말] " + req.character.secretWords
+                                + " — 이 낱말들은 네 입으로 먼저 꺼내지 마라. "
+                                + "묻는 이가 증거를 들이밀어 아래 '밝혀진 사실'에 오르기 전까지는 모르는 척하라.");
+            }
             // 플레이어의 신분은 이야기의 반전이다. 인물이 먼저 "어사또"라 부르면 그 반전이 새어나간다.
             if (!string.IsNullOrEmpty(req.playerIdentityBrief))
                 sb.AppendLine("[묻는 이] " + req.playerIdentityBrief);

@@ -64,6 +64,18 @@ namespace IMUNROK.Common
     {
         public string characterName = "인물";
 
+        [Tooltip("<b>제 입으로 대는 이름.</b> 비우면 위의 이름표를 그대로 쓴다. " +
+                 "둘이 갈리는 자리가 있다. 진짜 옹덕구는 이름패가 「행색 사나운 사내」인데 " +
+                 "— 손님은 아직 그가 누구인지 모르니까 — 정작 제 입으로는 「옹덕구」라 한다. " +
+                 "이름패를 그대로 물려 주면 「내 이름은 행색 사나운 사내요」라고 답한다")]
+        public string spokenName = "";
+
+        [Tooltip("<b>제 입으로 절대 먼저 꺼내지 않을 낱말.</b> 쉼표로 여럿. " +
+                 "성격에 비밀을 적어 두면 AI가 그것을 <b>아는 사실</b>로 읽고 이름을 물었을 때 " +
+                 "그대로 댄다 — 가짜 옹덕구에게 이름을 물었더니 「복동이오」라 답했다. " +
+                 "사건이 통째로 새는 자리다. 여기 적은 낱말은 증거로 들이밀기 전까지 안 나온다")]
+        public string secretWords = "";
+
         [Tooltip("이 인물이 속한 사건(수첩 단서 범위와 연결)")]
         public CaseId caseId = CaseId.Case1_Onggojip;
 
