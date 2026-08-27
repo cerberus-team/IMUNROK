@@ -1,0 +1,141 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace IMUNROK.Gyeonu
+{
+    /// <summary>
+    /// 여닫이 가구 (2026-08-15) — 문짝·서랍이 본(Transform)으로 분리된 가구를 클릭 한 번으로
+    /// 전부 부드럽게 열고 닫는다. 마을 담장 문(HingeDoor)과 같은 원리:
+    /// 부품 GameObject를 리페어런트하지 않고, **부모 좌표계의 자기 원점(경첩)을 축으로 자체 회전**한다.
+    /// 스킨드 메시(kcisa)는 본을 돌리면 메시가 따라오고, 문갑(Table04)은 Dummy 본이 문·서랍을 끈다.
+    /// 서랍은 회전 대신 로컬 오프셋으로 앞으로 빠진다.
+    /// 클릭 판정은 가구의 기존 차단 콜라이더가 받는다 (DebugInteractor가 부모에서 이 컴포넌트를 찾는다).
+    /// </summary>
+    public class FurnitureParts : Interactable, IOpenable
+    {
+        [System.Serializable]
+        public class Part
+        {
+            [Tooltip("움직일 본/노드")]
+            public Transform node;
+            [Tooltip("회전 축 (본 자기 로컬 — 실험 계측과 동일 기준. 0이면 회전 안 함)")]
+            public Vector3 axisInSelf;
+            [Tooltip("부모 좌표계 힌지 축 — 지정하면 axisInSelf 대신 이 축·pivotInParent를 쓴다 (0이면 미사용). 함 뚜껑·모서리 경첩처럼 본 원점이 경첩이 아닐 때")]
+            public Vector3 axisInParent;
+            [Tooltip("부모 좌표계 경첩점 (axisInParent 사용 시)")]
+            public Vector3 pivotInParent;
+            [Tooltip("열림 각도")]
+            public float openAngle;
+            [Tooltip("서랍용 — 열렸을 때의 로컬 이동량 (0이면 이동 없음)")]
+            public Vector3 slideLocal;
+            [System.NonSerialized] public Vector3 closedPos;
+            [System.NonSerialized] public Quaternion closedRot;
+        }
+
+        public List<Part> parts = new List<Part>();
+        [Tooltip("여닫는 시간(초)")]
+        public float duration = 0.9f;
+
+        [Header("잠금 (비우면 잠기지 않는다 — 기존 가구는 무영향)")]
+        [Tooltip("이 GyeonuWorld 플래그가 서야 열린다. 비우면 늘 열린다")]
+        public string unlockFlag = "";
+        [Tooltip("잠겨 있을 때 뜨는 안내")]
+        [TextArea] public string lockedMessage = "잠겨 있다.";
+
+        public bool IsOpen => open;
+
+        /// <summary>여닫이 진행도 0~1 (0 = 완전히 닫힘). 문에 가려지는 순간을 골라
+        /// 무언가를 바꾸려는 쪽이 쓴다 — 예: 찬장 속 판의 재질 교체.</summary>
+        public float Progress => t;
+
+        /// <summary>지금 잠겨 있는가 — 플래그가 없으면 늘 열린다.</summary>
+        public bool Locked => !string.IsNullOrEmpty(unlockFlag) && !GyeonuWorld.Has(unlockFlag);
+
+        float t;          // 0=닫힘, 1=열림
+        bool open;
+
+        public override string Prompt => Locked ? "살펴보기" : (open ? "닫기" : "열기");
+
+        void Awake() => CaptureClosed();
+
+        /// <summary>
+        /// 닫힌 자세 원장을 잡는다 (씬은 닫힌 상태로 저장된다).
+        ///
+        /// ⚠️ **Awake 한 번으로는 못 믿는다** (2026-08-24 Play 실측).
+        ///    <see cref="Part"/> 는 중첩 [Serializable] 클래스이고 closedPos/closedRot은
+        ///    NonSerialized라, 에디터가 컴포넌트를 다시 역직렬화하면 Awake가 채운 값이
+        ///    **0으로 되돌아간다.** 그 상태로 열면 문짝이 원점 기준으로 회전해 가구 밖으로 날아간다
+        ///    (문갑 서랍이 0.33m 튀어나오고 열쇠가 허공에 떴다).
+        ///    w까지 0인 사원수는 실제 회전일 수 없으므로 그것을 "안 잡힘" 표시로 삼고,
+        ///    **닫혀 있을 때만** 다시 잡는다 — 여닫는 도중에 잡으면 중간 자세가 닫힌 자세가 된다.
+        /// </summary>
+        void CaptureClosed()
+        {
+            foreach (var p in parts)
+            {
+                if (p.node == null) continue;
+                p.closedPos = p.node.localPosition;
+                p.closedRot = p.node.localRotation;
+            }
+        }
+
+        static bool Uncaptured(Part p)
+        {
+            var q = p.closedRot;
+            return q.x == 0f && q.y == 0f && q.z == 0f && q.w == 0f;
+        }
+
+        void EnsureCaptured()
+        {
+            if (open || t > 0f) return;          // 닫혀 있을 때만
+            foreach (var p in parts)
+                if (p.node != null && Uncaptured(p))
+                {
+                    p.closedPos = p.node.localPosition;
+                    p.closedRot = p.node.localRotation;
+                }
+        }
+
+        public override void Interact(GameObject actor)
+        {
+            if (Locked) { DebugToast.ShowPinned(lockedMessage); return; }
+            EnsureCaptured();
+            open = !open;
+        }
+
+        /// <summary>퍼즐·연출 쪽에서 부르는 진입점 — 잠금을 묻지 않고 그대로 여닫는다.</summary>
+        public void SetOpen(bool value)
+        {
+            EnsureCaptured();
+            open = value;
+        }
+
+        void Update()
+        {
+            EnsureCaptured();
+            float target = open ? 1f : 0f;
+            if (Mathf.Approximately(t, target)) return;
+            t = Mathf.MoveTowards(t, target, Time.deltaTime / Mathf.Max(0.05f, duration));
+            float s = t * t * (3f - 2f * t);            // 스무스스텝
+            foreach (var p in parts)
+            {
+                if (p.node == null) continue;
+                if (p.axisInParent.sqrMagnitude > 1e-4f && Mathf.Abs(p.openAngle) > 0.01f)
+                {
+                    // 부모 좌표계 경첩 — HingeDoor와 같은 원리: pivot을 축으로 위치·회전을 함께 돌린다
+                    var q = Quaternion.AngleAxis(p.openAngle * s, p.axisInParent.normalized);
+                    p.node.localPosition = p.pivotInParent + q * (p.closedPos - p.pivotInParent);
+                    p.node.localRotation = q * p.closedRot;
+                }
+                else if (p.axisInSelf.sqrMagnitude > 1e-4f && Mathf.Abs(p.openAngle) > 0.01f)
+                {
+                    // 경첩 = 본의 자기 원점 — 자기 로컬 축으로 제자리 회전 (위치 불변)
+                    var q = Quaternion.AngleAxis(p.openAngle * s, p.axisInSelf.normalized);
+                    p.node.localRotation = p.closedRot * q;
+                }
+                if (p.slideLocal.sqrMagnitude > 1e-6f)
+                    p.node.localPosition = p.closedPos + p.slideLocal * s;
+            }
+        }
+    }
+}

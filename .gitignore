@@ -63,61 +63,453 @@ sysinfo.txt
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
-# ─────────────────────────────────────────────
-# 팀 정리 추가 규칙 (2026-08-11)
-# ─────────────────────────────────────────────
-# Visual Studio
-.vsconfig
+# API 키 (절대 커밋 금지)
+gemini_api_key.txt
+*_api_key.txt
 
-# 대용량 기성 에셋 — 낙안읍성 팩은 git에서 제외 (로컬/외부 배포본으로 관리)
-#   팩은 Assets/Naganeupseong/ 으로 이동 완료됨
+# ─────────────────────────────────────────────
+# 에셋 스토어 외부 에셋
+# 커밋하지 않는다. 각자 Package Manager > My Assets 에서 임포트할 것
+# ─────────────────────────────────────────────
 /[Aa]ssets/Naganeupseong/
 /[Aa]ssets/Naganeupseong.meta
 
-# 비밀정보 / 자격증명 (팀원의 API 키 규칙 포함·통합)
-gemini_api_key.txt
-*_api_key.txt
-*api_key*.txt
-*apikey*.txt
-*.env
-.env.*
-secrets/
-*.secret
+# 담양 소쇄원
+/[Aa]ssets/Soswaewon/
+/[Aa]ssets/Soswaewon.meta
 
-# 작업 백업 폴더
-_AssetBackup/
-
-# ═════════════════════════════════════════════
-# 포트폴리오 공개 설정 (2026-08-22)
-#   방침: 코드·씬·프리팹·머티리얼·설정 등 "텍스트 자산"만 커밋한다.
-#         3D 모델·텍스처·구운 메시 등 바이너리 아트와 기성 에셋 팩은 제외.
-#   → 클론해도 씬은 그대로 열리지 않는다. README 의 안내를 따를 것.
-# ═════════════════════════════════════════════
-
-# ── 기성 에셋 팩 (재배포 불가 / 각자 임포트) ──
+# 보길도 세연정
 /[Aa]ssets/SeyeonjeongPavilion/
 /[Aa]ssets/SeyeonjeongPavilion.meta
+
+# 정읍 김명관 고택
+/[Aa]ssets/KimMyeonggwanHouse/
+/[Aa]ssets/KimMyeonggwanHouse.meta
+
+# Grass Flowers Pack Free (ALP) — 잔디·꽃
+/[Aa]ssets/ALP_Assets/
+/[Aa]ssets/ALP_Assets.meta
+
+# Japanese Garden 2 Free (Waldemarst) — 일본 정원
+/[Aa]ssets/Waldemarst/
+/[Aa]ssets/Waldemarst.meta
+
+# 위 에셋 팩들이 자기 폴더 밖에 풀어놓는 의존 파일 (임포트 시 같이 생성됨)
+/[Aa]ssets/Settings/
+/[Aa]ssets/Settings.meta
+# 위 에셋 팩들이 자기 폴더 밖에 풀어놓는 셰이더 잔재는 계속 막는다 (팩만 임포트하면 따라온다).
+# 단 Uber Stylized Water 만은 예외 — 출처가 스토어가 아니라 GitHub(MatrixRex v1.1.2) 이고,
+# 커밋되는 물 재질 두 개(Water_EunhaDam / Water_GyeonuVillage)가 이 셰이더 GUID 를 물고 있다.
+# 각자 GitHub 에서 내려받으면 GUID 가 달라져 물이 핑크로 뜬다 — .meta 를 커밋해 GUID 를 못 박는다.
+Assets/Shaders/*
+!Assets/Shaders/Uber Stylized Water/
+#   ⚠️ 폴더째 막지 않는다. 무거운 확장자만 막고 .meta·.mat 은 커밋한다.
+#      .shader(8MB) · .shadergraph 는 셰이더그래프가 뽑아낸 덩치라 함께 막는다 — 배포본에 들어 있다.
+Assets/Shaders/Uber Stylized Water/**/*.png
+Assets/Shaders/Uber Stylized Water/**/*.jpg
+Assets/Shaders/Uber Stylized Water/**/*.jpeg
+Assets/Shaders/Uber Stylized Water/**/*.tga
+Assets/Shaders/Uber Stylized Water/**/*.psd
+Assets/Shaders/Uber Stylized Water/**/*.tif
+Assets/Shaders/Uber Stylized Water/**/*.exr
+Assets/Shaders/Uber Stylized Water/**/*.fbx
+Assets/Shaders/Uber Stylized Water/**/*.obj
+Assets/Shaders/Uber Stylized Water/**/*.blend
+Assets/Shaders/Uber Stylized Water/**/*.zip
+Assets/Shaders/Uber Stylized Water/**/*.shader
+Assets/Shaders/Uber Stylized Water/**/*.shadergraph
+Assets/Shaders/Uber Stylized Water/**/*.shadersubgraph
+
+/[Aa]ssets/DefaultVolumeProfile.asset
+/[Aa]ssets/DefaultVolumeProfile.asset.meta
+# 스카이박스 팩 (에셋 스토어 — 각자 임포트)
+/[Aa]ssets/3D Skybox/
+/[Aa]ssets/3D Skybox.meta
 /[Aa]ssets/AllSkyFree/
 /[Aa]ssets/AllSkyFree.meta
+/[Aa]ssets/Assets MOOD WARE/
+/[Aa]ssets/Assets MOOD WARE.meta
+/[Aa]ssets/Fantasy Skybox FREE/
+/[Aa]ssets/Fantasy Skybox FREE.meta
+# 하늘 반사 큐브맵 (굽기 메뉴로 재생성 가능, 개당 256MB)
+Assets/_Project/Gyeonu/Art/Lighting/EnvCube_*.asset
+Assets/_Project/Gyeonu/Art/Lighting/EnvCube_*.asset.meta
+# 월정교·풍영정 (Sketchfab 다운로드 — 폴더째 전달할 것. 각자 내려받으면 GUID 가 어긋난다)
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .controller · .anim 은 커밋한다.
+Assets/woljeonggyo/**/*.png
+Assets/woljeonggyo/**/*.jpg
+Assets/woljeonggyo/**/*.jpeg
+Assets/woljeonggyo/**/*.tga
+Assets/woljeonggyo/**/*.psd
+Assets/woljeonggyo/**/*.tif
+Assets/woljeonggyo/**/*.exr
+Assets/woljeonggyo/**/*.fbx
+Assets/woljeonggyo/**/*.obj
+Assets/woljeonggyo/**/*.blend
+Assets/woljeonggyo/**/*.zip
+
+
+# Alchemist House (BK) — 서양 연금술사 실내 (벽·바닥·계단·가구·서책·플라스크)
+/[Aa]ssets/BK_AlchemistHouse/
+/[Aa]ssets/BK_AlchemistHouse.meta
+
+# KHS - Unhyeongung Collect — 운현궁 전통 가구·기물
+/[Aa]ssets/UnhyeongungCollect/
+/[Aa]ssets/UnhyeongungCollect.meta
+
+# kcisa - Korean Traditional Interactive Props Vol.2
+/[Aa]ssets/KTinteractiveProp/
+/[Aa]ssets/KTinteractiveProp.meta
+
+# Joseon Library — 조선시대 서고 소품 (Sketchfab + 팀 전달 꾸러미). 기물 12종 포함
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .controller · .anim 은 커밋한다.
+Assets/Joseon Library/**/*.png
+Assets/Joseon Library/**/*.jpg
+Assets/Joseon Library/**/*.jpeg
+Assets/Joseon Library/**/*.tga
+Assets/Joseon Library/**/*.psd
+Assets/Joseon Library/**/*.tif
+Assets/Joseon Library/**/*.exr
+Assets/Joseon Library/**/*.fbx
+Assets/Joseon Library/**/*.obj
+Assets/Joseon Library/**/*.blend
+Assets/Joseon Library/**/*.zip
+
+
+# 수원 화성 행궁 — 담장 모듈(SM_StraightStronewall) 조달처. 각자 임포트
+/[Aa]ssets/HwaseongHaenggung/
+/[Aa]ssets/HwaseongHaenggung.meta
+
+# Donheon_v1 — 팀원 직접 제작 관아 동헌 모델. 스토어에 없다
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .controller · .anim 은 커밋한다.
+Assets/Donheon_v1/**/*.png
+Assets/Donheon_v1/**/*.jpg
+Assets/Donheon_v1/**/*.jpeg
+Assets/Donheon_v1/**/*.tga
+Assets/Donheon_v1/**/*.psd
+Assets/Donheon_v1/**/*.tif
+Assets/Donheon_v1/**/*.exr
+Assets/Donheon_v1/**/*.fbx
+Assets/Donheon_v1/**/*.obj
+Assets/Donheon_v1/**/*.blend
+Assets/Donheon_v1/**/*.zip
+
+
+# 검증용 스크린샷 (각자 다시 찍으면 됨)
+/[Aa]ssets/Screenshots/
+/[Aa]ssets/Screenshots.meta
+# 이미지·텍스처는 커밋하지 않는다 (LFS 회피, 굽기 메뉴로 재생성)
+Assets/_Project/Gyeonu/**/*.png
+Assets/_Project/Gyeonu/**/*.jpg
+Assets/_Project/Gyeonu/**/*.tga
+Assets/_Project/Gyeonu/**/*.psd
+Assets/_Project/Gyeonu/**/*.exr
+
+# 에디터 도구가 생성하는 분석 결과 (필요할 때 다시 뽑으면 됨)
+HierarchyDump_*.md
+PlotExtract_*.md
+PlotExtract2_*.md
+PlotGrid_Debug.png
+/Captures/
+# 팀원 관아 게이트 세트 전달본 (GwanaSet_FOR_TEAM.unitypackage에서 선별 임포트)
+# 외삼문 FBX + 재질/텍스처 223MB + 나졸. 각자 unitypackage에서 임포트할 것
+# 관아 게이트 세트 전달본 (GwanaSet_FOR_TEAM.unitypackage 에서 임포트)
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .controller · .anim 은 커밋한다.
+Assets/Models/**/*.png
+Assets/Models/**/*.jpg
+Assets/Models/**/*.jpeg
+Assets/Models/**/*.tga
+Assets/Models/**/*.psd
+Assets/Models/**/*.tif
+Assets/Models/**/*.exr
+Assets/Models/**/*.fbx
+Assets/Models/**/*.obj
+Assets/Models/**/*.blend
+Assets/Models/**/*.zip
+
+# 관아 나졸 (위 게이트 세트와 한 묶음)
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .controller · .anim 은 커밋한다.
+Assets/_Import/**/*.png
+Assets/_Import/**/*.jpg
+Assets/_Import/**/*.jpeg
+Assets/_Import/**/*.tga
+Assets/_Import/**/*.psd
+Assets/_Import/**/*.tif
+Assets/_Import/**/*.exr
+Assets/_Import/**/*.fbx
+Assets/_Import/**/*.obj
+Assets/_Import/**/*.blend
+Assets/_Import/**/*.zip
+
+/[Aa]ssets/GwanaHandoff/
+/[Aa]ssets/GwanaHandoff.meta
+# 위 전달본에서 파생시킨 메시 (외삼문 문짝 분리본, 잘라 쓴 담장 조각).
+# 메뉴로 재생성되고 원본이 gitignore라 함께 제외한다
+# 외삼문 문짝·문채 파생 메시는 커밋한다 — Gyeonu_Gwana.unity 가 GUID 를 직접 물고 있어
+# 빼면 팀원 화면에서 외삼문이 통째로 사라진다 (.meta 만 커밋하면 유니티가 고아 meta 를 지워 소용없다).
+Assets/_Project/Gyeonu/Art/Models/Gwana/관아담장_*.asset
+Assets/_Project/Gyeonu/Art/Models/Gwana/관아담장_*.asset.meta
+# 팀 담장 이음부 마개 메시 (전달본 원본 경로 유지, 위 게이트 세트와 한 묶음)
+/[Aa]ssets/_Project/Wall_SlitBlocker/
+/[Aa]ssets/_Project/Wall_SlitBlocker.meta
+
+# ★전달본 unitypackage 가 통째로 임포트되면서 팀원(제2사건) 폴더에 풀린 파일들.
+#   우리 씬은 이 중 아무것도 참조하지 않는다(동헌은 Assets/Donheon_v1/ 을 쓴다).
+#   커밋되면 남의 작업 폴더에 106MB 가 들어가므로 제외한다. 필요 없으면 지워도 된다.
+/[Aa]ssets/_Project/Seocheon/Art/Models/Donheon_Quest3_v11.fbx
+/[Aa]ssets/_Project/Seocheon/Art/Models/Donheon_Quest3_v11.fbx.meta
+/[Aa]ssets/_Project/Seocheon/Art/Materials/Donheon/
+/[Aa]ssets/_Project/Seocheon/Art/Materials/Donheon.meta
+/[Aa]ssets/_Project/Seocheon/Art/Textures/Donheon/
+/[Aa]ssets/_Project/Seocheon/Art/Textures/Donheon.meta
+/[Aa]ssets/_Project/Seocheon/Meshes/
+/[Aa]ssets/_Project/Seocheon/Meshes.meta
+/[Aa]ssets/_Project/Gate_Hwaryeongjeon/
+/[Aa]ssets/_Project/Gate_Hwaryeongjeon.meta
+
+# 관아 톤 조절 복제 재질 (GwanaToneTuner 메뉴로 재생성, 원본은 gitignore 대상)
+/[Aa]ssets/_Project/Gyeonu/Art/Materials/GwanaTone/
+/[Aa]ssets/_Project/Gyeonu/Art/Materials/GwanaTone.meta
+
+# ─────────────────────────────────────────────
+# 종막 서고 장부 퍼즐 (2026-08-25)
+# ─────────────────────────────────────────────
+# 찬장(Joseon Library) 메시에서 문짝 넷을 떼어낸 파생본.
+# 원본 FBX가 gitignore라 함께 제외한다 — 빌더 메뉴를 한 번 누르면 다시 만들어진다.
+# 찬장 파생 메시(6개 합 287KB)도 커밋한다 — Gyeonu_Observatory.unity 가 GUID 를 물고 있다.
+
+# ─────────────────────────────────────────────
+# 팀 공용 글꼴 (2026-08-26)
+# ─────────────────────────────────────────────
+# 자리: Assets/_Project/_Common/Art/Fonts/
+#   ChosunCentennial_ttf.ttf  5.1MB  한글 — 조선 궁서체 (본문 글꼴)
+#   tkFangSong.ttf           31.5MB  한자 — 방송체 (폴백 글꼴)
+#   AbbrFesFont.ttf           9.2MB  팀원 개인 사용
+#   Bakudai-Medium.ttf       16.6MB  팀원 개인 사용
+#
+# 원본 .ttf 는 커밋하지 않는다 — LFS 사용량 0 방침. 파일로 따로 전달한다.
+# ⚠️ .meta 는 커밋한다. GUID 가 팀 전체에서 같아야 TMP 폰트 에셋의
+#    소스 글꼴 참조가 끊기지 않는다. GUID 표는 CLAUDE.md 「글꼴」 절에 적어 두었다.
+Assets/_Project/_Common/Art/Fonts/*.ttf
+Assets/_Project/_Common/Art/Fonts/*.otf
+
+# TMP 기본 리소스 (Window ▸ TextMeshPro ▸ Import TMP Essential Resources)
+# 4MB 짜리 패키지 사본이고 그 안에 .ttf·.png 가 있어 커밋하면 LFS 를 탄다.
+# 다른 에셋 팩과 같은 규약 — 각자 메뉴로 한 번 임포트할 것. GUID 는 패키지에 고정돼 있어
+# 누가 임포트하든 우리 폰트 에셋의 셰이더 참조가 그대로 맞는다.
+# ⚠️ 여기 든 「TMP Settings」의 한글 줄바꿈 항목은 UiSkin 이 실행 중에 켠다 — 설정 파일에
+#    기대지 않는다 (팀원 설정은 갓 임포트한 기본값이라 꺼져 있다).
+/[Aa]ssets/TextMesh Pro/
+/[Aa]ssets/TextMesh Pro.meta
+
+# 구운 TMP 폰트 에셋 (Tools ▸ 이문록 ▸ 글꼴 ▸ TMP 폰트 에셋 굽기 로 재생성)
+# 한글 아틀라스만 2048² 라 파일이 9MB 다. 원본 .ttf 도 커밋하지 않으므로 함께 제외한다.
+Assets/_Project/_Common/Art/Fonts/Resources/
+Assets/_Project/_Common/Art/Fonts/Resources.meta
+
+# 팀 전달용 꾸러미 (Tools ▸ 이문록 ▸ UI 패키지 내보내기 로 재생성)
+# .gitattributes 가 *.unitypackage 를 LFS 로 보낸다 — LFS 사용량 0 방침이라 제외한다.
+*.unitypackage
+
+# UI 꾸러미를 굽는 동안 세우는 사본 폴더 + 그 안에 만드는 예제 씬.
+# 메뉴로 언제든 다시 만들어진다 (Tools ▸ 이문록 ▸ UI 패키지 내보내기 / UI 예제 씬 만들기).
+/[Aa]ssets/IMUNROK_UI/
+/[Aa]ssets/IMUNROK_UI.meta
+
+# ─────────────────────────────────────────────
+# NPC 11인 모델 (2026-08-26) — 팀원 직접 제작
+# ─────────────────────────────────────────────
+# 자리: Assets/Unity_Final_Characters_Textured/
+#   .fbx  11개  80.4MB
+#   .png   4개  17.9MB
+#   .jpg   7개  16.5MB   ← 합계 약 115MB
+#
+# ⚠️ 폴더째 막으면 안 된다. .meta 까지 빠져 씬 6개의 GUID 참조가 통째로 끊긴다
+#    (Gyeonu · Gyeonu_EunhaDam · Gyeonu_Gwana · Gyeonu_GwanaOffice ·
+#     Gyeonu_GyeonuVillage · Gyeonu_Observatory).
+#    글꼴과 같은 규약 — 무거운 확장자만 막고 .meta 는 커밋한다.
+#    .gitattributes 가 *.fbx *.png *.jpg 를 LFS 로 보내므로 「LFS 사용량 0」 방침을 지키려면
+#    이 세 줄이 반드시 필요하다. 원본은 파일로 따로 전달한다.
+#    FBX GUID 표는 docs/에셋출처조사.md 3절 ① 에 있다 — meta 가 날아가면 손으로 되살릴 것.
+#    .mat(11) · .controller(1) · Texture_Material_Report.txt 는 가벼운 텍스트라 커밋한다.
+Assets/Unity_Final_Characters_Textured/**/*.fbx
+Assets/Unity_Final_Characters_Textured/**/*.png
+Assets/Unity_Final_Characters_Textured/**/*.jpg
+
+# ─────────────────────────────────────────────
+# 사각지대 메우기 (2026-08-26)
+# ─────────────────────────────────────────────
+# ★ Gemini API 키 사본. 기존 규칙(gemini_api_key.txt · *_api_key.txt)이 이 이름을 못 잡는다.
+#   코드가 읽는 건 프로젝트 루트의 gemini_api_key.txt 뿐이라 이 파일은 쓰이지도 않는다.
+Assets/StreamingAssets/gemini_key.txt
+Assets/StreamingAssets/gemini_key.txt.meta
+
+# 복구 부산물 씬 2개 (4.7MB). 어디서도 참조하지 않는다 — 지웠지만 다시 생겨도 막는다.
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta
+
+# ─────────────────────────────────────────────
+# 합치기 전 사각지대 메우기 (2026-08-27)
+# ─────────────────────────────────────────────
+# AI 도구 설정 — 사람마다 다르고 프로젝트 산출물이 아니다.
+# CLAUDE.md · .mcp.json 은 이미 .git/info/exclude 로 막혀 있으나 그건 로컬 전용이라
+# 새로 클론하면 되살아난다. 여기 적어 두면 클론해도 계속 막힌다.
+AGENTS.md
+/.codex/
+/.claude/
+/.mcp.json
+
+# XR Plug-in Management · Meta XR 가 만드는 프로젝트 전역 XR 설정.
+# ⚠️ 공통 담당자 영역이다. 견우 작업자가 커밋하지 않는다 — 파일로 전달할 것.
+#    (Assets/Resources/OculusRuntimeSettings.asset 은 이미 공통 담당자가 커밋해 두었다.
+#     그 파일은 계속 추적한다 — 아래 두 줄이 그것까지 막지 않도록 경로를 못 박았다.)
+/[Aa]ssets/XR/
+/[Aa]ssets/XR.meta
+/[Aa]ssets/Resources/OVROverlayCanvasSettings.asset
+/[Aa]ssets/Resources/OVROverlayCanvasSettings.asset.meta
+
+
+# ═════════════════════════════════════════════════════════════
+# 서천(제3사건) 규칙 — 2026-08-27 병합 시 추가
+#   ★develop 규칙은 견우 폴더만 다룬다. 서천에도 같은 규약을 적용해야 한다.
+#     이 줄들이 없으면 .gitattributes 가 *.png · *.fbx 를 LFS 로 보내
+#     「LFS 사용량 0」 방침이 그 자리에서 깨진다.
+#   ★.asset 도 막는다 — 구운 지형·메시·큐브맵이 여기 들어 있다(개당 최대 16MB).
+# ═════════════════════════════════════════════════════════════
+# 서천 아트 — 지형·하늘·텍스처·구운 메시
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .prefab · .controller · .anim 은 커밋한다.
+Assets/_Project/Seocheon/**/*.png
+Assets/_Project/Seocheon/**/*.jpg
+Assets/_Project/Seocheon/**/*.jpeg
+Assets/_Project/Seocheon/**/*.tga
+Assets/_Project/Seocheon/**/*.psd
+Assets/_Project/Seocheon/**/*.tif
+Assets/_Project/Seocheon/**/*.tiff
+Assets/_Project/Seocheon/**/*.exr
+Assets/_Project/Seocheon/**/*.hdr
+Assets/_Project/Seocheon/**/*.cubemap
+Assets/_Project/Seocheon/**/*.fbx
+Assets/_Project/Seocheon/**/*.obj
+Assets/_Project/Seocheon/**/*.blend
+Assets/_Project/Seocheon/**/*.zip
+Assets/_Project/Seocheon/**/*.ttf
+Assets/_Project/Seocheon/**/*.otf
+Assets/_Project/Seocheon/**/*.wav
+Assets/_Project/Seocheon/**/*.mp3
+Assets/_Project/Seocheon/**/*.ogg
+Assets/_Project/Seocheon/**/*.asset
+
+# 관아 창고 세트
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .prefab · .controller · .anim 은 커밋한다.
+Assets/_Project/Storehouse_Gwana/**/*.png
+Assets/_Project/Storehouse_Gwana/**/*.jpg
+Assets/_Project/Storehouse_Gwana/**/*.jpeg
+Assets/_Project/Storehouse_Gwana/**/*.tga
+Assets/_Project/Storehouse_Gwana/**/*.psd
+Assets/_Project/Storehouse_Gwana/**/*.tif
+Assets/_Project/Storehouse_Gwana/**/*.tiff
+Assets/_Project/Storehouse_Gwana/**/*.exr
+Assets/_Project/Storehouse_Gwana/**/*.hdr
+Assets/_Project/Storehouse_Gwana/**/*.cubemap
+Assets/_Project/Storehouse_Gwana/**/*.fbx
+Assets/_Project/Storehouse_Gwana/**/*.obj
+Assets/_Project/Storehouse_Gwana/**/*.blend
+Assets/_Project/Storehouse_Gwana/**/*.zip
+Assets/_Project/Storehouse_Gwana/**/*.ttf
+Assets/_Project/Storehouse_Gwana/**/*.otf
+Assets/_Project/Storehouse_Gwana/**/*.wav
+Assets/_Project/Storehouse_Gwana/**/*.mp3
+Assets/_Project/Storehouse_Gwana/**/*.ogg
+Assets/_Project/Storehouse_Gwana/**/*.asset
+
+# 신당 세트 (자체 제작)
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .prefab · .controller · .anim 은 커밋한다.
+Assets/_Sindang/**/*.png
+Assets/_Sindang/**/*.jpg
+Assets/_Sindang/**/*.jpeg
+Assets/_Sindang/**/*.tga
+Assets/_Sindang/**/*.psd
+Assets/_Sindang/**/*.tif
+Assets/_Sindang/**/*.tiff
+Assets/_Sindang/**/*.exr
+Assets/_Sindang/**/*.hdr
+Assets/_Sindang/**/*.cubemap
+Assets/_Sindang/**/*.fbx
+Assets/_Sindang/**/*.obj
+Assets/_Sindang/**/*.blend
+Assets/_Sindang/**/*.zip
+Assets/_Sindang/**/*.ttf
+Assets/_Sindang/**/*.otf
+Assets/_Sindang/**/*.wav
+Assets/_Sindang/**/*.mp3
+Assets/_Sindang/**/*.ogg
+Assets/_Sindang/**/*.asset
+
+# NPC 반입본 (문지기·아전·주모·노파·수령·주민)
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .prefab · .controller · .anim 은 커밋한다.
+Assets/_Import/**/*.png
+Assets/_Import/**/*.jpg
+Assets/_Import/**/*.jpeg
+Assets/_Import/**/*.tga
+Assets/_Import/**/*.psd
+Assets/_Import/**/*.tif
+Assets/_Import/**/*.tiff
+Assets/_Import/**/*.exr
+Assets/_Import/**/*.hdr
+Assets/_Import/**/*.cubemap
+Assets/_Import/**/*.fbx
+Assets/_Import/**/*.obj
+Assets/_Import/**/*.blend
+Assets/_Import/**/*.zip
+Assets/_Import/**/*.ttf
+Assets/_Import/**/*.otf
+Assets/_Import/**/*.wav
+Assets/_Import/**/*.mp3
+Assets/_Import/**/*.ogg
+Assets/_Import/**/*.asset
+
+# Blender 가공 모델
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .prefab · .controller · .anim 은 커밋한다.
+Assets/Models/**/*.png
+Assets/Models/**/*.jpg
+Assets/Models/**/*.jpeg
+Assets/Models/**/*.tga
+Assets/Models/**/*.psd
+Assets/Models/**/*.tif
+Assets/Models/**/*.tiff
+Assets/Models/**/*.exr
+Assets/Models/**/*.hdr
+Assets/Models/**/*.cubemap
+Assets/Models/**/*.fbx
+Assets/Models/**/*.obj
+Assets/Models/**/*.blend
+Assets/Models/**/*.zip
+Assets/Models/**/*.ttf
+Assets/Models/**/*.otf
+Assets/Models/**/*.wav
+Assets/Models/**/*.mp3
+Assets/Models/**/*.ogg
+Assets/Models/**/*.asset
+
+# 작업용 백업 — 다시 생기더라도 커밋되지 않게
+/[Aa]ssets/**/_bk/
+/[Aa]ssets/**/_Backup/
+
+# 서천이 쓰는 스토어 팩 (각자 Package Manager 로 임포트)
 /[Aa]ssets/TombOfSilla/
 /[Aa]ssets/TombOfSilla.meta
-/[Aa]ssets/SUIMONO - WATER SYSTEM 2/
-/[Aa]ssets/SUIMONO - WATER SYSTEM 2.meta
 /[Aa]ssets/KCDF/
 /[Aa]ssets/KCDF.meta
-/[Aa]ssets/WaterWorks/
-/[Aa]ssets/WaterWorks.meta
-/[Aa]ssets/Ayo Free Toon Water/
-/[Aa]ssets/Ayo Free Toon Water.meta
-/[Aa]ssets/Julien Tonsuso/
-/[Aa]ssets/Julien Tonsuso.meta
-/[Aa]ssets/TutorialInfo/
-/[Aa]ssets/TutorialInfo.meta
-
-# ── 기성 팩 추가분 (2026-08-27) ──
-#   ★.meta 차단을 푸는 순간 이 팩들이 새어나왔다.
-#   지금까지는 *.png.meta 같은 확장자 규칙에 우연히 가려져 있었을 뿐이다.
-#   스토어 팩은 팀원이 각자 임포트하면 GUID 가 저절로 맞는다 — 커밋하면 안 된다.
 /[Aa]ssets/Idyllic Fantasy Nature/
 /[Aa]ssets/Idyllic Fantasy Nature.meta
 /[Aa]ssets/FlipGameDev/
@@ -128,82 +520,31 @@ _AssetBackup/
 /[Aa]ssets/Fog Particles.meta
 /[Aa]ssets/RainSnowCloudEffect/
 /[Aa]ssets/RainSnowCloudEffect.meta
+/[Aa]ssets/SUIMONO - WATER SYSTEM 2/
+/[Aa]ssets/SUIMONO - WATER SYSTEM 2.meta
+/[Aa]ssets/WaterWorks/
+/[Aa]ssets/WaterWorks.meta
+/[Aa]ssets/Ayo Free Toon Water/
+/[Aa]ssets/Ayo Free Toon Water.meta
+/[Aa]ssets/Julien Tonsuso/
+/[Aa]ssets/Julien Tonsuso.meta
+/[Aa]ssets/Planets of the Solar System 3D/
+/[Aa]ssets/Planets of the Solar System 3D.meta
+/[Aa]ssets/Free Stylized Hand-Painted Skybox/
+/[Aa]ssets/Free Stylized Hand-Painted Skybox.meta
+/[Aa]ssets/BOXOPHOBIC/
+/[Aa]ssets/BOXOPHOBIC.meta
+/[Aa]ssets/LUMINATE/
+/[Aa]ssets/LUMINATE.meta
+/[Aa]ssets/LiteEffectStudio/
+/[Aa]ssets/LiteEffectStudio.meta
+/[Aa]ssets/Gizmos/
+/[Aa]ssets/Gizmos.meta
 
-# ── Unity 기본 제공물 ──
-#   TMP Essentials 는 각자 프로젝트가 이미 갖고 있다. 덮으면 충돌만 난다.
-/[Aa]ssets/TextMesh Pro/
-/[Aa]ssets/TextMesh Pro.meta
-
-# ── 팀원 꾸러미 (원작자 브랜치가 나른다) ──
-#   견우 UI. 우리가 같이 올리면 머지 때 같은 파일이 양쪽에서 올라온다.
-/[Aa]ssets/IMUNROK_UI/
-/[Aa]ssets/IMUNROK_UI.meta
-
-# ── 바이너리 아트 (모델) ──
-#   ★알통만 막고 .meta 는 반드시 커밋한다 (2026-08-27).
-#   .meta 가 빠지면 GUID 가 새로 생겨 팀원 쪽에서 참조가 통째로 죽는다.
-*.fbx
-*.blend
-*.blend1
-*.obj
-*.dae
-*.max
-*.mb
-*.ma
-
-# ── 바이너리 아트 (텍스처) ──
-*.png
-*.jpg
-*.jpeg
-*.tga
-*.psd
-*.tif
-*.tiff
-*.exr
-*.hdr
-*.cubemap
-
-# ── 바이너리 아트 (오디오·폰트·패키지) ──
-*.wav
-*.mp3
-*.ogg
-*.aif
-*.aiff
-*.ttf
-*.otf
-*.unitypackage
-*.unitypackage.meta
-
-# ── 구운 메시 / 지형 (.asset 바이너리) ──
-#   URP 설정과 Onggojip 데이터만 예외로 포함한다.
-/[Aa]ssets/**/*.asset
-!/[Aa]ssets/_Project/Settings/*.asset
-!/[Aa]ssets/_Project/Onggojip/Data/*.asset
-!/[Aa]ssets/Resources/*.asset
-!/[Aa]ssets/Oculus/*.asset
-
-# ── README 용 스크린샷은 예외로 허용 ──
-!/docs/
-!/docs/**/*.png
-!/docs/**/*.jpg
-!/docs/**/*.gif
-
-# ── 작업 백업 (다시 생기더라도 커밋되지 않게) ──
-/_SceneBackup/
-/[Aa]ssets/**/_bk/
-/[Aa]ssets/**/_Backup/
-/[Aa]ssets/_Recovery/
-/[Aa]ssets/Screenshots/
-/[Aa]ssets/Screenshots.meta
-
-# 팀 인수인계 임시 폴더 (커밋 대상 아님)
+# 작업 중 만든 잔여 파일
 /_TeamHandoff/
 .gitignore.bak
 .gitignore.before-meta-fix
-/.codex/
-
-# ── 작업 중 만든 잔여 파일 ──
-/[Aa]ssets/_Recovery.meta
 /_planetpick.txt
 /_us.txt
 /oisamun_del.txt

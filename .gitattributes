@@ -40,6 +40,8 @@
 *.mat merge=unityyamlmerge eol=lf
 *.anim merge=unityyamlmerge eol=lf
 *.controller merge=unityyamlmerge eol=lf
+Assets/_Project/Gyeonu/Art/Models/Items/Magistrate_Secret_Key/Meshy_AI_Ornate_Antique_Key_0824040338_texture.fbx -filter -diff -merge -text
+Assets/_Project/Gyeonu/Art/Materials/Artifacts/**/*.fbx -filter -diff -merge -text
 
 # README 용 스크린샷은 LFS 로 보내지 않는다
 #   (용량이 작고, LFS 로 가면 클론할 때 git-lfs 가 필수가 되어 불편하다)
