@@ -432,6 +432,9 @@ namespace IMUNROK.Common
             else RefreshSubtitle();
         }
 
+        /// <summary>손으로 친 말을 칸에서 받아 온다 — 자막 바가 던지기 직전에 부른다.</summary>
+        public void SetDraft(string text) { Draft = text == null ? "" : text; }
+
         /// <summary>칸에 올라 있는 말을 던진다 — Enter 와 「묻 기」 단추가 부른다.</summary>
         public void AskDraft()
         {

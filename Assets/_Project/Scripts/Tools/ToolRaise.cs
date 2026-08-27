@@ -43,6 +43,7 @@ namespace IMUNROK.Common
             get
             {
                 if (Vr()) return true;
+                if (Typing.Now) return false;   // 치는 동안에는 도구가 안 올라온다
 #if ENABLE_INPUT_SYSTEM
                 var mouse = Mouse.current;
                 if (mouse != null && mouse.rightButton.isPressed && DocumentView.IsOpen) return true;

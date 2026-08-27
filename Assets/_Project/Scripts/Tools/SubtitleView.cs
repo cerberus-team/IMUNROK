@@ -313,19 +313,21 @@ namespace IMUNROK.Common
             // 터졌고, 그래서 Esc 로 자막을 닫는 곁길이 여태 한 번도 듣지 않았다.
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb == null) return;
-            if (kb.escapeKey.wasPressedThisFrame || kb.backspaceKey.wasPressedThisFrame)
+
+            // <b>치는 동안에는 Backspace 를 먹지 않는다.</b> 여기가 자막을 닫는 자리인데,
+            // 글을 고치려고 한 글자 지운 순간 판이 통째로 닫히면 무슨 일인지 알 수가 없다.
+            if (kb.escapeKey.wasPressedThisFrame
+                || (kb.backspaceKey.wasPressedThisFrame && !Typing.Now))
                 SetVisible(false, true);        // 이것도 사람이 닫은 것이다
 
             // ── Enter — 묻기 ──
             //
-            // 저쪽 대화창이 Enter 로 던진다. 우리는 여태 <b>던지는 절차 자체가 없었다</b> —
-            // 마이크가 문장을 끝내는 순간 그대로 날아갔다. 이제 칸에 올라 있는 말을
-            // 사람이 보고 Enter 로 던진다(「묻 기」 단추와 같은 길이다).
-            if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame)
-            {
-                var a = InterrogationController.Active;
-                if (a != null) a.AskDraft();
-            }
+            // 저쪽 대화창이 Enter 로 던진다. 우리는 여태 <b>던지는 절차 자체가 없었다</b>.
+            //
+            // ⚠️ <c>InputField.onSubmit</c> 을 쓰지 않는다. 칸이 선택을 잃을 때도 함께
+            //    울리는 자리라, 늘 잡아 두는 규칙과 부딪힌다. 글쇠를 바로 보면 규칙이
+            //    하나로 단순해진다 (저쪽이 같은 까닭으로 같은 선택을 했다).
+            if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) AskNow();
 #endif
         }
 
@@ -356,24 +358,63 @@ namespace IMUNROK.Common
 
         private void PaintHeard()
         {
-            if (_heardText == null) return;
+            if (_field == null) return;
             var a = InterrogationController.Active;
-            var pal = IMUNROK.Ui.DialogueUI.Palette();
 
+            // ── 받아 적힌 말이 새로 오면 칸에 얹는다 ──
+            //
+            // <b>매 칸 덮어쓰면 안 된다.</b> 그러면 치는 족족 지워진다.
+            // 말이 <b>바뀐 그때</b>만 얹고, 그 뒤로는 손이 임자다 —
+            // 잘못 알아들었으면 고쳐 칠 수 있어야 한다(저쪽 규약).
             string draft = a != null ? a.Draft : "";
-            if (!string.IsNullOrEmpty(draft))
+            if (draft != _draftSeen)
             {
-                if (_heardText.text != draft) _heardText.text = draft;
-                if (_heardText.color != pal.text) _heardText.color = pal.text;
-                return;
+                _draftSeen = draft;
+                if (!string.IsNullOrEmpty(draft)) _field.text = draft;
             }
 
-            string last = a != null ? a.LastPlayerLine : "";
-            string show = string.IsNullOrEmpty(last)
-                        ? Controls.SpeakPrompt
-                        : last;
-            if (_heardText.text != show) _heardText.text = show;
-            if (_heardText.color != pal.slotHint) _heardText.color = pal.slotHint;
+            if (_heardHint != null)
+            {
+                string want = VRRig.Active
+                            ? Controls.SpeakPrompt
+                            : "묻고 싶은 것을 치거나, " + Controls.SpeakPrompt;
+                if (_heardHint.text != want) _heardHint.text = want;
+            }
+
+            // ── 헤드셋에서는 칠 수 없다 ──
+            //
+            // 저쪽 주석 그대로: 칸을 통째로 감춰 봤더니 <b>받아 적힌 말이 어디에도
+            // 안 보였다</b> — 무엇으로 전해지는지 확인하지 못한 채 던지게 된다.
+            // 그래서 칸은 남기되 못 치게만 한다.
+            bool canType = !VRRig.Active;
+            if (_field.interactable != canType) _field.interactable = canType;
+            if (_field.readOnly == canType) _field.readOnly = !canType;
+
+            // ── 칸을 늘 잡아 둔다 ──
+            //
+            // 빈 곳을 한 번 누르면 선택이 풀린다. 그러면 치던 사람이 <b>아무 일도
+            // 안 일어나는 것</b>을 겪는다. 심문하는 동안에는 늘 잡혀 있어야 한다.
+            // (저쪽도 같은 까닭으로 같은 일을 한다)
+            if (canType && _inputRow != null && _inputRow.gameObject.activeSelf
+                && !_field.isFocused && EventSystem.current != null)
+                _field.ActivateInputField();
+        }
+
+        /// <summary>
+        /// 칸에 있는 글을 던진다. <b>칸이 임자다</b> — 받아 적힌 말이든 손으로 친 말이든
+        /// 지금 칸에 보이는 그것이 전해진다. 눈에 보이는 것과 전해지는 것이 달라서는 안 된다.
+        /// </summary>
+        private void AskNow()
+        {
+            var a = InterrogationController.Active;
+            if (a == null || _field == null) return;
+            string say = _field.text;
+            if (string.IsNullOrWhiteSpace(say)) return;
+            _field.text = "";
+            _draftSeen = "";
+            a.SetDraft(say);
+            a.AskDraft();
+            if (!VRRig.Active) _field.ActivateInputField();
         }
 
         /// <summary>
@@ -621,7 +662,9 @@ namespace IMUNROK.Common
         }
 
         private RectTransform _inputRow;
-        private Text _heardText;
+        private Text _heardText, _heardHint;
+        private InputField _field;
+        private string _draftSeen = "";
 
         /// <summary>
         /// <b>입력줄</b> — 저쪽 바의 「글쇠 칸 + 단추 셋」 자리다.
@@ -654,13 +697,39 @@ namespace IMUNROK.Common
 
             float x = -inner * 0.5f;
 
-            // 받아 적힌 말이 뜨는 칸 — 저쪽 글쇠 칸 자리다
-            var slot = NewRect("받아적힌말", new Vector2(x + slotW * 0.5f, 0f),
+            // ── 글쇠 칸 ──
+            //
+            // 여태 여기는 <b>글씨판</b>이었다. 받아 적힌 말을 비추기만 하고 칠 수는 없었다.
+            // 그래서 마이크가 안 잡히는 자리에서는 <b>물을 방법이 아예 없었다</b> —
+            // 영상을 찍으려면 손으로 칠 수 있어야 한다.
+            //
+            // 저쪽은 처음부터 진짜 칸이었다. 저쪽 주석이 왜 그런지도 적어 뒀다:
+            // 「한글 IME 조합을 UGUI가 대신 처리해 준다. 직접 글쇠를 읽는 방식으로
+            //  바꾸면 한글을 못 치게 된다.」 그래서 우리도 칸을 쓴다.
+            var slot = NewRect("글쇠칸", new Vector2(x + slotW * 0.5f, 0f),
                                new Vector2(slotW, h), _inputRow);
-            Skin(slot.gameObject.AddComponent<Image>(), _skin.Slot_, pal.slotBack);
+            var slotBg = slot.gameObject.AddComponent<Image>();
+            Skin(slotBg, _skin.Slot_, pal.slotBack);
+
             _heardText = NewText("글", "", new Vector2(16f, 0f), new Vector2(slotW - 32f, h),
-                                 slot, st.input, pal.slotHint);
+                                 slot, st.input, pal.slotText);
             _heardText.alignment = TextAnchor.MiddleLeft;
+            _heardText.supportRichText = false;   // 조합 중인 한글에 태그가 새지 않게
+
+            _heardHint = NewText("안내글", "", new Vector2(16f, 0f), new Vector2(slotW - 32f, h),
+                                 slot, st.input, pal.slotHint);
+            _heardHint.alignment = TextAnchor.MiddleLeft;
+
+            _field = slot.gameObject.AddComponent<InputField>();
+            _field.textComponent = _heardText;
+            _field.placeholder = _heardHint;
+            _field.lineType = InputField.LineType.SingleLine;
+            _field.characterLimit = 120;
+            _field.customCaretColor = true;
+            _field.caretColor = pal.slotText;     // 어두운 칸에서는 커서도 밝아야 보인다
+            _field.selectionColor = new Color(0.667f, 0.216f, 0.161f, 0.35f);
+            _field.targetGraphic = slotBg;
+            _field.transition = Selectable.Transition.None;
             x += slotW + gap;
 
             // ── 말하기 ──
@@ -682,10 +751,7 @@ namespace IMUNROK.Common
 
             // ── 묻 기 ── 저쪽은 이것만 주칠이다. 한 줄에서 <b>지금 할 일</b>이 그것이라서다.
             Chip(_inputRow, "묻기", "묻 기", new Vector2(x + askW * 0.5f, 0f), new Vector2(askW, h),
-                 st.input, UiLook.Seal, delegate {
-                     var a = InterrogationController.Active;
-                     if (a != null) a.AskDraft();
-                 });
+                 st.input, UiLook.Seal, AskNow);
             x += askW + gap;
 
             Chip(_inputRow, "증거제시", "증거 제시", new Vector2(x + presW * 0.5f, 0f), new Vector2(presW, h),

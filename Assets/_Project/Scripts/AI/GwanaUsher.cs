@@ -95,7 +95,7 @@ namespace IMUNROK.Common
             float len = _lines[_i].초 > 0f ? _lines[_i].초 : _lineSeconds;
             bool advance = _t >= len;
 #if ENABLE_INPUT_SYSTEM
-            if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame) advance = true;
+            if (!Typing.Now && Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame) advance = true;
 #endif
             if (advance) Next();
         }

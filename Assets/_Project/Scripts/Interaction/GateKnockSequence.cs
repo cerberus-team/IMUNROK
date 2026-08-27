@@ -81,7 +81,7 @@ namespace IMUNROK.Common
 
             bool advance = _timer >= _lineDuration;
 #if ENABLE_INPUT_SYSTEM
-            if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
+            if (!Typing.Now && Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
                 advance = true;
 #endif
             // <b>여쭈러 간 줄은 시계로 넘기지 않는다.</b>

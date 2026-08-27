@@ -927,6 +927,7 @@ namespace IMUNROK.Common
             if (ToolRaise.Held) return true;
             if (_alsoRightButton && Mouse.current != null && Mouse.current.rightButton.isPressed) return true;
 
+            if (Typing.Now) return _raiseLatch;   // 치는 동안에는 눈에 안 댄다
             var kb = Keyboard.current;
             if (kb == null) return _raiseLatch;
             var key = kb[_raiseKey];

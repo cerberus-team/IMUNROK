@@ -62,6 +62,9 @@ namespace IMUNROK.Common
         private void Update()
         {
 #if ENABLE_INPUT_SYSTEM
+            // 글을 치는 동안에는 안 듣는다 — 「이」의 첫 소리가 <c>d</c>… 가 아니라
+            // 로마자 i 그대로라, 영문으로 무엇을 치든 수첩이 펄럭인다.
+            if (Typing.Now) return;
             var kb = Keyboard.current;
             if (kb != null && kb.iKey.wasPressedThisFrame) Toggle();
 #endif

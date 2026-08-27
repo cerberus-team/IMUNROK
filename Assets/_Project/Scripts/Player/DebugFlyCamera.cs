@@ -227,6 +227,10 @@ namespace IMUNROK.Common
         private void Update()
         {
 #if ENABLE_INPUT_SYSTEM
+            // <b>글을 치는 동안에는 몸이 안 움직인다.</b> 두벌식으로 「ㅁ」이 <c>a</c>,
+            // 「ㅅ」이 <c>t</c>, 「ㄴ」이 <c>s</c> 자리라, 한글을 치면 WASD가 줄줄이 눌린다 —
+            // 물어보려고 한 줄 치는 사이에 마당 저쪽까지 걸어가 있다.
+            if (Typing.Now) return;
             var kb = Keyboard.current;
             var mouse = Mouse.current;
             if (kb == null || mouse == null) return;

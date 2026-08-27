@@ -102,6 +102,7 @@ namespace IMUNROK.Common
         private void Update()
         {
 #if ENABLE_INPUT_SYSTEM
+            if (Typing.Now) return;   // 치는 동안에는 지도가 안 펴진다
             var kb = Keyboard.current;
             if (kb != null && _key != Key.None && kb[_key].wasPressedThisFrame) Toggle();
 #endif

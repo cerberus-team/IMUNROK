@@ -168,7 +168,7 @@ namespace IMUNROK.Common
             }
 
 #if ENABLE_INPUT_SYSTEM
-            var kb = UnityEngine.InputSystem.Keyboard.current;
+            var kb = Typing.Now ? null : UnityEngine.InputSystem.Keyboard.current;   // 치는 동안엔 안 일어난다
             var rk = kb != null ? kb[_riseKey] : null;
             if (!_moving && rk != null && rk.wasPressedThisFrame)
             {
