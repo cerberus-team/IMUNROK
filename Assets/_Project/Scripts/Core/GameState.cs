@@ -32,9 +32,23 @@ namespace IMUNROK.Common
 
         private static GameState _instance;
 
+        /// <summary>지금 게임이 끝나거나 씬이 닫히는 중인가. 이때는 싱글턴을 새로 세우지 않는다.</summary>
+        private static bool Quitting;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetQuitFlag()
+        {
+            Quitting = false;
+            Application.quitting -= MarkQuitting;
+            Application.quitting += MarkQuitting;
+        }
+
+        private static void MarkQuitting() { Quitting = true; }
+
         /// <summary>
         /// 어디서든 접근하는 진입점. 씬에 인스턴스가 없으면 자동 생성하므로,
         /// 팀원은 GameState를 씬에 배치하지 않아도 SetVerdict 등을 바로 호출할 수 있음.
+        /// <b>씬을 닫는 중에는 null 을 돌려준다.</b>
         /// </summary>
         public static GameState Instance
         {
@@ -42,6 +56,14 @@ namespace IMUNROK.Common
             {
                 if (_instance == null)
                 {
+                    // 씬을 닫는 중에는 <b>새로 만들지 않는다</b>.
+                    //
+                    // 끝내거나 씬을 갈아 끼우는 동안 남의 OnDestroy·OnDisable 이 이 값을
+                    // 물어보는데, 그때 하나를 새로 세우면 그것이 정리 뒤에 태어난 것이라
+                    // 치울 사람이 없다 — "Some objects were not cleaned up when closing
+                    // the scene" 이 그 소리다. 닫는 중이면 없는 대로 null 을 돌려준다.
+                    if (Quitting) return null;
+
                     // 이미 씬에 배치돼 있으면 그걸 사용
                     _instance = FindFirstObjectByType<GameState>();
 
@@ -90,6 +112,10 @@ namespace IMUNROK.Common
         [Tooltip("제1사건 전용: 갑리(가짜)를 처리했는지 여부")]
         [SerializeField]
         private bool _gapriHandled = false;
+
+        [Tooltip("암행어사 신분이 드러났는가. 1막(옹고집)은 과객 행세라 꺼둔 상태 — 2막 출도에서 켜진다")]
+        [SerializeField]
+        private bool _identityRevealed = false;
 
         // 현재 플레이어가 들어가 있는 사건(챕터). 조사청(사건 밖)에선 null.
         // 수첩은 이 값에 해당하는 사건의 단서만 보여준다.
@@ -199,6 +225,26 @@ namespace IMUNROK.Common
             CheckAllCompleted();
         }
 
+        /// <summary>
+        /// 사건 <b>하나</b>를 처음으로 되돌린다 — 그 사건만 다시 시작할 때.
+        ///
+        /// <see cref="ResetAll"/> 은 판 전체를 지우므로 "이 사건만 처음부터"에는 쓸 수 없다.
+        /// 두 사건을 끝내 놓고 셋째를 다시 하려는 사람의 앞선 둘까지 지워 버린다.
+        ///
+        /// 수첩은 여기서 건드리지 않는다 — 지울지 말지는 부르는 쪽이 정한다.
+        /// (<see cref="Journal.ClearCase"/>)
+        /// </summary>
+        public void ResetCase(CaseId id)
+        {
+            var rec = GetRecord(id);
+            rec.status = CaseStatus.NotStarted;
+            rec.verdict = Verdict.None;
+            if (_currentCase.HasValue && _currentCase.Value == id) _currentCase = null;
+            _allCompletedFired = false;
+            Debug.Log($"[GameState] {id} 를 처음으로 되돌림");
+            RaiseChanged(id);
+        }
+
         /// <summary>제1사건 전용: 갑리(가짜) 처리 여부 기록.</summary>
         public void SetGapriHandled(bool handled)
         {
@@ -206,6 +252,34 @@ namespace IMUNROK.Common
             _gapriHandled = handled;
             Debug.Log($"[GameState] 갑리 처리 여부: {handled}");
         }
+
+        // ── 플레이어의 신분 ──
+        // 1막에서 플레이어는 "지나던 과객"이다. 암행어사임은 2막 출도에서야 드러난다.
+        // 인물들이 처음부터 "어사또"라 부르면 이 반전이 통째로 새어나가므로,
+        // 호칭은 여기 한 곳에서만 정하고 심문·자막·AI 프롬프트가 모두 이 값을 따른다.
+
+        /// <summary>암행어사 신분이 드러났는가. 1막(옹고집)에서는 과객 행세라 false.</summary>
+        public bool IdentityRevealed
+        {
+            get { EnsureInitialized(); return _identityRevealed; }
+        }
+
+        /// <summary>2막 출도 등 신분이 드러나는 순간에 호출.</summary>
+        public void RevealIdentity(bool revealed = true)
+        {
+            EnsureInitialized();
+            _identityRevealed = revealed;
+            Debug.Log($"[GameState] 암행어사 신분 드러남: {revealed}");
+        }
+
+        /// <summary>대화 기록·자막에 찍히는 플레이어의 이름표.</summary>
+        public string PlayerTitle => IdentityRevealed ? "어사" : "나그네";
+
+        /// <summary>AI에게 "지금 묻는 이가 누구로 보이는지" 알려주는 한 줄.</summary>
+        public string PlayerIdentityBrief => IdentityRevealed
+            ? "지금 묻는 이는 암행어사다. '어사또'라 부르며 두려워하라."
+            : "지금 묻는 이는 지나던 과객(나그네)일 뿐이다. 관원도 어사도 아니니 " +
+              "'어사또'라 부르지 마라. 낯선 손님을 대하듯 하라.";
 
         // ── 현재 사건(챕터) 컨텍스트 ──
         // 사건 씬에 들어가면 EnterCase, 조사청으로 나오면 ExitToHub 를 호출한다.
@@ -241,7 +315,9 @@ namespace IMUNROK.Common
                 rec.verdict = Verdict.None;
             }
             _gapriHandled = false;
+            _identityRevealed = false;
             _allCompletedFired = false;
+            _currentCase = null;   // 초기화 후에도 이전 사건에 들어가 있는 것으로 남으면 수첩 필터가 어긋난다
             Debug.Log("[GameState] 전체 상태 초기화");
 
             foreach (CaseId id in Enum.GetValues(typeof(CaseId)))
@@ -307,13 +383,13 @@ namespace IMUNROK.Common
         // ─────────────────────────────────────────────
 
         [Serializable]
-        private class SaveDTO { public List<CaseRecord> cases; public bool gapri; }
+        private class SaveDTO { public List<CaseRecord> cases; public bool gapri; public bool identity; }
 
         /// <summary>현재 상태를 JSON 문자열로 반환.</summary>
         public string ToJson()
         {
             EnsureInitialized();
-            return JsonUtility.ToJson(new SaveDTO { cases = _cases, gapri = _gapriHandled });
+            return JsonUtility.ToJson(new SaveDTO { cases = _cases, gapri = _gapriHandled, identity = _identityRevealed });
         }
 
         /// <summary>JSON 문자열에서 상태를 복원.</summary>
@@ -325,6 +401,7 @@ namespace IMUNROK.Common
 
             _cases = d.cases;
             _gapriHandled = d.gapri;
+            _identityRevealed = d.identity;
             _initialized = false;      // _lookup 재구성 강제
             _allCompletedFired = false;
             EnsureInitialized();

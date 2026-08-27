@@ -20,16 +20,22 @@ namespace IMUNROK.Common
     /// </summary>
     public class GeminiNpcResponder : INpcResponder
     {
-        // 모델 이름 — 저렴하고 빠른 Flash 계열. 404가 나면 "gemini-1.5-flash"로 바꿔보세요.
-        private const string Model = "gemini-2.0-flash";
-        private const int MaxOutputTokens = 300;
+        // 모델 이름이 틀리면 404가 난다. 쓸 수 있는 목록은 아래로 확인:
+        //   https://generativelanguage.googleapis.com/v1beta/models  (헤더 x-goog-api-key 에 키)
+        private const int MaxOutputTokens = 120;
 
+        // flash-lite = 가장 싸고 빠른 등급. NPC 대답은 1~2문장(120토큰)뿐이라 상위 등급이 필요 없고,
+        // VR 대화에선 응답 속도가 품질보다 체감에 크게 작용한다.
+        // '-latest' 별칭 대신 버전을 고정한다 — 별칭은 어느 날 모델이 바뀌며 말투가 달라질 수 있어
+        // 시연을 앞둔 프로젝트에선 위험하다. 모델이 내려가면 그때 번호만 올리면 된다.
+        private readonly string _model = "gemini-3.5-flash-lite";
         private readonly MockNpcResponder _fallback = new MockNpcResponder();
         private readonly string _apiKey;
 
-        public GeminiNpcResponder()
+        public GeminiNpcResponder(string model = null)
         {
             _apiKey = LoadApiKey();
+            if (!string.IsNullOrEmpty(model)) _model = model;
         }
 
         private static string LoadApiKey()
@@ -58,7 +64,9 @@ namespace IMUNROK.Common
 
         private IEnumerator Send(NpcRequest req, Action<string> onReply, Action<string> onError)
         {
-            string url = $"https://generativelanguage.googleapis.com/v1beta/models/{Model}:generateContent?key={_apiKey}";
+            // 키는 쿼리스트링이 아니라 헤더로 보낸다.
+            // URL에 붙이면 프록시·서버 로그·유니티 네트워크 프로파일러에 키가 그대로 남는다.
+            string url = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent";
             string body = BuildRequestJson(req);
 
             using (var www = new UnityWebRequest(url, "POST"))
@@ -66,6 +74,7 @@ namespace IMUNROK.Common
                 www.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body));
                 www.downloadHandler = new DownloadHandlerBuffer();
                 www.SetRequestHeader("Content-Type", "application/json");
+                www.SetRequestHeader("x-goog-api-key", _apiKey);
 
                 yield return www.SendWebRequest();
 
@@ -99,8 +108,41 @@ namespace IMUNROK.Common
             var sb = new StringBuilder();
             sb.AppendLine(req.character != null ? req.character.persona : "너는 심문받는 인물이다.");
             sb.AppendLine();
-            sb.AppendLine("[규칙] 위 인물로서 어사의 심문에 답하라. 2~3문장으로 짧게, 조선시대 말투로.");
+            sb.AppendLine("[규칙] 위 인물로서 묻는 이에게 답하라. 반드시 1~2문장, 아주 짧게(한두 줄). 장황하게 늘어놓지 마라.");
+            // 말투를 "조선시대 말투로" 라고만 이르면 어미가 섞여 나온다 —
+            // "…어디 있겠소이다까" 같은 것이 실제로 나왔다(하오체 '소이다' 에 의문 '까' 를 겹친 것).
+            // 쓸 어미를 몇 개 못박고, 섞지 말라고 따로 이른다.
+            sb.AppendLine("[말투] 조선 후기 말씨를 쓰되 어미를 섞지 마라. " +
+                          "양반은 하오체(…소/…오/…구려/…시오)로만, 아랫사람은 합쇼체(…습니다/…습니까/…지요)로만 말한다. " +
+                          "'소이다까'처럼 두 말씨를 겹친 어미는 없는 말이다. 현대 말씨(…했어요/…네요/…거든요)도 쓰지 마라.");
             sb.AppendLine("아래 '밝혀진 사실'에 없는 핵심 비밀은 절대 먼저 말하지 마라. 시치미를 떼라.");
+
+            // ── 이름 ──
+            //
+            // <b>여태 인물에게 제 이름을 알려 주지 않았다.</b> 성격만 통째로 주었는데,
+            // 가짜 옹덕구의 성격에는 「실은 종 '복동'이 주인 행세를 한다」가 적혀 있다.
+            // 그러니 이름을 물으면 AI는 그것을 <b>제가 아는 사실</b>로 읽고 그대로 답한다 —
+            // 「복동이오」. 첫 마디에 사건이 통째로 샌다.
+            //
+            // 이름패를 그대로 물려 줄 수도 없다. 진짜 옹덕구의 이름패는
+            // 「행색 사나운 사내」인데, 그건 <b>손님이 아직 모르니 그렇게 보인다</b>는
+            // 뜻이지 그가 제 입으로 댈 이름이 아니다. 그래서 대는 이름을 따로 둔다.
+            if (req.character != null)
+            {
+                string spoken = string.IsNullOrEmpty(req.character.spokenName)
+                              ? req.character.characterName : req.character.spokenName;
+                if (!string.IsNullOrEmpty(spoken))
+                    sb.AppendLine("[네 이름] 너는 스스로를 '" + spoken + "'이라 한다. "
+                                + "이름을 묻거든 그리 답하고, 그 밖의 이름으로 제 자신을 부르지 마라.");
+
+                if (!string.IsNullOrEmpty(req.character.secretWords))
+                    sb.AppendLine("[입에 담지 않는 말] " + req.character.secretWords
+                                + " — 이 낱말들은 네 입으로 먼저 꺼내지 마라. "
+                                + "묻는 이가 증거를 들이밀어 아래 '밝혀진 사실'에 오르기 전까지는 모르는 척하라.");
+            }
+            // 플레이어의 신분은 이야기의 반전이다. 인물이 먼저 "어사또"라 부르면 그 반전이 새어나간다.
+            if (!string.IsNullOrEmpty(req.playerIdentityBrief))
+                sb.AppendLine("[묻는 이] " + req.playerIdentityBrief);
             sb.AppendLine();
             sb.AppendLine("[밝혀진 사실]");
             if (req.unlockedFacts != null && req.unlockedFacts.Count > 0)
@@ -123,8 +165,10 @@ namespace IMUNROK.Common
             {
                 foreach (var line in req.transcript)
                 {
-                    bool isUser = line.StartsWith("어사");
-                    if (!started) { if (!isUser) continue; started = true; } // 첫 어사(user) 턴부터
+                    // 이름표(=req.playerTitle)로 플레이어 줄을 가려낸다. 호칭이 막마다 바뀌므로 하드코딩하지 않는다.
+                    string me = string.IsNullOrEmpty(req.playerTitle) ? "나그네" : req.playerTitle;
+                    bool isUser = line.StartsWith(me, StringComparison.Ordinal);
+                    if (!started) { if (!isUser) continue; started = true; } // 플레이어의 첫 턴부터
                     list.Add(new GContent
                     {
                         role = isUser ? "user" : "model",

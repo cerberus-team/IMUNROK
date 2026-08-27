@@ -1,8 +1,14 @@
 {
     "name": "IMUNROK.Common.Editor",
     "rootNamespace": "IMUNROK.Common.Editor",
-    "references": ["IMUNROK.Common"],
-    "includePlatforms": ["Editor"],
+    "references": [
+        "IMUNROK.Common",
+        "Unity.Recorder.Editor",
+        "Unity.Recorder.Base"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

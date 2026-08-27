@@ -66,6 +66,227 @@ sysinfo.txt
 # API 키 (절대 커밋 금지)
 gemini_api_key.txt
 *_api_key.txt
+# Voice SDK(Wit.ai) 설정 — serverToken·SharedServerToken 이 들어간다
+/ProjectSettings/wit.config
+
+# 고택 대용량 에셋 — git 대신 팀 공유(구글드라이브 등)로 배포
+# 팀원은 '공유_고택에셋_팀원용' 폴더를 Assets/_Project/Onggojip/Art/ 에 넣어야 함
+/Assets/_Project/Onggojip/Art/KimMyeonggwanHouse/
+/Assets/_Project/Onggojip/Art/KimMyeonggwanHouse.meta
+
+# 소품·캐릭터 모델도 git에 안 올림 — 공유폴더로 배포.
+#
+# ★2026-08-26 고침 — 여태 <b>폴더째</b> 막고 있었다. 그러면 git 이 그 안으로 아예
+#   들어가지 않아 .meta 도 .mat 도 .controller 도 같이 빠진다. 그 셋은 아트가 아니라
+#   <배선>이다 — .meta 가 빠지면 팀원이 모델을 임포트하는 순간 GUID 를 새로 지어내고,
+#   씬이 가리키던 사람 일곱이 통째로 사라진다. .controller 가 빠지면 걷는 클립이
+#   어느 상태에서 도는지가 없어져 다들 T 자세로 미끄러진다.
+#   Art/Tools 에서 이미 한 번 밟고 고친 함정인데 이쪽만 안 고쳐져 있었다.
+#   이제 <b>무거운 확장자만</b> 막는다.
+/Assets/_Project/Onggojip/Art/Models/**/*.fbx
+/Assets/_Project/Onggojip/Art/Models/**/*.obj
+/Assets/_Project/Onggojip/Art/Models/**/*.mtl
+/Assets/_Project/Onggojip/Art/Models/**/*.glb
+/Assets/_Project/Onggojip/Art/Models/**/*.png
+/Assets/_Project/Onggojip/Art/Models/**/*.jpg
+/Assets/_Project/Onggojip/Art/Props/**/*.fbx
+/Assets/_Project/Onggojip/Art/Props/**/*.obj
+/Assets/_Project/Onggojip/Art/Props/**/*.mtl
+/Assets/_Project/Onggojip/Art/Props/**/*.glb
+/Assets/_Project/Onggojip/Art/Props/**/*.png
+/Assets/_Project/Onggojip/Art/Props/**/*.jpg
+/Assets/_Project/Onggojip/Art/Characters/**/*.fbx
+/Assets/_Project/Onggojip/Art/Characters/**/*.obj
+/Assets/_Project/Onggojip/Art/Characters/**/*.mtl
+/Assets/_Project/Onggojip/Art/Characters/**/*.glb
+/Assets/_Project/Onggojip/Art/Characters/**/*.png
+/Assets/_Project/Onggojip/Art/Characters/**/*.jpg
+# 공통 도구 아이콘(돋보기·지도 등 아트) — git 제외, 공유폴더로 배포
+# 폴더를 통으로 막으면 git 이 그 안으로 들어가지 않아 예외(!)가 안 먹는다.
+# 그래서 무거운 확장자만 막는다 — 애니메이터 컨트롤러·재질·meta 는 아트가 아니라
+# <배선>이라 커밋해야 한다. 돋보기 술이 어느 클립을 어느 상태에서 트는지가 거기
+# 적혀 있어서, 빠지면 팀원 손에서 술이 안 움직인다(Art/Props 와 같은 방식).
+/Assets/_Project/Art/Tools/**/*.fbx
+/Assets/_Project/Art/Tools/**/*.glb
+/Assets/_Project/Art/Tools/**/*.png
+/Assets/_Project/Art/Tools/**/*.jpg
+/Assets/_Project/Art/Tools/**/*.tga
+/Assets/_Project/Art/Tools/**/*.obj
+/Assets/_Project/Art/Tools/**/*.mtl
+/Assets/_Project/Art/Tools/**/*.asset
+# UI 아트(한지 등)·폰트 — git 제외, 공유폴더로 배포
+/Assets/_Project/Art/Fonts/
+# UI 아트도 .meta 만은 커밋한다. 표제의 제자(題字)처럼 씬이 GUID 로 가리키는 것이
+# 있어서, .meta 가 빠지면 팀원 화면에서는 제목 자리가 통째로 비어 버린다.
+#
+# ★2026-08-26 고침 — 여태 "폴더를 한 번 열고 그 안에서 다시 거르는" 방식이었는데,
+#   그 예외는 <b>한 겹까지만</b> 미친다. UI/Icons/ 처럼 한 겹 더 들어간 데는 도로
+#   막혀서 도구벨트 아이콘 넷(수첩·등불·돋보기·지도)의 .meta 가 빠져 있었다.
+#   Tools 와 같이 <b>확장자로</b> 막는다 — 몇 겹이 되든 .meta 는 안 걸린다.
+/Assets/_Project/Art/UI/**/*.png
+/Assets/_Project/Art/UI/**/*.jpg
+/Assets/_Project/Art/UI/**/*.jpeg
+# 공통 아트(한지 텍스처·폰트 등) — git 제외, 공유폴더로 배포
+/Assets/_Project/_Common/Art/*
+# 폰트는 .meta 를 커밋한다. 씬이 폰트를 GUID 로 가리키므로 .meta 가 빠지면
+# 팀원 화면에서 글씨가 통째로 다른 것으로 바뀐다.
+#
+# ★2026-08-27 고침 — 여태 "폴더를 한 번 열고 그 안에서 다시 거르는" 방식이었는데,
+#   그 예외는 <b>한 겹까지만</b> 미친다. UI 꾸러미가 구워 둔 TMP 폰트 에셋을
+#   Fonts/Resources/ 에 넣는데, 한 겹 더 들어간 그곳이 도로 막혀 .meta 가 통째로
+#   빠졌다 — clone 만 하고 꾸러미를 안 넣은 사람 손에서는 대화창 글씨가 통째로 빈다.
+#   Art/Tools·Art/UI 에서 이미 두 번 밟고 고친 함정인데 이쪽만 안 고쳐져 있었다.
+#   이제 <b>확장자로</b> 막는다 — 몇 겹이 되든 .meta 는 안 걸린다.
+!/Assets/_Project/_Common/Art/Fonts/
+/Assets/_Project/_Common/Art/Fonts/**/*.ttf
+/Assets/_Project/_Common/Art/Fonts/**/*.otf
+/Assets/_Project/_Common/Art/Fonts/**/*.ttc
+/Assets/_Project/_Common/Art/Fonts/**/*.woff
+/Assets/_Project/_Common/Art/Fonts/**/*.woff2
+
+# 구워 둔 TMP 폰트 에셋 — 생성물이자 아트다(한글 것 하나가 8.7MB).
+# 전달본은 UI 꾸러미(IMUNROK_UI.unitypackage)다 — 그것을 임포트하면 파일도 GUID도
+# 팀 전체가 같아진다. .meta 는 일부러 커밋한다 → 꾸러미를 다시 임포트해도
+# 씬이 가리키던 GUID 가 유지된다(사건 문서 텍스처와 같은 규칙이다).
+TMP_Hangul_*.asset
+TMP_Hanja_*.asset
+
+# ─────────────────────────────────────────────
+# 대용량 에셋 팩 — git 제외, 팀 공유폴더로 "폴더째" 배포
+# .meta까지 같이 주고받아야 GUID가 유지돼 씬 참조가 안 깨진다.
+#   Coastal_Dune_Pack ≈ 3.6GB / Soswaewon ≈ 1.4GB
+# ─────────────────────────────────────────────
+/Assets/Coastal_Dune_Pack/
+/Assets/Coastal_Dune_Pack.meta
+# 스타일라이즈 자연물(나무·바위·풀·꽃) — 에셋스토어에서 받아 들인 것.
+#   Fristy stylize Modular Assets 2 ≈ 608MB / Fristy Mobile CG ≈ 483MB
+/Assets/Fristy stylize Modular Assets 2/
+/Assets/Fristy stylize Modular Assets 2.meta
+/Assets/Fristy Mobile CG/
+/Assets/Fristy Mobile CG.meta
+/Assets/Soswaewon/
+/Assets/Soswaewon.meta
+# 하늘 — 관아 2막이 CasualDay.mat 을 문다. 꾸러미째 공유폴더로 주고받는다.
+/Assets/SkySeries Freebie/
+/Assets/SkySeries Freebie.meta
+
+# 공통 소품 모델 — 아트는 공유폴더.
+# 단 .meta와 .mat은 일부러 커밋한다 → 모델을 다시 받아도 GUID·재질 연결이 유지됨
+/Assets/_Project/Art/Props/*.glb
+/Assets/_Project/Art/Props/*.fbx
+/Assets/_Project/Art/Props/*.obj
+
+# 음원 — 모델과 같은 규칙이다. 노래 한 곡이 몇 MB라 git 이 감당할 물건이 아니다.
+# .meta 는 커밋한다 → 공유폴더에서 파일만 제자리에 넣으면 연결이 그대로 살아난다.
+*.mp3
+*.wav
+*.ogg
+*.aiff
+*.flac
+
+# 안전망: 어디에 두든 모델·대용량 텍스처 원본은 git에 못 올라가게
+# (아트는 공유폴더 원칙. UI용 png/jpg는 필요해서 제외하지 않음)
+*.blend
+*.blend1
+*.psd
+*.psb
+*.tga
+*.exr
+*.hdr
+
+# 디버그용 스크린샷
+/Assets/Screenshots/
+/Assets/Screenshots.meta
+
+# 찍어 본 그림. Assets 밖에 둔다 — 안에 두면 유니티가 210장을 다 자산으로 물어
+# 새로고침마다 훑는다(98MB였다).
+/Captures/
+
+# TextMesh Pro 기본 리소스(순정 LiberationSans만) — GUID가 고정이라 재임포트하면 동일하게 복구됨
+# 없으면: 유니티 메뉴 [Window ▸ TextMeshPro ▸ Import TMP Essential Resources]
+# ※ 한글 폰트는 /Assets/_Project/Art/Fonts/ 에 있고 그쪽도 공유폴더 배포다
+/Assets/TextMesh Pro/
+/Assets/TextMesh Pro.meta
+
+# 사건 문서 텍스처 — 생성물이라 커밋 안 함.
+# 재생성: 유니티 메뉴 [이문록 ▸ 에셋: 사건 문서 텍스처 굽기] (생성기는 Tools/DocBaker/)
+# .meta는 일부러 커밋한다 → 팀원이 다시 구워도 GUID가 유지돼 재질 연결이 안 끊김
+# 경로를 박지 않는다: 공통 문서는 Art/Props/Textures, 사건 전용은 <사건>/Art/Textures 로 갈린다
+T_Doc_*.png
+
+# 아궁이 소품 텍스처 — 아트라서 git에 두지 않는다(공유폴더 배포).
+# .meta는 커밋한다 → 파일을 다시 받아도 GUID가 유지돼 재질 연결이 안 끊김
+T_Ash_*.png
+T_Smoke_*.png
+
+# glb 소품에서 뽑아낸 텍스처 — 생성물이자 아트라 커밋 안 함(공유폴더 배포).
+# 재생성: 유니티 메뉴 [이문록 ▸ 에셋: glb 텍스처 정리]
+# .meta는 커밋한다 → 다시 구워도 GUID가 유지돼 재질 연결이 안 끊김
+T_Glb_*.png
+
+# 메시 줄이기 결과 — 생성물이자 아트라 커밋 안 함(공유폴더 배포).
+# 재생성: 유니티 메뉴 [이문록 ▸ 에셋: 무거운 메시 줄이기]
+*_간소.asset
+
+# ─────────────────────────────────────────────
+# 관아 세트(GwanaSet_FOR_TEAM) — 2막 외삼문·담·동헌·문지기
+# 무거운 것(png 304MB · fbx 18MB · 메시 asset 6.6MB)은 git 제외, 공유폴더로.
+# .mat/.prefab/.meta 는 일부러 커밋한다 → 아트를 다시 받아도 GUID·재질·계층이 살아난다.
+#   (Art/Props 와 같은 방식)
+# 전달본은 다섯 군데로 흩어져 들어왔지만 _Common/Sets/Gwana 한 자리로 모아 두었다.
+# ─────────────────────────────────────────────
+/Assets/_Project/_Common/Sets/Gwana/**/*.png
+/Assets/_Project/_Common/Sets/Gwana/**/*.fbx
+/Assets/_Project/_Common/Sets/Gwana/**/*.asset
+# 동헌에서 떼어낸 메시(서가·문서궤·대장책·지붕)는 생성물이다.
+#
+# ★2026-08-26 고침 — 여태 폴더째 막아 .meta 까지 뺐다. 까닭은 "홀로 남은 .meta 를
+#   유니티가 고아 취급하며 경고한다"였는데, 그 경고 한 줄을 피하려다 <b>GUID 를
+#   버리고 있었다</b>. 다시 구우면 GUID 가 새로 지어지고, git 에 든 씬은 옛 GUID 를
+#   가리키므로 팀원 화면에서 서가와 문서궤가 통째로 사라진다.
+#   경고는 파일을 제자리에 넣으면 없어지지만 GUID 는 되돌릴 수가 없다.
+#   위의 **/*.asset 규칙이 알맹이만 막고 .asset.meta 는 안 걸린다(끝이 .meta 라서).
+#   재생성: [이문록 ▸ 관아 ▸ ⑦ 문서고 짓기]
+
+# ─────────────────────────────────────────────
+# 말하기(Wit.ai) 설정 — ★서버·클라이언트 토큰이 그대로 들어 있다
+# 커밋하면 토큰이 공개된다. 팀원은 각자 만든다:
+#   [Meta ▸ Voice SDK ▸ Get Started] ▸ Built-In Models ▸ Korean
+# ─────────────────────────────────────────────
+/Assets/WitConfiguration.asset
+/Assets/WitConfiguration.asset.meta
+/Assets/Oculus/Voice/Resources/ConduitManifest-*.json
+/Assets/Oculus/Voice/Resources/ConduitManifest-*.json.meta
+
+# ─────────────────────────────────────────────
+# 화성행궁(kcisa) — 관아 마당 담장만 골라 왔다
+# 원본 unitypackage 가 3.19GB 라 통째로 넣지 않고, 담장 두 낱장이 딸고 오는 것만
+# 의존 관계로 추려 24개·89MB 를 두었다. 다시 받을 곳:
+#   %APPDATA%/Unity/Asset Store-5.x/Korea Culture Information Service Agency kcisa/
+#     3D ModelsEnvironmentsHistoric/kcisa - HWASEONG HAENGGUNG - Korean Traditional Palace.unitypackage
+# 무거운 것(png 88MB · fbx)은 git 제외, .mat/.prefab/.meta 는 커밋 — 관아와 같은 방식.
+# ─────────────────────────────────────────────
+/Assets/HwaseongHaenggung/**/*.png
+/Assets/HwaseongHaenggung/**/*.fbx
+
+# 찍은 영상 — 한 편이 몇 백 MB다. git 에 담을 물건이 아니다.
+# [Window ▸ General ▸ Recorder] 가 여기에 떨군다.
+/Recordings/
+dev/
+
+# ═══════════════════════════════════════════════════════════
+# 여기서부터 develop 쪽 규칙 (견우 · 공통 · 서천)
+#
+# 합칠 때 <b>둘 중 하나를 고르지 않았다.</b> 양쪽 다 자기 사건 폴더를 적어 둔
+# 것이라 겹치는 데가 거의 없고, 한쪽을 버리면 그쪽 아트가 통째로 git 에
+# 딸려 올라간다. 규칙이 두 번 적히는 것은 해가 없다.
+#
+# ⚠️ 이미 추적 중인 파일은 gitignore 로 빠지지 않는다. 그래서 아래 규칙과
+#    부딪히지만 우리가 일부러 커밋해 둔 것은 그대로 살아 있다:
+#      DefaultVolumeProfile.asset — 죽은 부품 아홉을 걷어낸 뒤라 커밋해 둔다
+#      IMUNROK_UI/               — 꾸러미 참조를 우리가 손봐 두었다
+# ═══════════════════════════════════════════════════════════
+
 
 # ─────────────────────────────────────────────
 # 에셋 스토어 외부 에셋
@@ -374,6 +595,7 @@ AGENTS.md
 /[Aa]ssets/Resources/OVROverlayCanvasSettings.asset.meta
 
 
+
 # ═════════════════════════════════════════════════════════════
 # 서천(제3사건) 규칙 — 2026-08-27 병합 시 추가
 #   ★develop 규칙은 견우 폴더만 다룬다. 서천에도 같은 규약을 적용해야 한다.
@@ -549,3 +771,4 @@ Assets/Models/**/*.asset
 /_us.txt
 /oisamun_del.txt
 /unused.txt
+

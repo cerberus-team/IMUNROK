@@ -2,7 +2,14 @@
     "name": "IMUNROK.Common",
     "rootNamespace": "IMUNROK.Common",
     "references": [
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "VoiceSDK.Dictation.Runtime",
+        "Meta.Wit.Dictation",
+        "Meta.WitAi",
+        "Unity.XR.Management",
+        "IMUNROK.Ui"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

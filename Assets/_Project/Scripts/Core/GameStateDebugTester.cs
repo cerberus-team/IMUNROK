@@ -28,8 +28,11 @@ namespace IMUNROK.Common
         [Tooltip("체크하면 화면에 상태 오버레이(OnGUI)를 표시")]
         [SerializeField] private bool _showOverlay = true;
 
+        // 에디터 컴파일에선 이 필드가 아래 #else에서만 읽혀 '미사용' 경고가 나므로 억제(필드는 빌드에서 사용)
+#pragma warning disable 0414
         [Tooltip("빌드에서도 디버그 입력을 허용할지. 기본은 에디터/개발빌드에서만 동작")]
         [SerializeField] private bool _allowInBuild = false;
+#pragma warning restore 0414
 
         // 현재 키 입력의 대상이 되는 사건(1,2,3으로 전환)
         private CaseId _target = CaseId.Case1_Onggojip;

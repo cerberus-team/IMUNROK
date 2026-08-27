@@ -17,7 +17,7 @@ namespace IMUNROK.Common
         private static readonly string[] Deflections =
         {
             "글쎄올시다, 소인은 모르는 일이오.",
-            "그건 대답하기 어렵소, 어사또.",
+            "그건 대답하기 어렵소.",   // 호칭은 붙이지 않는다 — 1막에서 플레이어는 아직 과객일 뿐이다
             "무얼 근거로 그런 말씀을 하시오?",
             "소인은 떳떳하오. 무엇이 문제란 말이오?",
         };
@@ -28,8 +28,13 @@ namespace IMUNROK.Common
 
             if (!string.IsNullOrEmpty(req.justRevealedInfo))
             {
-                // 결정적 증거를 제시받음 → 마지못해 실토
+                // 결정적 증거를 제시받음 → 마지못해 실토(또는 발뺌 대사)
                 reply = req.justRevealedInfo;
+            }
+            else if (!string.IsNullOrEmpty(req.scriptedAnswer))
+            {
+                // 추천 질문의 정해진 답
+                reply = req.scriptedAnswer;
             }
             else if (req.isEvidence)
             {
