@@ -233,6 +233,13 @@ namespace IMUNROK.Common
         /// <summary>
         /// 읽는 동안 집는 자리를 펼친 종이에 맞춘다. 말렸을 때의 넓적한 자리를 그대로
         /// 두면 글 밖 허공을 눌러도 '맡기'가 된다.
+        ///
+        /// <b>한 번만 맞추면 안 된다.</b> 두루마리는 <see cref="ScrollUnroll.Unroll"/> 로
+        /// <b>시간을 두고</b> 풀린다. 푸는 일을 시킨 그 프레임에 자리를 재면 종이는 아직
+        /// 말린 채라 세로 5cm 짜리 띠가 나오고, 그 뒤로 영영 안 고쳐진다.
+        /// 그러면 화면의 90%가 「물리기」인 <see cref="DocumentPutBack"/> 판이 되어,
+        /// 안내대로 <b>글을 눌러도 봉서가 도로 내려갈 뿐</b> 사건을 맡을 수가 없다.
+        /// 그래서 읽는 동안 매 프레임 다시 잰다 — 종이가 자라는 만큼 자리도 자란다.
         /// </summary>
         private void FitColliderToPaper()
         {
@@ -578,6 +585,10 @@ namespace IMUNROK.Common
                 float t = 1f - Mathf.Exp(-_readFollow * Time.deltaTime);   // 프레임률에 안 흔들리는 감쇠
                 transform.position = Vector3.Lerp(transform.position, ReadPosition(cam, half), t);
                 transform.rotation = Quaternion.Slerp(transform.rotation, ReadRotation(cam), t);
+
+                // 종이가 풀리는 동안 집는 자리도 같이 자라야 한다. 위 주석 참고 —
+                // 펼치라고 시킨 그 프레임에 한 번 재고 마는 것이 오래 묵은 탈이었다.
+                FitColliderToPaper();
             }
 
             if (_labelGo == null || !_labelGo.activeSelf) return;
