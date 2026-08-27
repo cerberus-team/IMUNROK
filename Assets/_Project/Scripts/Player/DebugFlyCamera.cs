@@ -396,8 +396,22 @@ namespace IMUNROK.Common
             return step;
         }
 
+        /// <summary>
+        /// <b>화면 왼쪽 아래 상태 줄.</b> 기본으로 꺼 둔다.
+        ///
+        /// 만드는 사람에게는 쓸모가 있었지만 <b>보는 사람에게는 없다</b> —
+        /// 「카메라: 걷기 (Tab 전환 · G 바닥내려서기)」는 조선 후기 옹당촌에 있을 글이
+        /// 아니고, 영상을 찍으면 그 줄이 그대로 남는다.
+        ///
+        /// 헤드셋에서는 애초에 안 보인다(<c>OnGUI</c> 는 HMD에 렌더링되지 않는다).
+        /// 그러니 이 줄이 보이는 자리는 <b>모니터로 찍는 화면</b>뿐이었다.
+        /// </summary>
+        [Tooltip("만드는 동안만 켠다. 켜면 화면 왼쪽 아래에 걷기/비행과 눈높이가 뜬다")]
+        [SerializeField] private bool _showHud;
+
         private void OnGUI()
         {
+            if (!_showHud) return;
             if (_hud == null)
                 _hud = new GUIStyle(GUI.skin.label) { fontSize = 13, richText = true };
             string mode = MoveLocked ? "<color=#fc8>앉음</color>"
