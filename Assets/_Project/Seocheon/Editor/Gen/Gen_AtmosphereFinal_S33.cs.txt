@@ -1,0 +1,29 @@
+S33 Atmosphere Final — approved cloud-only exception
+
+Scope
+- Preserve terrain, flowers, willow, lighting, planet, satellite, stars and existing aurora.
+- Preserve the original baked panorama file. Create a sibling cloudless texture and swap only Skybox _MainTex.
+- Keep the existing three S32 distant-mist systems, reorganized under _AtmosphereFinal/Mist_Low.
+- Add 2–5 distant high-cloud particle groups under _AtmosphereFinal/Cloud_High.
+- No post processing, global fog system, light/exposure redesign, or scene-wide mist.
+
+Cloudless background
+- Edit target: T_SkyCloudDrama_S33_Seamless.png
+- Output: T_SkyCloudless_S33_v1.png
+- Remove baked clouds only; retain the purple/pink/blue low-frequency palette and 2:1 equirectangular layout.
+- Keep the source file unchanged.
+
+Cloud particle design
+- Texture: T_CloudBank_S33_v1.png (transparent, broad side-view cloud bank).
+- URP Unlit particle material, soft alpha, shadows/probes off.
+- Three deterministic world-space groups: south-west, south-east and north/back.
+- Each group uses a tiny fixed burst, near-zero speed, very long lifetime, horizontally stretched size and low alpha.
+- No cyan, neon magenta, vertical streaks, trails, ribbons, colliders or lights.
+
+Mist design
+- Retain P1_DistantFog, Back_HorizonFog and Basin_EdgeFog.
+- Keep them low, distant and below the sky/cloud layer; flowers and player foreground remain clear.
+
+Saving
+- Never call AssetDatabase.SaveAssets().
+- SaveAssetIfDirty only for each newly created/modified target asset; save the scene explicitly after verification.

@@ -1,0 +1,26 @@
+// S38 — mountain-base mist, minimal reversible pass
+// Written before execution. Run through UnityMCP execute_code; documentation only.
+//
+// Preserve
+//   Flowers, terrain height/alphamap/layers, skybox/clouds, planet/satellite/stars,
+//   Directional Light, willow, camera baseline, and existing _AtmosphereFinal/Mist_Low.
+//
+// Diagnosis
+//   Existing P1/BACK/BASIN mist systems are active but stopped in Edit Mode.
+//   Simulating all three for 40 seconds produced 47 particles yet almost no visible
+//   mountain-base separation in P1/BACK/BASIN.
+//
+// Additions (one reversible parent)
+//   _MountainMist_S38
+//     South_RidgeMist : broad, low strip around (455,14.5,590), across the south ridge base.
+//     Basin_RidgeMist : smaller strip around (400,13.5,755), along the basin/NW ridge connection.
+//
+// Rendering
+//   Reuse T_Fog_Distant.png through a new URP Particles/Unlit material.
+//   Pale desaturated lavender, low alpha, horizontal 3D particle sizes, slow world drift.
+//   Max particles 24 + 16; no near-camera fog, no sky-high particles.
+//
+// Safety / save
+//   Back up the scene first. Do not delete anything. Do not call AssetDatabase.SaveAssets().
+//   Save only the new material and target scene with SaveAssetIfDirty / SaveScene.
+//   Simulate for renders, then StopEmittingAndClear so temporary particle state is not retained.

@@ -1,0 +1,21 @@
+S40 MountainFog visibility correction
+Date: 2026-08-25
+
+Diagnosis
+- Renderers enabled; camera culling mask and rendering layers valid.
+- Particle bounds are large enough and systems render correctly.
+- Soft Particles were enabled at terrain intersections.
+- Emission 0.24-0.32/s produced only 4-6 live particles after 20 seconds.
+- Effective alpha was multiplied by material, start color, lifetime gradient, texture and depth fade.
+
+Test pass
+- Disable Soft Particles / depth fading.
+- Increase maxParticles to 64 and emission to 5-7/s.
+- Increase horizontal size and vertical coverage.
+- Raise ridge and valley layers into the middle of the mountain silhouette.
+- Keep world-space horizontal drift and weak noise.
+
+Final pass
+- Once clearly visible from Main Camera, reduce density and opacity by 20-40%.
+- Preserve MountainFog hierarchy, all external scene objects, camera, terrain, flowers, sky and lighting.
+- SaveAssetIfDirty(target) only. No file deletion.

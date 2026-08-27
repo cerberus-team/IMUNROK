@@ -1,0 +1,8 @@
+string shaderPath="Assets/_Project/Seocheon/Shaders/SkyboxCloudDrama.shader";
+UnityEditor.AssetDatabase.ImportAsset(shaderPath,UnityEditor.ImportAssetOptions.ForceSynchronousImport);
+Shader sh=Shader.Find("Seocheon/SkyboxCloudDrama");if(sh==null)return "ERROR|shader_missing";
+Material m=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Seocheon/Art/Sky/S33/M_Flowerfield_SkyPanorama_S33.mat");if(m==null)return "ERROR|material_missing";
+m.shader=sh;m.SetColor("_ZenithColor",new Color(0.16f,0.09f,0.30f,1f));m.SetColor("_NadirColor",new Color(0.32f,0.16f,0.24f,1f));m.SetFloat("_PoleBlendStart",0.55f);m.SetFloat("_PoleBlendEnd",0.88f);
+UnityEditor.EditorUtility.SetDirty(m);UnityEditor.AssetDatabase.SaveAssetIfDirty(m);
+IMUNROK.Seocheon.FlowerfieldSkyController sky=UnityEngine.Object.FindFirstObjectByType<IMUNROK.Seocheon.FlowerfieldSkyController>();if(sky!=null){sky.skyboxMaterial=m;RenderSettings.skybox=m;sky.Apply();UnityEditor.EditorUtility.SetDirty(sky);}
+return "POLE_FIX|start=0.55|end=0.88|zenith=(0.16,0.09,0.30)|shader="+sh.name;

@@ -1,0 +1,93 @@
+﻿===== [Seocheon] Village 2a Classify+Investigate (읽기 전용) =====
+
+[분류] 유닛 1046 · A(Build) 28 · B(Structure) 260 · C(Prop) 756 · ?(Ambiguous) 2 · Cat3 3
+[클러스터] 시드(건물) 28개 · _Unassigned 1개 (1단계 35→2a 28 : Hand_Mill/Winnow 가짜시드 제거)
+
+[_Ambiguous] 폴더 미분류 2개 (임의 판정 안 함 — 지시 요망):
+     1 × Assets/Naganeupseong/Scene/Resource/SkySphere.prefab
+     1 × Assets/Naganeupseong/Resource/Meshes/Prop/Farm_Tool/SM_Seive_Support.fbx
+
+[클러스터 프리뷰 CSV] → Assets/_Project/Seocheon/Data/village_placement_preview.csv
+prefab / policy / A B C / trisFull→trisAfter
+   Village_House_By_The_West_Gate_02          A+B         A1 B11 C58 · 551010→121642
+   Village_Tavern_House_01_Full               Full(A+B+C) A1 B15 C54 · 424536→424536
+   Village_House_With_Wooden_Floored_Room_01  A+B         A1 B9 C60 · 335204→139216
+   Village_Local_Personnel_Clerks_House_01    A+B         A1 B13 C73 · 304434→126966
+   Village_House_With_Calling_Windows_02      A+B         A1 B10 C14 · 253671→130679
+   Village_Local_Clerks_House_02              A+B         A1 B15 C10 · 251366→88598
+   Village_Local_Personnel_Clerks_House_04    A+B         A1 B11 C12 · 247470→59004
+   Village_Wooden_Bench_House_01              A+B         A1 B13 C38 · 239576→105680
+   Village_Local_Personnel_Clerks_House_02    A+B         A1 B13 C23 · 229922→101170
+   Village_House_With_Wooden_Floored_Room_02  A+B         A1 B14 C13 · 222623→90263
+   Village_L_Shaped_House_01                  A+B         A1 B5 C58 · 207723→150703
+   Village_House_By_The_West_Gate_01          A+B         A1 B13 C54 · 203711→137069
+   Village_Tavern_House_02_Full               Full(A+B+C) A1 B14 C34 · 189183→189183
+   Village_Bamboo_Rafter_House_01             A+B         A1 B9 C36 · 163512→106068
+   Village_House_With_Calling_Windows_01      A+B         A1 B5 C46 · 156597→104479
+   Village_House_By_The_West_Gate_03          A+B         A1 B16 C14 · 156146→102654
+   Village_Local_Clerks_House_01              A+B         A1 B0 C35 · 154673→110725
+   Village_Local_Personnel_Clerks_House_03    A+B         A1 B5 C25 · 146882→103908
+   Village_Wooden_Bench_House_03              A+B         A1 B11 C25 · 133618→95290
+   Village_House_With_Wooden_Floored_Room_03  A+B         A1 B8 C17 · 129348→60584
+   Village_Wooden_Bench_House_02              A+B         A1 B17 C4 · 107746→92558
+   Village_Bamboo_Rafter_House_02             A+B         A1 B10 C5 · 97256→67776
+   Village_Smithy                             A+B         A1 B0 C18 · 95897→66430
+   Village_Wooden_Bench_House_04              A+B         A1 B5 C9 · 86452→64872
+   Village_Bamboo_Rafter_House_03             A+B         A1 B6 C12 · 69545→59967
+   Village_L_Shaped_House_02                  A+B         A1 B6 C1 · 48316→47036
+   Village_Ox_Mill                            A+B         A1 B0 C8 · 36702→29918
+   Village_House_With_Wooden_Floored_Room_04  A+B         A1 B6 C0 · 33226→33226
+
+[창고 후보 top3] (곡식·독·가마니 소품 최다 — ★이번 추출 보류, 선정은 지시):
+   Village_House_By_The_West_Gate_01 · 창고류 25개 · Jars×1|Corn×16|Meju×6|Water_Jar×1|Rice_Washing_Bowl×1
+   Village_Tavern_House_01 · 창고류 18개 · Grain_Rake01b×1|Pantry_Chest×2|Rice_Chest×1|Jar01a×1|Meju×5|Corn×8
+   Village_House_With_Calling_Windows_01 · 창고류 18개 · Pantry_Chest×1|Jar01a×1|Jar01c×1|Straw_Jar01a×1|Cooked_Rice_Bowl×3|Rice_Straw×11
+
+[_Unassigned] 1개 · tris 3968 (15m 내 건물 없음):
+     1 × SkySphere (tier ?)
+
+[별건] Wall01c/02c/03c 사용 현황(씬):
+   Wall01c: 208개 · tris합 724672 · 단품 3484tris
+   Wall02c: 10개 · tris합 19460 · 단품 1946tris
+   Wall03c: 25개 · tris합 67300 · 단품 2692tris
+
+[별건] 팩 벽 메시 FBX 실측 (SM_Wall*.fbx) — 파일 / tris / X길이 × Z두께 × Y높이:
+   SM_Wall05b     3848 tris · 0.54 × 2.15 × 1.90 m
+   SM_Wall03b     2127 tris · 0.53 × 1.00 × 1.90 m
+   SM_Wall09a      124 tris · 0.07 × 2.15 × 2.50 m
+   SM_Wall17a      158 tris · 0.07 × 2.15 × 2.50 m
+   SM_Wall18a       84 tris · 0.04 × 0.90 × 2.50 m
+   SM_Wall01c     3484 tris · 2.41 × 2.69 × 1.68 m
+   SM_Wall11a       24 tris · 0.04 × 0.90 × 1.73 m
+   SM_Wall03a       64 tris · 0.05 × 2.15 × 2.50 m
+   SM_Wall02b     3258 tris · 0.54 × 2.16 × 1.90 m
+   SM_Wall02c     1974 tris · 0.98 × 1.05 × 1.68 m
+   SM_Wall04a       24 tris · 0.04 × 0.90 × 2.50 m
+   SM_Wall08b     2714 tris · 0.54 × 2.15 × 1.90 m
+   SM_Wall07b     3502 tris · 0.54 × 2.15 × 1.90 m
+   SM_Wall16a       64 tris · 0.05 × 1.08 × 2.50 m
+   SM_Wall15a      132 tris · 0.07 × 1.08 × 2.50 m
+   SM_Wall19a       64 tris · 0.07 × 1.08 × 2.50 m
+   SM_Wall23a      112 tris · 0.05 × 1.08 × 2.50 m
+   SM_Wall06b     2390 tris · 0.56 × 2.15 × 1.90 m
+   SM_Wall08a      126 tris · 0.07 × 2.15 × 2.50 m
+   SM_Wall21a      238 tris · 0.09 × 2.15 × 2.50 m
+   SM_Wall13a      160 tris · 0.06 × 2.15 × 2.50 m
+   SM_Wall04b     3654 tris · 0.53 × 3.54 × 0.90 m
+   SM_Wall22a      160 tris · 0.06 × 2.15 × 2.50 m
+   SM_Wall02a       80 tris · 0.05 × 2.15 × 2.51 m
+   SM_Wall06a      132 tris · 0.07 × 2.15 × 2.50 m
+   SM_Wall24a       68 tris · 0.05 × 0.95 × 2.57 m
+   SM_Wall05a       68 tris · 0.05 × 0.91 × 2.50 m
+   SM_Wall14a      152 tris · 0.05 × 1.08 × 2.50 m
+   SM_Wall12a      132 tris · 0.07 × 2.15 × 2.50 m
+   SM_Wall01a       24 tris · 0.04 × 2.15 × 2.50 m
+   SM_Wall07a      124 tris · 0.05 × 2.15 × 2.50 m
+   SM_Wall01b     3280 tris · 0.33 × 2.15 × 1.31 m
+   SM_Wall20a      248 tris · 0.07 × 2.16 × 2.50 m
+   SM_Wall03c     2736 tris · 1.38 × 1.33 × 1.68 m
+
+[총계] 클러스터 28개 · 1단계 합계 5,276,345 → Full 5276345 → 소품정책 적용후 3010200 (감소 2266145, 42.9%)
+※ 2a는 프리팹/씬 미생성. 확정 후 2b Extract 실행.
+
+[무수정 확인] Demo.unity 해시 동일 ✓ (5314ad67/5314ad67)

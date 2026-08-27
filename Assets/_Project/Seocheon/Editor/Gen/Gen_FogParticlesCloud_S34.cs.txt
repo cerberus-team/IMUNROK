@@ -1,0 +1,24 @@
+S34 Fog Particles cloud final test
+
+Source inspection
+- Prefab: Assets/Fog Particles/Prefabs/Whitish Fog.prefab
+- Texture: Smoke Sprite Sheet.png, RGBA 256x256, 2x2 sheet
+- Material: Fog-Material White.mat, Sprites/Default alpha blend
+- Renderer: Billboard; no source noise or velocity
+
+Test procedure
+1. Preserve and deactivate the previous S33 Cloud_High under _FailedAtmosphere; do not delete it.
+2. Keep existing _AtmosphereFinal/Mist_Low unchanged.
+3. Create only _CloudFinal_FogParticles/Cloud_Left first.
+4. Reconfigure a prefab instance: Box X>>Y, 10-particle burst, alpha 0.10,
+   lifetime 120 s, speed 0, start size X 60..90 m / Y 14..24 m,
+   random Z rotation -15..15 degrees, Billboard, no trail/light/collider/shadow.
+5. Render P1. Duplicate only if it reads immediately as a cloud rather than smoke/VFX.
+6. If successful, add Center and Right with deliberately varied size, height,
+   count, alpha and rotation; total target 25..60 particles.
+7. If unsuccessful, disable _CloudFinal_FogParticles and retain the last accepted scene.
+
+Preservation
+- No terrain, alphamap, flowers, planet, satellite, stars, aurora, lighting,
+  willow, distant-mountain mesh/location or low-mist edits.
+- Never AssetDatabase.SaveAssets(); SaveAssetIfDirty targets only.

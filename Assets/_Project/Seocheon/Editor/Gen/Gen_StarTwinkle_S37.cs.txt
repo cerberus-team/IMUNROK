@@ -1,0 +1,53 @@
+// S37 — sparse star twinkle final implementation (plan of record)
+// Written before execution. Run through UnityMCP execute_code; this .cs.txt is documentation only.
+//
+// Scope
+//   Preserve the existing 900-star, one-mesh, one-material StarBillboard system.
+//   Do not change skybox, clouds, planet, satellite, terrain, flowers, lighting, or camera baseline.
+//
+// Asset evaluation
+//   Lite Effect/Particles/URP/Lite Particle Add is installed and supported.
+//   The existing Seocheon/StarBillboard shader already has the capability Lite Particle Shader
+//   would add: per-star alpha modulation, independent phase, independent speed, additive rendering.
+//   Adding a second particle layer would duplicate stars and add a draw call, so it is intentionally
+//   not instantiated. Cinematic Weather VFX Bundle prefabs are absent; AmbientSparkles is omitted.
+//
+// Implementation
+//   Mesh: Assets/_Project/Seocheon/Art/Sky/M_StarBillboards.asset
+//   Each star is one quad (4 vertices). uv4.x is the per-star twinkle depth multiplier.
+//   Select exactly 90 / 900 stars (10%) from visible candidates using deterministic seed ordering,
+//   with sky-cell round-robin dispersion. Preserve the selected stars' existing uv4.x (0.35..1.0),
+//   remap selected uv4.x deterministically to 0.30..0.48 and write uv4.x = 0 for all others.
+//   uv2 (phase/speed), uv3 (center), uv4.y (wave mix),
+//   positions, colors, triangles, submesh, and material remain unchanged.
+//
+// Runtime
+//   FlowerfieldSkyController continues pushing _StarTime.
+//   Selected stars retain independent periods about 1.50..3.93 s and independent phases.
+//   Non-selected stars remain fixed because d = _TwinkleDepth * uv4.x = 0.
+//   StarBillboard uses tw = 1 + d*osc. At sunset _TwinkleDepth=0.42 and uv4.x<=0.48,
+//   giving an envelope no wider than 0.798..1.202 at the horizon and gentler at zenith.
+//   Brightness modulation stays alpha-only; size does not pulse.
+//
+// Backup / save
+//   Create timestamped scene and star-mesh backup assets first.
+//   Save only explicit targets with AssetDatabase.SaveAssetIfDirty(target).
+//   Never call AssetDatabase.SaveAssets(). Never delete files/assets.
+//
+// Verification
+//   90 selected stars, 10.0%; mesh 3600 verts / 1800 tris / 1 submesh.
+//   Compare manual animation times 0 / 1 / 2 seconds at P1 with channel-sum threshold > 18.
+//   Render final P1 / BACK / BASIN, restore camera and useManualAnimTime=false.
+
+// S37 visibility pass (client-approved follow-up)
+//   Keep the same 90 selected stars and the same single mesh/material structure.
+//   Deterministically split selected stars by existing seed: weak 36 / medium 36 / strong 18.
+//   Encode tier in uv4.x:
+//     weak  = 0.60 -> d=0.252 -> brightness about 0.748..1.252
+//     medium= 0.90 -> d=0.378 -> brightness about 0.622..1.378
+//     strong= 1.190476 -> d=0.50 -> brightness 0.50..1.50
+//   Set _TwinkleZenith=1 so the envelope remains perceptible in the upper sky.
+//   Preserve uv2 phase/speed seeds and uv4.y irregular-wave mix.
+//   Map both oscillator periods independently into 0.8..2.5 seconds.
+//   Only strong stars receive sizePulse = 1 + 0.10*osc (0.9..1.1).
+//   Back up scene, mesh, material, and shader source before mutation.

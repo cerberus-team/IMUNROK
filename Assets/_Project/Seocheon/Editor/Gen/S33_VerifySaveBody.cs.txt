@@ -1,0 +1,27 @@
+TerrainData td=UnityEngine.Object.FindFirstObjectByType<Terrain>().terrainData;
+TerrainData btd=UnityEditor.AssetDatabase.LoadAssetAtPath<TerrainData>("Assets/_Project/Seocheon/Art/Terrain/_bk/Seocheon_Flowerfield_Terrain_PRE_S32_20260825_141448.asset");
+int hmis=0,amis=0,dmis=0;
+float[,] ha=td.GetHeights(0,0,td.heightmapResolution,td.heightmapResolution),hb=btd.GetHeights(0,0,btd.heightmapResolution,btd.heightmapResolution);
+for(int y=0;y<td.heightmapResolution;y++)for(int x=0;x<td.heightmapResolution;x++)if(System.Math.Abs(ha[y,x]-hb[y,x])>0.0000001f)hmis++;
+float[,,] aa=td.GetAlphamaps(0,0,td.alphamapWidth,td.alphamapHeight),ab=btd.GetAlphamaps(0,0,btd.alphamapWidth,btd.alphamapHeight);
+for(int y=0;y<td.alphamapHeight;y++)for(int x=0;x<td.alphamapWidth;x++)for(int l=0;l<td.alphamapLayers;l++)if(System.Math.Abs(aa[y,x,l]-ab[y,x,l])>0.000001f)amis++;
+long[] sums=new long[td.detailPrototypes.Length];
+for(int l=0;l<td.detailPrototypes.Length;l++){int[,] da=td.GetDetailLayer(0,0,td.detailWidth,td.detailHeight,l),db=btd.GetDetailLayer(0,0,btd.detailWidth,btd.detailHeight,l);for(int y=0;y<td.detailHeight;y++)for(int x=0;x<td.detailWidth;x++){sums[l]+=da[y,x];if(da[y,x]!=db[y,x])dmis++;}}
+GameObject polish=GameObject.Find("_FlowerPolish"),trans=GameObject.Find("_FlowerTransition"),dress=GameObject.Find("_FlowerFinalDressing"),fog=GameObject.Find("_AtmosphereFog"),particleCloud=GameObject.Find("_SkyCloudDrama");
+string roots=(polish!=null?polish.GetComponentsInChildren<Renderer>(true).Length:0)+"/"+(trans!=null?trans.GetComponentsInChildren<Renderer>(true).Length:0)+"/"+(dress!=null?dress.GetComponentsInChildren<Renderer>(true).Length:0);
+GameObject willow=GameObject.Find("_Willow");Camera cam=Camera.main;Light dl=null;Light[] lights=UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None);for(int i=0;i<lights.Length;i++)if(lights[i].type==LightType.Directional){dl=lights[i];break;}
+IMUNROK.Seocheon.FlowerfieldSkyController sky=UnityEngine.Object.FindFirstObjectByType<IMUNROK.Seocheon.FlowerfieldSkyController>();
+Material finalMat=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Seocheon/Art/Sky/S33/M_Flowerfield_SkyPanorama_S33.mat");
+Material origMat=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Seocheon/Art/Sky/M_Flowerfield_Sky.mat");
+UnityEditor.AssetDatabase.SaveAssetIfDirty(finalMat);
+bool saved=UnityEditor.SceneManagement.EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+return "VERIFY|height="+hmis+"|alpha="+amis+"|detail="+dmis+"|layers="+td.terrainLayers.Length+
+"|sums7-12="+sums[7]+","+sums[8]+","+sums[9]+","+sums[10]+","+sums[11]+","+sums[12]+
+"|flowerRoots="+roots+"|fogGroups="+(fog!=null?fog.transform.childCount:0)+"|particleCloudRemoved="+(particleCloud==null)+
+"|willow="+(willow!=null?willow.transform.position.ToString("F4"):"NULL")+
+"|cam="+cam.transform.position.ToString("F4")+"/"+cam.transform.eulerAngles.ToString("F3")+"/"+cam.fieldOfView+"/"+cam.farClipPlane+"/"+(cam.targetTexture==null)+
+"|light="+(dl!=null?dl.transform.eulerAngles.ToString("F3"):"NULL")+
+"|skyMat="+(sky!=null&&sky.skyboxMaterial!=null?UnityEditor.AssetDatabase.GetAssetPath(sky.skyboxMaterial):"NULL")+
+"|shader="+(RenderSettings.skybox!=null?RenderSettings.skybox.shader.name:"NULL")+
+"|origSkyDirty="+UnityEditor.EditorUtility.IsDirty(origMat)+"|tdDirty="+UnityEditor.EditorUtility.IsDirty(td)+
+"|saved="+saved+"|sceneDirty="+UnityEngine.SceneManagement.SceneManager.GetActiveScene().isDirty;

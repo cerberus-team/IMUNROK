@@ -1,0 +1,6 @@
+System.Text.StringBuilder sb=new System.Text.StringBuilder();
+string[] roots={"_FlowerPolish","_FlowerTransition","_FlowerFinalDressing"};
+for(int q=0;q<roots.Length;q++){GameObject go=GameObject.Find(roots[q]);if(go==null)continue;Renderer[] rr=go.GetComponentsInChildren<Renderer>(true);System.Collections.Generic.Dictionary<string,int> cnt=new System.Collections.Generic.Dictionary<string,int>();
+for(int i=0;i<rr.Length;i++){string mesh="";MeshFilter mf=rr[i].GetComponent<MeshFilter>();if(mf!=null&&mf.sharedMesh!=null)mesh=mf.sharedMesh.name;string key=rr[i].name+"|mesh="+mesh+"|mat="+(rr[i].sharedMaterial!=null?rr[i].sharedMaterial.name:"NULL");if(!cnt.ContainsKey(key))cnt[key]=0;cnt[key]++;}
+foreach(System.Collections.Generic.KeyValuePair<string,int> kv in cnt)sb.Append("NAME|").Append(roots[q]).Append("|").Append(kv.Value).Append("|").Append(kv.Key).Append("\n");}
+return sb.ToString();

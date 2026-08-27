@@ -1,0 +1,220 @@
+// ============================================================================
+//  Gen_SkyCubemap_v14.cs.txt        2단계 v18
+//  서천 꽃밭 스카이박스 큐브맵 v14 (UnityMCP execute_code 실행 원문)
+//
+//  ★§6 규칙: 실행 전 파일로 보존. .cs.txt 라 유니티가 컴파일하지 않는다.
+//
+//  RGB = v13.rgb 를 ★비트 단위로 그대로 복사 (게이트 B' 가 이걸 검사한다)
+//  A   = 오로라 강도 마스크 재설계. 가로 띠(등고도 동심원 호)를 폐기하고
+//        흩어진 커튼 3장 + 세로 광선 결 + 방위 끊김 + 상하 비대칭으로 바꾼다.
+//
+//  ★v17 실패 원인: 모델이 "고도 가우시안 × 방위 포락선" 이라 정의상 등고도 호였다.
+//    파라미터로는 절대 띠에서 벗어날 수 없었다. 구조를 바꾼다.
+//
+//  ★함정
+//   - 방위 함수는 전부 360도 주기여야 한다 (lattice 개수가 360을 정수분할).
+//     아니면 compass 0/360 경계에 이음매 선이 생긴다.
+//   - 광선 R 은 고도에 대해 거의 일정해야 한다. 고도마다 독립 난수를 쓰면
+//     세로 결이 아니라 얼룩이 된다 (v15 구름이 정확히 그 실패였다).
+//   - 픽셀 루프 안에서 Unity 네이티브 API 호출 금지.
+//   - CodeDom = C# 6. 로컬 함수 금지 -> System.Func. 한글 식별자 금지.
+// ============================================================================
+
+const int S = 512;
+const double R2D = 57.29577951308232;
+const string SRC = "Assets/_Project/Seocheon/Art/Sky/CM_Flowerfield_Sky_v13.cubemap";
+const string DST = "Assets/_Project/Seocheon/Art/Sky/CM_Flowerfield_Sky_v14.cubemap";
+
+CubemapFace[] FACES = new CubemapFace[] {
+    CubemapFace.PositiveX, CubemapFace.NegativeX, CubemapFace.PositiveY,
+    CubemapFace.NegativeY, CubemapFace.PositiveZ, CubemapFace.NegativeZ };
+
+System.Func<double,double> SS = delegate(double q){ if(q<0)q=0; else if(q>1)q=1; return q*q*(3.0-2.0*q); };
+
+// ---- 값 잡음: 격자 N (360을 정수분할), smoothstep 보간, 0..1 ----
+System.Func<double,int,int,double> VN = delegate(double xx,int N,int sd){
+    double ff = System.Math.Floor(xx);
+    int i0 = (int)(((long)ff % N + N) % N);
+    int i1 = (i0 + 1) % N;
+    double tt = xx - ff; uint ha, hb;
+    unchecked {
+        ha=(uint)(i0*1664525 + sd*1013904223); ha^=ha>>13; ha*=1274126177u; ha^=ha>>16;
+        hb=(uint)(i1*1664525 + sd*1013904223); hb^=hb>>13; hb*=1274126177u; hb^=hb>>16;
+    }
+    double a=(ha & 0xFFFFFFu)/16777216.0, b=(hb & 0xFFFFFFu)/16777216.0;
+    double w = tt*tt*(3.0-2.0*tt);
+    return a + (b-a)*w;
+};
+// 2옥타브 fBm, 0..1 (각도 입력, 격자 N1)
+System.Func<double,int,int,double> FBM2 = delegate(double deg,int N1,int sd){
+    double o1 = VN(deg*N1/360.0, N1, sd);
+    double o2 = VN(deg*(2*N1)/360.0, 2*N1, sd+7919);
+    return (o1 + 0.5*o2) / 1.5;
+};
+
+// ============================================================================
+//  커튼 3장 — ★등간격 4개 띠를 폐기. 구간이 서로 다르고 겹친다.
+// ============================================================================
+double[] spanLo = new double[]{  78.0, 120.0, 150.0 };
+double[] spanHi = new double[]{ 198.0, 250.0, 236.0 };
+double[] bri    = new double[]{  1.00,  0.72,  0.45 };
+double[] mu0    = new double[]{  30.0,  41.0,  52.0 };   // 중심 고도
+double[] amp    = new double[]{   6.5,   8.0,   5.0 };   // 중심선 흔들림 진폭
+int[]    Nmu    = new int[]   {     7,     9,    11 };   // 360/L : 51.4 / 40.0 / 32.7 도
+int[]    Nray   = new int[]   {   150,   120,   180 };   // 광선 방위 주기 2.4 / 3.0 / 2.0 도
+double[] slow   = new double[]{   1.6,   2.2,   1.4 };   // 하단 (날카롭게)
+double[] hup    = new double[]{   7.0,   9.0,   5.0 };   // 상단 (길게)
+int[] sdMu = new int[]{ 2711, 5417, 8123 };
+int[] sdRy = new int[]{ 1229, 4441, 7717 };
+int[] sdPk = new int[]{ 3319, 6229, 9391 };
+const double SHEAR = 0.08;      // 광선의 고도 전단 (부채꼴)
+const int    NBRK  = 20;        // 끊김 잡음 격자 -> 주기 18도
+const double FADE  = 12.0;      // 구간 양끝 페이드 폭
+const double AUC   = 157.5;
+const double SIGAZ = 52.0;
+double[] thr = new double[]{ 0.5, 0.5, 0.5 };   // 끊김 문턱 — 아래에서 이분탐색으로 확정
+
+// ---- φ 만의 함수는 미리 격자에 굽는다 (텍셀 루프에서 VN 호출을 3회로 줄인다) ----
+const int PG = 18000;           // 0.02도 간격
+double[] muG = new double[3*PG]; double[] spG = new double[3*PG]; double[] pkG = new double[3*PG];
+// ★μ 잡음은 커튼 구간 안에서 실현값을 [-1,+1] 로 정규화한다.
+//   지시서의 "값 범위 -1~+1" 과 "μ0_C0 - A_C0 - 2σlow ≈ 20.2도" 를 동시에 만족시키는 유일한 해석.
+//   정규화 없이 쓰면 실현 표준편차가 이론값의 1/3 이라 흔들림이 1.1도밖에 안 나오고,
+//   전역(360도) 정규화로 하면 구간 안 진폭이 부족해 최저 하단이 28.8도가 된다 (둘 다 실측 확인).
+double[] nrmLo = new double[3]; double[] nrmHi = new double[3];
+for (int c = 0; c < 3; c++) {
+    double lo2 = 9e9, hi2 = -9e9;
+    for (double ph = spanLo[c]; ph <= spanHi[c]; ph += 0.05) {
+        double r = FBM2(ph, Nmu[c], sdMu[c]); if (r < lo2) lo2 = r; if (r > hi2) hi2 = r; }
+    nrmLo[c] = lo2; nrmHi[c] = hi2;
+}
+System.Action BuildPhi = delegate() {
+    for (int c = 0; c < 3; c++) {
+        for (int i = 0; i < PG; i++) {
+            double ph = i*360.0/PG;
+            double nrm = 2.0*(FBM2(ph, Nmu[c], sdMu[c]) - nrmLo[c])/(nrmHi[c] - nrmLo[c]) - 1.0;
+            muG[c*PG+i] = mu0[c] + amp[c]*nrm;
+            double lo = spanLo[c], hi = spanHi[c];
+            double d1 = ph - lo; d1 = d1 - 360.0*System.Math.Floor(d1/360.0);       // 0..360
+            double sp = SS(d1/FADE) * SS(((hi-lo) - d1)/FADE);
+            spG[c*PG+i] = sp;
+            double bk = FBM2(ph, NBRK, sdPk[c]);
+            pkG[c*PG+i] = SS((bk - (thr[c]-0.12))/0.24);
+        }
+    }
+};
+
+// 커튼 하나의 값 (포락선·밝기 제외)
+System.Func<int,double,double,double> CURT = delegate(int c, double ph, double th){
+    int gi = (int)(ph*PG/360.0) % PG; if (gi < 0) gi += PG;
+    double sp = spG[c*PG+gi]; if (sp <= 1e-4) return 0.0;
+    double pk = pkG[c*PG+gi]; if (pk <= 1e-4) return 0.0;
+    double mu = muG[c*PG+gi];
+    double d = th - mu;
+    double V = (d < 0.0) ? System.Math.Exp(-(d/slow[c])*(d/slow[c]))
+                         : System.Math.Exp(-d/hup[c]);
+    if (V <= 1e-4) return 0.0;
+    // ★광선: 인수가 φ 주도. 고도는 SHEAR 로만 아주 약하게 들어간다 -> 세로로 선이 선다
+    double ang = ph + SHEAR*d;
+    double R = 0.35 + 0.65*System.Math.Abs(2.0*VN(ang*Nray[c]/360.0, Nray[c], sdRy[c]) - 1.0);
+    return sp*pk*R*V;
+};
+
+// ---- 끊김 문턱 thr 이분탐색 : 구간 중 25~40% 가 피크의 15% 미만이 되도록 (목표 32%) ----
+System.Func<int,double,double> DarkFrac = delegate(int c, double t){
+    thr[c] = t; BuildPhi();
+    double lo = spanLo[c], hi = spanHi[c];
+    int n = (int)((hi-lo)/0.5);
+    double[] prof = new double[n]; double pmax = 0;
+    for (int i = 0; i < n; i++) {
+        double ph = lo + i*0.5; double m = 0;
+        for (int e = 30; e <= 150; e++) { double v = CURT(c, ph, e*0.5); if (v > m) m = v; }
+        prof[i] = m; if (m > pmax) pmax = m;
+    }
+    int dark = 0;
+    for (int i = 0; i < n; i++) if (prof[i] < 0.15*pmax) dark++;
+    return (double)dark/n;
+};
+for (int c = 0; c < 3; c++) {
+    double a = 0.0, b = 1.0;
+    for (int it = 0; it < 18; it++) { double m = 0.5*(a+b); if (DarkFrac(c, m) < 0.32) a = m; else b = m; }
+    thr[c] = 0.5*(a+b);
+}
+BuildPhi();
+
+// ---- 합성 + 최대값 정규화 ----
+System.Func<double,double,double> ASHAPE = delegate(double ph, double th){
+    double d = ph - AUC; d = d - 360.0*System.Math.Floor(d/360.0 + 0.5);
+    double env = System.Math.Exp(-(d*d)/(2.0*SIGAZ*SIGAZ));
+    if (env < 1e-5) return 0.0;
+    double acc = 0.0;
+    for (int c = 0; c < 3; c++) acc += bri[c]*CURT(c, ph, th);
+    return env*acc;
+};
+double AMAX = 0.0;
+for (int a = 0; a < 3600; a++) { double ph = a*0.1;
+    for (int e = 60; e <= 340; e++) { double v = ASHAPE(ph, e*0.25); if (v > AMAX) AMAX = v; } }
+
+// ============================================================================
+//  굽기 : RGB 는 v13 그대로, 알파만 새로
+// ============================================================================
+Cubemap src = AssetDatabase.LoadAssetAtPath<Cubemap>(SRC);
+Cubemap dst = new Cubemap(S, TextureFormat.RGBA32, true);
+dst.filterMode = FilterMode.Trilinear; dst.wrapMode = TextureWrapMode.Clamp;
+
+for (int f = 0; f < 6; f++) {
+    Color[] p = src.GetPixels(FACES[f]);
+    Color[] o = new Color[S*S];
+    for (int y = 0; y < S; y++) {
+        double v = 1.0 - 2.0*((y+0.5)/S);
+        for (int x = 0; x < S; x++) {
+            double u = 2.0*((x+0.5)/S) - 1.0; double dx, dy, dz;
+            if      (f==0) { dx= 1; dy= v; dz=-u; }
+            else if (f==1) { dx=-1; dy= v; dz= u; }
+            else if (f==2) { dx= u; dy= 1; dz=-v; }
+            else if (f==3) { dx= u; dy=-1; dz= v; }
+            else if (f==4) { dx= u; dy= v; dz= 1; }
+            else           { dx=-u; dy= v; dz=-1; }
+            double len = System.Math.Sqrt(dx*dx+dy*dy+dz*dz);
+            double el  = System.Math.Asin(dy/len)*R2D;
+            double az  = System.Math.Atan2(dx,dz)*R2D; if (az < 0) az += 360.0;
+
+            double m = 0.0;
+            if (el > 10.0 && el < 88.0) { m = ASHAPE(az, el)/AMAX; if (m < 0) m = 0; if (m > 1) m = 1; }
+
+            // ★8비트 양자화 직전 +-0.5 LSB 삼각분포 디더. 밉맵은 이 뒤에 생성한다.
+            int idx = (f*S + y)*S + x; double r1, r2;
+            unchecked {
+                uint h1=(uint)(idx*1664525 + 1013904223); h1^=h1>>15; h1*=2246822519u; h1^=h1>>13;
+                uint h2=(uint)(idx*22695477 + 1);         h2^=h2>>15; h2*=3266489917u; h2^=h2>>13;
+                r1=(h1 & 0xFFFFFFu)/16777216.0; r2=(h2 & 0xFFFFFFu)/16777216.0;
+            }
+            m += (r1-r2)*(1.0/255.0)*0.5;
+            if (m < 0) m = 0; if (m > 1) m = 1;
+
+            Color c0 = p[y*S+x];
+            o[y*S+x] = new Color(c0.r, c0.g, c0.b, (float)m);   // ★RGB 무변경
+        }
+    }
+    dst.SetPixels(o, FACES[f]);
+}
+dst.Apply(true);
+AssetDatabase.CreateAsset(dst, DST);
+AssetDatabase.SaveAssets(); AssetDatabase.Refresh();
+
+// ============================================================================
+//  ★실행 후 확인
+//   1) 게이트 B' : v14.rgb 와 v13.rgb 가 다른 텍셀 수 = 0
+//   2) thr 이분탐색 결과 끊김률이 25~40% 안에 들어왔는지
+//   3) 렌더에서 세로 결이 보이는지 / 얼룩지지 않았는지
+//
+// ★★ v18 에서 실제로 일어난 일 (기록)
+//   완화 재굽기(amp 절반 = 3.25/4.0/2.5, 광선 0.60+0.40)를 지시서대로 한 번 시도했으나
+//   ★과교정이었다. amp 를 줄이자 커튼 3장의 고도 범위가 좁아져 서로 겹쳐 한 장의 통짜
+//   담요가 됐고, 광선 바닥을 0.60 으로 올려 그 담요를 나눌 대비마저 사라졌다.
+//   렌더에서 커튼·광선이 전부 사라지고 하늘 전체가 마젠타->청록 단색 물감이 됐다.
+//   -> 완화 전 값(아래 그대로)이 최종본이다. 세 번째 파라미터 탐색은 하지 않았다.
+//
+//   완화값을 다시 쓰려면 amp = {3.25, 4.0, 2.5}, RAYFLOOR/CONTRAST = 0.60/0.40 로 바꾸면
+//   재현된다 (시드 동일, 결정론적).
+// ============================================================================

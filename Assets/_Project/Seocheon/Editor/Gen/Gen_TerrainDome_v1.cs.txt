@@ -1,0 +1,161 @@
+서천 꽃밭 — 밭 동산 (안 A · 돔형) ★영구 적용   Gen_TerrainDome_v1
+==================================================================
+작성 2026-08-24 (S15)   ★실행 전에 저장한 파일이다 (함정 ⑪)
+씬    Assets/_Project/Seocheon/Scenes/Seocheon_Flowerfield.unity
+지형  Assets/_Project/Seocheon/Art/Terrain/Seocheon_Flowerfield_Terrain.asset
+
+★S14 에서 비교만 했던 ★안 A 를 그대로 영구 적용한다.
+★새로 설계하지 않는다. 값을 "개선" 하지 않는다. S14 안 A 의 재현이다.
+★안 B · 안 C · 제3안(A·B 혼합)은 폐기. 의뢰인이 A 를 선택했다.
+
+------------------------------------------------------------------
+[0] 왜 돔인가
+
+  밭이 화면에서 안 보이던 원인은 색·밀도가 아니라 ★기하다.
+  눈높이(지면 위 2.65 m)에서 ★평지는 지평선 몇 픽셀로 압축된다.
+  밭을 동산에 올리면 사면이 관측자 쪽으로 얼굴을 돌려 면적이 생긴다.
+  S14 실측 : 밭 픽셀이 안 C(평지) 대비 ★1.666 배
+
+------------------------------------------------------------------
+[1] 파라미터 — ★S14 안 A 와 완전히 동일
+
+  A_DOME  = 3.50 m          돔 정점 높이
+  Req     = 18.37 m         밭 영역 등가반경 (면적 1,060.5 m^2, 278 텍셀)
+  Rd      = Req * 1.2 = ★22.05 m
+  FADE    = 16.0 m          밭 영역 밖 페이드 폭
+  FCX,FCZ = (447.67, 679.15)  8구역 중심의 산술평균
+
+  밭 영역 = 8구역 확장 사각형(바깥 MARGIN 2 m) + 구역 사이 길(반폭 1.5 m)
+     CX {434.000,446.990,438.842,449.801,460.399,438.114,450.737,462.507}
+     CZ {699.600,698.638,678.888,677.770,677.291,666.050,667.264,667.737}
+     RT {  8, 172, 145, 112,  78,  45,  20, 165}   SA {11,11,9,9,9,9,9,9}  SB {7 x8}
+     길쌍 PA {0,2,3,5,6,2,3,4}  PB {1,3,4,6,7,5,6,7}
+
+------------------------------------------------------------------
+[2] 적용식
+
+  r    = |(wx,wz) - (FCX,FCZ)|                      밭 중심으로부터 수평 거리
+  dF   = 밭 영역까지의 외부거리 (밭 안이면 0)
+  u    = clamp(dF / FADE, 0, 1)
+  s    = u*u*(3 - 2*u)                              ★GLSL smoothstep 직접 구현
+                                                    (Mathf.SmoothStep 은 인자 의미가 다름)
+  dome = A_DOME * exp( -(r/Rd)^2 ) * (1 - s)
+  H_new = H_orig + dome / 300.0                     ★높이맵은 0~1 정규화, size.y = 300
+
+  -> 돔 자체가 가우시안으로 감쇠하고, 페이드 마스크가 밭 밖 16 m 에서 원지형으로 되돌린다
+  -> 밭 경계(dF=0)에서 돔은 이미 50% 수준이라 봉우리가 밭 안에 갇히지 않는다
+
+  적용 후  ★td.SyncHeightmap()  →  ★Physics.SyncTransforms()
+
+------------------------------------------------------------------
+[3] ★S14 지문 (이 값이 재현돼야 같은 안 A 다)
+
+  최대 |dH|                3.4967 m @(447.3, 679.7)   허용 +-0.02 · 좌표 일치
+  >5.0 m 텍셀              0
+  스폰 반경 3 m 변경        0.0205 m                   허용 <=0.05
+  밭 영역 평균 경사         6.89도                     허용 +-0.15
+  밭 영역 최대 경사        10.18도                     허용 +-0.30
+  페이드가 추가한 단차      0.4918 m                   허용 +-0.03
+  능선 Z688~693 최대 경사  14.41 -> 21.28도            허용 +-0.40
+  페이드 최대 경사          21.93도 @(427.6, 675.2)    허용 +-0.50 · 좌표 일치
+  ★하나라도 벗어나면 되돌리고 보고한다. 값을 맞추려 다른 파라미터를 흔들지 않는다
+
+------------------------------------------------------------------
+[4] ★S13 도색을 재실행하면 안 되는 이유 (이 라운드의 핵심 함정)
+
+  S13 도색 규칙   a = smoothstep(13,21,h)  ·  b = smoothstep(13,23,s)
+                  wMountain = max(a,b)  ->  L3(암반) = wMountain * 0.55
+  안 A 적용 후 Z 688~693 능선 경사가 14.41 -> ★21.28도 가 된다.
+     b = smoothstep(13,23,21.28) = 0.92  ->  L3 = 0.51
+  -> ★밭 바로 뒤 능선이 청회색 자갈로 뒤덮인다.
+  ★alphamap 은 이미 구워져 있으므로 ★높이만 바꾸면 안전하다. 다시 굽지 않는다.
+
+------------------------------------------------------------------
+[5] 실행 순서
+
+  5-0  씬 · TerrainData 백업
+       ★CreateAsset -> ★그 다음에 terrainLayers -> SetAlphamaps -> SetHeights
+       ★SaveAssetIfDirty(대상) 만. AssetDatabase.SaveAssets() 금지
+       검증 : 높이맵 · alphamap · 디테일 layer 0~8 전부 불일치 0
+  5-1  원본 높이맵을 배열로 보관 (스크래치)
+  5-2  돔 적용 -> SyncHeightmap -> Physics.SyncTransforms
+  5-3  ★S14 지문 8개 대조
+  5-4  버드나무 y 만 재접지 (XZ 불변 · SampleHeight · Raycast 금지)
+       ★갈대는 씬에 없다. 아무것도 하지 않는다
+  5-5  ★임시 붓질 (Gen_DetailFlowers_v2 최종 상수 그대로) -> 측정 -> 렌더
+       상태 ① 전체 · ② 근접군(B01·B02, layer 1/2/7/8) · ③ 원경군(B03~B08, layer 3/4/5/6)
+  5-6  ★임시 붓질을 layer 1~8 전부 0 으로 원복 (전체 셀 확인)
+       바람 · 카메라 · 컨트롤러 t · 워커 원복
+
+------------------------------------------------------------------
+[6] ★유지 (이 라운드에서 건드리지 않는 것)
+
+  alphamap 4장 (S13 도색 상태) — ★한 텍셀도 바꾸지 않는다
+  디테일 프로토타입 9개와 틴트 · fern layer 0 (244 / max 5)
+  ★갈대(_Reeds) 복원 금지 · 버드나무 삭제 금지 (y 재접지만)
+  하늘/행성/위성/별/오로라/산괴/안개/조명 전부
+  플레이어 파라미터 1.85/0.30/0.925/0.03/45/0.30 · autoSyncTransforms False
+  ★파일 삭제 0건
+
+------------------------------------------------------------------
+[7] 실행 코드 (UnityMCP execute_code · C# 6 · 로컬함수 금지 · UnityEngine.Object 명시)
+
+var T = UnityEngine.Object.FindFirstObjectByType<Terrain>();
+var td = T.terrainData;
+int HR = td.heightmapResolution;                  // 513
+Vector3 SZ = td.size, TP = T.transform.position;  // (1000,300,1000) / (0,0,0)
+float TEX = SZ.x / (HR - 1);                      // 1.953125
+
+const float A_DOME = 3.50f, FADE = 16f, MARGIN = 2f, PATHHW = 1.5f;
+const float FCX = 447.67f, FCZ = 679.15f;
+float Rd = 22.05f;
+
+float[,] H0 = td.GetHeights(0, 0, HR, HR);        // ★원본 보관
+
+float[] CX = {434.000f,446.990f,438.842f,449.801f,460.399f,438.114f,450.737f,462.507f};
+float[] CZ = {699.600f,698.638f,678.888f,677.770f,677.291f,666.050f,667.264f,667.737f};
+float[] RO = {8f,172f,145f,112f,78f,45f,20f,165f};
+float[] SA = {11f,11f,9f,9f,9f,9f,9f,9f};
+int[] PA = {0,2,3,5,6,2,3,4};
+int[] PB = {1,3,4,6,7,5,6,7};
+float[] AXX = new float[8], AXZ = new float[8], BXX = new float[8], BXZ = new float[8];
+for (int b = 0; b < 8; b++) {
+    float th = RO[b] * Mathf.Deg2Rad;
+    AXX[b] =  Mathf.Cos(th); AXZ[b] = -Mathf.Sin(th);
+    BXX[b] =  Mathf.Sin(th); BXZ[b] =  Mathf.Cos(th);
+}
+
+float[,] HN = new float[HR, HR];
+for (int z = 0; z < HR; z++) {
+    float wz = TP.z + z * TEX;
+    for (int x = 0; x < HR; x++) {
+        float wx = TP.x + x * TEX;
+        float dF = 1e9f;
+        for (int b = 0; b < 8; b++) {
+            float ox = wx - CX[b], oz = wz - CZ[b];
+            float la = ox * AXX[b] + oz * AXZ[b];
+            float lb = ox * BXX[b] + oz * BXZ[b];
+            float qa = Mathf.Max(Mathf.Abs(la) - (SA[b] * 0.5f + MARGIN), 0f);
+            float qb = Mathf.Max(Mathf.Abs(lb) - 5.5f, 0f);
+            float dr = Mathf.Sqrt(qa * qa + qb * qb);
+            if (dr < dF) dF = dr;
+        }
+        for (int p = 0; p < 8; p++) {
+            float px = CX[PA[p]], pz = CZ[PA[p]];
+            float ex = CX[PB[p]] - px, ez = CZ[PB[p]] - pz;
+            float tt = Mathf.Clamp01(((wx - px) * ex + (wz - pz) * ez) / (ex * ex + ez * ez));
+            float cx2 = px + tt * ex, cz2 = pz + tt * ez;
+            float ds = Mathf.Sqrt((wx - cx2) * (wx - cx2) + (wz - cz2) * (wz - cz2));
+            float dp = Mathf.Max(ds - PATHHW, 0f);
+            if (dp < dF) dF = dp;
+        }
+        float r = Mathf.Sqrt((wx - FCX) * (wx - FCX) + (wz - FCZ) * (wz - FCZ));
+        float u = Mathf.Clamp01(dF / FADE);
+        float s = u * u * (3f - 2f * u);                    // ★GLSL smoothstep
+        float dome = A_DOME * Mathf.Exp(-(r / Rd) * (r / Rd)) * (1f - s);
+        HN[z, x] = H0[z, x] + dome / SZ.y;                  // ★1 m = 1/300
+    }
+}
+td.SetHeights(0, 0, HN);
+td.SyncHeightmap();
+Physics.SyncTransforms();

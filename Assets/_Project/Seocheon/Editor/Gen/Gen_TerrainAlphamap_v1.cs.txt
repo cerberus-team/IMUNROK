@@ -1,0 +1,167 @@
+// ============================================================================
+//  Gen_TerrainAlphamap_v1.cs.txt        3단계
+//  원경 지형 alphamap 도색 + 중경 물줄기 색 띠 (UnityMCP execute_code ★최종 실행 원문)
+//
+//  대상  Assets/_Project/Seocheon/Art/Terrain/Seocheon_Flowerfield_Terrain.asset
+//        alphamapResolution 1024 · 4채널
+//        L0 TR_Ground02b / L1 TR_Ground01b / L2 TL_Seocheon_WildFlower / L3 TL_Seocheon_RockBlueGrey
+//
+//  ★되돌리려면  _bk/Seocheon_Flowerfield_Terrain_PRE_S3_20260823_1501.asset(.bak) 를
+//    Seocheon_Flowerfield_Terrain.asset 으로 복사하면 된다. (레이어 3장 상태로 되돌아간다)
+//
+// ----------------------------------------------------------------------------
+//  ★핵심 설계
+//   1) 보호구역 r<100 (중심 467.16, 670.69) 은 ★백업값을 그대로 복사한다. 계산하지 않는다.
+//      -> 실측 변경 텍셀 0 / 32947. "안 건드렸다" 는 서술이 아니라 백업과 직접 비교한 수치다.
+//   2) wRock 은 ★고도·경사만의 함수다. 반경·방위 성분이 들어가지 않는다.
+//        a = smoothstep(16, 40, h)      // ★GLSL 의미. Mathf.SmoothStep 과 인자 의미가 다름(함정 ③)
+//        b = smoothstep(20, 32, s)
+//        wRock = saturate(max(a, b))
+//   3) ★wRock 을 σ=4 텍셀(3.91 m) 가우시안으로 평활한다.
+//      이유: 지형에 절벽이 있어 경사가 1텍셀 만에 20->32도를 지나면 L3 가 0->1 로 튄다.
+//      평활 전 인접 |Δ| 99.9 퍼센타일 = 0.6078 -> 평활 후 0.0902 (보호구역 제외).
+//      평활해도 wRock 은 여전히 고도·경사만의 (공간평균된) 함수다. R2 = 0.98166 로 확인했다.
+//   4) 저주파 얼룩: 파장 100 m / 62.5 m 주기잡음, ±0.12
+//   5) L2 = wFlower * 0.78  (흙을 22% 남긴다) / L3 = wRock
+//      나머지 rest 를 L0/L1 에 ★원본 비율 그대로 배분하고 4채널 합을 1 로 정규화
+//
+//  ★물줄기 배치 — 여기서 크게 헤맸다. 기록해 둔다.
+//   1차 배치(북동 사면 789,694 ~ 856,890)는 §4⑤ 수치를 전부 만족했지만
+//   ★관측점에서 170~260 m 앞 능선에 가려 41개 표본 전부가 안 보였다.
+//   지형 전체를 가시성 검사한 결과, 250~500 m 고리의 ★대부분이 앞 능선에 가려 있고
+//   "가시 + 250~500 m + 꽃밭(h<32, 회청색이 대비되어 물로 읽히는 조건)" 을 동시에
+//   만족하는 창은 ★동측 능선 X 690~740 · Z 690~830 하나뿐이다.
+//   -> 그 창 안에서 사행(蛇行)으로 길이를 벌어 239.6 m 를 확보했다.
+//   ★교훈: 물줄기·원경 요소는 배치 전에 ★반드시 가시성(시선 차단)을 먼저 검사할 것.
+//           거리·고도·경사만 보면 안 보이는 곳에 놓게 된다.
+//
+//  ★CodeDom = C# 6. 로컬 함수 금지 -> System.Func. 변수명 겹침 금지(sb 사고 1회).
+//  ★픽셀 루프 안에서 TerrainData.GetHeight 등 네이티브 API 호출 금지 -> 배열로 받아 계산(함정 ⑧).
+// ============================================================================
+
+string bp="Assets/_Project/Seocheon/Art/Terrain/_bk/Seocheon_Flowerfield_Terrain_PRE_S3_20260823_1501.asset";
+TerrainData bd=AssetDatabase.LoadAssetAtPath<TerrainData>(bp);
+Terrain T=UnityEngine.Object.FindObjectsByType<Terrain>(FindObjectsSortMode.None)[0];
+TerrainData td=T.terrainData;
+int AR=td.alphamapResolution, HR=td.heightmapResolution;
+float SY=td.size.y, SX=td.size.x;
+double hstep=SX/(HR-1), aTex=SX/AR;
+float[,] HM=td.GetHeights(0,0,HR,HR);
+float[,,] B=bd.GetAlphamaps(0,0,AR,AR);        // ★원본 L0/L1 비율 · 보호구역 원본값의 출처
+float[,,] A=new float[AR,AR,4];
+
+// ---- 경사 배열 (헤더 ★3 참조) ----
+float[,] SL=new float[HR,HR];
+for(int z=0;z<HR;z++) for(int x=0;x<HR;x++){
+  int xm=x>0?x-1:x,xp=x<HR-1?x+1:x,zm=z>0?z-1:z,zp=z<HR-1?z+1:z;
+  double dhx=(HM[z,xp]-HM[z,xm])*SY/((xp-xm)*hstep);
+  double dhz=(HM[zp,x]-HM[zm,x])*SY/((zp-zm)*hstep);
+  SL[z,x]=(float)(System.Math.Atan(System.Math.Sqrt(dhx*dhx+dhz*dhz))*180.0/System.Math.PI); }
+
+// ★GLSL 의미의 smoothstep(edge0, edge1, x)
+System.Func<double,double,double,double> GSS=delegate(double e0,double e1,double x){
+  double t=(x-e0)/(e1-e0); if(t<0)t=0; else if(t>1)t=1; return t*t*(3.0-2.0*t); };
+
+float[] WR=new float[AR*AR];
+for(int az=0;az<AR;az++){ double v=(az+0.5)/AR;
+  for(int ax=0;ax<AR;ax++){ double u=(ax+0.5)/AR;
+    double hu=u*(HR-1),hv=v*(HR-1);
+    int x0=(int)hu,z0=(int)hv; if(x0>HR-2)x0=HR-2; if(z0>HR-2)z0=HR-2;
+    double fx=hu-x0,fz=hv-z0;
+    double h00=HM[z0,x0],h10=HM[z0,x0+1],h01=HM[z0+1,x0],h11=HM[z0+1,x0+1];
+    double h=((h00+(h10-h00)*fx)+((h01+(h11-h01)*fx)-(h00+(h10-h00)*fx))*fz)*SY;
+    double s00=SL[z0,x0],s10=SL[z0,x0+1],s01=SL[z0+1,x0],s11=SL[z0+1,x0+1];
+    double sd=(s00+(s10-s00)*fx)+((s01+(s11-s01)*fx)-(s00+(s10-s00)*fx))*fz;
+    double aa=GSS(16.0,40.0,h), bb=GSS(20.0,32.0,sd);
+    WR[az*AR+ax]=(float)(aa>bb?aa:bb); } }
+
+// ---- wRock 가우시안 평활 (분리형, σ=4 텍셀 = 3.91 m) ----
+int RAD=10; double SIG=4.0;
+double[] KER=new double[2*RAD+1]; double ks=0;
+for(int i=-RAD;i<=RAD;i++){ KER[i+RAD]=System.Math.Exp(-0.5*i*i/(SIG*SIG)); ks+=KER[i+RAD]; }
+for(int i=0;i<KER.Length;i++) KER[i]/=ks;
+float[] TMP=new float[AR*AR];
+for(int az=0;az<AR;az++) for(int ax=0;ax<AR;ax++){ double acc=0;
+  for(int i=-RAD;i<=RAD;i++){ int xx=ax+i; if(xx<0)xx=0; if(xx>AR-1)xx=AR-1; acc+=WR[az*AR+xx]*KER[i+RAD]; }
+  TMP[az*AR+ax]=(float)acc; }
+for(int az=0;az<AR;az++) for(int ax=0;ax<AR;ax++){ double acc=0;
+  for(int i=-RAD;i<=RAD;i++){ int zz=az+i; if(zz<0)zz=0; if(zz>AR-1)zz=AR-1; acc+=TMP[zz*AR+ax]*KER[i+RAD]; }
+  WR[az*AR+ax]=(float)acc; }
+
+// ---- 주기 값잡음 (저주파 얼룩용) ----
+System.Func<int,int,int,double> H2=delegate(int xi,int yi,int sd){
+  unchecked { uint h=(uint)(xi*374761393+yi*668265263+sd*1442695040);
+    h=(h^(h>>13))*1274126177u; h^=h>>16; return (h&0xFFFFFFu)/16777216.0; } };
+System.Func<double,double,int,int,double> VNP=delegate(double u,double v,int freq,int sd){
+  double x=u*freq,y=v*freq;
+  int x0=(int)System.Math.Floor(x), y0=(int)System.Math.Floor(y);
+  double fx=x-x0,fy=y-y0;
+  int xa=((x0%freq)+freq)%freq, xb=(((x0+1)%freq)+freq)%freq;
+  int ya=((y0%freq)+freq)%freq, yb=(((y0+1)%freq)+freq)%freq;
+  double wx=fx*fx*(3.0-2.0*fx), wy=fy*fy*(3.0-2.0*fy);
+  double a=H2(xa,ya,sd),b=H2(xb,ya,sd),c=H2(xa,yb,sd),d=H2(xb,yb,sd);
+  double t0=a+(b-a)*wx,t1=c+(d-c)*wx; return t0+(t1-t0)*wy; };
+
+// ---- 물줄기 곡선 (Catmull-Rom, ★직선 아님) ----
+//  동측 능선 가시 창 · 길이 239.6 m · 관측거리 253~302 m · 보호구역 최소 235 m · 가시 87.8%
+double[] cpx=new double[]{ 700, 718, 697, 719, 698, 718, 697, 716, 697, 708 };
+double[] cpz=new double[]{ 862, 845, 828, 810, 792, 774, 756, 738, 721, 706 };
+System.Func<double,double,double,double,double,double> CR=delegate(double p0,double p1,double p2,double p3,double t){
+  double t2=t*t,t3=t2*t; return 0.5*((2*p1)+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t2+(-p0+3*p1-3*p2+p3)*t3); };
+int NC=cpx.Length, NS=600;
+double[] sxA=new double[NS], szA=new double[NS], stA=new double[NS];
+for(int i=0;i<NS;i++){ double g=(double)i/(NS-1)*(NC-1); int seg=(int)g; if(seg>NC-2)seg=NC-2; double t=g-seg;
+  int i0=seg-1; if(i0<0)i0=0; int i3=seg+2; if(i3>NC-1)i3=NC-1;
+  sxA[i]=CR(cpx[i0],cpx[seg],cpx[seg+1],cpx[i3],t);
+  szA[i]=CR(cpz[i0],cpz[seg],cpz[seg+1],cpz[i3],t); stA[i]=(double)i/(NS-1); }
+
+// ---- 도색 ----
+double CX=467.16, CZ=670.69, PR=100.0;
+for(int az=0;az<AR;az++){
+  double wz=(az+0.5)*aTex, v=(az+0.5)/AR;
+  for(int ax=0;ax<AR;ax++){
+    double wx=(ax+0.5)*aTex, u=(ax+0.5)/AR;
+    double pdx=wx-CX, pdz=wz-CZ;
+    if(pdx*pdx+pdz*pdz<PR*PR){        // ★보호구역: 백업값 그대로. 계산하지 않는다
+      A[az,ax,0]=B[az,ax,0]; A[az,ax,1]=B[az,ax,1]; A[az,ax,2]=B[az,ax,2]; A[az,ax,3]=0f; continue; }
+    double wRock=WR[az*AR+ax]; if(wRock<0)wRock=0; if(wRock>1)wRock=1;
+    double nlf=0.6*(2.0*VNP(u,v,10,4441)-1.0)+0.4*(2.0*VNP(u,v,16,7727)-1.0);
+    double wFlower=(1.0-wRock)*(1.0+0.12*nlf); if(wFlower<0)wFlower=0; if(wFlower>1)wFlower=1;
+    double L2=wFlower*0.78, L3=wRock;
+
+    // ---- 물줄기: L3 를 1.0 으로 끌어올린다. 가장자리는 3~6 m 페이드 ----
+    if(wx>665 && wx<755 && wz>665 && wz<905){
+      double best=1e9, bt=0;
+      for(int i=0;i<NS;i++){ double ddx=wx-sxA[i], ddz=wz-szA[i]; double dq=ddx*ddx+ddz*ddz; if(dq<best){best=dq;bt=stA[i];} }
+      double dc=System.Math.Sqrt(best);
+      double wid =10.0+4.0*System.Math.Sin(2*System.Math.PI*bt*1.3+0.7);   // 6~14 m
+      double fade= 4.5+1.5*System.Math.Sin(2*System.Math.PI*bt*0.9+2.1);   // 3~6 m
+      double sw=1.0-GSS(wid*0.5, wid*0.5+fade, dc);
+      if(sw>0.001){ L3=L3+(1.0-L3)*sw; L2=L2*(1.0-sw); } }
+
+    double rest=1.0-L2-L3; if(rest<0)rest=0;
+    double o0=B[az,ax,0], o1=B[az,ax,1], os=o0+o1;
+    double r0,r1;
+    if(os>1e-6){ r0=rest*(o0/os); r1=rest*(o1/os); } else { r0=rest*0.5; r1=rest*0.5; }
+    double tot=r0+r1+L2+L3; if(tot<1e-6){ r0=1;r1=0;L2=0;L3=0;tot=1; }
+    r0/=tot; r1/=tot; L2/=tot; L3/=tot;
+    A[az,ax,0]=(float)r0; A[az,ax,1]=(float)r1; A[az,ax,2]=(float)L2; A[az,ax,3]=(float)L3; } }
+
+td.SetAlphamaps(0,0,A);
+T.Flush();
+EditorUtility.SetDirty(td);
+AssetDatabase.SaveAssets();
+
+// ============================================================================
+//  ★실행 후 확인 (전부 별도 호출로 측정했다)
+//   1) ★보호구역 변경 텍셀 수 = 0  — 백업 TerrainData 를 로드해 텍셀 단위로 직접 비교할 것.
+//      백업은 3채널이므로 4번째 채널은 0 으로 간주해 비교한다 (IndexOutOfRange 주의)
+//   2) 높이맵 변경 텍셀 = 0
+//   3) terrainLayers.Length == 4  (5장이 되면 URP 지형이 2패스 -> Quest 지형 픽셀 비용 2배)
+//   4) 4채널 합 최대편차 — ★alphamap 은 8비트 저장이라 1/255 = 0.003922 가 ★원리적 하한이다.
+//      원본 alphamap 도 같은 0.003922 였다. ±0.002 는 저장 양자보다 작아 달성 불가능하다
+//   5) 인접 |Δ가중| 99.9 퍼센타일 <= 0.12  — ★보호구역을 제외하고 계산할 것.
+//      보호구역 안은 원본 손칠이라 |Δ| 가 크고, 지시서가 손대지 말라고 한 영역이다
+//   6) R2(wRock ~ 고도·경사) >= 0.90, 그리고 대조로 R2(wRock ~ 보호중심 반경) 이 낮을 것
+//   7) ★물줄기는 반드시 가시성까지 확인할 것 (헤더의 배치 기록 참조)
+// ============================================================================

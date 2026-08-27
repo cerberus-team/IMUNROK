@@ -1,0 +1,43 @@
+// S27 Seocheon Flowerfield - full scene environment decor generation record
+// Created before execution. Unity 6000.3.19f1 / URP / deterministic LCG.
+//
+// Invariants:
+// - Never call SetHeights, SetAlphamaps, SetDetailLayer, or change terrainLayers.
+// - Preserve skybox, aurora, stars, planet, satellite, PlanetDirection and light rotation.
+// - Preserve Willow XZ/Y and all existing scene objects.
+// - All generated objects live below one root: _EnvironmentDecor.
+//
+// Hierarchy:
+// _EnvironmentDecor/{Flowers_Near,Flowers_Mid,Flowers_Far,Grass,WillowArea,Atmosphere,Sparkles}
+//
+// Visual strategy:
+// - Near (0..25 m): direct Idyllic single-flower prefabs, visible heads first.
+// - Mid (25..60 m): 8-triangle FlowerMeadow cross-card prefabs in irregular clusters.
+// - Far (60 m+): larger, sparse FlowerMeadow cards and grass silhouettes.
+// - Willow: grass/plants/flowers around but not intersecting the trunk.
+// - P1, BACK and BASIN each receive independent cluster centers.
+// - Cloud omitted: existing PF_CloudLayer already failed and remaining fog/skill VFX do not fit the sky.
+// - Subtle Idyllic Particles only if the first progress render reads as atmospheric dust, not a skill effect.
+//
+// Target palette by visual area:
+// blue/blue-violet 30%, purple/magenta 20%, yellow 20%, white 10%, warm 20%.
+// Ground remains visible between low-frequency clusters; no uniform random fill.
+//
+// Optimization strategy after visual gate:
+// - cloned project materials with GPU instancing enabled; source pack materials untouched.
+// - preserve direct objects for iteration; static flags may be applied after the composition is accepted.
+// - target final: tris <= 600k, DC <= 150, SetPass <= 60.
+//
+// Render gate:
+// S27_PROGRESS_P1/BACK/BASIN.png, then S27_FINAL_P1/BACK/BASIN.png.
+// Camera is always restored to the S26 BASE transform and sky manual time is restored immediately.
+
+// First full-scene pass constants (not a small diagnostic):
+// Near singles: 9 camera-facing / rear-facing cluster centers, about 390 instances,
+//                scale 1.00..1.45, 60 tris each.
+// Mid meadow:   20 full-ring cluster centers, about 1,000 8-triangle cross cards,
+//                scale 1.8..2.8 plus about 260 enlarged single flowers.
+// Far meadow:   16 outer-ring clusters, about 650 cards, scale 2.8..4.2.
+// Grass/plants: ring-wide + willow clusters, about 450 16-triangle bundles.
+// Atmosphere:   no cloud. Sparkles begin with two low-emission Idyllic Particles instances.
+// All placements are terrain-sampled, collider-free, shadow-off, and restricted to r/R < 0.96.

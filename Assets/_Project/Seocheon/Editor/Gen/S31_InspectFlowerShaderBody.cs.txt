@@ -1,0 +1,8 @@
+System.Text.StringBuilder sb = new System.Text.StringBuilder();
+string[] roots={"_FlowerPolish","_FlowerTransition","_FlowerFinalDressing"};
+System.Collections.Generic.HashSet<int> seen=new System.Collections.Generic.HashSet<int>();
+for(int q=0;q<roots.Length;q++){GameObject go=GameObject.Find(roots[q]);if(go==null)continue;Renderer[] rr=go.GetComponentsInChildren<Renderer>(true);
+for(int i=0;i<rr.Length;i++){Material[] mm=rr[i].sharedMaterials;for(int j=0;j<mm.Length;j++){Material m=mm[j];if(m==null||!seen.Add(m.GetInstanceID()))continue;Shader sh=m.shader;sb.Append("MAT|").Append(m.name).Append("|").Append(sh.name).Append("\n");
+int pc=sh.GetPropertyCount();for(int p=0;p<pc;p++){string pn=sh.GetPropertyName(p);UnityEngine.Rendering.ShaderPropertyType pt=sh.GetPropertyType(p);sb.Append("P|").Append(pn).Append("|").Append(pt);if(pt==UnityEngine.Rendering.ShaderPropertyType.Color)sb.Append("|").Append(m.GetColor(pn));else if(pt==UnityEngine.Rendering.ShaderPropertyType.Float||pt==UnityEngine.Rendering.ShaderPropertyType.Range)sb.Append("|").Append(m.GetFloat(pn));sb.Append("\n");}}
+}}
+return sb.ToString();

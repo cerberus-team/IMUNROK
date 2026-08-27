@@ -1,0 +1,203 @@
+// ============================================================================
+//  Gen_TerrainLayers_v1.cs.txt        3단계
+//  원경 지형 레이어 텍스처 2장 생성 (UnityMCP execute_code ★최종 실행 원문)
+//
+//  ★규칙(§7): 절차 생성 에셋 코드는 이 폴더에 실행본 그대로 보존한다. .cs.txt 라 컴파일되지 않는다.
+//    (v11 생성 스크립트 소실로 구름 알파 필드를 영구히 잃은 전례 — 함정 ④)
+//
+//  출력 ①  Assets/_Project/Seocheon/Art/Terrain/T_Seocheon_WildFlower.png    tileSize 12x12 m
+//  출력 ②  Assets/_Project/Seocheon/Art/Terrain/T_Seocheon_RockBlueGrey.png  tileSize 20x20 m
+//         둘 다 512x512 RGB · sRGB on · mipmap on · ★Repeat · aniso 4
+//         Android ASTC 6x6 · isReadable(측정용) · ★노멀맵 없음 · metallic 0 · smoothness 0
+//
+//  ★최종 실측
+//    WildFlower    채도 0.3245 · 국소SD 0.0569 · 클립 1.06%/0.00% · wrap 2.023/2.253 · 내부 3.601/3.483
+//    RockBlueGrey  채도 0.1415 · 국소SD 0.0516 · 클립 0.00%/0.00% · wrap 1.323/1.412 · 내부 2.856/2.777
+//
+// ----------------------------------------------------------------------------
+//  ★두 판정 지표가 서로를 밀어낸다 — 실측으로 확인한 사실
+//    5x5 국소 SD 정규화 s 와 인접 픽셀 평균차 g 사이에 s ~= 2*g/Lm 이 성립한다
+//    (5px 창의 표본 SD 는 사실상 국소 기울기의 2배다. 주파수 배치를 바꿔도 벗어나지 못한다.)
+//    Lm ~= 0.40 이므로  s=0.05 -> g~2.5/255 · s=0.06 -> g~3.0/255 · s=0.09 -> g~4.6/255
+//    wrap 경계는 주기함수라 내부 인접쌍과 통계적으로 같으므로,
+//    "wrap <= 3/255" 를 실제로 통과시키려면 ★국소 SD 를 허용범위의 하단에 두어야 한다.
+//    -> SD_GOAL 을 WildFlower 0.055 / Rock 0.050 으로 잡았다. 상단(0.09)은 wrap 을 반드시 넘긴다.
+//
+//  ★이음매 없음의 원리
+//    모든 잡음이 주기 격자(lattice index 를 freq 로 모듈로)라 수학적으로 완전 주기함수다.
+//    px[511]-px[0] 은 내부 아무 인접쌍보다 나쁠 수 없다. 실측에서도 wrap < 내부(약 60%)였다.
+//
+//  ★굽기 이력 (같은 실수 반복 방지)
+//   [1차·폐기] fBm 가중을 저주파 위주(freq 6/12/24/48)로 잡았다. 저주파는 진폭 대비 기울기가
+//     작아 국소 SD 를 목표까지 올리려면 전역 대비를 A=5.03 배 늘려야 했고, 그 결과
+//     ★상한 32.1% · 하한 32.4% 가 클립되어 텍스처가 흑백으로 무너졌다.
+//     -> 해결은 "증폭" 이 아니라 ★스펙트럼을 중·고주파(freq 8/16/32/64)로 옮기는 것이다.
+//   [2차] 스펙트럼 교체. 수치 지표는 전부 통과했으나 ★렌더에서 두 가지가 드러났다
+//     (a) 꽃밭이 위장무늬처럼 얼룩덜룩 — 색 무리 주파수가 4/8(3m·1.5m 덩어리)로 너무 낮았다
+//     (b) 암반에 퍼즐조각 검은 윤곽망 — ridged 잡음에 ★임계값(SS((rg-0.72)/0.18))을 걸어
+//         닫힌 셀 경계가 생겼다
+//   [3차·최종] §6② 재굽기 1회. (a) 색 무리를 freq 10/20 으로 올리고 팔레트를 죽였다.
+//     (b) 임계값을 없애고 rg^3 로 눌러 얕은 결만 남겼다. cov 의 예리함은 ★유지했다
+//     (완만하게 바꿨더니 sd1 이 0.0145 로 떨어져 A=3.78 이 되어 다시 클립 위험 -> 되돌림)
+//
+//  ★보정 구조 (탐색 아님, 해석적 — Gen_Satellite_v1 과 같은 원칙)
+//    합성색 rgb0 -> ① 채도 f : rgb = L + (rgb0-L)*f      (L 불변)
+//                  -> ② 휘도 대비 a : scale = (Lm + (L-Lm)*a)/L
+//    ②는 색을 통째로 스칼라배하므로 HSV 채도를 바꾸지 않고, ①은 L 을 바꾸지 않는다.
+//    => 두 파라미터가 ★직교한다. 국소 SD 는 a 에 정확히 선형이므로 a = 목표/실측 1회로 확정.
+//       채도만 뉴턴 3스텝. 진폭을 더듬어 찾지 않는다.
+//
+//  ★CodeDom = C# 6. 로컬 함수 금지 -> System.Func. 한글 식별자 금지. 변수명 겹침 금지.
+//  ★픽셀 루프 안에서 Unity 네이티브 API 호출 금지 (함정 ⑧).
+//  ★두 텍스처를 한 호출에 만들면 타임아웃 위험 (함정 ⑦) -> ①과 ②를 ★나눠 실행한다.
+// ============================================================================
+
+
+// ####################  실행 ① : T_Seocheon_WildFlower.png  ####################
+//  실측 sd1 = 0.02172 -> A = 2.5320 · F = 1.2590 · Lm = 0.3923 · 채도 0.3193 · 클립 1.04%
+
+const int S = 512;
+const string DST = "Assets/_Project/Seocheon/Art/Terrain/T_Seocheon_WildFlower.png";
+const double SAT_GOAL = 0.320;
+const double SD_GOAL  = 0.055;
+
+System.Func<int,int,int,double> H2 = delegate(int xi,int yi,int sd){
+    unchecked { uint h=(uint)(xi*374761393+yi*668265263+sd*1442695040);
+      h=(h^(h>>13))*1274126177u; h^=h>>16; return (h&0xFFFFFFu)/16777216.0; } };
+// u,v in [0,1) · freq = 한 변 셀 수(정수) -> px[511]->px[0] 이 연속
+System.Func<double,double,int,int,double> VNP = delegate(double u,double v,int freq,int sd){
+    double x=u*freq,y=v*freq;
+    int x0=(int)System.Math.Floor(x), y0=(int)System.Math.Floor(y);
+    double fx=x-x0, fy=y-y0;
+    int xa=((x0%freq)+freq)%freq, xb=(((x0+1)%freq)+freq)%freq;
+    int ya=((y0%freq)+freq)%freq, yb=(((y0+1)%freq)+freq)%freq;
+    double wx=fx*fx*(3.0-2.0*fx), wy=fy*fy*(3.0-2.0*fy);
+    double a=H2(xa,ya,sd),b=H2(xb,ya,sd),c=H2(xa,yb,sd),d=H2(xb,yb,sd);
+    double t0=a+(b-a)*wx,t1=c+(d-c)*wx; return t0+(t1-t0)*wy; };
+// ★중·고주파 위주 fBm. 12m 타일에서 1.50 / 0.75 / 0.375 / 0.19 m 스케일
+System.Func<double,double,int,double> FB = delegate(double u,double v,int sd){
+    return VNP(u,v,8,sd)*0.30 + VNP(u,v,16,sd+91)*0.28
+         + VNP(u,v,32,sd+197)*0.24 + VNP(u,v,64,sd+331)*0.18; };
+System.Func<double,double> SS = delegate(double q){ if(q<0)q=0; else if(q>1)q=1; return q*q*(3.0-2.0*q); };
+
+double[] BASEC  = new double[]{ 0.320, 0.350, 0.265 };   // 잎·흙 바탕
+double[] PURPLE = new double[]{ 0.520, 0.380, 0.660 };   // 지배색 (★v1 보다 죽인 값)
+double[] YELLOW = new double[]{ 0.720, 0.680, 0.410 };
+double[] REDC   = new double[]{ 0.640, 0.350, 0.370 };
+double[] BLUEC  = new double[]{ 0.370, 0.440, 0.660 };
+
+double[] R0=new double[S*S],G0=new double[S*S],B0=new double[S*S],LL=new double[S*S];
+for (int y=0;y<S;y++){
+  double v=(y+0.5)/S;
+  for (int x=0;x<S;x++){
+    double u=(x+0.5)/S;
+    double cov  = SS((FB(u,v,1013)-0.42)/0.18);                   // ★예리하게 유지 (국소 SD 자체 확보)
+    double hsel = VNP(u,v,10,5501)*0.58 + VNP(u,v,20,7717)*0.42;  // ★1.2m / 0.6m 색 무리
+    double spk  = VNP(u,v,40,9091);                               // 빨강·파랑 소량 얼룩
+    // ★이랑 방향성 없음 (무작위 밀식). 근경 이랑밭은 5단계 별도 작업이다.
+    double wY = SS((hsel-0.62)/0.20)*0.80;
+    double wR = SS((spk-0.82)/0.10)*0.45;
+    double wB = SS((0.18-spk)/0.10)*0.35;
+    double wP = 1.0-wY; if(wP<0)wP=0;
+    double sw = wP+wY+wR+wB;
+    double fr=(PURPLE[0]*wP+YELLOW[0]*wY+REDC[0]*wR+BLUEC[0]*wB)/sw;
+    double fg=(PURPLE[1]*wP+YELLOW[1]*wY+REDC[1]*wR+BLUEC[1]*wB)/sw;
+    double fb=(PURPLE[2]*wP+YELLOW[2]*wY+REDC[2]*wR+BLUEC[2]*wB)/sw;
+    double sh = 0.88 + 0.24*FB(u,v,2237);
+    int i=y*S+x;
+    R0[i]=BASEC[0]*sh*(1.0-cov)+fr*cov;
+    G0[i]=BASEC[1]*sh*(1.0-cov)+fg*cov;
+    B0[i]=BASEC[2]*sh*(1.0-cov)+fb*cov;
+    LL[i]=0.2126*R0[i]+0.7152*G0[i]+0.0722*B0[i]; } }
+
+// 국소 SD 는 A 에 정확히 선형 -> 1회 측정으로 A 확정 (wrap 인덱스로 주기 측정)
+double Lm=0; for(int i=0;i<S*S;i++) Lm+=LL[i]; Lm/=(double)(S*S);
+double sdAcc=0;
+for(int y=0;y<S;y++) for(int x=0;x<S;x++){
+  double s1=0,s2=0;
+  for(int j=-2;j<=2;j++) for(int k=-2;k<=2;k++){
+    double q=LL[(((y+j)%S+S)%S)*S+(((x+k)%S+S)%S)]; s1+=q; s2+=q*q; }
+  double m=s1/25.0; sdAcc+=System.Math.Sqrt(System.Math.Max(0.0,s2/25.0-m*m)); }
+double sd1=(sdAcc/(double)(S*S))/Lm;
+double A=SD_GOAL/sd1;
+
+System.Func<double,double> MEASSAT = delegate(double f){
+  double acc=0;
+  for(int i=0;i<S*S;i++){
+    double L=LL[i];
+    double r=L+(R0[i]-L)*f,g=L+(G0[i]-L)*f,b=L+(B0[i]-L)*f;
+    double sc=(Lm+(L-Lm)*A)/System.Math.Max(1e-6,L);
+    r*=sc; g*=sc; b*=sc;
+    if(r<0)r=0; if(r>1)r=1; if(g<0)g=0; if(g>1)g=1; if(b<0)b=0; if(b>1)b=1;
+    double mx=System.Math.Max(r,System.Math.Max(g,b)), mn=System.Math.Min(r,System.Math.Min(g,b));
+    acc+=(mx<1e-6)?0.0:(mx-mn)/mx; }
+  return acc/(double)(S*S); };
+double F=1.0;
+for(int it=0;it<3;it++){ double s=MEASSAT(F); if(s>1e-6) F*=SAT_GOAL/s; }
+
+Texture2D tex=new Texture2D(S,S,TextureFormat.RGB24,false);
+Color[] outp=new Color[S*S]; int clip=0;
+for(int i=0;i<S*S;i++){
+  double L=LL[i];
+  double r=L+(R0[i]-L)*F,g=L+(G0[i]-L)*F,b=L+(B0[i]-L)*F;
+  double sc=(Lm+(L-Lm)*A)/System.Math.Max(1e-6,L);
+  r*=sc; g*=sc; b*=sc;
+  if(r>1||g>1||b>1||r<0||g<0||b<0) clip++;
+  if(r<0)r=0; if(r>1)r=1; if(g<0)g=0; if(g>1)g=1; if(b<0)b=0; if(b>1)b=1;
+  outp[i]=new Color((float)r,(float)g,(float)b,1f); }
+tex.SetPixels(outp); tex.Apply();
+System.IO.File.WriteAllBytes(System.IO.Path.Combine(
+  System.IO.Path.GetDirectoryName(Application.dataPath),DST), tex.EncodeToPNG());
+AssetDatabase.ImportAsset(DST, ImportAssetOptions.ForceUpdate);
+UnityEngine.Object.DestroyImmediate(tex);
+
+// ---- 임포터 설정 (최초 1회. 3차 재굽기 때는 PNG 만 덮어썼다) ----
+var imp=(TextureImporter)UnityEditor.AssetImporter.GetAtPath(DST);
+imp.textureType   = TextureImporterType.Default;
+imp.sRGBTexture   = true;
+imp.alphaSource   = TextureImporterAlphaSource.None;
+imp.mipmapEnabled = true;
+imp.wrapMode      = TextureWrapMode.Repeat;     // ★타일 레이어이므로 Repeat 필수
+imp.filterMode    = FilterMode.Bilinear;
+imp.anisoLevel    = 4;
+imp.isReadable    = true;
+imp.maxTextureSize= 512;
+var and=new TextureImporterPlatformSettings();
+and.name="Android"; and.overridden=true; and.maxTextureSize=512;
+and.format=TextureImporterFormat.ASTC_6x6;
+imp.SetPlatformTextureSettings(and);
+imp.SaveAndReimport();
+
+
+// ####################  실행 ② : T_Seocheon_RockBlueGrey.png  ####################
+//  ①과 골격·보정구조·임포터 설정이 한 줄도 다르지 않다. 아래 4곳만 교체해 ★따로 실행했다.
+//  실측 sd1 = 0.01609 -> A = 3.1076 · F = 0.7051 · Lm = 0.4460 · 채도 0.1400 · 클립 0.00%
+//
+//  (1) const string DST = "Assets/_Project/Seocheon/Art/Terrain/T_Seocheon_RockBlueGrey.png";
+//  (2) const double SAT_GOAL = 0.140;
+//  (3) const double SD_GOAL  = 0.050;
+//  (4) 팔레트·픽셀 루프 본문 전체를 아래로 교체 (BASEC/PURPLE/... 는 쓰지 않는다)
+//
+//        double[] ROCKC = new double[]{ 0.445, 0.480, 0.550 };   // 회청색 암반
+//        ...
+//        double sh  = 0.84 + 0.32*FB(u,v,4409);                        // 바위 면 명암
+//        double rg  = 1.0-System.Math.Abs(2.0*VNP(u,v,20,6607)-1.0);   // ridged
+//        double crk = rg*rg*rg*0.18;      // ★임계값 없음 -> 닫힌 셀 윤곽망(퍼즐조각)이 안 생긴다
+//        double wtn = 0.95 + 0.10*VNP(u,v,40,8821);                    // 미세 얼룩
+//        double k   = sh*wtn*(1.0-crk);
+//        int i=y*S+x;
+//        R0[i]=ROCKC[0]*k; G0[i]=ROCKC[1]*k; B0[i]=ROCKC[2]*k;
+//        LL[i]=0.2126*R0[i]+0.7152*G0[i]+0.0722*B0[i];
+//
+//    이후 국소 SD 측정 · 채도 뉴턴 · 최종 굽기 · 임포터 설정은 ①과 완전히 같다.
+//
+// ============================================================================
+//  ★실행 후 확인 (전부 별도 호출로 ★PNG 를 다시 읽어 측정했다. 계산값이 아니다)
+//   1) 평균 HSV 채도 · 5x5 국소 SD 정규화가 목표 범위인지
+//   2) wrap 경계 평균차 <= 3/255 인지 — ★내부 인접 평균차와 나란히 볼 것.
+//      wrap < 내부 이면 불연속이 아예 없다는 뜻이다 (수치만으로 판정하지 말 것)
+//   3) 클립률 — 상한/하한 어느 쪽도 10% 를 넘으면 스펙트럼 배치가 잘못된 것이다
+//   4) 노멀맵 없음 · metallic 0 · smoothness 0 · 512^2 · Repeat
+//   5) ★반드시 렌더로 확인 (수치는 전부 통과해도 위장무늬·퍼즐조각이 나올 수 있다.
+//      2차 굽기가 정확히 그랬다)
+// ============================================================================

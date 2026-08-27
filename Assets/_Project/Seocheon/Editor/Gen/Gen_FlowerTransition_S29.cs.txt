@@ -1,0 +1,36 @@
+// S29 - additive vegetation transitions for Seocheon Flowerfield.
+// Written before execution.
+//
+// Immutable:
+// - User Terrain Detail layers and all existing flowers.
+// - _FlowerPolish and all descendants.
+// - Terrain heights, alphamaps, TerrainLayers, BASE ground.
+// - Willow, camera baseline, planet, satellite, sky, light rotation.
+//
+// New hierarchy only:
+// _FlowerTransition
+//   Near_GrassBlend
+//   Boundary_GrassBlend
+//   Basin_GrassBlend
+//   Back_Fill
+//   Daisy_Accent
+//
+// Existing assets:
+// - Grass_1_Billboard texture
+// - White_Daisies_2_Bilboard texture
+// - Detail_Fern_LOD3 prefab
+//
+// Composition:
+// - Use combined crossed-card meshes instead of thousands of GameObjects.
+// - Cluster radii: large 8-20m, medium 3-8m, small 1-3m.
+// - Preserve visible BASE ground; target an impression of about 70% vegetation
+//   and 30% openings, never uniform coverage.
+// - Basin r<18m: low grass only, very sparse daisies; no coloured repaint.
+// - Boundaries: neutral grass/daisies only, no colour-sector redesign.
+// - BACK: low grass mass with white-daisy islands, keeping the horizon open.
+// - Willow: leave a clear trunk radius, then grass/fern/daisy ring.
+//
+// Rendering:
+// - New URP alpha-clipped materials, GPU instancing enabled.
+// - Colliders absent, shadows off.
+// - Every category remains separately toggleable below _FlowerTransition.

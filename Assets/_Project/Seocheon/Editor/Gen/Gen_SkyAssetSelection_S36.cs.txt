@@ -1,0 +1,24 @@
+// S36 - Existing sky-asset selection and final cloud sky
+// Plan of record, written before execution.
+//
+// Allowed sources, in order:
+// 1) Free Stylized Hand-Painted Skybox
+// 2) Fantasy Skybox FREE
+// 3) BOXOPHOBIC Skybox Cubemap Extended only if colour/blending support is needed.
+//
+// Preserve: terrain, alphamap, all flower roots, distant massif meshes/transforms,
+// Willow, lighting rotation, camera baseline, planet/satellite, stars and aurora.
+//
+// Method:
+// - Duplicate the current Seocheon SkyboxAurora material in memory for candidate tests.
+// - Swap only _MainTex for panoramic candidate textures so the existing celestial and
+//   aurora shader structure remains active.
+// - Render P1 for 3-5 candidates; restore all temporary state after each comparison.
+// - Select the strongest wide cloud bank, then create one S36 material asset based on
+//   the current material and apply only the selected panorama plus restrained tint/
+//   exposure controls already supported by the existing shader.
+// - Disable legacy Cloud_High only after the selected sky itself supplies clouds.
+// - Keep Mist_Low unchanged.
+// - Render final P1, BACK, BASIN, restore camera/manual-time/wind, save only the
+//   selected material and scene with SaveAssetIfDirty / SaveScene.
+// - Never call AssetDatabase.SaveAssets and never delete assets.

@@ -1,0 +1,46 @@
+string srcPath="Assets/_Project/Seocheon/Art/Sky/S33/T_SkyCloudDrama_S33.png";
+UnityEditor.AssetDatabase.ImportAsset(srcPath,UnityEditor.ImportAssetOptions.ForceSynchronousImport);
+TextureImporter ti=UnityEditor.AssetImporter.GetAtPath(srcPath) as TextureImporter;
+if(ti==null)return "ERROR|no_importer";
+ti.textureType=TextureImporterType.Default;ti.textureShape=TextureImporterShape.Texture2D;ti.sRGBTexture=true;ti.mipmapEnabled=false;ti.isReadable=true;ti.wrapMode=TextureWrapMode.Repeat;ti.maxTextureSize=2048;ti.textureCompression=TextureImporterCompression.Uncompressed;ti.SaveAndReimport();
+Texture2D src=UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>(srcPath);
+if(src==null||!src.isReadable)return "ERROR|source_not_readable";
+Color32[] sp=src.GetPixels32();int sw=src.width,sh=src.height;
+string cubePath="Assets/_Project/Seocheon/Art/Sky/S33/CM_SkyCloudDrama_S33.asset";
+Cubemap cube=UnityEditor.AssetDatabase.LoadAssetAtPath<Cubemap>(cubePath);
+if(cube==null){cube=new Cubemap(512,TextureFormat.RGBA32,true);cube.name="CM_SkyCloudDrama_S33";UnityEditor.AssetDatabase.CreateAsset(cube,cubePath);}
+System.Func<CubemapFace,float,float,Vector3> faceDir=delegate(CubemapFace f,float u,float v){
+ if(f==CubemapFace.PositiveX)return new Vector3(1f,-v,-u).normalized;
+ if(f==CubemapFace.NegativeX)return new Vector3(-1f,-v,u).normalized;
+ if(f==CubemapFace.PositiveY)return new Vector3(u,1f,v).normalized;
+ if(f==CubemapFace.NegativeY)return new Vector3(u,-1f,-v).normalized;
+ if(f==CubemapFace.PositiveZ)return new Vector3(u,-v,1f).normalized;
+ return new Vector3(-u,-v,-1f).normalized;
+};
+CubemapFace[] faces=new CubemapFace[]{CubemapFace.PositiveX,CubemapFace.NegativeX,CubemapFace.PositiveY,CubemapFace.NegativeY,CubemapFace.PositiveZ,CubemapFace.NegativeZ};
+for(int fi=0;fi<faces.Length;fi++){
+ Color[] outp=new Color[512*512];
+ for(int y=0;y<512;y++)for(int x=0;x<512;x++){
+  float fx=((x+0.5f)/512f)*2f-1f;float fy=((y+0.5f)/512f)*2f-1f;Vector3 d=faceDir(faces[fi],fx,fy);
+  float eu=0.5f+Mathf.Atan2(d.z,d.x)/(2f*Mathf.PI);eu-=Mathf.Floor(eu);
+  float ev=0.5f+Mathf.Asin(Mathf.Clamp(d.y,-1f,1f))/Mathf.PI;ev=Mathf.Clamp01(ev);
+  float sx=eu*(sw-1);float sy=ev*(sh-1);int x0=Mathf.FloorToInt(sx),y0=Mathf.FloorToInt(sy);int x1=(x0+1)%sw,y1=Mathf.Min(y0+1,sh-1);float tx=sx-x0,ty=sy-y0;
+  Color c00=sp[y0*sw+x0],c10=sp[y0*sw+x1],c01=sp[y1*sw+x0],c11=sp[y1*sw+x1];
+  outp[y*512+x]=Color.Lerp(Color.Lerp(c00,c10,tx),Color.Lerp(c01,c11,tx),ty);
+ }
+ cube.SetPixels(outp,faces[fi],0);
+}
+cube.Apply(true,false);UnityEditor.EditorUtility.SetDirty(cube);UnityEditor.AssetDatabase.SaveAssetIfDirty(cube);
+ti.isReadable=false;ti.textureCompression=TextureImporterCompression.CompressedHQ;ti.mipmapEnabled=true;ti.SaveAndReimport();
+
+string origPath="Assets/_Project/Seocheon/Art/Sky/M_Flowerfield_Sky.mat";
+Material orig=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(origPath);
+string matPath="Assets/_Project/Seocheon/Art/Sky/S33/M_Flowerfield_Sky_S33.mat";
+Material skyMat=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(matPath);
+if(skyMat==null){skyMat=new Material(orig);skyMat.name="M_Flowerfield_Sky_S33";UnityEditor.AssetDatabase.CreateAsset(skyMat,matPath);}
+skyMat.SetTexture("_Tex",cube);skyMat.SetFloat("_Exposure",0.82f);skyMat.SetColor("_Tint",new Color(0.52f,0.50f,0.56f,1f));skyMat.SetFloat("_Rotation",90f);
+UnityEditor.EditorUtility.SetDirty(skyMat);UnityEditor.AssetDatabase.SaveAssetIfDirty(skyMat);
+IMUNROK.Seocheon.FlowerfieldSkyController sky=UnityEngine.Object.FindFirstObjectByType<IMUNROK.Seocheon.FlowerfieldSkyController>();
+if(sky!=null){sky.skyboxMaterial=skyMat;RenderSettings.skybox=skyMat;sky.Apply();UnityEditor.EditorUtility.SetDirty(sky);}
+GameObject particleRoot=GameObject.Find("_SkyCloudDrama");if(particleRoot!=null)UnityEngine.Object.DestroyImmediate(particleRoot);
+return "BUILD|src="+src.width+"x"+src.height+"|cube=512|cubePath="+cubePath+"|mat="+matPath+"|rotation=90|particleRootRemoved="+(GameObject.Find("_SkyCloudDrama")==null);

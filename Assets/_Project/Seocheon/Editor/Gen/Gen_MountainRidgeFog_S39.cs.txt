@@ -1,0 +1,24 @@
+S39 Mountain Ridge Fog - execution record
+Date: 2026-08-25
+
+Scope
+- Preserve terrain, alphamap, flower roots, skybox, planet, satellite, stars, lighting and camera.
+- Preserve existing _AtmosphereFog and _MountainMist_S38.
+- Add only a reversible parent named MountainFog.
+
+Implementation
+- Five world-space Particle Systems:
+  Fog_Ridge_01, Fog_Ridge_02, Fog_Valley_01, Fog_Valley_02, Fog_Back_01.
+- Reuse T_Fog_Distant through a dedicated URP Particles/Unlit material.
+- Low emission, large horizontal particles, short vertical size.
+- Lifetime 18-25 s, horizontal speed 0.05-0.16 m/s.
+- Weak Noise, separate axes, no upward velocity.
+- Color over Lifetime fades from transparent to pale blue-lavender and back.
+- Max particle budget: 12 per system, 60 total.
+
+Safety
+- Scene backup before changes.
+- No AssetDatabase.SaveAssets(). SaveAssetIfDirty(target) only.
+- Diagnostic simulations are cleared immediately after capture.
+- Camera and manual sky time restored after every render.
+- No files deleted.

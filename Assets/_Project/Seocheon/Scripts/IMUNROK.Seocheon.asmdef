@@ -1,7 +1,13 @@
 {
     "name": "IMUNROK.Seocheon",
     "rootNamespace": "IMUNROK.Seocheon",
-    "references": ["IMUNROK.Common"],
+    "references": [
+        "IMUNROK.Common",
+        "IMUNROK.Ui",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

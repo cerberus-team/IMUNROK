@@ -1,0 +1,59 @@
+﻿===== [Seocheon] Village 4a Space+Splat 조사 (읽기전용) =====
+
+[1a] Terrain: 알파맵 512 · 하이트맵 513 · size 1000×1000 · 레이어 2개
+   #0 TR_Ground02b · tex T_Ground02b_BC · 타일 32.0×32.0m · offset 0.0,0.0
+   #1 TR_Ground01b · tex T_Ground01b_BC · 타일 64.0×64.0m · offset 0.0,0.0
+   ※ 레이어 여유: 현재 2개 → 흙 1장 추가 시 3개 (4 초과면 중단 규칙)
+
+[1b] 흙·마사토·황토 후보 텍스처(낙안 팩):
+   2048×2048 · wrap Repeat ✓타일러블 · T_Ground01a_BC.png
+   2048×2048 · wrap Repeat ✓타일러블 · T_Ground02a_BC.png
+   2048×2048 · wrap Repeat ✓타일러블 · T_Ground01b_BC.png
+   2048×2048 · wrap Repeat ✓타일러블 · T_Ground02b_BC.png
+   2048×2048 · wrap Repeat ✓타일러블 · T_Floor01a_BC.png
+   2048×2048 · wrap Repeat ✓타일러블 · T_Floor01b_BC.png
+   2048×2048 · wrap Repeat ✓타일러블 · T_Floor01d_BC.png
+   기존 TerrainLayer 에셋:
+   TR_Ground01b · tex T_Ground01b_BC · 타일 64.0m · TR_Ground01b.terrainlayer
+   TR_Ground02b · tex T_Ground02b_BC · 타일 32.0m · TR_Ground02b.terrainlayer
+
+[1c] 채 28개 · 외곽 최대반경 68.3m · 채끼리 최소간격 -5.53m (겹침) · 개천 링 최소반경 88.7m · 빈 잔디 20.4m
+   채별 반경(중심 463,678):
+        5.7m (외곽  15.2) · Village_Wooden_Bench_House_02
+       12.6m (외곽  20.7) · Village_Wooden_Bench_House_04
+       13.0m (외곽  23.3) · Village_Wooden_Bench_House_01
+       21.5m (외곽  27.4) · Village_Smithy
+       21.9m (외곽  31.8) · Village_Local_Personnel_Clerks_House_04
+       22.9m (외곽  29.5) · Village_Wooden_Bench_House_03
+       25.4m (외곽  35.0) · Village_Local_Clerks_House_01
+       29.5m (외곽  42.1) · Village_Tavern_House_01_Full
+       30.7m (외곽  41.9) · Village_Local_Personnel_Clerks_House_03
+       32.2m (외곽  44.4) · Village_Local_Clerks_House_02
+       32.2m (외곽  42.4) · Village_House_With_Wooden_Floored_Room_02
+       35.2m (외곽  45.6) · Village_House_By_The_West_Gate_03
+       36.0m (외곽  43.4) · Village_Bamboo_Rafter_House_02
+       36.3m (외곽  39.8) · Village_Ox_Mill
+       39.4m (외곽  49.7) · Village_House_By_The_West_Gate_01_Full
+       41.6m (외곽  50.5) · Village_House_With_Calling_Windows_01
+       42.7m (외곽  53.0) · Village_Local_Personnel_Clerks_House_02
+       42.8m (외곽  49.1) · Village_Local_Personnel_Clerks_House_01
+       45.3m (외곽  53.7) · Village_Tavern_House_02_Full
+       48.0m (외곽  55.1) · Village_Bamboo_Rafter_House_03
+       49.9m (외곽  58.0) · Village_Bamboo_Rafter_House_01
+       50.1m (외곽  61.5) · Village_House_With_Wooden_Floored_Room_01
+       51.0m (외곽  60.4) · Village_House_By_The_West_Gate_02
+       51.2m (외곽  60.1) · Village_L_Shaped_House_01
+       53.8m (외곽  61.3) · Village_L_Shaped_House_02
+       54.1m (외곽  65.6) · Village_House_With_Calling_Windows_02
+       56.0m (외곽  63.1) · Village_House_With_Wooden_Floored_Room_03
+       62.7m (외곽  68.3) · Village_House_With_Wooden_Floored_Room_04
+
+[1d] 방사 스케일 시뮬 (채 위치만 중심기준 확대; 동헌·다리·마커 고정):
+   scale | 최소간격 | 외곽반경 | 링까지잔디 | 링밴드침범 | 동헌겹침 | 통행2.5m달성
+   1.15  |  -4.12m |   77.7m |   11.0m |  0채 |  0채 | ✗ (-4.1m)
+   1.30  |  -2.71m |   87.1m |    1.6m |  1채 |  1채 | ✗ (-2.7m)
+   1.45  |  -1.30m |   96.5m |   -7.8m |  6채 |  1채 | ✗ (-1.3m)
+
+[1e] 동헌 정면 남쪽 12m 마당예정지 침범 채(현재): 없음 ✓
+
+※ 4a는 조사만. 스케일 확정 주시면 4b(간격) → 4c(흙 스플랫) 진행.

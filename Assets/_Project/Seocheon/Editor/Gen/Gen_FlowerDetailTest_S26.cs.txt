@@ -1,0 +1,59 @@
+// S26 — existing Idyllic flower mesh detail density test
+// Written before execution. Unity 6000.3 / CodeDom C# 6 compatible.
+
+// Invariants:
+// - Keep heightmap, alphamap, four TerrainLayers and L2 T_Seocheon_Meadow unchanged.
+// - Keep sky, planet, lighting, willow, S24 inactive VFX and post processing unchanged.
+// - Keep existing detail prototypes 0..8 unchanged; layer 0 fern stays 58 cells,
+//   coverage sum 244, max 5. Existing layers 1..8 start at zero.
+// - Append only original Idyllic mesh prefabs for missing colors:
+//   9 Flower_Blue_02, 10 Flower_White, 11 Flower_Pink, 12 Flower_Orange.
+//   Existing 7 Flower_Purple and 8 Flower_Yellow complete the six-color test set.
+//   All six test copies use width 0.85..1.15 and height 0.80..1.20.
+//   First-pass preservation of the old 1.30..1.60 range produced bright vertical
+//   stems at 20..30 m while flower heads collapsed to 1..2 px; direct prefab
+//   rendering proved the shared material and atlas colors themselves are valid.
+
+// Test region:
+// final center world XZ = (456, 687), 34.4 m in front of P1 camera.
+// Rotated irregular ellipse, semi axes 9.2 x 7.2 m, nominal area 208 m2.
+// Boundary radius is perturbed by deterministic low-frequency value noise;
+// exact painted area is measured from the resulting cell mask.
+
+// Pattern:
+// - For each color use independent deterministic value-noise seeds.
+// - Large cluster scale 18 m, medium cluster scale 5.5 m, cell hash variation.
+// - Target aggregate shares: blue 33%, purple 23%, yellow 17%, white 12%,
+//   pink 8%, orange 7%.
+// - At each occupied cell, normalize the six independent cluster scores;
+//   leave deterministic ground gaps and apply a soft irregular region edge.
+// - No checker, strip, concentric circle or shared color mask.
+
+// Candidate coverage ceilings (CoverageMode values, not instance counts):
+// LOW 72, MEDIUM 144, HIGH 216. Each candidate is regenerated from zero,
+// never added over the previous candidate.
+
+// For every candidate record each prototype's painted cells, coverage sum and max;
+// render P1/BACK/BASIN at identical camera/sky/wind/light settings and report Editor
+// stats explicitly as Editor estimates because existing LUMINATE errors block Play.
+
+// Save rule: never call AssetDatabase.SaveAssets(). After visual comparison, retain
+// only the selected test density and use AssetDatabase.SaveAssetIfDirty(TerrainData).
+
+// Executed results:
+// Initial center (447,694) was rejected after slope audit (mean 7.53, max 11.15 deg).
+// Final center (456,687) is a true flat patch (mean 1.96, max 2.42 deg).
+// Irregular painted union LOW/MED/HIGH = 176.91 / 177.62 / 178.34 m2.
+// LOW sums  blue 13252, purple 8601, yellow 6777, white 4344, pink 2841, orange 2593
+//           (total 38408; per-layer maxima 25/17/14/9/6/6).
+// MED sums  blue 26474, purple 17209, yellow 13574, white 8750, pink 5700, orange 5126
+//           (total 76833; per-layer maxima 51/34/27/18/12/13).
+// HIGH sums blue 39729, purple 25811, yellow 20361, white 13127, pink 8547, orange 7679
+//           (total 115254; per-layer maxima 76/51/41/27/19/19).
+// Visual gate failed for all three. Direct prefab rendering shows correct blue,
+// purple, yellow, white, pink and orange heads, but Terrain Detail rendering at
+// 34.4 m reduces the heads below a pixel while bright thin stems/cards remain.
+// In the isolated test-region crop, 100% of thresholded changed pixels were
+// bright low-saturation pixels for LOW/MED/HIGH in both P1 and BASIN.
+// No density was selected. Prototypes were restored to the original 9 and all
+// temporary layer 7..12 maps were cleared; layers 1..8 remain zero.

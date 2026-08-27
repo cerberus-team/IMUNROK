@@ -1,0 +1,45 @@
+string stamp=System.DateTime.Now.ToString("yyyyMMdd_HHmmss");
+string scenePath=UnityEngine.SceneManagement.SceneManager.GetActiveScene().path;
+string sceneBk="Assets/_Project/Seocheon/Scenes/_bk/Seocheon_Flowerfield_PRE_S33_"+stamp+".unity";
+bool sceneCopied=UnityEditor.AssetDatabase.CopyAsset(scenePath,sceneBk);
+string skyPath="Assets/_Project/Seocheon/Art/Sky/M_Flowerfield_Sky.mat";
+string skyBk="Assets/_Project/Seocheon/Art/Sky/_bk/M_Flowerfield_Sky_PRE_S33_"+stamp+".mat";
+if(!UnityEditor.AssetDatabase.IsValidFolder("Assets/_Project/Seocheon/Art/Sky/_bk"))UnityEditor.AssetDatabase.CreateFolder("Assets/_Project/Seocheon/Art/Sky","_bk");
+bool skyCopied=UnityEditor.AssetDatabase.CopyAsset(skyPath,skyBk);
+
+GameObject old=GameObject.Find("_SkyCloudDrama");
+if(old!=null)UnityEngine.Object.DestroyImmediate(old);
+GameObject root=new GameObject("_SkyCloudDrama");
+
+string folder="Assets/_Project/Seocheon/Art/VFX/S33";
+if(!UnityEditor.AssetDatabase.IsValidFolder("Assets/_Project/Seocheon/Art/VFX"))UnityEditor.AssetDatabase.CreateFolder("Assets/_Project/Seocheon/Art","VFX");
+if(!UnityEditor.AssetDatabase.IsValidFolder(folder))UnityEditor.AssetDatabase.CreateFolder("Assets/_Project/Seocheon/Art/VFX","S33");
+string matPath=folder+"/M_S33_CloudDrama.mat";
+Material cloudMat=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(matPath);
+if(cloudMat==null){
+ Material srcMat=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/RainSnowCloudEffect/Materials/M_CloudLayer_URP.mat");
+ cloudMat=new Material(srcMat);cloudMat.name="M_S33_CloudDrama";UnityEditor.AssetDatabase.CreateAsset(cloudMat,matPath);
+}
+Color mt=new Color(0.76f,0.70f,0.88f,0.52f);
+if(cloudMat.HasProperty("_BaseColor"))cloudMat.SetColor("_BaseColor",mt);
+if(cloudMat.HasProperty("_Color"))cloudMat.SetColor("_Color",mt);
+UnityEditor.EditorUtility.SetDirty(cloudMat);UnityEditor.AssetDatabase.SaveAssetIfDirty(cloudMat);
+
+GameObject prefab=UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/RainSnowCloudEffect/Prefabs/PF_CloudLayer.prefab");
+string[] names=new string[]{"Cloud_Crown","Cloud_SouthLeft","Cloud_SouthRight","Cloud_NorthCrown"};
+Vector3[] pos=new Vector3[]{new Vector3(444f,155f,700f),new Vector3(330f,92f,555f),new Vector3(585f,105f,575f),new Vector3(444f,125f,845f)};
+Vector3[] boxes=new Vector3[]{new Vector3(380f,55f,300f),new Vector3(240f,36f,175f),new Vector3(255f,42f,185f),new Vector3(360f,48f,230f)};
+float[] rates=new float[]{0.72f,0.58f,0.58f,0.64f};
+for(int i=0;i<names.Length;i++){
+ GameObject go=(GameObject)UnityEditor.PrefabUtility.InstantiatePrefab(prefab);
+ go.name=names[i];go.transform.SetParent(root.transform,false);go.transform.position=pos[i];
+ ParticleSystem ps=go.GetComponentInChildren<ParticleSystem>(true);
+ ps.useAutoRandomSeed=false;ps.randomSeed=(uint)(3301+i);
+ ParticleSystem.MainModule mn=ps.main;mn.maxParticles=70;mn.startLifetime=new ParticleSystem.MinMaxCurve(55f,85f);mn.startSpeed=new ParticleSystem.MinMaxCurve(0.015f,0.065f);mn.simulationSpace=ParticleSystemSimulationSpace.World;mn.startSize3D=true;mn.startSizeX=new ParticleSystem.MinMaxCurve(90f,180f);mn.startSizeY=new ParticleSystem.MinMaxCurve(45f,92f);mn.startSizeZ=new ParticleSystem.MinMaxCurve(1f,1f);mn.startColor=new ParticleSystem.MinMaxGradient(new Color(0.82f,0.72f,1f,0.62f),new Color(1f,0.72f,0.82f,0.58f));
+ ParticleSystem.EmissionModule em=ps.emission;em.rateOverTime=new ParticleSystem.MinMaxCurve(rates[i]);
+ ParticleSystem.ShapeModule sh=ps.shape;sh.shapeType=ParticleSystemShapeType.Box;sh.scale=boxes[i];
+ ParticleSystem.NoiseModule no=ps.noise;if(no.enabled){no.strength=0.12f;no.frequency=0.025f;no.scrollSpeed=0.010f;}
+ ParticleSystemRenderer pr=ps.GetComponent<ParticleSystemRenderer>();pr.sharedMaterial=cloudMat;pr.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;pr.receiveShadows=false;pr.lightProbeUsage=UnityEngine.Rendering.LightProbeUsage.Off;pr.reflectionProbeUsage=UnityEngine.Rendering.ReflectionProbeUsage.Off;
+}
+UnityEditor.EditorUtility.SetDirty(root);
+return "APPLY|sceneBackup="+sceneBk+"|sceneCopied="+sceneCopied+"|skyBackup="+skyBk+"|skyCopied="+skyCopied+"|root="+root.name+"|groups="+root.transform.childCount+"|mat="+matPath;

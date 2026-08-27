@@ -1,0 +1,36 @@
+// S30 FINAL Flowerfield Dressing - execution record
+// Created before scene mutation. Unity 6000 / CodeDom C# 6 compatible plan.
+//
+// Immutable baseline:
+// - User Terrain Detail flower maps and all DetailPrototypes
+// - _FlowerPolish (336 renderers)
+// - _FlowerTransition (53 active renderers / 60,470 tris)
+// - Terrain heightmap, alphamap, TerrainLayers and BASE ground
+// - sky, planet, satellite, aurora, stars, Willow and directional-light rotation
+//
+// New reversible hierarchy only:
+// _FlowerFinalDressing
+//   MidFlowerBands
+//   FarFlowerBands
+//   BasinFill
+//   BoundaryAccent
+//   AmbientSparkles
+//
+// Distribution:
+// - NEAR 0-25 m: preserve existing plants; only isolated visible holes may receive a few existing Idyllic flowers.
+// - MID 25-60 m: clustered White_Daisies_2_Bilboard, Grass_1_Billboard and selected existing Idyllic flowers.
+// - FAR 60-120 m: combined billboard meshes only; irregular white/pink/purple/yellow-orange color masses.
+// - BASIN: BASE/low grass at the center, daisy transition, sparse matching flowers at the outer rim.
+// - Boundaries: neutral grass/daisy first, then dominant/neighbor color accents; never straight strips.
+// - AmbientSparkles: reuse a subtle existing Eric VFX Studio twink/sparkle/dust emitter only.
+//
+// Performance rules:
+// - New active triangles target <= 80,000.
+// - Combined meshes for mid/far cards, shared materials, GPU instancing when supported.
+// - Colliders removed, shadow casting off, probes off.
+//
+// Verification:
+// - Render yaw 0/45/90/135/180/225/270/315 from the player eye.
+// - Render final P1/BACK/BASIN.
+// - Compare heightmap, alphamap, all detail maps and prototypes against PRE_S30 backup: mismatch 0.
+// - Restore camera, sky manual time and wind immediately after each render pass.

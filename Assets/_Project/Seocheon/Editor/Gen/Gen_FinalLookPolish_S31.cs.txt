@@ -1,0 +1,21 @@
+S31 Final Look Polish - plan of record (2026-08-25)
+
+Scope
+- Preserve user flower placement, _FlowerPolish, _FlowerTransition, _FlowerFinalDressing.
+- Preserve Terrain heightmap, alphamap, TerrainLayers and base textures.
+- Preserve skybox, Aurora, stars, planet, satellite, PlanetDirection(), willow position and light rotation.
+- Only adjust project-owned material instances for distant-massif atmospheric perspective and flower display tint.
+- Add no large fog/cloud/post-processing system and no vegetation placement.
+
+Method
+1. Create verified PRE backup of scene and TerrainData.
+2. Capture baseline P1/BACK/BASIN with fixed camera and manual sky time t=0.
+3. Duplicate affected materials into Assets/_Project/Seocheon/Art/Environment/S31; never edit package/shared source materials.
+4. Assign per-distance massif materials: near retains contrast, middle shifts to muted violet-blue-grey, far shifts to pale lavender-grey.
+   Keep the existing fog system and fog color; only move its linear range from 350/900 to 140/760 so objects beyond the flower ring acquire a shallow atmospheric blend.
+5. For flower materials, preserve textures and geometry; reduce hot pink saturation by 10-20%, lower white brightness slightly, and lift blue/purple visibility without changing zone membership.
+6. Render P1/BACK/BASIN, inspect, make at most one restrained correction pass.
+7. Verify terrain/detail/prototype/transform invariants, restore camera/controller/wind, save target assets only.
+
+Forbidden
+- Terrain editing, flower repaint/replacement, sky/planet/satellite/light rotation changes, new skybox, LUMINATE, major post-processing, fog-system overhaul, asset deletion.

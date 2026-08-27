@@ -1,0 +1,21 @@
+string stamp=System.DateTime.Now.ToString("yyyyMMdd_HHmmss");
+string scenePath=UnityEngine.SceneManagement.SceneManager.GetActiveScene().path;
+Terrain terr=UnityEngine.Object.FindFirstObjectByType<Terrain>(); TerrainData td=terr.terrainData; string tdPath=UnityEditor.AssetDatabase.GetAssetPath(td);
+string sceneBk="Assets/_Project/Seocheon/Scenes/_bk/Seocheon_Flowerfield_PRE_S31_"+stamp+".unity";
+string tdBk="Assets/_Project/Seocheon/Art/Terrain/_bk/Seocheon_Flowerfield_Terrain_PRE_S31_"+stamp+".asset";
+bool scCopy=UnityEditor.AssetDatabase.CopyAsset(scenePath,sceneBk); bool tdCopy=UnityEditor.AssetDatabase.CopyAsset(tdPath,tdBk);
+TerrainData btd=UnityEditor.AssetDatabase.LoadAssetAtPath<TerrainData>(tdBk);
+int hmis=0, amis=0, dmis=0; float[,] ha=td.GetHeights(0,0,td.heightmapResolution,td.heightmapResolution); float[,] hb=btd.GetHeights(0,0,btd.heightmapResolution,btd.heightmapResolution);
+for(int y=0;y<td.heightmapResolution;y++)for(int x=0;x<td.heightmapResolution;x++)if(System.Math.Abs(ha[y,x]-hb[y,x])>0.0000001f)hmis++;
+float[,,] aa=td.GetAlphamaps(0,0,td.alphamapWidth,td.alphamapHeight);float[,,] ab=btd.GetAlphamaps(0,0,btd.alphamapWidth,btd.alphamapHeight);
+for(int y=0;y<td.alphamapHeight;y++)for(int x=0;x<td.alphamapWidth;x++)for(int l=0;l<td.alphamapLayers;l++)if(System.Math.Abs(aa[y,x,l]-ab[y,x,l])>0.000001f)amis++;
+for(int l=0;l<td.detailPrototypes.Length;l++){int[,] da=td.GetDetailLayer(0,0,td.detailWidth,td.detailHeight,l);int[,] db=btd.GetDetailLayer(0,0,btd.detailWidth,btd.detailHeight,l);for(int y=0;y<td.detailHeight;y++)for(int x=0;x<td.detailWidth;x++)if(da[y,x]!=db[y,x])dmis++;}
+Camera cam=Camera.main;Vector3 op=cam.transform.position;Quaternion orot=cam.transform.rotation;float of=cam.fieldOfView,ofar=cam.farClipPlane;RenderTexture ort=cam.targetTexture;
+GameObject skyGo=GameObject.Find("_SkyController");MonoBehaviour sky=null;bool oldManual=false;float oldTime=0f;
+if(skyGo!=null){MonoBehaviour[] all=skyGo.GetComponents<MonoBehaviour>();for(int i=0;i<all.Length;i++)if(all[i]!=null&&all[i].GetType().Name.Contains("FlowerfieldSkyController")){sky=all[i];break;}}
+if(sky!=null){System.Type st=sky.GetType();System.Reflection.FieldInfo fm=st.GetField("useManualAnimTime");System.Reflection.FieldInfo ft=st.GetField("manualAnimTime");if(fm!=null){oldManual=(bool)fm.GetValue(sky);fm.SetValue(sky,true);}if(ft!=null){oldTime=(float)ft.GetValue(sky);ft.SetValue(sky,0f);}System.Reflection.MethodInfo ap=st.GetMethod("Apply",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic);if(ap!=null)ap.Invoke(sky,null);}
+System.Action<string,Vector3,float,float> shot=delegate(string name,Vector3 pos,float yaw,float pitch){RenderTexture rt=new RenderTexture(960,540,24,RenderTextureFormat.ARGB32);Texture2D tex=new Texture2D(960,540,TextureFormat.RGB24,false);cam.targetTexture=rt;cam.transform.position=pos;cam.transform.rotation=Quaternion.Euler(pitch,yaw,0f);cam.fieldOfView=65f;cam.farClipPlane=3500f;cam.Render();RenderTexture.active=rt;tex.ReadPixels(new Rect(0,0,960,540),0,0);tex.Apply();System.IO.File.WriteAllBytes(System.IO.Path.Combine(Application.dataPath,"Screenshots/"+name+".png"),tex.EncodeToPNG());RenderTexture.active=null;cam.targetTexture=null;UnityEngine.Object.DestroyImmediate(tex);UnityEngine.Object.DestroyImmediate(rt);};
+shot("S31_BEFORE_P1",new Vector3(444.1f,op.y,719.3f),180f,0f);shot("S31_BEFORE_BACK",new Vector3(444.1f,op.y,719.3f),0f,0f);float by=terr.SampleHeight(new Vector3(463f,0f,678f))+terr.transform.position.y+2.65f;shot("S31_BEFORE_BASIN",new Vector3(463f,by,678f),335.4f,0f);
+cam.transform.position=op;cam.transform.rotation=orot;cam.fieldOfView=of;cam.farClipPlane=ofar;cam.targetTexture=ort;
+if(sky!=null){System.Type st=sky.GetType();System.Reflection.FieldInfo fm=st.GetField("useManualAnimTime");System.Reflection.FieldInfo ft=st.GetField("manualAnimTime");if(fm!=null)fm.SetValue(sky,oldManual);if(ft!=null)ft.SetValue(sky,oldTime);System.Reflection.MethodInfo ap=st.GetMethod("Apply",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic);if(ap!=null)ap.Invoke(sky,null);}
+return "BACKUP|scene="+sceneBk+"|terrain="+tdBk+"|copy="+scCopy+"/"+tdCopy+"|mismatch="+hmis+"/"+amis+"/"+dmis+"|baseline=3|camY="+op.y.ToString("F4");
