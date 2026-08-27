@@ -239,8 +239,15 @@ namespace IMUNROK.Common
             _confirmLeft = 0f;
             ResetEndLook();
             ApplyPlacement();
-            _micRt.gameObject.SetActive(true);
-            _endRt.gameObject.SetActive(true);
+            // <b>말하기와 마치기는 이제 자막 바에 있다</b> (2026-08-27).
+            //
+            // 꾸러미 하단바는 「글쇠 칸 · 말하기 · 묻기 · 증거 제시」를 <b>한 줄</b>에 둔다.
+            // 우리는 그 줄을 그대로 지어 놓고도 말하기는 이 판에, 묻기는 저 바에 두어
+            // <b>같은 일이 두 판에 나뉘어</b> 있었다 — 어느 쪽을 눌러야 하는지 알 수가 없다.
+            // 그래서 둘을 바로 옮겼다. 이 판에는 <b>이 판에만 있는 것</b>만 남는다:
+            // 추천 질문·명령·자리. 저쪽에 짝이 없는 것들이다.
+            _micRt.gameObject.SetActive(false);
+            _endRt.gameObject.SetActive(false);
             RebuildChips(owner != null ? owner.Topics : null);
             BuildOrders();
             BuildSeats();
