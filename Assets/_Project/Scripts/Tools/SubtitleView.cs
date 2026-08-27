@@ -760,7 +760,17 @@ namespace IMUNROK.Common
             trig.triggers.Add(down);
             trig.triggers.Add(up);
             trig.triggers.Add(exit);
-            rt.gameObject.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0f);   // 판정용 투명면
+
+            // <b>판정면을 따로 깔면 안 된다.</b> 한 번 그렇게 했다가 판이 통째로 안 떴다 —
+            // <c>Graphic</c> 은 <c>DisallowMultipleComponent</c> 라 이 물건에 이미 붙어
+            // 있는 나뭇결 위에 <c>Image</c> 를 하나 더 붙이면 <b>null 이 돌아오고</b>,
+            // 거기에 색을 칠하려다 터져서 <b>그 아래로 짓던 것이 전부 없던 일이 된다</b>
+            // (안내 줄도, 닫기 딱지도, 바 자리 잡기까지). 오류 한 줄만 나고 화면은
+            // 그냥 「입력이 안 되는」 것으로 보인다.
+            //
+            // 이미 있는 나뭇결이 판정면 노릇을 한다. 광선을 받게만 켜 준다.
+            var bg = rt.GetComponent<Image>();
+            if (bg != null) bg.raycastTarget = true;
         }
 
         private RectTransform Chip(RectTransform parent, string name, string label, Vector2 at, Vector2 size,
