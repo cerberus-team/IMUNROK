@@ -11,10 +11,16 @@ namespace IMUNROK.Common
     /// 왕은 모습을 보이지 않고 목소리와 자막으로 세 미제 사건을 내린다.
     /// 대사가 끝나면 봉서 세 통이 하나씩 밀려나오고, 받으면 조사청으로 간다.
     ///
-    /// <b>봉서는 세 통을 한꺼번에 받는다.</b> 예전에는 하나를 골라 집으면 그 사건이
-    /// 곧장 시작됐는데, 그러면 첫 조사청 방문이 할 일 없는 통로가 된다. 게다가
-    /// 마지막에 세 사건을 모두 복명하는 구조인데 하나만 받아 나가는 그림은 앞뒤가
-    /// 안 맞는다. 고르는 일은 조사청 사건판이 맡는다.
+    /// <b>고른 봉서의 사건으로 곧장 간다.</b> (2026-08-27 되돌림)
+    ///
+    /// 한동안 세 통을 한꺼번에 받아 조사청으로 보냈다. 「첫 조사청 방문이 할 일 없는
+    /// 통로가 된다」는 것이 그 까닭이었는데, 그것은 <b>내가 잘못 짚은 것</b>이었다.
+    /// 애초 설계가 어전에서 하나를 골라 그 사건으로 드는 그림이었다.
+    ///
+    /// 조사청은 <b>사건을 마치고 돌아오는 자리</b>다. 그러니 통로가 될 일이 없다 —
+    /// 첫 사건을 끝내고 돌아왔을 때 비로소 남은 봉서 둘이 거기 놓여 있다.
+    /// 고르지 않은 둘은 <see cref="IntroDocument.Freeze"/> 로 얼려 두므로
+    /// 사건판이 그것을 그대로 이어받는다.
     ///
     /// <b>자막은 SubtitleView 로 그린다.</b> 예전 OnGUI 는 헤드셋에 아예 렌더링되지
     /// 않는다 — 모니터로 보면 멀쩡한데 쓰고 보면 왕이 말없이 서 있다.
@@ -276,13 +282,39 @@ namespace IMUNROK.Common
                  "0 이면 예전처럼 그냥 캄캄해졌다 뜬다")]
         [SerializeField] private float _coverSeconds = 0.75f;
 
+        [Header("사건 씬 이름 — 봉서를 집으면 여기로 곧장 간다")]
+        [Tooltip("제1사건 옹고집")] [SerializeField] private string _case1Scene = "Onggojip";
+        [Tooltip("제2사건 서천")]   [SerializeField] private string _case2Scene = "Seocheon";
+        [Tooltip("제3사건 견우")]   [SerializeField] private string _case3Scene = "Gyeonu";
+
+        /// <summary>
+        /// 고른 사건이 어느 씬인가. 못 찾으면 <b>조사청으로 떨어진다</b> —
+        /// 빈 화면에 멈춰 서느니 갈 데가 있는 편이 낫다.
+        /// </summary>
+        private string SceneForTaken()
+        {
+            string want;
+            switch (_takenCase)
+            {
+                case CaseId.Case2_Seocheon: want = _case2Scene; break;
+                case CaseId.Case3_Gyeonu:   want = _case3Scene; break;
+                default:                    want = _case1Scene; break;
+            }
+            if (!string.IsNullOrEmpty(want) && Application.CanStreamedLevelBeLoaded(want)) return want;
+
+            Debug.LogWarning($"[IntroController] {_takenCase} 사건 씬('{want}')을 빌드 목록에서 못 찾았습니다. " +
+                             "조사청으로 보냅니다 — File ▸ Build Profiles 를 확인하세요.", this);
+            return _hubSceneName;
+        }
+
         private void LeaveForHub()
         {
             SubtitleView.Hide();
 
-            if (string.IsNullOrEmpty(_hubSceneName) || !Application.CanStreamedLevelBeLoaded(_hubSceneName))
+            string go = SceneForTaken();
+            if (string.IsNullOrEmpty(go) || !Application.CanStreamedLevelBeLoaded(go))
             {
-                Debug.LogWarning($"[IntroController] 조사청 씬('{_hubSceneName}')을 찾을 수 없습니다. " +
+                Debug.LogWarning($"[IntroController] 갈 씬('{go}')을 찾을 수 없습니다. " +
                                  "File ▸ Build Profiles 의 씬 목록을 확인하세요.", this);
                 return;
             }
@@ -300,7 +332,7 @@ namespace IMUNROK.Common
 
             if (taken != null && _coverSeconds > 0.01f)
             {
-                taken.CoverScreen(_coverSeconds, () => SceneManager.LoadScene(_hubSceneName));
+                taken.CoverScreen(_coverSeconds, () => SceneManager.LoadScene(go));
                 return;
             }
 
@@ -310,7 +342,7 @@ namespace IMUNROK.Common
             if (_documents != null)
                 foreach (var d in _documents)
                     if (d != null) d.HideNow();
-            ScreenFade.Blink(0.45f, 0.5f, () => SceneManager.LoadScene(_hubSceneName));
+            ScreenFade.Blink(0.45f, 0.5f, () => SceneManager.LoadScene(go));
         }
 
         /// <summary>어느 사건을 맡았나 — 화면을 덮을 봉서를 고를 때 쓴다.</summary>
