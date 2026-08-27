@@ -1,0 +1,55 @@
+GameObject fogRoot=GameObject.Find("_AtmosphereFog");
+if(fogRoot==null) return "ERROR|missing_root";
+Material fogMat=AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Seocheon/Art/VFX/S32/M_S32_DistantMist.mat");
+if(fogMat==null) return "ERROR|missing_material";
+Color fogTint=new Color(0.82f,0.76f,0.86f,0.28f);
+if(fogMat.HasProperty("_BaseColor")) fogMat.SetColor("_BaseColor",fogTint);
+if(fogMat.HasProperty("_Color")) fogMat.SetColor("_Color",fogTint);
+EditorUtility.SetDirty(fogMat);
+AssetDatabase.SaveAssetIfDirty(fogMat);
+
+string[] names=new string[]{"P1_DistantFog","Back_HorizonFog","Basin_EdgeFog"};
+Vector3[] positions=new Vector3[]{new Vector3(470f,12.0f,660f),new Vector3(455f,12.1f,800f),new Vector3(425f,11.8f,750f)};
+float[] rates=new float[]{0.50f,0.40f,0.34f};
+int particleCount=0;
+for(int i=0;i<names.Length;i++){
+  Transform tr=fogRoot.transform.Find(names[i]);
+  if(tr==null) return "ERROR|missing_group="+names[i];
+  tr.position=positions[i];
+  ParticleSystem ps=tr.GetComponentInChildren<ParticleSystem>(true);
+  if(ps==null) return "ERROR|missing_ps="+names[i];
+  ParticleSystem.MainModule main=ps.main;
+  main.startColor=new ParticleSystem.MinMaxGradient(new Color(1f,0.96f,1f,0.45f));
+  main.startSize3D=true;
+  main.startSizeX=new ParticleSystem.MinMaxCurve(18f,36f);
+  main.startSizeY=new ParticleSystem.MinMaxCurve(4f,8f);
+  main.startSizeZ=new ParticleSystem.MinMaxCurve(1f,1f);
+  ParticleSystem.EmissionModule emission=ps.emission;
+  emission.rateOverTime=new ParticleSystem.MinMaxCurve(rates[i]);
+  ps.Clear(true);
+  ps.Simulate(45f,true,true,false);
+  particleCount+=ps.particleCount;
+}
+
+Camera cam=Camera.main;
+Terrain terr=UnityEngine.Object.FindFirstObjectByType<Terrain>();
+Vector3 op=cam.transform.position;Quaternion orot=cam.transform.rotation;float of=cam.fieldOfView,ofar=cam.farClipPlane;RenderTexture ort=cam.targetTexture;
+IMUNROK.Seocheon.FlowerfieldSkyController sky=UnityEngine.Object.FindFirstObjectByType<IMUNROK.Seocheon.FlowerfieldSkyController>();
+bool oldManual=false;float oldTime=0f;
+if(sky!=null){oldManual=sky.useManualAnimTime;oldTime=sky.manualAnimTime;sky.useManualAnimTime=true;sky.manualAnimTime=0f;sky.Apply();}
+System.Action<string,Vector3,float> shot=delegate(string name,Vector3 pos,float yaw){
+  RenderTexture rt=new RenderTexture(960,540,24,RenderTextureFormat.ARGB32);
+  Texture2D tex=new Texture2D(960,540,TextureFormat.RGB24,false);
+  cam.targetTexture=rt;cam.transform.position=pos;cam.transform.rotation=Quaternion.Euler(0f,yaw,0f);cam.fieldOfView=65f;cam.farClipPlane=3500f;
+  cam.Render();RenderTexture.active=rt;tex.ReadPixels(new Rect(0,0,960,540),0,0);tex.Apply();
+  System.IO.File.WriteAllBytes(System.IO.Path.Combine(Application.dataPath,"Screenshots/"+name+".png"),tex.EncodeToPNG());
+  RenderTexture.active=null;cam.targetTexture=null;UnityEngine.Object.DestroyImmediate(tex);UnityEngine.Object.DestroyImmediate(rt);
+};
+shot("S32_FINAL_P1",new Vector3(444.1f,op.y,719.3f),180f);
+shot("S32_FINAL_BACK",new Vector3(444.1f,op.y,719.3f),0f);
+float by=terr.SampleHeight(new Vector3(463f,0f,678f))+terr.transform.position.y+2.65f;
+shot("S32_FINAL_BASIN",new Vector3(463f,by,678f),335.4f);
+cam.transform.position=op;cam.transform.rotation=orot;cam.fieldOfView=of;cam.farClipPlane=ofar;cam.targetTexture=ort;
+if(sky!=null){sky.useManualAnimTime=oldManual;sky.manualAnimTime=oldTime;sky.Apply();}
+EditorUtility.SetDirty(fogRoot);
+return "ADJUST_RENDER|particles="+particleCount+"|materialAlpha=0.28|particleAlpha=0.45|sizeXY=18-36,4-8|rates=0.50,0.40,0.34|camRestored="+(cam.transform.position==op&&cam.transform.rotation==orot&&cam.targetTexture==ort);

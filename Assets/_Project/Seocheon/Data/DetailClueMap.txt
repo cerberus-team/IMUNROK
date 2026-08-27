@@ -1,0 +1,115 @@
+서천 꽃밭 — Terrain Detail 좌표계 · 단서 지정 지도
+==================================================================
+작성 2026-08-23 (Phase 2)
+씬     Assets/_Project/Seocheon/Scenes/Seocheon_Flowerfield.unity
+지형   Assets/_Project/Seocheon/Art/Terrain/Seocheon_Flowerfield_Terrain.asset
+       원점 (0,0,0) · size (1000, 300, 1000)
+
+------------------------------------------------------------------
+① 월드 <-> 디테일 셀 변환식   ★배열은 [y, x] 순서 (alphamap 과 같다)
+
+  DR   = terrainData.detailResolution      = 2048
+  size = terrainData.size                  = (1000, 300, 1000)
+  tpos = terrain.transform.position        = (0, 0, 0)
+
+  셀 -> 월드 (셀 중심)
+     wx = (dx + 0.5) / DR * size.x + tpos.x
+     wz = (dy + 0.5) / DR * size.z + tpos.z
+
+  월드 -> 셀
+     dx = floor( (wx - tpos.x) / size.x * DR )
+     dy = floor( (wz - tpos.z) / size.z * DR )
+
+  읽기/쓰기
+     int[,] a = td.GetDetailLayer(xBase, yBase, width, height, layer);   // a[y, x]
+     td.SetDetailLayer(xBase, yBase, layer, a);
+
+  ★값의 의미 — td.detailScatterMode == CoverageMode
+     레이어 값 0~255 는 ★개수가 아니라 ★피복률이다 (255 = 100%).
+     실제 개체 수는 DetailPrototype.density (100% 피복일 때 m^2당 개수) 가 정한다.
+     현재 최대값은 216 (= 255 / 1.18, 밀도 변조 +-18% 가 255 를 넘지 않게 한 것)
+
+------------------------------------------------------------------
+② 셀 크기와 구멍 크기
+
+  셀 크기       1000 / 2048 = ★0.48828 m
+  셀 면적       0.23842 m^2
+  패치          detailResolutionPerPatch = 64  -> 셀 64x64 = 31.25 m 사방
+
+  요청 크기 -> 셀 수 (가장 가까운 정수)
+     1.0 m ->  2 셀 (0.977 m, -2.3%)
+     1.5 m ->  3 셀 (1.465 m, -2.3%)
+     2.0 m ->  4 셀 (1.953 m, -2.3%)
+     ★2.2 m -> 4 셀 (1.953 m, -11%)  또는  5 셀 (2.441 m, +11%)
+     3.0 m ->  6 셀 (2.930 m, -2.3%)
+     4.0 m ->  8 셀 (3.906 m, -2.3%)
+  ★1024 해상도였다면 2.2 m 는 2 셀(1.95 m) 또는 3 셀(2.93 m, +33%) 이라
+    면적 오차가 최대 +77% 였다. 2048 로 올린 이유가 이것이다.
+
+------------------------------------------------------------------
+③ ★단서 후보 좌표 (실제로 비우지 않았다. 목록만)
+
+  조건 — 근접 2구역 안 · 스폰(444.1, 11.6, 719.3) 에서 17.5~26 m ·
+        주변 5x5 셀 피복 >= 0.68 · 후보끼리 3 m 이상
+
+  #   월드 (x, y, z)                        거리      구역          중심셀        2.44 m 구멍
+  C1  (444.580,  8.897, 695.557)          23.75 m   B02 Yellow   [1424,  910]  xBase 908, yBase 1422, int[5,5]
+  C2  (436.768,  9.315, 696.533)          23.92 m   B01 Purple   [1426,  894]  xBase 892, yBase 1424, int[5,5]
+  C3  (448.975,  9.172, 697.021)          22.81 m   B02 Yellow   [1427,  919]  xBase 917, yBase 1425, int[5,5]
+  C4  (430.908,  9.483, 697.510)          25.47 m   B01 Purple   [1428,  882]  xBase 880, yBase 1426, int[5,5]
+  C5  (449.951,  9.207, 699.951)          20.21 m   B02 Yellow   [1433,  921]  xBase 919, yBase 1431, int[5,5]
+  C6  (432.861,  9.325, 701.904)          20.71 m   B01 Purple   [1437,  886]  xBase 884, yBase 1435, int[5,5]
+  C7  (437.256,  9.149, 701.904)          18.69 m   B01 Purple   [1437,  895]  xBase 893, yBase 1435, int[5,5]   (예비)
+
+  ★구멍을 만들 때는 ★레이어 1~8 을 전부 0 으로 해야 한다 (빌보드 6 + 메시 2).
+    빌보드만 지우면 메시 꽃이 남아 구멍이 안 보인다.
+
+------------------------------------------------------------------
+④ 프로토타입 인덱스 <-> 색 대응표   (2026-08-23 현재)
+
+  idx  이름          텍스처/프리팹                 renderMode   density  healthyColor       쓰는 구역
+   0   Detail_Fern   Detail_Fern_LOD3 (프리팹)     VertexLit     1.0     (1, 1, 1)          ★기존. 건드리지 말 것
+   1   BBn_Purple    White_Daisies_2_Bilboard      Grass         6.0     (1.00, 0.34, 0.42) B01 주 / B02 보조
+   2   BBn_Yellow    White_Daisies_2_Bilboard      Grass         6.0     (1.00, 0.62, 0.06) B02 주 / B01 보조
+   3   BBf_Pink      Grass_1_Billboard             Grass         6.0     (1.00, 0.34, 0.33) B03·B08 주 / B04 보조
+   4   BBf_Blue      Grass_1_Billboard             Grass         6.0     (0.33, 0.72, 1.00) B04·B06 주 / B03·B05·B07 보조
+   5   BBf_White     Grass_1_Billboard             Grass         6.0     (1.00, 0.70, 0.48) B05 주 / B08 보조
+   6   BBf_Yellow    Grass_1_Billboard             Grass         6.0     (1.00, 0.72, 0.06) B07 주 / B06 보조
+   7   MS_Purple     Flower_Purple.prefab          ★VertexLit   2.5     (1, 1, 1)          B01 에만
+   8   MS_Yellow     Flower_Yellow.prefab          ★VertexLit   2.5     (1, 1, 1)          B02 에만
+
+  dryColor 는 전부 healthyColor x 0.84
+  빌보드 크기  width 0.36~0.62 m · height 0.34~0.62 m · noiseSpread 0.35 · positionJitter 0.7
+  메시   크기  1.30~1.60 (확정 스케일 유지) · useInstancing = true · positionJitter 0.8
+
+  ★메시 프로토타입은 renderMode = VertexLit 이어야 Validate 를 통과한다.
+    Grass / GrassBillboard 로 두면 "Render mode must be VertexLit." 로 거부된다.
+
+------------------------------------------------------------------
+⑤ ★런타임 주의
+
+  SetDetailLayer 로 ★한 셀만 바꿔도 그 셀이 속한 ★패치(64x64 셀 = 31.25 m) 전체의
+  개체 배치가 다시 뿌려진다. Phase 1 에서 실측 확인했다.
+  -> 단서는 ★미리 구워둘 것. 플레이 중에 파면 그 일대가 통째로 재배치되어 눈에 띈다.
+  -> 굳이 런타임에 해야 한다면 그 패치를 시야 밖에 두고 해야 한다.
+
+  ★검증 절차 (Phase 2 에서 쓴 것)
+    1) 대상 셀 범위의 레이어 1~8 을 GetDetailLayer 로 백업
+    2) 0 으로 SetDetailLayer
+    3) 촬영 / 측정
+    4) 백업을 SetDetailLayer 로 되돌리고 ★합계가 같은지 확인
+
+------------------------------------------------------------------
+⑥ ★단서 크기와 거리 — 실측 (2.44 x 2.44 m 구멍, 눈높이 1.6 m)
+
+  관측 거리    변화 픽셀 (960x540, fov 28)    눈으로 식별
+    25 m            664 px (0.13%)            ★안 보인다
+    16 m          2,250 px (0.43%)            ★거의 안 보인다
+    10 m         10,068 px (1.94%)            희미하다
+     6 m         66,272 px (12.8%)            ★뚜렷하다
+
+  ★이유 — 눈높이 1.6 m 에서 25 m 앞 지면을 보는 시선은 15.3 m 지점에서
+    이미 지면 위 0.62 m 로 내려온다. 꽃 높이가 0.34~0.62 m + 메시 1.3~1.6 m 이므로
+    ★15 m ~ 25 m 사이의 꽃이 시선을 가로막아 구멍 바닥이 안 보인다.
+    거리에서 단서를 보이게 하려면 (a) 구멍을 4 m 이상으로 키우거나
+    (b) 길·구역 가장자리에 두거나 (c) 플레이어가 6 m 안으로 들어오게 설계해야 한다.

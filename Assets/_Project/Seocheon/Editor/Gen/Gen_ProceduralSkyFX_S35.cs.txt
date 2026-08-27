@@ -1,0 +1,29 @@
+S35 - Unity built-in Particle System clouds and aurora
+
+Intent
+- Keep the approved S33 lavender/rose/blue palette.
+- Remove the painted cloud silhouette by using the S34 high-mip colour-only sky material.
+- Do not use PF_CloudLayer, Clouds_Cubemap, LUMINATE, VFX Graph, or imported cloud prefabs.
+- Build both effects from Unity's built-in Particle System.
+
+Cloud source
+- Assets/Eric VFX Studio/Resource/Textures/FX_smoke_02.png
+- Four deterministic, world-space banks of layered square billboards.
+- Large overlapping puffs, low alpha, very slow movement, no colliders/shadows.
+
+Aurora source
+- Assets/Eric VFX Studio/Resource/Textures/Noise_02.png
+- Custom Seocheon/AuroraParticle additive shader.
+- Three deterministic banks of tall narrow billboard curtains.
+- Magenta/cyan colour range, low alpha, slow drift, kept away from the planet opening.
+
+Hierarchy
+_ProceduralSkyFX
+  _Clouds
+  _Aurora
+
+Safety
+- Back up scene before mutation.
+- Do not touch terrain, alphamap, details, flowers, fog, planet, satellite, Willow or light rotation.
+- Keep all new effects toggleable through one root.
+- Save only after visual inspection; SaveAssetIfDirty(target) only.

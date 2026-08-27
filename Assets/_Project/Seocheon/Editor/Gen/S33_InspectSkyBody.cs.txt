@@ -1,0 +1,25 @@
+Material m=RenderSettings.skybox;
+string props="";
+if(m!=null&&m.shader!=null){
+ int pc=UnityEditor.ShaderUtil.GetPropertyCount(m.shader);
+ for(int i=0;i<pc;i++){
+  string n=UnityEditor.ShaderUtil.GetPropertyName(m.shader,i);
+  UnityEditor.ShaderUtil.ShaderPropertyType t=UnityEditor.ShaderUtil.GetPropertyType(m.shader,i);
+  string v="";
+  if(t==UnityEditor.ShaderUtil.ShaderPropertyType.Color)v=m.GetColor(n).ToString("F3");
+  else if(t==UnityEditor.ShaderUtil.ShaderPropertyType.Vector)v=m.GetVector(n).ToString("F3");
+  else if(t==UnityEditor.ShaderUtil.ShaderPropertyType.Float||t==UnityEditor.ShaderUtil.ShaderPropertyType.Range)v=m.GetFloat(n).ToString("F4");
+  else if(t==UnityEditor.ShaderUtil.ShaderPropertyType.TexEnv)v=(m.GetTexture(n)!=null?m.GetTexture(n).name:"NULL");
+  props+=n+"="+v+";";
+ }
+}
+IMUNROK.Seocheon.FlowerfieldSkyController sky=UnityEngine.Object.FindFirstObjectByType<IMUNROK.Seocheon.FlowerfieldSkyController>();
+string fields="";
+if(sky!=null){
+ UnityEditor.SerializedObject so=new UnityEditor.SerializedObject(sky);
+ UnityEditor.SerializedProperty it=so.GetIterator();
+ bool enter=true;
+ while(it.NextVisible(enter)){enter=false;fields+=it.propertyPath+"="+it.propertyType+";";}
+}
+TerrainData td=UnityEngine.Object.FindFirstObjectByType<Terrain>().terrainData;
+return "INSPECT|sceneDirty="+UnityEngine.SceneManagement.SceneManager.GetActiveScene().isDirty+"|tdDirty="+UnityEditor.EditorUtility.IsDirty(td)+"|skyMat="+(m!=null?UnityEditor.AssetDatabase.GetAssetPath(m):"NULL")+"|shader="+(m!=null&&m.shader!=null?m.shader.name:"NULL")+"|PROPS="+props+"|FIELDS="+fields;

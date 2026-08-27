@@ -1,0 +1,40 @@
+string folder="Assets/_Project/Seocheon/Art/Environment/S31";
+if(!UnityEditor.AssetDatabase.IsValidFolder("Assets/_Project/Seocheon/Art/Environment"))return "ERROR|missing parent";
+if(!UnityEditor.AssetDatabase.IsValidFolder(folder))UnityEditor.AssetDatabase.CreateFolder("Assets/_Project/Seocheon/Art/Environment","S31");
+System.Collections.Generic.List<UnityEngine.Object> saveList=new System.Collections.Generic.List<UnityEngine.Object>();
+System.Func<string,string,Material> cloneMat=delegate(string src,string name){string path=folder+"/"+name+".mat";Material ex=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(path);if(ex!=null)return ex;Material sm=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(src);Material nm=new Material(sm);nm.name=name;UnityEditor.AssetDatabase.CreateAsset(nm,path);saveList.Add(nm);return nm;};
+System.Action<Material,Color,Color> setVeg=delegate(Material m,Color bot,Color top){m.SetFloat("_Custom_Color",1f);m.SetFloat("_Enable_Top_Color",1f);m.SetColor("_Bottom_Color",bot);m.SetColor("_Top_Color",top);m.SetFloat("_Blend_Height",0.55f);UnityEditor.EditorUtility.SetDirty(m);if(!saveList.Contains(m))saveList.Add(m);};
+string flowerSrc="Assets/Idyllic Fantasy Nature/Materials/Flowers/Flower.mat";
+Material purple=cloneMat(flowerSrc,"M_S31_Flower_Purple");setVeg(purple,new Color(0.88f,0.91f,1.00f,1f),new Color(0.95f,0.94f,1.00f,1f));
+Material yellow=cloneMat(flowerSrc,"M_S31_Flower_Yellow");setVeg(yellow,new Color(0.90f,0.87f,0.79f,1f),new Color(0.94f,0.91f,0.84f,1f));
+Material blue=cloneMat(flowerSrc,"M_S31_Flower_Blue");setVeg(blue,new Color(0.82f,0.91f,1.00f,1f),new Color(0.90f,0.95f,1.00f,1f));
+Material white=cloneMat(flowerSrc,"M_S31_Flower_White");setVeg(white,new Color(0.80f,0.82f,0.84f,1f),new Color(0.86f,0.87f,0.89f,1f));
+Material orange=cloneMat(flowerSrc,"M_S31_Flower_Orange");setVeg(orange,new Color(0.90f,0.84f,0.80f,1f),new Color(0.94f,0.88f,0.84f,1f));
+Material pink=cloneMat(flowerSrc,"M_S31_Flower_Pink");setVeg(pink,new Color(0.82f,0.76f,0.80f,1f),new Color(0.88f,0.82f,0.85f,1f));
+System.Func<string,Material> colorMat=delegate(string n){string s=n.ToLowerInvariant();if(s.Contains("purple"))return purple;if(s.Contains("yellow"))return yellow;if(s.Contains("blue"))return blue;if(s.Contains("white")||s.Contains("daisy"))return white;if(s.Contains("orange"))return orange;if(s.Contains("pink"))return pink;return null;};
+
+string[] protoNames={"Flower_Purple","Flower_Yellow","Flower_Blue_02","Flower_White","Flower_Orange","Flower_Pink"};
+string[] protoPaths={"Assets/Idyllic Fantasy Nature/Prefabs/Flower_Purple.prefab","Assets/Idyllic Fantasy Nature/Prefabs/Flower_Yellow.prefab","Assets/Idyllic Fantasy Nature/Prefabs/Flower_Blue_02.prefab","Assets/Idyllic Fantasy Nature/Prefabs/Flower_White.prefab","Assets/Idyllic Fantasy Nature/Prefabs/Flower_Orange.prefab","Assets/Idyllic Fantasy Nature/Prefabs/Flower_Pink.prefab"};
+System.Collections.Generic.Dictionary<string,GameObject> protoMap=new System.Collections.Generic.Dictionary<string,GameObject>();
+for(int i=0;i<protoNames.Length;i++){string dst=folder+"/P_S31_"+protoNames[i]+".prefab";if(UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(dst)==null)UnityEditor.AssetDatabase.CopyAsset(protoPaths[i],dst);GameObject pc=UnityEditor.PrefabUtility.LoadPrefabContents(dst);Renderer[] pr=pc.GetComponentsInChildren<Renderer>(true);Material cm=colorMat(protoNames[i]);for(int j=0;j<pr.Length;j++)pr[j].sharedMaterial=cm;UnityEditor.PrefabUtility.SaveAsPrefabAsset(pc,dst);UnityEditor.PrefabUtility.UnloadPrefabContents(pc);protoMap[protoNames[i]]=UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(dst);}
+TerrainData td=UnityEngine.Object.FindFirstObjectByType<Terrain>().terrainData;DetailPrototype[] dps=td.detailPrototypes;int protoChanged=0;
+for(int i=0;i<dps.Length;i++){if(dps[i].prototype!=null&&protoMap.ContainsKey(dps[i].prototype.name)){dps[i].prototype=protoMap[dps[i].prototype.name];protoChanged++;}}
+td.detailPrototypes=dps;UnityEditor.EditorUtility.SetDirty(td);
+
+int polishChanged=0;GameObject polish=GameObject.Find("_FlowerPolish");if(polish!=null){Renderer[] rr=polish.GetComponentsInChildren<Renderer>(true);for(int i=0;i<rr.Length;i++){MeshFilter mf=rr[i].GetComponent<MeshFilter>();Material cm=mf!=null&&mf.sharedMesh!=null?colorMat(mf.sharedMesh.name):null;if(cm!=null){rr[i].sharedMaterial=cm;polishChanged++;}}}
+
+string[] s30Names={"M_S30_Purple","M_S30_Pink","M_S30_Yellow","M_S30_White","M_S30_Orange","M_S30_Blue","M_S30_Daisy"};
+Color[] s30Cols={new Color(0.67f,0.38f,0.78f,1f),new Color(0.78f,0.43f,0.58f,1f),new Color(0.88f,0.70f,0.25f,1f),new Color(0.78f,0.80f,0.74f,1f),new Color(0.86f,0.48f,0.22f,1f),new Color(0.36f,0.61f,0.91f,1f),new Color(0.78f,0.80f,0.72f,1f)};
+System.Collections.Generic.Dictionary<string,Material> s30Map=new System.Collections.Generic.Dictionary<string,Material>();
+for(int i=0;i<s30Names.Length;i++){string src=(s30Names[i]=="M_S30_Daisy"?"Assets/_Project/Seocheon/Art/Environment/S30/M_S30_Daisy.mat":"Assets/_Project/Seocheon/Art/Environment/S30/"+s30Names[i]+".mat");Material m=cloneMat(src,s30Names[i].Replace("S30","S31"));m.SetColor("_BaseColor",s30Cols[i]);m.SetColor("_Color",s30Cols[i]);UnityEditor.EditorUtility.SetDirty(m);if(!saveList.Contains(m))saveList.Add(m);s30Map[s30Names[i]]=m;}
+int finalChanged=0;GameObject finalRoot=GameObject.Find("_FlowerFinalDressing");if(finalRoot!=null){Renderer[] rr=finalRoot.GetComponentsInChildren<Renderer>(true);for(int i=0;i<rr.Length;i++){Material om=rr[i].sharedMaterial;if(om!=null&&s30Map.ContainsKey(om.name)){rr[i].sharedMaterial=s30Map[om.name];finalChanged++;}}}
+Material s29Daisy=cloneMat("Assets/_Project/Seocheon/Art/Environment/S29/M_S29_Daisy.mat","M_S31_Transition_Daisy");Color dc=new Color(0.79f,0.80f,0.72f,1f);s29Daisy.SetColor("_BaseColor",dc);s29Daisy.SetColor("_Color",dc);UnityEditor.EditorUtility.SetDirty(s29Daisy);if(!saveList.Contains(s29Daisy))saveList.Add(s29Daisy);GameObject trans=GameObject.Find("_FlowerTransition");int transChanged=0;if(trans!=null){Renderer[] rr=trans.GetComponentsInChildren<Renderer>(true);for(int i=0;i<rr.Length;i++)if(rr[i].sharedMaterial!=null&&rr[i].sharedMaterial.name=="M_S29_Daisy"){rr[i].sharedMaterial=s29Daisy;transChanged++;}}
+
+Material near=cloneMat("Assets/_Project/Seocheon/Materials/M_Massif_0.mat","M_S31_Massif_Near");near.SetColor("_TopColor",new Color(0.25f,0.30f,0.41f,1f));near.SetColor("_BottomColor",new Color(0.50f,0.51f,0.58f,1f));UnityEditor.EditorUtility.SetDirty(near);
+Material mid=cloneMat("Assets/_Project/Seocheon/Materials/M_Massif_1.mat","M_S31_Massif_Mid");mid.SetColor("_TopColor",new Color(0.36f,0.40f,0.53f,1f));mid.SetColor("_BottomColor",new Color(0.62f,0.60f,0.68f,1f));UnityEditor.EditorUtility.SetDirty(mid);
+Material far=cloneMat("Assets/_Project/Seocheon/Materials/M_Massif_2.mat","M_S31_Massif_Far");far.SetColor("_TopColor",new Color(0.46f,0.48f,0.60f,1f));far.SetColor("_BottomColor",new Color(0.73f,0.68f,0.76f,1f));UnityEditor.EditorUtility.SetDirty(far);
+if(!saveList.Contains(near))saveList.Add(near);if(!saveList.Contains(mid))saveList.Add(mid);if(!saveList.Contains(far))saveList.Add(far);
+GameObject mass=GameObject.Find("_DistantMassifs");int massChanged=0;if(mass!=null){Renderer[] rr=mass.GetComponentsInChildren<Renderer>(true);for(int i=0;i<rr.Length;i++){if(rr[i].name=="Massif_01")rr[i].sharedMaterial=far;else if(rr[i].name=="Massif_02"||rr[i].name=="Massif_03")rr[i].sharedMaterial=mid;else rr[i].sharedMaterial=near;massChanged++;}}
+for(int i=0;i<saveList.Count;i++)UnityEditor.AssetDatabase.SaveAssetIfDirty(saveList[i]);
+UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+return "APPLY|proto="+protoChanged+"|polish="+polishChanged+"|final="+finalChanged+"|transition="+transChanged+"|massif="+massChanged+"|assets="+saveList.Count;

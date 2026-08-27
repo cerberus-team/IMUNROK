@@ -1,0 +1,348 @@
+서천 꽃밭 — 밭 자리 지형 평탄화  Gen_TerrainLevel_v1
+==================================================================
+작성 2026-08-24   ★실행 전에 저장한 파일이다 (§4-0)
+씬    Assets/_Project/Seocheon/Scenes/Seocheon_Flowerfield.unity
+지형  Assets/_Project/Seocheon/Art/Terrain/Seocheon_Flowerfield_Terrain.asset
+
+★2026-08-24 10:xx ★실행 완료 (S11 라운드). 아래 [10] 실행 기록 참조.
+
+------------------------------------------------------------------
+[10] ★실행 기록 (2026-08-24)
+
+  목표가 "평지"가 아니라 ★"동산"으로 바뀌었다. 방법(sigma 12 가우시안)은
+  그대로 두고 ★판정 기준만 완화했다.
+     경사 <=4도 98%  ->  ★<=7도 95% · 최대 <=10도
+     신설 ★고도 범위 유지율 60~90%  (평평하게 깎지 않았다는 증거)
+
+  ★확정 파라미터
+     SIGMA = 12 m (KR 19 텍셀) · FADE = ★10 m · MARGIN 2 m · PATHHW 1.5 m
+     sigma 8 m 도 함께 계산해 비교했고 ★후퇴하지 않았다:
+        sigma 12 : 유지율 84.6% · 최대|dH| 0.827 · 최대경사 3.25도
+        sigma  8 : 유지율 79.4% · 최대|dH| 0.749 · 최대경사 3.66도
+     -> 12 가 기복을 더 남기므로 동산 목표에 맞다
+
+  ★실측 결과 (밭 안 278 텍셀 · 페이드 594 텍셀)
+     3x3 편차   0.0838 -> 0.0545 m      (<=0.10)  통과
+     경사<=7도  94.2%  -> 100.0%        (>=95)    통과
+     최대 경사  10.61  -> 3.23 도       (<=10)    통과
+     고도 범위  2.142  -> 1.813 m       유지율 ★84.6%  (60~90) 통과
+     최대 |dH|  0.8240 m · >1.5m 텍셀 ★0
+     스폰 반경 3m 변경 ★0.0000 m (스폰은 밭 경계에서 15.36 m, 페이드 10 m 밖)
+     ★페이드가 추가한 단차 0.1923 m (<=0.25) at (460.9, 693.4)
+        같은 자리 원지형 단차 0.0732 m
+     능선 Z688~693  최대 16.53 -> ★14.41도 · 평균 8.97 -> 4.97도  (살아남음)
+
+  ★재접지 (A-3)
+     오프셋을 ★SetHeights 전에 기록하고, 적용 후 y = SampleHeight + 오프셋 으로 복원
+     갈대 187 최대 오차 0.00000 m · 버드나무 0.00000 m · XZ 완전 불변
+     ★Play 모드를 드나들어도 유지됨을 사후 확인 (오프셋 0.013~0.039 m, 이상치 0)
+
+  ★함정 — 이번에 새로 확인한 것
+     (a) AssetDatabase.SaveAssets() 는 ★더티한 모든 에셋을 저장한다.
+         백업을 뜰 때 라이브 TerrainData 까지 저장되어 붓질이 소실됐다.
+         -> ★SaveAssetIfDirty(대상) 만 쓸 것
+     (b) new TerrainData() 에 SetAlphamaps 를 하려면 ★terrainLayers 를 먼저 확정해야
+         한다. 순서가 틀리면 알파맵이 layer0=1 로 뭉개진 채 저장된다.
+         PRE_S10_LIVE / PRE_S11 두 백업이 이 상태였고 사후에 고쳤다.
+     (c) EditorSceneManager.ClearSceneDirtiness 는 ★internal 이다 -> 리플렉션 필요
+     (d) 판정 기준이 원지형에서도 성립하는지 먼저 볼 것.
+         "경계 단차 <=0.25 m" 는 원지형이 이미 0.851 m 인 자리가 있었다.
+
+------------------------------------------------------------------
+[11] Phase B — 붓질 재생성 (같은 라운드에서 이어서 실행)
+
+  Gen_DetailFlowers_v2.cs.txt 의 ★최종 상수를 그대로 재실행했다.
+  프로토타입 9개와 틴트는 에셋에 남아 있어 ★다시 등록하지 않았다.
+  칠한 범위 = 밭 bbox 셀 x[849..979] z[1331..1464] (131 x 134)
+
+  ★위상 시드 — 스크립트에 "b*7+1, b*7+2 등 고정 시드" 로만 적혀 있어
+     구역 위상만 확정적이고, 길·변조 위상은 다음으로 ★재구성했다:
+        p1[b]=RND(b*7+1)*2pi   p2[b]=RND(b*7+2)*2pi
+        psg[i]=RND(i*7+3)<0.5?-1:+1   pph[i]=RND(i*7+4)*2pi
+        q1=RND(101)*2pi        q2=RND(102)*2pi
+     -> Phase 2 와 ★비트 단위 동일은 보장되지 않는다. 통계적으로는 동일하다.
+
+  결과  layer1 72051/224 · layer2 71963/224 · layer3 93630/224 · layer4 99438/224
+        layer5 49832/217 · layer6 50781/224 · layer7 72121/255 · layer8 71894/254
+        fern layer0 244 / max 5 유지
+
+------------------------------------------------------------------
+[0] 설계 요지
+
+  ★구역별 목표고도를 정해 깎지 않는다. 원지형을 sigma=12 m 가우시안으로
+    평활한 곡면 H_target(x,z) 에 맞춘다.
+      - 국소 요철만 사라지고 대세 경사는 남는다
+      - 변경량이 작다
+      - 구역 사이에 단이 ★원리적으로 생기지 않는다 (H_target 이 연속함수이므로)
+
+  밭 영역        H = H_target
+  경계 페이드    밭 밖 FADE m 에 걸쳐 H_target -> 원지형으로 smoothstep 복귀
+  그 밖          원지형 그대로 (★한 텍셀도 건드리지 않는다)
+
+------------------------------------------------------------------
+[1] 상수
+
+  HR      = 513                      heightmapResolution (★수정 금지)
+  SIZE    = (1000, 300, 1000)        (★수정 금지)
+  TEX     = 1000.0 / 512.0 = 1.953125 m       텍셀 간격
+  ★높이맵은 0~1 정규화. size.y = 300 이므로  1 m = 1/300 = 0.00333333
+
+  SIGMA   = 12.0 m  = 6.144 텍셀
+  KR      = 19 텍셀 (= 3.09 sigma, 37.11 m)   가우시안 커널 반경
+  MARGIN  = 2.0 m                    구역 바깥 여유 (§2)
+  PATHHW  = 1.5 m                    길 회랑 반폭 (밭 영역에 포함)
+  FADE    = 10.0 m                   §3 요구 8~12 의 중앙.
+                                     ★계단이 보이면 12.0 으로 ★1회만 재적용
+
+------------------------------------------------------------------
+[2] 밭 영역 정의  (Phase 1 확정 배치 — Gen_Flowerblocks_v1.cs.txt)
+
+  CX = {434.000, 446.990, 438.842, 449.801, 460.399, 438.114, 450.737, 462.507}
+  CZ = {699.600, 698.638, 678.888, 677.770, 677.291, 666.050, 667.264, 667.737}
+  RT = {  8.0,   172.0,   145.0,   112.0,    78.0,    45.0,    20.0,   165.0}   deg
+  SA = { 11.0,    11.0,     9.0,     9.0,     9.0,     9.0,     9.0,     9.0}
+  SB = {  7.0,     7.0,     7.0,     7.0,     7.0,     7.0,     7.0,     7.0}
+
+  축   th = RT[b] * Deg2Rad
+       ax = ( cos th, -sin th)        bx = ( sin th,  cos th)
+       la = o.x*ax.x + o.z*ax.y       lb = o.x*bx.x + o.z*bx.y
+
+  구역 b 까지의 외부거리 (확장 직사각형)
+       ea = SA[b]/2 + MARGIN          eb = SB[b]/2 + MARGIN
+       qa = max(|la| - ea, 0)         qb = max(|lb| - eb, 0)
+       dRect = sqrt(qa*qa + qb*qb)    ★내부는 0
+
+  길 회랑 (Phase 2 와 같은 8쌍)
+       PA = {0,2,3,5,6,2,3,4}         PB = {1,3,4,6,7,5,6,7}
+       선분 P=(CX[a],CZ[a]) -> Q=(CX[b],CZ[b])
+       t = clamp( dot(W-P, Q-P) / |Q-P|^2, 0, 1 )
+       dSeg = |W - (P + t*(Q-P))|
+       dPath = max(dSeg - PATHHW, 0)
+
+  dFarm = min( 모든 dRect, 모든 dPath )       ★밭 안이면 0
+
+  ★확인 완료 (계산으로) — 밭 영역 + 페이드 최대 반경 64.51 m < 100 m
+    링 중심 (467.16, 670.69) 기준. 여유 35.49 m. 위반 0.
+
+    구역   중심r    반대각   +여유2m   +페이드12m
+    B01    43.99    6.52     52.51      64.51   <- 최대
+    B02    34.47    6.52     42.99      54.99
+    B03    29.48    5.70     37.18      49.18
+    B04    18.75    5.70     26.45      38.45
+    B05     9.45    5.70     17.15      29.15
+    B06    29.41    5.70     37.12      49.12
+    B07    16.78    5.70     24.48      36.48
+    B08     5.51    5.70     13.21      25.21
+
+------------------------------------------------------------------
+[3] ★smoothstep — GLSL 의미로 직접 구현
+
+  ★Mathf.SmoothStep(from, to, t) 은 인자 의미가 다르다. 쓰지 말 것.
+
+     float u = Mathf.Clamp01( (x - e0) / (e1 - e0) );
+     float s = u * u * (3f - 2f * u);
+
+  적용
+     s = smoothstep(0, FADE, dFarm)
+     hNew = g * (1 - s) + h0 * s
+       dFarm = 0     -> s = 0 -> hNew = H_target     (밭 안)
+       dFarm >= FADE -> s = 1 -> hNew = h0           (밖, 완전 원지형)
+
+------------------------------------------------------------------
+[4] 가우시안 — ★분리형 1D 2회 (x -> z)
+
+  2D 커널 39x39 = 1521 탭 x 263,169 텍셀 = 4억 탭 -> ★타임아웃
+  1D 39 탭 x 2 회 = 78 탭 -> 2천만 탭. 이걸 쓴다.
+
+     w[k] = exp( -(k*TEX)^2 / (2*SIGMA^2) ),  k = -KR..KR,  정규화
+     가장자리는 ★clamp (거울 아님 — 밭이 지형 중앙이라 영향 없음)
+
+  ★루프 안에서 Unity 네이티브 API 를 부르지 말 것.
+    GetHeights 로 배열을 한 번에 받고 순수 배열 연산만 한다.
+
+------------------------------------------------------------------
+[5] 실행 순서
+
+  4-0  백업 (씬 .unity / TerrainData ★로드 가능한 .asset 사본)
+       S10_BEFORE_P1/P2/P3/LOW 촬영
+  4-1  ★쓰지 말고 먼저 계산만 하고 보고
+         - 최대 |dH|  (m)
+         - |dH| > 1.5 m 텍셀 수  ★0 이 아니면 여기서 멈춘다
+         - 스폰 (444.1, 719.3) 반경 3 m 최대 |dH|   ★<= 0.05 m
+         - 경계 인접 텍셀 고도차 최댓값             ★<= 0.25 m
+         - 밭 안 경사 <=4 도 비율 / 최대 경사 / 3x3 표준편차  (전후)
+         - Z 688~693 능선 최대 경사 (전후)
+  4-2  td.SetHeights(0, 0, hN)
+       td.SyncHeightmap()
+       Physics.SyncTransforms()
+  4-3  갈대 187 + 버드나무 1 재접지
+       ★Terrain.SampleHeight (Physics.Raycast 금지 — autoSyncTransforms = False)
+       XZ 는 그대로, y 만. 기존 피벗 보정값 유지. 오차 전수 측정
+  4-4  fern 디테일 합계 244 / 최대 5 확인 (디테일은 지형을 자동으로 따라온다)
+
+------------------------------------------------------------------
+[6] ★사전에 계산해 둔 위험 — 4-1 에서 반드시 실측할 것
+
+  (a) ★Z 688~693 능선이 페이드 두 개 사이에 낀다
+      B01 확장 사각형의 월드 z 최소   = 699.600 - 6.490 = ★693.11
+      B03 확장 사각형의 월드 z 최대   = 678.888 + 8.233 = ★687.12
+      -> 밭과 밭 사이 맨땅 띠는 ★5.99 m 뿐이다.
+      -> FADE 10 m 를 양쪽에서 걸면 능선 전 구간이 페이드에 들어간다.
+         능선 폭 6 m = ★3.07 텍셀 인데 SIGMA 가 12 m 이므로
+         ★가우시안이 이 능선을 거의 지운다.
+      -> §안전제약 "능선을 깎지 말 것" 과 ★정면으로 충돌한다.
+         4-1 에서 능선 최대 경사 전후를 반드시 재고, 11~17 도가 무너지면
+         ★멈추고 보고할 것.
+      참고 — 근접군과 중경군 사이에는 길이 없다 (PA/PB 에 (0,2) (1,2) 없음).
+             즉 이 띠는 통행로가 아니라 ★맨땅으로 남기기로 한 구간이다.
+      ★회피안 (의뢰인 승인 필요)
+         A. 이 띠에서만 FADE 를 3 m 로 줄인다  -> 계단 위험
+         B. 능선 텍셀을 마스크로 ★제외한다     -> 밭 가장자리에 단
+         C. 능선을 밭 영역에 ★포함시켜 함께 평탄화 -> 능선이 사라짐
+         D. B01/B02 를 북쪽으로 3~4 m 밀어 띠를 넓힌다 -> Phase 1 배치 변경
+
+  (b) 스폰은 안전하다 (계산 완료)
+      스폰 (444.1, 719.3) -> B01 확장경계 15.41 m, B02 확장경계 15.36 m
+      FADE 10 m 밖이므로 ★dH = 0.000 m 가 보장된다. 그래도 4-1 에서 실측한다.
+      ★FADE 를 12 로 올려도 15.36 > 12 이므로 여전히 0 이다.
+
+  (c) 근접군 B01/B02 와 중경군 B03~B05 는 고도대가 다르다.
+      H_target 이 연속이므로 단은 안 생기지만, 그 사이 경사는 ★남는다.
+      이건 정상이다 (대세 경사 보존이 설계 의도).
+
+------------------------------------------------------------------
+[7] 실행 코드 (UnityMCP execute_code · C# 6 · 로컬함수 금지 · UnityEngine.Object 명시)
+
+var T = UnityEngine.Object.FindFirstObjectByType<Terrain>();
+var td = T.terrainData;
+int HR = td.heightmapResolution;                 // 513
+Vector3 SZ = td.size;                            // (1000,300,1000)
+Vector3 TP = T.transform.position;               // (0,0,0)
+float TEX = SZ.x / (HR - 1);                     // 1.953125
+
+const float SIGMA = 12f, MARGIN = 2f, PATHHW = 1.5f, FADE = 10f;
+int KR = 19;
+
+float[,] h0 = td.GetHeights(0, 0, HR, HR);       // h0[z, x]
+
+// --- 1D 가우시안 가중치 ---
+float[] wk = new float[2 * KR + 1];
+float wsum = 0f;
+for (int k = -KR; k <= KR; k++) {
+    float d = k * TEX;
+    float v = Mathf.Exp(-(d * d) / (2f * SIGMA * SIGMA));
+    wk[k + KR] = v; wsum += v;
+}
+for (int i = 0; i < wk.Length; i++) wk[i] /= wsum;
+
+// --- 분리형 평활 : x 방향 ---
+float[,] gx = new float[HR, HR];
+for (int z = 0; z < HR; z++)
+    for (int x = 0; x < HR; x++) {
+        float a = 0f;
+        for (int k = -KR; k <= KR; k++) {
+            int xx = Mathf.Clamp(x + k, 0, HR - 1);
+            a += wk[k + KR] * h0[z, xx];
+        }
+        gx[z, x] = a;
+    }
+// --- 분리형 평활 : z 방향 ---
+float[,] g = new float[HR, HR];
+for (int z = 0; z < HR; z++)
+    for (int x = 0; x < HR; x++) {
+        float a = 0f;
+        for (int k = -KR; k <= KR; k++) {
+            int zz = Mathf.Clamp(z + k, 0, HR - 1);
+            a += wk[k + KR] * gx[zz, x];
+        }
+        g[z, x] = a;
+    }
+
+// --- 배치 ---
+float[] CX = {434.000f,446.990f,438.842f,449.801f,460.399f,438.114f,450.737f,462.507f};
+float[] CZ = {699.600f,698.638f,678.888f,677.770f,677.291f,666.050f,667.264f,667.737f};
+float[] RT = {  8.0f, 172.0f, 145.0f, 112.0f,  78.0f,  45.0f,  20.0f, 165.0f};
+float[] SA = { 11.0f,  11.0f,   9.0f,   9.0f,   9.0f,   9.0f,   9.0f,   9.0f};
+float[] SB = {  7.0f,   7.0f,   7.0f,   7.0f,   7.0f,   7.0f,   7.0f,   7.0f};
+int[]   PA = {0,2,3,5,6,2,3,4};
+int[]   PB = {1,3,4,6,7,5,6,7};
+
+float[] AXX = new float[8], AXZ = new float[8], BXX = new float[8], BXZ = new float[8];
+for (int b = 0; b < 8; b++) {
+    float th = RT[b] * Mathf.Deg2Rad;
+    AXX[b] =  Mathf.Cos(th); AXZ[b] = -Mathf.Sin(th);
+    BXX[b] =  Mathf.Sin(th); BXZ[b] =  Mathf.Cos(th);
+}
+
+// --- 적용 ---
+float[,] hN = new float[HR, HR];
+float maxAbs = 0f; int over15 = 0; float spawnMax = 0f;
+int mxx = -1, mzz = -1;
+
+for (int z = 0; z < HR; z++) {
+    float wz = TP.z + z * TEX;
+    for (int x = 0; x < HR; x++) {
+        float wx = TP.x + x * TEX;
+
+        float dFarm = 1e9f;
+        for (int b = 0; b < 8; b++) {
+            float ox = wx - CX[b], oz = wz - CZ[b];
+            float la = ox * AXX[b] + oz * AXZ[b];
+            float lb = ox * BXX[b] + oz * BXZ[b];
+            float qa = Mathf.Max(Mathf.Abs(la) - (SA[b] * 0.5f + MARGIN), 0f);
+            float qb = Mathf.Max(Mathf.Abs(lb) - (SB[b] * 0.5f + MARGIN), 0f);
+            float dr = Mathf.Sqrt(qa * qa + qb * qb);
+            if (dr < dFarm) dFarm = dr;
+        }
+        for (int p = 0; p < 8; p++) {
+            float px = CX[PA[p]], pz = CZ[PA[p]];
+            float ex = CX[PB[p]] - px, ez = CZ[PB[p]] - pz;
+            float L2 = ex * ex + ez * ez;
+            float tt = Mathf.Clamp01(((wx - px) * ex + (wz - pz) * ez) / L2);
+            float cx2 = px + tt * ex, cz2 = pz + tt * ez;
+            float ds = Mathf.Sqrt((wx - cx2) * (wx - cx2) + (wz - cz2) * (wz - cz2));
+            float dp = Mathf.Max(ds - PATHHW, 0f);
+            if (dp < dFarm) dFarm = dp;
+        }
+
+        // ★GLSL smoothstep(0, FADE, dFarm)
+        float u = Mathf.Clamp01(dFarm / FADE);
+        float s = u * u * (3f - 2f * u);
+
+        float nv = g[z, x] * (1f - s) + h0[z, x] * s;
+        hN[z, x] = nv;
+
+        float dm = (nv - h0[z, x]) * SZ.y;         // ★m 단위
+        float ad = Mathf.Abs(dm);
+        if (ad > maxAbs) { maxAbs = ad; mxx = x; mzz = z; }
+        if (ad > 1.5f) over15++;
+        float sdx = wx - 444.1f, sdz = wz - 719.3f;
+        if (sdx * sdx + sdz * sdz <= 9f && ad > spawnMax) spawnMax = ad;
+    }
+}
+
+// ★여기서 보고하고 멈춘다 (4-1). over15 > 0 이면 SetHeights 를 부르지 않는다.
+Debug.Log("maxAbs=" + maxAbs.ToString("F4") + "m  at texel(" + mxx + "," + mzz + ")"
+        + "  over1.5=" + over15 + "  spawnMax=" + spawnMax.ToString("F4") + "m");
+
+// --- 4-2 (사전보고 통과 후에만 주석 해제) ---
+// td.SetHeights(0, 0, hN);
+// td.SyncHeightmap();
+// Physics.SyncTransforms();
+
+------------------------------------------------------------------
+[8] 재접지 (4-3)
+
+  갈대 187 + 버드나무 1
+     float gy = T.SampleHeight(new Vector3(p.x, 0f, p.z)) + T.transform.position.y;
+     tr.position = new Vector3(p.x, gy + PIVOT_OFFSET, p.z);      // XZ 불변
+  ★Physics.Raycast 금지 (autoSyncTransforms = False 라 어긋난다)
+  버드나무 BoxCollider 1개 유지 · LODGroup 3단계 유지
+  오차 = |SampleHeight(after) + off - tr.position.y| 를 ★전수 측정
+
+------------------------------------------------------------------
+[9] 이번 라운드에서 ★건드리지 않는 것
+
+  detailResolution · 디테일 레이어 (한 셀도 칠하지 않는다)
+  alphamap · terrainLayers · heightmapResolution · size · 원점
+  하늘/행성/위성/별/오로라 전부 · 플레이어 파라미터 · 파일 삭제 0건

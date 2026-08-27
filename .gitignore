@@ -594,3 +594,181 @@ AGENTS.md
 /[Aa]ssets/Resources/OVROverlayCanvasSettings.asset
 /[Aa]ssets/Resources/OVROverlayCanvasSettings.asset.meta
 
+
+
+# ═════════════════════════════════════════════════════════════
+# 서천(제3사건) 규칙 — 2026-08-27 병합 시 추가
+#   ★develop 규칙은 견우 폴더만 다룬다. 서천에도 같은 규약을 적용해야 한다.
+#     이 줄들이 없으면 .gitattributes 가 *.png · *.fbx 를 LFS 로 보내
+#     「LFS 사용량 0」 방침이 그 자리에서 깨진다.
+#   ★.asset 도 막는다 — 구운 지형·메시·큐브맵이 여기 들어 있다(개당 최대 16MB).
+# ═════════════════════════════════════════════════════════════
+# 서천 아트 — 지형·하늘·텍스처·구운 메시
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .prefab · .controller · .anim 은 커밋한다.
+Assets/_Project/Seocheon/**/*.png
+Assets/_Project/Seocheon/**/*.jpg
+Assets/_Project/Seocheon/**/*.jpeg
+Assets/_Project/Seocheon/**/*.tga
+Assets/_Project/Seocheon/**/*.psd
+Assets/_Project/Seocheon/**/*.tif
+Assets/_Project/Seocheon/**/*.tiff
+Assets/_Project/Seocheon/**/*.exr
+Assets/_Project/Seocheon/**/*.hdr
+Assets/_Project/Seocheon/**/*.cubemap
+Assets/_Project/Seocheon/**/*.fbx
+Assets/_Project/Seocheon/**/*.obj
+Assets/_Project/Seocheon/**/*.blend
+Assets/_Project/Seocheon/**/*.zip
+Assets/_Project/Seocheon/**/*.ttf
+Assets/_Project/Seocheon/**/*.otf
+Assets/_Project/Seocheon/**/*.wav
+Assets/_Project/Seocheon/**/*.mp3
+Assets/_Project/Seocheon/**/*.ogg
+Assets/_Project/Seocheon/**/*.asset
+
+# 관아 창고 세트
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .prefab · .controller · .anim 은 커밋한다.
+Assets/_Project/Storehouse_Gwana/**/*.png
+Assets/_Project/Storehouse_Gwana/**/*.jpg
+Assets/_Project/Storehouse_Gwana/**/*.jpeg
+Assets/_Project/Storehouse_Gwana/**/*.tga
+Assets/_Project/Storehouse_Gwana/**/*.psd
+Assets/_Project/Storehouse_Gwana/**/*.tif
+Assets/_Project/Storehouse_Gwana/**/*.tiff
+Assets/_Project/Storehouse_Gwana/**/*.exr
+Assets/_Project/Storehouse_Gwana/**/*.hdr
+Assets/_Project/Storehouse_Gwana/**/*.cubemap
+Assets/_Project/Storehouse_Gwana/**/*.fbx
+Assets/_Project/Storehouse_Gwana/**/*.obj
+Assets/_Project/Storehouse_Gwana/**/*.blend
+Assets/_Project/Storehouse_Gwana/**/*.zip
+Assets/_Project/Storehouse_Gwana/**/*.ttf
+Assets/_Project/Storehouse_Gwana/**/*.otf
+Assets/_Project/Storehouse_Gwana/**/*.wav
+Assets/_Project/Storehouse_Gwana/**/*.mp3
+Assets/_Project/Storehouse_Gwana/**/*.ogg
+Assets/_Project/Storehouse_Gwana/**/*.asset
+
+# 신당 세트 (자체 제작)
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .prefab · .controller · .anim 은 커밋한다.
+Assets/_Sindang/**/*.png
+Assets/_Sindang/**/*.jpg
+Assets/_Sindang/**/*.jpeg
+Assets/_Sindang/**/*.tga
+Assets/_Sindang/**/*.psd
+Assets/_Sindang/**/*.tif
+Assets/_Sindang/**/*.tiff
+Assets/_Sindang/**/*.exr
+Assets/_Sindang/**/*.hdr
+Assets/_Sindang/**/*.cubemap
+Assets/_Sindang/**/*.fbx
+Assets/_Sindang/**/*.obj
+Assets/_Sindang/**/*.blend
+Assets/_Sindang/**/*.zip
+Assets/_Sindang/**/*.ttf
+Assets/_Sindang/**/*.otf
+Assets/_Sindang/**/*.wav
+Assets/_Sindang/**/*.mp3
+Assets/_Sindang/**/*.ogg
+Assets/_Sindang/**/*.asset
+
+# NPC 반입본 (문지기·아전·주모·노파·수령·주민)
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .prefab · .controller · .anim 은 커밋한다.
+Assets/_Import/**/*.png
+Assets/_Import/**/*.jpg
+Assets/_Import/**/*.jpeg
+Assets/_Import/**/*.tga
+Assets/_Import/**/*.psd
+Assets/_Import/**/*.tif
+Assets/_Import/**/*.tiff
+Assets/_Import/**/*.exr
+Assets/_Import/**/*.hdr
+Assets/_Import/**/*.cubemap
+Assets/_Import/**/*.fbx
+Assets/_Import/**/*.obj
+Assets/_Import/**/*.blend
+Assets/_Import/**/*.zip
+Assets/_Import/**/*.ttf
+Assets/_Import/**/*.otf
+Assets/_Import/**/*.wav
+Assets/_Import/**/*.mp3
+Assets/_Import/**/*.ogg
+Assets/_Import/**/*.asset
+
+# Blender 가공 모델
+#   ⚠️ 폴더째 막지 않는다 — .meta 가 빠지면 씬의 GUID 참조가 끊긴다.
+#      무거운 확장자만 막고 .meta · .mat · .prefab · .controller · .anim 은 커밋한다.
+Assets/Models/**/*.png
+Assets/Models/**/*.jpg
+Assets/Models/**/*.jpeg
+Assets/Models/**/*.tga
+Assets/Models/**/*.psd
+Assets/Models/**/*.tif
+Assets/Models/**/*.tiff
+Assets/Models/**/*.exr
+Assets/Models/**/*.hdr
+Assets/Models/**/*.cubemap
+Assets/Models/**/*.fbx
+Assets/Models/**/*.obj
+Assets/Models/**/*.blend
+Assets/Models/**/*.zip
+Assets/Models/**/*.ttf
+Assets/Models/**/*.otf
+Assets/Models/**/*.wav
+Assets/Models/**/*.mp3
+Assets/Models/**/*.ogg
+Assets/Models/**/*.asset
+
+# 작업용 백업 — 다시 생기더라도 커밋되지 않게
+/[Aa]ssets/**/_bk/
+/[Aa]ssets/**/_Backup/
+
+# 서천이 쓰는 스토어 팩 (각자 Package Manager 로 임포트)
+/[Aa]ssets/TombOfSilla/
+/[Aa]ssets/TombOfSilla.meta
+/[Aa]ssets/KCDF/
+/[Aa]ssets/KCDF.meta
+/[Aa]ssets/Idyllic Fantasy Nature/
+/[Aa]ssets/Idyllic Fantasy Nature.meta
+/[Aa]ssets/FlipGameDev/
+/[Aa]ssets/FlipGameDev.meta
+/[Aa]ssets/Eric VFX Studio/
+/[Aa]ssets/Eric VFX Studio.meta
+/[Aa]ssets/Fog Particles/
+/[Aa]ssets/Fog Particles.meta
+/[Aa]ssets/RainSnowCloudEffect/
+/[Aa]ssets/RainSnowCloudEffect.meta
+/[Aa]ssets/SUIMONO - WATER SYSTEM 2/
+/[Aa]ssets/SUIMONO - WATER SYSTEM 2.meta
+/[Aa]ssets/WaterWorks/
+/[Aa]ssets/WaterWorks.meta
+/[Aa]ssets/Ayo Free Toon Water/
+/[Aa]ssets/Ayo Free Toon Water.meta
+/[Aa]ssets/Julien Tonsuso/
+/[Aa]ssets/Julien Tonsuso.meta
+/[Aa]ssets/Planets of the Solar System 3D/
+/[Aa]ssets/Planets of the Solar System 3D.meta
+/[Aa]ssets/Free Stylized Hand-Painted Skybox/
+/[Aa]ssets/Free Stylized Hand-Painted Skybox.meta
+/[Aa]ssets/BOXOPHOBIC/
+/[Aa]ssets/BOXOPHOBIC.meta
+/[Aa]ssets/LUMINATE/
+/[Aa]ssets/LUMINATE.meta
+/[Aa]ssets/LiteEffectStudio/
+/[Aa]ssets/LiteEffectStudio.meta
+/[Aa]ssets/Gizmos/
+/[Aa]ssets/Gizmos.meta
+
+# 작업 중 만든 잔여 파일
+/_TeamHandoff/
+.gitignore.bak
+.gitignore.before-meta-fix
+/_planetpick.txt
+/_us.txt
+/oisamun_del.txt
+/unused.txt
+

@@ -1,0 +1,8 @@
+var scene=UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene();
+var root=GameObject.Find("_SkyCloudAsset");if(root!=null)UnityEngine.Object.DestroyImmediate(root);
+var s33=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Seocheon/Art/Sky/S33/M_Flowerfield_SkyPanorama_S33.mat");if(s33==null)return "S33_MISSING";
+RenderSettings.skybox=s33;
+var sky=UnityEngine.Object.FindFirstObjectByType<IMUNROK.Seocheon.FlowerfieldSkyController>();
+if(sky!=null){var so=new UnityEditor.SerializedObject(sky);var p=so.FindProperty("skyboxMaterial");if(p!=null){p.objectReferenceValue=s33;so.ApplyModifiedPropertiesWithoutUndo();}sky.useManualAnimTime=false;sky.manualAnimTime=0f;sky.Apply();}
+if(!UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene))return "SCENE_SAVE_FAILED";
+return "REVERTED|rootRemoved="+(GameObject.Find("_SkyCloudAsset")==null)+"|sky="+UnityEditor.AssetDatabase.GetAssetPath(RenderSettings.skybox)+"|dirty="+scene.isDirty;

@@ -1,0 +1,36 @@
+﻿===== [Seocheon] 5b Block Move NS (X=462) =====
+[2] 지형 원복(predonheon) ✓ · 기존 _Donheon/_Oisamun 제거
+[3] 마을 이동 Δx=+24.06(되돌림) Δz=-+22.76 → Z 617.1~694.0, X 415.6~510.1 · 상대위치·회전·담장 불변
+[3] 외삼문 정면=재질 'MI_R_Sign_OSM.001' 로컬dir(-2.2,+0.1)  → rotY 270(남향)
+[3] 동헌 정면=현판 재질 'MI_R_Sign_PHD' 로컬dir(+0.0,+3.1)  → rotY 180(남향) · 근거: 사무당 현판(계단 아님)
+[3] ★링 여유(밴드 안쪽까지): 북 15.8m (링r 91.2, 동헌북단 741.7) · 남 34.3m (링r 107.0, 마을남단 617.1)
+[4] padY 7.41 · 동헌 108텍셀 · 외삼문 72텍셀 · 광장중앙 Δ+1.93 · 내정중앙 Δ+0.04 ✓
+[3] 외삼문 (462,716.2) rotY270 · 동헌 (462,736.0) rotY180 Y=pad+0.70
+[5] 접지보정: 채 28개 밑면 최저값 정렬 · footprint 평탄화 25개(편차>0.30)
+
+[6] 씬 총 tris 3509802 · 텍스처메모리 60.4MB · 링밴드 침범 없음 ✓
+[6] 링 여유 4방위 r(θ): E 96.3 / W 89.9 / S 107.0 / N 91.2
+[6] 밑면-지형 틈>0.15m:
+     Village_Wooden_Bench_House_03: 틈 0.83m · 파묻힘 0.01m
+     Village_Wooden_Bench_House_02: 틈 0.32m · 파묻힘 0.00m
+     Village_Local_Personnel_Clerks_House_04: 틈 0.16m · 파묻힘 0.15m
+     Village_Local_Personnel_Clerks_House_02: 틈 1.18m · 파묻힘 0.06m
+     Village_L_Shaped_House_02: 틈 0.36m · 파묻힘 0.09m
+     Village_House_With_Wooden_Floored_Room_04: 틈 0.54m · 파묻힘 0.00m
+     Village_House_With_Wooden_Floored_Room_03: 틈 0.50m · 파묻힘 0.03m
+     Village_House_With_Wooden_Floored_Room_02: 틈 1.00m · 파묻힘 0.00m
+     Village_House_By_The_West_Gate_03: 틈 0.74m · 파묻힘 0.40m
+     Village_Bamboo_Rafter_House_03: 틈 2.09m · 파묻힘 0.01m
+[6] 축선(X=462):
+     다리북단 Z571 → 마을남단 Z617.1 → 마을북단 Z694.0 → 광장 → 외삼문중심 Z716.2 → 동헌정면 Z730.3 → 동헌중심 Z736.0
+     구간: 다리→마을남단 46.1m · 마을깊이 76.9m · 마을북단→외삼문남면 18m · 외삼문깊이 8.33m · 내정 10m
+
+[7] 렌더 6장 → C:\Users\User\_AssetBackup\render_layout2
+   C:\Users\User\_AssetBackup\render_layout2\Aerial_300.png
+   C:\Users\User\_AssetBackup\render_layout2\OnBridge.png
+   C:\Users\User\_AssetBackup\render_layout2\Plaza_south.png
+   C:\Users\User\_AssetBackup\render_layout2\Oisamun_front.png
+   C:\Users\User\_AssetBackup\render_layout2\Through_gate.png
+   C:\Users\User\_AssetBackup\render_layout2\Street_eye.png
+
+※ 흙 스플랫은 다음 단계. 남북축·마주보기·문틀정렬 확인 후.

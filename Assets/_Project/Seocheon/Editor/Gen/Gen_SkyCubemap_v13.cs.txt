@@ -1,0 +1,312 @@
+// ============================================================================
+//  Gen_SkyCubemap_v13.cs.txt        2단계 v17
+//  서천 꽃밭 스카이박스 큐브맵 v13 생성본 (UnityMCP execute_code 실행 원문)
+//
+//  ★§7 규칙에 따라 실행 전 파일로 보존. 확장자가 .cs.txt 라 유니티가 컴파일하지 않는다.
+//  ★v11 생성 스크립트가 인라인 실행 후 history 소실로 영구 유실됐다. 반복하지 않는다.
+//
+//  출력  Assets/_Project/Seocheon/Art/Sky/CM_Flowerfield_Sky_v13.cubemap
+//        512/face · RGBA32 · mipmap 재생성 · Trilinear · Clamp · isReadable
+//        RGB = base ( = v11 - A_v11, 오로라가 제거된 하늘. 구름·별·그라데이션 전부 보존 )
+//        A   = 오로라 강도 마스크 M in [0,1] (색 없음). 셰이더가 방위로 색을 재구성한다.
+//
+//  ★CodeDom = C# 6. 로컬 함수 금지 -> System.Func 델리게이트. 한글 식별자 금지.
+//  ★픽셀 루프 안에서 Unity 네이티브 API 호출 금지 (에디터 멈춤 2회 전력).
+//  ★큐브맵은 linear 텍스처. 여기 텍셀은 전부 linear. 표시값 = 텍셀^0.455.
+// ============================================================================
+
+const int S = 512;
+const string SRC = "Assets/_Project/Seocheon/Art/Sky/CM_Flowerfield_Sky_v11.cubemap";
+const string DST = "Assets/_Project/Seocheon/Art/Sky/CM_Flowerfield_Sky_v13.cubemap";
+const double R2D = 57.29577951308232;
+
+// ---- GLSL smoothstep. Mathf.SmoothStep(from,to,t) 과 인자 의미가 다르다 ----
+System.Func<double, double> SS = delegate (double q)
+{
+    if (q < 0.0) q = 0.0; else if (q > 1.0) q = 1.0;
+    return q * q * (3.0 - 2.0 * q);
+};
+
+// ---- 큐브맵 face/텍셀 -> 방향 (v16 에서 검증된 매핑) ----
+//  u = 2*((x+0.5)/S) - 1 ,  v = 1 - 2*((y+0.5)/S)   (GetPixels 는 bottom-origin)
+//  +X (1,v,-u)  -X (-1,v,u)  +Y (u,1,-v)  -Y (u,-1,v)  +Z (u,v,1)  -Z (-u,v,-1)
+//  compass = atan2(dx,dz) [deg] mod 360   (0 = +Z, 90 = +X)
+//  elev    = asin(dy/len) [deg]
+//  입체각 가중 w = 1/len^3
+CubemapFace[] FACES = new CubemapFace[] {
+    CubemapFace.PositiveX, CubemapFace.NegativeX, CubemapFace.PositiveY,
+    CubemapFace.NegativeY, CubemapFace.PositiveZ, CubemapFace.NegativeZ };
+
+// ============================================================================
+//  A_v17 오로라 형상 - v16 값 그대로 유지 (지표 1/2/3 통과했으므로 불변)
+// ============================================================================
+const double AUC   = 157.5;
+const double SIGAZ = 52.0;
+double[] mu   = new double[] { 26.0, 34.0, 43.0, 53.0 };
+double[] th   = new double[] {  4.0,  3.2,  5.4,  2.6 };
+double[] br2  = new double[] { 0.85, 1.00, 0.62, 0.45 };
+int[]    nlat = new int[]    {   28,   24,   20,   16 };
+double[] per  = new double[] { 360.0/28.0, 360.0/24.0, 360.0/20.0, 360.0/16.0 };
+double[] phi  = new double[] {  0.0,  5.3,  9.7, 14.2 };
+int[]    seed = new int[]    { 1013, 3571, 6151, 9791 };
+
+// 1옥타브 value noise. nlat 이 360 을 정수분할하므로 방위 이음매가 없다.
+System.Func<double, int, int, double> VNoise = delegate (double xx, int nl, int sd)
+{
+    double ff = System.Math.Floor(xx);
+    int i0 = (int)(((long)ff % nl + nl) % nl);
+    int i1 = (i0 + 1) % nl;
+    double tt = xx - ff;
+    uint ha, hb;
+    unchecked
+    {
+        ha = (uint)(i0 * 1664525 + sd * 1013904223);
+        ha ^= ha >> 13; ha *= 1274126177u; ha ^= ha >> 16;
+        hb = (uint)(i1 * 1664525 + sd * 1013904223);
+        hb ^= hb >> 13; hb *= 1274126177u; hb ^= hb >> 16;
+    }
+    double a = (ha & 0xFFFFFFu) / 16777216.0;
+    double b = (hb & 0xFFFFFFu) / 16777216.0;
+    double w = tt * tt * (3.0 - 2.0 * tt);
+    return a + (b - a) * w;
+};
+
+// 오로라 강도 형상 (색 없음)
+System.Func<double, double, double> AShape = delegate (double compass, double elev)
+{
+    double d = compass - AUC;
+    d = d - 360.0 * System.Math.Floor(d / 360.0 + 0.5);
+    double gz = System.Math.Exp(-(d * d) / (2.0 * SIGAZ * SIGAZ));
+    if (gz < 1e-5) return 0.0;
+    double acc = 0.0;
+    for (int k = 0; k < 4; k++)
+    {
+        double sg = th[k] * 0.5;
+        double z = (elev - mu[k]) / sg;
+        if (z < -6.0 || z > 6.0) continue;
+        double curt = 0.75 + 0.5 * VNoise((compass + phi[k]) / per[k], nlat[k], seed[k]);
+        acc += br2[k] * System.Math.Exp(-0.5 * z * z) * curt;
+    }
+    return gz * acc;
+};
+
+// ============================================================================
+//  PASS 1 - v11 에서 A_v11 을 실측 추출
+//    (a) 깨끗한 섹터(compass >= 280 || <= 35)에서 고도별 base 프로파일
+//    (b) 오로라 없는 고도대(el 12~22)에서 행성 방위 4% 가산 형상 Wp
+//    (c) 차분 = 격자평균 - base(el) - Wp(az)*s(el) -> 평활화 -> 테이퍼 -> 정류
+//  ★행성 가산을 빼두지 않으면 오로라 추출에 섞여 행성 주변 하늘이 망가진다
+// ============================================================================
+const int    NA  = 180;      // 방위 2도
+const int    NE  = 88;       // 고도 0.5도
+const double EL0 = 18.0;
+double[] gR = new double[NA*NE]; double[] gG = new double[NA*NE];
+double[] gB = new double[NA*NE]; double[] gN = new double[NA*NE];
+double[] bR = new double[NE];   double[] bG = new double[NE];
+double[] bB = new double[NE];   double[] bN = new double[NE];
+double[] wR = new double[NA];   double[] wG = new double[NA];
+double[] wB = new double[NA];   double[] wN = new double[NA];
+
+Cubemap src = AssetDatabase.LoadAssetAtPath<Cubemap>(SRC);
+Color[][] px = new Color[6][];
+for (int f = 0; f < 6; f++) px[f] = src.GetPixels(FACES[f]);   // 루프 밖에서 한 번만
+
+for (int f = 0; f < 6; f++)
+{
+    Color[] p = px[f];
+    for (int y = 0; y < S; y++)
+    {
+        double v = 1.0 - 2.0 * ((y + 0.5) / S);
+        for (int x = 0; x < S; x++)
+        {
+            double u = 2.0 * ((x + 0.5) / S) - 1.0;
+            double dx, dy, dz;
+            if      (f == 0) { dx =  1; dy =  v; dz = -u; }
+            else if (f == 1) { dx = -1; dy =  v; dz =  u; }
+            else if (f == 2) { dx =  u; dy =  1; dz = -v; }
+            else if (f == 3) { dx =  u; dy = -1; dz =  v; }
+            else if (f == 4) { dx =  u; dy =  v; dz =  1; }
+            else             { dx = -u; dy =  v; dz = -1; }
+            double len = System.Math.Sqrt(dx*dx + dy*dy + dz*dz);
+            double el  = System.Math.Asin(dy / len) * R2D;
+            if (el < 12.0 || el >= EL0 + NE * 0.5) continue;
+            double az = System.Math.Atan2(dx, dz) * R2D;
+            if (az < 0.0) az += 360.0;
+            double w = 1.0 / (len * len * len);
+
+            Color c = p[y * S + x];
+            int ia = (int)(az / 2.0); if (ia >= NA) ia = NA - 1;
+
+            // 행성 방위 가산 프로파일 (오로라 없는 대역)
+            if (el >= 12.0 && el <= 22.0)
+            { wR[ia] += c.r*w; wG[ia] += c.g*w; wB[ia] += c.b*w; wN[ia] += w; }
+
+            if (el < EL0) continue;
+            int ie = (int)((el - EL0) / 0.5); if (ie >= NE) ie = NE - 1;
+            int gi = ie * NA + ia;
+            gR[gi] += c.r*w; gG[gi] += c.g*w; gB[gi] += c.b*w; gN[gi] += w;
+
+            if (az >= 280.0 || az <= 35.0)
+            { bR[ie] += c.r*w; bG[ie] += c.g*w; bB[ie] += c.b*w; bN[ie] += w; }
+        }
+    }
+}
+
+// Wp = (el 12~22 방위 프로파일) - (그 대역의 깨끗한 섹터 평균)
+double wcR = 0, wcG = 0, wcB = 0, wcN = 0;
+for (int ia = 0; ia < NA; ia++)
+{
+    double a0 = ia * 2.0 + 1.0;
+    if (a0 >= 280.0 || a0 <= 35.0) { wcR += wR[ia]; wcG += wG[ia]; wcB += wB[ia]; wcN += wN[ia]; }
+}
+double wbR = wcR/wcN, wbG = wcG/wcN, wbB = wcB/wcN;
+for (int ia = 0; ia < NA; ia++)
+{
+    if (wN[ia] <= 0) continue;
+    wR[ia] = wR[ia]/wN[ia] - wbR;
+    wG[ia] = wG[ia]/wN[ia] - wbG;
+    wB[ia] = wB[ia]/wN[ia] - wbB;
+}
+
+// 차분 -> 평활화(방위 +-2 = +-4도, 고도 +-2 = +-1도) -> 테이퍼 -> 정류
+double[] aR = new double[NA*NE]; double[] aG = new double[NA*NE]; double[] aB = new double[NA*NE];
+double[] sR = new double[NA*NE]; double[] sG = new double[NA*NE]; double[] sB = new double[NA*NE];
+for (int ie = 0; ie < NE; ie++)
+{
+    double el = EL0 + ie * 0.5 + 0.25;
+    double s  = 1.0 - 0.013478 * (el - 17.0);   // 행성 가산의 고도 감쇠 (el17 1.0 -> el63 0.38)
+    for (int ia = 0; ia < NA; ia++)
+    {
+        int gi = ie*NA + ia;
+        if (gN[gi] <= 0 || bN[ie] <= 0) continue;
+        aR[gi] = gR[gi]/gN[gi] - bR[ie]/bN[ie] - wR[ia]*s;
+        aG[gi] = gG[gi]/gN[gi] - bG[ie]/bN[ie] - wG[ia]*s;
+        aB[gi] = gB[gi]/gN[gi] - bB[ie]/bN[ie] - wB[ia]*s;
+    }
+}
+for (int ie = 0; ie < NE; ie++)
+{
+    double el = EL0 + ie * 0.5 + 0.25;
+    double tp = SS((el - 23.5)/2.0) * (1.0 - SS((el - 52.0)/4.0));
+    for (int ia = 0; ia < NA; ia++)
+    {
+        double tr = 0, tg = 0, tb = 0, tn = 0;
+        for (int de = -2; de <= 2; de++)
+        {
+            int je = ie + de; if (je < 0 || je >= NE) continue;
+            for (int da = -2; da <= 2; da++)
+            {
+                int ja = ((ia + da) % NA + NA) % NA;
+                int gj = je*NA + ja;
+                tr += aR[gj]; tg += aG[gj]; tb += aB[gj]; tn += 1.0;
+            }
+        }
+        int gi = ie*NA + ia;
+        sR[gi] = System.Math.Max(0.0, tr/tn) * tp;
+        sG[gi] = System.Math.Max(0.0, tg/tn) * tp;
+        sB[gi] = System.Math.Max(0.0, tb/tn) * tp;
+    }
+}
+
+// ============================================================================
+//  PASS 2 - v13 쓰기.  RGB = v11 - A_v11(이중선형)   A = 디더된 마스크
+//  ★8비트 알파는 1 LSB = 0.0039. 매끈한 그라데이션을 그냥 양자화하면 계단 띠가 생긴다
+//    -> +-0.5 LSB 삼각분포 디더를 양자화 직전에 더한다. 밉맵은 디더 적용 후 생성.
+// ============================================================================
+double AMAX = 0.0;
+for (int q = 0; q <= 3600; q++)
+{
+    double cc = AUC + (q - 1800) * 0.1;
+    for (int e2 = 200; e2 <= 620; e2++)
+    { double vv = AShape(cc, e2 * 0.1); if (vv > AMAX) AMAX = vv; }
+}
+
+Cubemap dst = new Cubemap(S, TextureFormat.RGBA32, true);   // true = mipmap
+dst.filterMode = FilterMode.Trilinear;
+dst.wrapMode   = TextureWrapMode.Clamp;
+
+for (int f = 0; f < 6; f++)
+{
+    Color[] p = px[f];
+    Color[] o = new Color[S*S];
+    for (int y = 0; y < S; y++)
+    {
+        double v = 1.0 - 2.0 * ((y + 0.5) / S);
+        for (int x = 0; x < S; x++)
+        {
+            double u = 2.0 * ((x + 0.5) / S) - 1.0;
+            double dx, dy, dz;
+            if      (f == 0) { dx =  1; dy =  v; dz = -u; }
+            else if (f == 1) { dx = -1; dy =  v; dz =  u; }
+            else if (f == 2) { dx =  u; dy =  1; dz = -v; }
+            else if (f == 3) { dx =  u; dy = -1; dz =  v; }
+            else if (f == 4) { dx =  u; dy =  v; dz =  1; }
+            else             { dx = -u; dy =  v; dz = -1; }
+            double len = System.Math.Sqrt(dx*dx + dy*dy + dz*dz);
+            double el  = System.Math.Asin(dy / len) * R2D;
+            double az  = System.Math.Atan2(dx, dz) * R2D;
+            if (az < 0.0) az += 360.0;
+
+            Color c = p[y*S + x];
+            double rr = c.r, gg = c.g, bb = c.b;
+
+            if (el >= EL0 && el < EL0 + NE*0.5)
+            {
+                double fa = az/2.0 - 0.5;
+                int ia0 = (int)System.Math.Floor(fa); double ta = fa - ia0;
+                double fe = (el-EL0)/0.5 - 0.5;
+                int ie0 = (int)System.Math.Floor(fe); double te = fe - ie0;
+                double acR = 0, acG = 0, acB = 0;
+                for (int de = 0; de <= 1; de++)
+                {
+                    int je = ie0 + de; if (je < 0) je = 0; if (je >= NE) je = NE-1;
+                    double we = (de == 0) ? (1.0-te) : te;
+                    for (int da = 0; da <= 1; da++)
+                    {
+                        int ja = ((ia0 + da) % NA + NA) % NA;
+                        double wa = (da == 0) ? (1.0-ta) : ta;
+                        int gj = je*NA + ja;
+                        acR += sR[gj]*we*wa; acG += sG[gj]*we*wa; acB += sB[gj]*we*wa;
+                    }
+                }
+                rr -= acR; gg -= acG; bb -= acB;
+            }
+            if (rr < 0) rr = 0; if (gg < 0) gg = 0; if (bb < 0) bb = 0;
+            if (rr > 1) rr = 1; if (gg > 1) gg = 1; if (bb > 1) bb = 1;
+
+            double m = AShape(az, el) / AMAX;
+            if (m < 0) m = 0; if (m > 1) m = 1;
+            int idx = (f*S + y)*S + x;
+            double r1, r2;
+            unchecked
+            {
+                uint h1 = (uint)(idx * 1664525 + 1013904223);
+                h1 ^= h1 >> 15; h1 *= 2246822519u; h1 ^= h1 >> 13;
+                uint h2 = (uint)(idx * 22695477 + 1);
+                h2 ^= h2 >> 15; h2 *= 3266489917u; h2 ^= h2 >> 13;
+                r1 = (h1 & 0xFFFFFFu) / 16777216.0;
+                r2 = (h2 & 0xFFFFFFu) / 16777216.0;
+            }
+            m += (r1 - r2) * (1.0/255.0) * 0.5;   // 삼각분포 +-0.5 LSB
+            if (m < 0) m = 0; if (m > 1) m = 1;
+
+            o[y*S + x] = new Color((float)rr, (float)gg, (float)bb, (float)m);
+        }
+    }
+    dst.SetPixels(o, FACES[f]);
+}
+dst.Apply(true);                                  // true = 밉맵 재생성 (디더 적용 후)
+AssetDatabase.CreateAsset(dst, DST);
+AssetDatabase.SaveAssets();
+AssetDatabase.Refresh();
+
+// ============================================================================
+//  ★실행 시 반드시 확인할 것
+//   1) 게이트 A 전에 v13 의 _Tex_HDR 을 확인한다. DecodeHDR 은 data.a 로 rgb 를 변조하므로
+//      비HDR(=(1,1,0,0)) 이 아니면 내장 셰이더에서 하늘이 오로라 모양으로 어두워진다.
+//      -> SkyboxAurora.shader 는 DecodeHDR 을 쓰지 않고 tex.rgb 를 직접 쓴다.
+//   2) AMAX (v16 실측 raw peak 0.9764 예상) 와 셰이더 _AuroraPeak(0.417) 의 곱이
+//      v16 최대 가산 0.417 과 일치하는지.
+//   3) 오로라대에 수평 계단 띠(밴딩)가 보이면 디더 진폭을 재검토한다.
+//   4) 셰이더의 compass 식이 이 파일과 같은 규약(atan2(x,z))인지. 다르면 마젠타/청록이 뒤집힌다.
+// ============================================================================

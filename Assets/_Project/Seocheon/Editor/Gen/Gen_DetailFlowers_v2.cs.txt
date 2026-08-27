@@ -1,0 +1,284 @@
+// ============================================================================
+//  Gen_DetailFlowers_v2.cs.txt      Phase 2 — 혼합 디테일로 8구역 전면 배치
+//  UnityMCP execute_code ★실행 원문 (실행 전에 저장했다)
+//
+//  ★규칙(§6): 절차 생성 코드는 이 폴더에 실행본 그대로 보존한다. .cs.txt 라 컴파일되지 않는다.
+//  ★시드 고정: UnityEngine.Random 을 쓰지 않는다. 아래 LCG 해시로 완전 결정론적.
+//
+// ============================================================================
+//  ★0. Phase 1 이 알려준 것 (이번 설계의 전제)
+//
+//   - detailScatterMode = CoverageMode  -> SetDetailLayer 값 0~255 는 ★피복률
+//     실제 개수는 DetailPrototype.density (100% 피복일 때 m^2당 개수) 가 정한다
+//   - maxDetailScatterPerRes = 255 (실측)
+//   - 메시 프로토타입은 renderMode = ★VertexLit 이어야 Validate 를 통과한다
+//   - SetDetailLayer 는 ★패치 전체를 재배치시킨다 -> 단서는 미리 구울 것
+//   - ★Phase 1 의 A 가 실패한 진짜 원인 = ★텍스처 선택
+//        Wild_Lupine_Bilboard 의 ★평균 알파가 0.104 다. 즉 빌보드 판의 90% 가 투명이다.
+//        후보 중 ★최악이었다. 거리에서 지면이 다 비쳐 맨흙색으로 가라앉았다.
+//
+// ----------------------------------------------------------------------------
+//  ★1. 텍스처 전수 조사 (115장 중 꽃/풀 빌보드) — ★평균 알파 = 피복력
+//
+//   이름                        평균알파  꽃비율   알파가중 평균색(표시)
+//   Grass_1_Billboard            0.453   1.000   (0.716,0.721,0.729)  ★중성 회색 = 틴트용
+//   rose_Bilboard                0.393   0.133   (0.424,0.539,0.336)
+//   Rose_2_Bilboard              0.335   0.172   (0.409,0.504,0.292)
+//   grassFlower05                0.316   0.082   (0.477,0.575,0.107)
+//   White_Daisies_2_Bilboard     0.306   0.128   (0.390,0.554,0.328)
+//   Brake_Ferns_Bilboard         0.223   1.000   (0.715,0.719,0.726)  ★중성
+//   grassFlower01                0.202   0.506   (0.464,0.577,0.471)
+//   Pampas_Grass_Bilboard        0.154   1.000   (0.721,0.725,0.731)  ★중성
+//   White_Daisies_Bilboard       0.139   0.282   (0.440,0.570,0.387)
+//   ★Wild_Lupine_Bilboard        0.104   0.211   (0.409,0.515,0.385)  <- Phase 1 이 쓴 것
+//
+//   ★발견: Grass_1 / Brake_Ferns / Pampas_Grass 는 ★무채색 마스크다 (RGB 가 전부 0.72 근처).
+//          틴트해서 쓰라고 만든 텍스처다. healthyColor 로 확정 5색을 ★그대로 만들 수 있다.
+//   ★healthyColor 에 1 을 넘는 값(1.85, 0.70, 1.42)을 넣어도 ★클램프되지 않는다 (실측 확인).
+//
+// ----------------------------------------------------------------------------
+//  ★2. 프로토타입 구성 (fern 1 + 빌보드 5 + 메시 2 = 8)
+//
+//   idx 0  Detail_Fern_LOD3          ★기존. 건드리지 않는다 (합계 244 · 최대 5)
+//   idx 1  BB_Purple  Grass_1_Billboard  틴트 -> Purple (0.878,0.383,0.658)
+//   idx 2  BB_Pink    rose_Bilboard      틴트 -> Pink   (0.870,0.408,0.561)
+//   idx 3  BB_Yellow  grassFlower05      틴트 -> Yellow (0.896,0.806,0.028)
+//   idx 4  BB_White   White_Daisies_2    틴트 -> White  (0.829,0.827,0.806)
+//   idx 5  BB_Blue    Grass_1_Billboard  틴트 -> Blue   (0.014,0.483,0.839)  ★두 팩에 파랑 없음
+//   idx 6  MS_Purple  Idyllic Flower_Purple.prefab   VertexLit  ★B01 에만
+//   idx 7  MS_Yellow  Idyllic Flower_Yellow.prefab   VertexLit  ★B02 에만
+//
+//   빌보드  minWidth 0.30 maxWidth 0.55  minHeight 0.45 maxHeight 0.85  (지시서 값)
+//           noiseSpread 0.35  useInstancing=false (빌보드는 인스턴싱 미지원)
+//   메시    minWidth/Height 1.30~1.60 (확정 스케일 유지) useInstancing=true
+//   ★틴트는 healthyColor / dryColor 두 개를 다르게 줘서 개체마다 색이 흔들리게 한다
+//
+//   ★틴트 산출 절차 — 계산으로 찍지 않는다
+//     ① healthyColor = 흰색으로 한 번 굽고 구역대 화면색을 실측
+//     ② tint = 목표화면색 / 실측화면색 (채널별)
+//     ③ 그 tint 로 다시 굽고 재실측. 색상각 오차 <= 25도 확인
+//
+// ----------------------------------------------------------------------------
+//  ★3. 구역 도형 — ★사각형을 버린다 (판때기의 원인)
+//
+//   구역 b 의 로컬축   th = RT[b];  ax=(cos th, -sin th);  bx=(sin th, cos th)
+//   로컬좌표 la (길이축, SA), lb (폭축, SB)
+//
+//   ① 기저 도형 = ★초타원(superellipse) n = 2.5   (타원과 사각형 사이)
+//        방향 각 ph = atan2(lb, la)
+//        Rbase(ph) = 1 / ( (|cos ph|/(SA/2+G))^n + (|sin ph|/(SB/2+G))^n )^(1/n)
+//        ★G = 1.20 m 확장. 확장분은 뒤에서 길로 다시 깎는다.
+//          -> 구역이 섬처럼 떨어져 있지 않고 ★밭 하나에 길이 난 그림이 된다
+//
+//   ② ★윤곽 노이즈 (지시서 ①: 파장 3~8 m · 진폭 0.8~1.5 m)
+//        Rn(ph) = A1*sin(k1*ph + p1) + A2*sin(k2*ph + p2)
+//        k1 = 4 (둘레 ~28 m 기준 파장 ~7.0 m)   A1 = 0.75
+//        k2 = 7 (파장 ~4.0 m)                   A2 = 0.45
+//        합 진폭 최대 1.20 m -> 0.8~1.5 안
+//        p1,p2 는 구역마다 다른 고정 위상 (LCG)
+//        ★구역 회전 RT 가 8/172/145/112/78/45/20/165 로 이미 축정렬을 깨뜨린다.
+//          여기에 노이즈가 더해져 0/90도 직선이 남지 않는다 -> §3② 히스토그램으로 검증
+//
+//   ③ R(ph) = Rbase(ph) + Rn(ph)
+//      점의 경계까지 거리(근사)  d = R(ph) - sqrt(la^2 + lb^2)
+//
+//   ④ ★경계 페이드 (지시서 ②: 1.5~2.5 m 폭에 걸쳐 255 -> 0)
+//        cov_b = clamp(d / W, 0, 1),  ★W = 2.25 m
+//        선형이므로 90% -> 10% 폭 = 0.8 * W = ★1.80 m  (1.5~2.5 안)
+//
+//   ⑤ 여러 구역이 겹치면  cov = max(cov_b),  지배구역 bd = argmax
+//
+// ----------------------------------------------------------------------------
+//  ★4. 밀도 변조 (지시서 ③: 파장 4~9 m · ±15%, ±20% 초과 금지)
+//
+//   n(x,z) = 0.5*sin(2pi*( x*0.160 + z*0.090) + q1)
+//          + 0.5*sin(2pi*(-x*0.070 + z*0.140) + q2)
+//   파장 = 1/sqrt(0.160^2+0.090^2) = 5.44 m,  1/sqrt(0.070^2+0.140^2) = 6.39 m  -> 4~9 안
+//   mod = 1 + 0.15 * n        (n in [-1,1] -> ±15%)
+//   ★변동계수 CV 목표 0.08~0.20 — 페이드 구간을 뺀 ★내부 셀에서만 측정한다
+//
+// ----------------------------------------------------------------------------
+//  ★5. 색 혼합 (지시서 ④: 지배 88% + 보조 12%, 경계 2 m 안에서 보조 최대 30%)
+//
+//   보조색 = ★인접 구역의 색 (아래 인접표)
+//     B01<->B02   B03<->B04<->B05   B06<->B07<->B08   B03<->B06  B04<->B07  B05<->B08
+//     근접군 B01/B02 는 서로가 유일한 인접 -> B01 보조=Yellow, B02 보조=Purple
+//
+//   e = clamp((2.0 - d) / 2.0, 0, 1)          경계 2 m 안에서 1 로 간다
+//   wsec = 0.12 + 0.18 * e                     0.12 ~ ★0.30
+//   layer[BB(지배색)] += V * (1 - wsec)
+//   layer[BB(보조색)] += V * wsec
+//   V = round(255 * cov * mod)
+//
+// ----------------------------------------------------------------------------
+//  ★6. 길 (지시서 2-6)
+//
+//   경로쌍 8개 (Gen_Flowerblocks_v1 의 인접 구조를 그대로 쓴다)
+//     01-02  03-04  04-05  06-07  07-08  03-06  04-07  05-08
+//   중심선 = 두 구역 중심을 잇는 선분을 ★수직으로 sin 오프셋해 휜다
+//     off(t) = 0.55 * sin(pi * t) * s      s = ±1 (구간마다)   ★직선 금지
+//   폭     w(t) = wB + 0.22 * sin(2pi * 1.5 t + ph)   -> 구간마다 다른 wB
+//     wB  01-02 1.25 · 03-04 1.70 · 04-05 1.35 · 06-07 1.55
+//         07-08 1.30 · 03-06 1.75 · 04-07 1.45 · 05-08 1.60      (전부 1.2~1.8)
+//   길 마스크  pm = clamp((dist - w/2) / 0.35, 0, 1)   ★0.35 m 짧은 페이드
+//   최종 cov *= pm
+//
+//   ★근접군(B01·B02) - 원경군(B03~B08) 사이 11.1~11.9 m 는 ★그대로 빈 땅으로 둔다
+//     Z 688~693 에 경사 11~17도 능선이 가로지른다. 지형이 강제한 폭이다.
+//     길보다 넓은 맨땅이므로 통행은 오히려 자유롭다 -> 고립 판정은 ★피복 0 영역의
+//     연결성분으로 계산해 확인한다
+//
+// ----------------------------------------------------------------------------
+//  ★7. 메시 density 역산 (지시서 2-4) — ★숫자를 찍지 않는다
+//
+//   ① 근접 구역 1개(B01)에 메시 density = 2 로 깔고 Play 모드 tris 증가 T(2) 실측
+//   ② 같은 구역에 density = 5 로 깔고 T(5) 실측
+//   ③ 선형  T(D) = T0 + k*D,  k = (T(5)-T(2))/3
+//   ④ 근접 2구역 합계가 <= 220,000 이 되는 D 를 역산 (B02 면적/피복 비율로 환산)
+//   ⑤ 그 D 로 깔고 지면 노출률 재측정. 25% 초과면 ★빌보드 density 를 올려 보충
+//      (메시를 늘리지 말 것)
+//   ★알파 클립은 depth prepass + opaque 로 tris 가 2배로 잡힌다 — 실측값 그대로 쓴다
+//
+// ----------------------------------------------------------------------------
+//  ★8. 지형 디테일 설정
+//
+//   detailResolution      1024 -> ★2048   resolutionPerPatch ★64
+//   ★기존 fern 데이터를 ★월드좌표로 백업했다가 해상도 변경 후 복원한다
+//     (SetDetailResolution 은 모든 레이어를 지운다 — Phase 1 에서 확인)
+//   detailObjectDistance  ★80~120 탐색   detailObjectDensity 1.0   drawInstanced True
+//
+//   ★디테일 좌표계 (DetailClueMap.txt 로도 저장한다)
+//     GetDetailLayer / SetDetailLayer 는 ★[y, x] 순서 (alphamap 과 같다)
+//     wx = (dx + 0.5) / DR * size.x + tpos.x        dx = floor((wx - tpos.x) / size.x * DR)
+//     wz = (dy + 0.5) / DR * size.z + tpos.z        dy = floor((wz - tpos.z) / size.z * DR)
+//     DR = 2048 -> 셀 0.4883 m. 2.2 m 구멍 = 4.5 셀 -> ★4 또는 5 셀 (면적 오차 ±20%)
+//
+// ----------------------------------------------------------------------------
+//  ★9. 구역 · 색 배분 (Phase 1 레이아웃 그대로)
+//
+//   b   중심                  회전   SA x SB   거리     군     빌보드색  메시
+//   B01 (434.000, 699.600)     8    11 x 7    22.1 m  근접   Purple   ★Flower_Purple
+//   B02 (446.990, 698.638)   172    11 x 7    20.9 m  근접   Yellow   ★Flower_Yellow
+//   B03 (438.842, 678.888)   145     9 x 7    40.8 m  원경   Pink     -
+//   B04 (449.801, 677.770)   112     9 x 7    41.9 m  원경   Blue     -
+//   B05 (460.399, 677.291)    78     9 x 7    45.1 m  원경   White    -
+//   B06 (438.114, 666.050)    45     9 x 7    53.6 m  원경   Blue     -
+//   B07 (450.737, 667.264)    20     9 x 7    52.5 m  원경   Yellow   -
+//   B08 (462.507, 667.737)   165     9 x 7    54.7 m  원경   Pink     -
+//   ★인접 구역 동색 0쌍
+//
+// ----------------------------------------------------------------------------
+//  ★10. 결정론 난수 (UnityEngine.Random 금지)
+//
+//   System.Func<int,double> RND = delegate(int seed){
+//     unchecked { uint s=(uint)seed*1664525u+1013904223u;
+//       s^=s>>15; s*=2246822519u; s^=s>>13; s*=3266489917u; s^=s>>16;
+//       return (s & 0xFFFFFFu)/16777216.0; } };
+//   구역 b 의 위상  p1 = RND(b*7+1)*6.283, p2 = RND(b*7+2)*6.283  등 고정 시드
+//
+// ----------------------------------------------------------------------------
+//  ★11. 실행 순서 (★2048^2 = 419만 셀. 한 호출에 다 하면 타임아웃 -> 나눈다)
+//
+//   [1] fern 백업 -> SetDetailResolution(2048, 64) -> fern 복원
+//   [2] 프로토타입 8개 설정 (틴트는 일단 흰색)
+//   [3] 밭 영역 bbox 안의 셀만 순회해 7개 레이어 int[,] 를 계산
+//       ★전 지형이 아니라 밭 bbox (x 420~478, z 655~712) 안만 돈다 = 약 120x117 셀
+//   [4] SetDetailLayer x7
+//   [5] Play 모드로 성능 실측 -> 메시 density 역산 -> 다시 [2]~[4]
+//   [6] 렌더 -> 구역대 화면색 실측 -> 틴트 산출 -> 다시 [2]
+//   [7] 최종 렌더 · 판정
+//
+// ----------------------------------------------------------------------------
+//  ★12. GameObject 꽃 제거
+//   _Flowerbeds/Block_01 (828) · Block_02 (828) · Block_03~08 (결합 메시 렌더러 6개)
+//   -> ★씬 인스턴스만 제거. ★M_Flowerblock_B03~B08.asset 파일은 삭제하지 않는다
+//   갈대 187 (_Reeds) · 버드나무 (_Willow) 는 ★그대로 둔다
+//
+// ----------------------------------------------------------------------------
+//  ★13. 임시 변경 원복 목록
+//   Flower.mat / Reeds_01.mat  _Wind_Strength 0.25  _Bend_Strength 0.70
+//   Willow_Branch_Green.mat    _Wind_Strength 0.25  _Bend_Strength 0.245
+//   FlowerfieldSkyController   useManualAnimTime false  manualAnimTime 0
+//   Main Camera  pos (444.1,11.6,719.3)  euler (0,180,0)  fov 65  targetTexture null
+//   _PlayerWalker / PlayerCrouch  enabled true
+//   ★빈 자리 시험 셀은 반드시 원복
+//
+// ============================================================================
+//  ★실행 후 확인 (§3)
+//   ① 노출률 근접<=25% 원경<=30% · ★원경 채도>=0.18 · ★휘도비>=1.30 · 꽃픽셀>=3.0%
+//      · 색상각 오차 <=25도
+//   ② 축정렬 비율<=30% · 페이드 1.5~2.5 m · 내부 CV 0.08~0.20 · 길폭 1.2~1.8 · 고립 0
+//   ③ 빈 자리 2.2 m 가 20 m / 25 m 에서 식별 · 계단 아님 · ★원복
+//   ④ ★구역 안 2 m 에서 좌/중/우 — 빌보드 회전이 눈에 띄는가 (고치지 말고 보고만)
+//   ⑤ tris<=550k · DC<=150 · SetPass<=60 · 최악 오버드로 각도 탐색
+//   ⑥ 높이맵 0 · alphamap 0 · fern 244/5 · 하늘 해시 불변
+// ============================================================================
+
+// ############################################################################
+// ##  APPENDIX - FINAL VALUES ACTUALLY EXECUTED (measured, not planned)
+// ##  The header above is the plan saved BEFORE execution, as required.
+// ##  These are the values the measurements forced. Differences are marked.
+// ############################################################################
+//
+//  [1] BLOCK EXPANSION      G : 1.20 planned -> 1.75 FINAL
+//      reason: with G=1.20 the bare band between B04-B05 measured 2.58 m
+//              against the 1.2~1.8 m criterion. The band there is set by the
+//              confirmed block geometry, not by the path mask. Growing G closes
+//              it. Measured after: 1.46 ~ 1.96 m.
+//
+//  [2] DENSITY MODULATION   amplitude 0.15 (0.5/0.5) -> 0.18 (0.65/0.35) FINAL
+//      base value 255 -> 255/1.18 = 216 FINAL
+//      reason: at base 255 the +modulation clipped at 255, halving the measured
+//              CV to 0.030 against the 0.08~0.20 criterion. After: CV 0.087.
+//
+//  [3] PATH WIDTHS          wB 1.25/1.70/1.35/1.55/1.30/1.75/1.45/1.60
+//                        -> 1.32/1.60/1.38/1.52/1.35/1.65/1.45/1.55 FINAL
+//      sine amplitude 0.22 -> 0.12 FINAL
+//      reason: wB 1.75 + 0.22 = 1.97 exceeded the 1.8 m ceiling on its own.
+//
+//  [4] PROTOTYPES           5 billboards + 2 meshes -> 6 billboards + 2 meshes
+//      near blocks use White_Daisies_2_Bilboard (flower silhouettes)
+//      far  blocks use Grass_1_Billboard        (neutral mask, mean alpha 0.453)
+//      reason: Grass_1 at 22 m reads as chunky tinted slabs; the daisy texture
+//              reads as foliage and the MESH flowers carry the colour there.
+//              At 40~55 m the shape is unresolvable so coverage wins instead.
+//
+//  [5] RENDER MODE          GrassBillboard -> DetailRenderMode.Grass FINAL
+//      reason: less slab-like at distance; also the single-cell azimuth test
+//              (6 azimuths at 5 m) shows projected area varying only +-20 %
+//              and never collapsing -> no visible turning artefact.
+//
+//  [6] BILLBOARD SIZE       W 0.30~0.55 H 0.45~0.85  ->  W 0.36~0.62 H 0.34~0.62
+//      reason: lower and slightly wider reads as a mat rather than a wall.
+//
+//  [7] DENSITY BACK-SOLVE (section 2-4, Play mode, spawn, yaw 180, fov 65,
+//      QualityLevel PC, TempWalker/PlayerCrouch off, settled)
+//         detail OFF baseline            tris  88,604
+//         billboards only, density 6     tris 213,756   (billboard part 125,152)
+//         + mesh 2.3                     tris 385,116   (mesh part 171,360)
+//         + mesh 2.5                     tris 410,676   (mesh part 196,920)  <= FINAL
+//         + mesh 2.8                     tris 461,436   (mesh part 247,680)  over 220k
+//         + mesh 3.2                     tris 539,916   (mesh part 326,160)  over 220k
+//      -> mesh density 2.5 is the largest value with mesh part <= 220,000.
+//
+//  [8] BILLBOARD DENSITY    ★NOT monotone. Ground exposure by density:
+//         d=4  B03 25.2  B04 26.0  B05 40.2  B06 13.1  B07  3.1  B08 13.8
+//         d=5  B03 21.0  B04 23.4  B05 38.6  B06 12.3  B07  3.1  B08 13.8
+//         d=6  B03 20.0  B04 18.7  B05 35.3  B06 12.1  B07  5.6  B08 13.1  <= FINAL
+//         d=7  B03 18.7  B04 17.8  B05 55.1  B06 10.9  B07  3.4  B08 35.4
+//         d=8  B03 18.7  B04 36.7  B05 61.2  B06 10.5  B07  3.9  B08 43.1
+//         d=10 B03 21.7  B04 36.9  B05 60.9  B06 37.0  B07 22.0  B08 44.6
+//      ★Beyond ~7 the FAR patches get WORSE - Unity drops instances once the
+//        per-patch instance budget is exceeded (triangle count also saturates:
+//        density 10 -> 13 only added 7 %). density 6 is the optimum.
+//
+//  [9] TINT IS CLAMPED TO [0,1]. Measured: raising healthyColor.r to
+//      1.23 / 1.66 / 3.50 did not change the rendered red at all.
+//      White-tint unit response = display (0.288, 0.350, 0.407),
+//      i.e. blue is 2.04x red -> magenta hues cannot exceed luminance ratio 0.82
+//      while keeping hue error <= 25 deg. See FlowerfieldColorRef.txt section 5.
+//
+//  [10] detailObjectDistance 120 (blocks reach 62 m; 120 leaves no fade-out)
+//       detailObjectDensity 1.0 · drawInstanced true · detailScatterMode CoverageMode
+//
+// ############################################################################

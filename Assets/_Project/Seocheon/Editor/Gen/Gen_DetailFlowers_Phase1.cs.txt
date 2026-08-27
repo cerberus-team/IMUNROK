@@ -1,0 +1,100 @@
+// ============================================================================
+//  Gen_DetailFlowers_Phase1.cs.txt      근경 꽃밭 Terrain Detail 전환 — Phase 1 A/B 시험
+//  UnityMCP execute_code ★실행 원문
+//
+//  ★규칙(§7): 절차 생성 코드는 이 폴더에 실행본 그대로 보존한다. .cs.txt 라 컴파일되지 않는다.
+//
+//  ★Phase 1 은 ★구역 하나(B01, Purple, 거리 22.1 m)만 시험한다. 전체를 깔지 않는다.
+//
+// ----------------------------------------------------------------------------
+//  ★기존 디테일 상태 (건드리기 전 실측)
+//    detailResolution 1024 (0.977 m/셀) · detailResolutionPerPatch 32
+//    detailPrototypes 1개 = Detail_Fern_LOD3 (usePrototypeMesh, VertexLit, w0.7~1.15 h0.7~1.2)
+//    ★레이어0 밀도 합계 244 · 최대 5  -> "완전 미사용" 이 아니다. 아주 조금 칠해져 있다.
+//    ★detailResolution 을 바꾸면 이 데이터가 지워진다 -> 월드 좌표로 받아두고 마지막에 복원한다.
+//
+//  ★A/B 두 방식
+//    [A] Grass Texture (빌보드)
+//        DetailPrototype.usePrototypeMesh = false
+//        prototypeTexture = 꽃 텍스처 (팩 머티리얼을 안 쓰므로 URP 호환 문제가 원천적으로 없다)
+//        renderMode = DetailRenderMode.GrassBillboard
+//    [B] Detail Mesh
+//        usePrototypeMesh = true, prototype = Idyllic Flower_Purple.prefab
+//        renderMode = DetailRenderMode.Grass  (VertexLit 은 바람이 없다)
+//        ★기존 GameObject 방식과 같은 품종이라 "기법만" 바뀐 비교가 된다
+//
+//  ★팩 조사 결과 (읽기전용)
+//    [ALP] GrassFlowersFREE/Textures/GrassFlowers — 텍스처 12장, ★머티리얼 없음
+//          텍스처 전용 팩이라 URP 호환 문제 자체가 없다. 빌보드 모드에 그대로 쓴다.
+//    [FlipGameDev] Terrain&GrassPack — Grass_Billboard 텍스처 11장 + 메시 프리팹 2개
+//          머티리얼 Grass_6_Bilboard = ★URP/Lit · supported=True (깨지지 않음)
+//          단 _SURFACE_TYPE_TRANSPARENT · queue 3000 -> ★반투명이라 정렬·비용이 불리하다
+//    URP 지형 디테일 셰이더 존재 확인:
+//          Hidden/TerrainEngine/Details/UniversalPipeline/WavingDoublePass = True
+//          Hidden/TerrainEngine/Details/BillboardWavingDoublePass = True
+//
+//  ★확정 5색에 가장 가까운 후보 (잎 초록을 제외하고 꽃 부분만 평균낸 색)
+//    Purple (0.878,0.383,0.658) -> ★Wild_Lupine_Bilboard  (0.633,0.454,0.731)  ★진짜 보라
+//    Pink   (0.870,0.408,0.561) -> ★rose_Bilboard         (0.760,0.413,0.398)
+//    Yellow (0.896,0.806,0.028) -> ★Orchid_Bilboard       (0.764,0.640,0.322)
+//    White  (0.829,0.827,0.806) -> ★White_Daisies_Bilboard(0.754,0.747,0.721)  ★거의 일치
+//    Blue   (0.014,0.483,0.839) -> ★후보 없음. ALP grassFlower01 (0.529,0.623,0.686) 이 최선
+//
+//  ★디테일 좌표계 (Phase 2 에서 단서 좌표를 지정할 때 쓴다)
+//    GetDetailLayer / SetDetailLayer 는 ★[y, x] 순서다 (alphamap 과 같다)
+//    world.x = (dx + 0.5) / detailResolution * terrainSize.x + terrainPos.x
+//    world.z = (dy + 0.5) / detailResolution * terrainSize.z + terrainPos.z
+//    역변환   dx = floor((world.x - terrainPos.x) / terrainSize.x * detailResolution)
+//             dy = floor((world.z - terrainPos.z) / terrainSize.z * detailResolution)
+//
+//  ★CodeDom = C# 6. 로컬 함수 금지 -> System.Func. 변수명 겹침 금지.
+//  ★호출을 나눌 것 (함정 ⑫)
+// ============================================================================
+
+// ---------------------------------------------------------------- 공통
+//  B01 구역: 중심 (434.000, 699.600) · 회전 8° · 11 x 7 m · 거리 22.1 m
+//  구역 로컬 -> 월드
+//    th = 8 deg;  ax=(cos th, -sin th);  bx=(sin th, cos th)
+//    world = center + ax*la + bx*lb,   |la| <= 5.5, |lb| <= 3.5
+//
+//  칠하기: 디테일 셀 중심의 월드 좌표를 구역 로컬로 역변환해 사각형 안이면 밀도값을 넣는다
+//  밀도값: Unity 지형 디테일은 셀당 0~255 를 받지만 실제 배치는 detailObjectDensity 와 곱해진다
+//
+// ---------------------------------------------------------------- 실행 ① 기존 fern 데이터 백업
+//  int DR = td.detailResolution;
+//  int[,] L = td.GetDetailLayer(0,0,DR,DR,0);
+//  nonzero 셀의 (world.x, world.z, 값) 을 리스트로 저장 -> 마지막에 복원
+//
+// ---------------------------------------------------------------- 실행 ② 프로토타입 추가
+//  var list = new List<DetailPrototype>(td.detailPrototypes);
+//  [A] DetailPrototype a = new DetailPrototype();
+//      a.usePrototypeMesh=false; a.prototypeTexture=tex; a.renderMode=DetailRenderMode.GrassBillboard;
+//      a.minWidth=0.45f; a.maxWidth=0.75f; a.minHeight=0.55f; a.maxHeight=0.90f;
+//      a.noiseSpread=0.35f; a.healthyColor=Color.white; a.dryColor=Color.white;
+//      a.useInstancing=false;   // ★빌보드는 인스턴싱을 지원하지 않는다
+//  [B] DetailPrototype b = new DetailPrototype();
+//      b.usePrototypeMesh=true; b.prototype=Flower_Purple.prefab; b.renderMode=DetailRenderMode.Grass;
+//      b.minWidth=1.30f; b.maxWidth=1.60f; b.minHeight=1.30f; b.maxHeight=1.60f;  // 확정 스케일 유지
+//      b.useInstancing=true;
+//  td.detailPrototypes = list.ToArray();
+//
+// ---------------------------------------------------------------- 실행 ③ 칠하기 / 지우기
+//  int[,] m = new int[DR,DR];   // 전부 0
+//  구역 안 셀에 DENSITY 를 넣고 td.SetDetailLayer(0,0,layerIndex,m);
+//  ★빈 자리: 구역 안에서 2.2 x 2.2 m 사각형에 해당하는 셀만 0 으로
+//
+// ---------------------------------------------------------------- 실행 ④ 원상복구
+//  ★프로토타입 배열을 원래(fern 1개)로 되돌리고
+//  ★fern 밀도 데이터를 월드 좌표에서 되살리고
+//  ★detailResolution / detailObjectDistance / detailObjectDensity 를 원값으로
+//    (원값: 1024 / 32 / 25 / 1.0)
+//
+// ============================================================================
+//  ★실행 후 확인
+//   1) 구역 내부 지면 노출률 <= 25% (GameObject 방식은 54~73% 로 실패)
+//   2) P1 꽃 픽셀 비율이 이전(전체 1.668%) 대비 상승했는가
+//   3) 빈 자리 2.2 x 2.2 m 가 22 m 에서 식별되는가 · 가장자리가 계단으로 보이는가
+//   4) ★빌보드 회전: 카메라를 좌/중/우 3 m 씩 옮겨 3장 비교 (정지컷 한 장으로는 판정 불가)
+//   5) tris / DC / SetPass 절대 예산 (Play 모드 Stats)
+//   6) ★A·B 어느 쪽을 쓸지는 ★의뢰인이 정한다. 양쪽을 나란히 제시할 것
+// ============================================================================

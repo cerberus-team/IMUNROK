@@ -1,0 +1,71 @@
+// S25 — L2 fantasy meadow diffuse generation and validation record
+// Written before execution. Unity 6000.3 / CodeDom C# 6 compatible.
+// Scope: create one 512x512 RGB diffuse texture and swap only
+// TL_Seocheon_Meadow.diffuseTexture after texture metrics pass.
+// Never change heightmap, alphamap, TerrainData structure, terrainLayers count/order,
+// tile size, sky, lighting, post processing, or S24 VFX activation.
+
+// Image-generation reference source (palette/pattern study only; not imported directly):
+// C:/Users/User/.codex/generated_images/01a03482-5e1a-7441-8c04-9c17dd419290/
+// exec-7984bacc-9600-46f5-bafb-65aaa7482b15.png
+// The AI source established the desired blue-grey/cyan base, ochre dry-grass masses,
+// restrained purple patches, and sparse pink/orange flecks. The final Unity texture is
+// deterministic and periodic so seam and local-variation gates can be measured exactly.
+
+// Output:
+// Assets/_Project/Seocheon/Art/Terrain/T_Seocheon_Meadow_Fantasy_v1.png
+
+// Deterministic periodic construction:
+// 1. Build periodic value-noise fields on integer lattices whose periods divide 512.
+// 2. Blend broad cyan/blue-grey and ochre masses with restrained purple modulation.
+// 3. Add sparse sub-pixel pink/orange flecks; never draw recognizable flowers.
+// 4. Force x=511 from x=0 and y=511 from y=0 after generation so both wrap seams
+//    are exactly closed; keep the interior periodic rather than using an edge blur band.
+// 5. Encode PNG, import sRGB + mipmaps + Repeat + aniso 4 + Android ASTC 6x6.
+// 6. Measure display-space HSV saturation, luminance, 5x5 luminance SD, seam,
+//    clipping and low-frequency quadrant/patch distribution before L2 assignment.
+
+// Target gates:
+// average HSV saturation 0.26..0.32
+// 5x5 local luminance SD 0.055..0.075
+// left/right and top/bottom wrap difference <= 3/255
+// 512x512, sRGB, mipmaps, Repeat, aniso 4, Android ASTC 6x6
+// no normal map, metallic 0, smoothness 0, L2 tile size unchanged (12x12 m)
+
+// Asset save rule: never call AssetDatabase.SaveAssets().
+// Use AssetDatabase.SaveAssetIfDirty(TL_Seocheon_Meadow) only after the visual test.
+
+// Final pixel formula (display/sRGB values, x/y phase period = 511 so opposite
+// borders are identical):
+//   ux = x / 511, uy = y / 511
+//   pnoise(uv,cells,seed) = periodic lattice hash + smootherstep bilerp;
+//                            lattice indices wrap modulo cells.
+//   lowA = .68*pnoise(uv,3,101) + .32*pnoise(uv,7,211)
+//   lowB = .72*pnoise(uv,4,307) + .28*pnoise(uv,9,401)
+//   mid   = 2*pnoise(uv,24,503)-1
+//   fine  = 2*pnoise(uv,128,607)-1
+//   palette base = lerp(blueGrey, ochre, smoothstep(.60,.78,lowA)*.78)
+//   purple = smoothstep(.62,.82,lowB) * .58
+//   grain multiplier = 1 + .40*fine + .080*mid + .070*pixelHash
+// Candidate history:
+//   v1 sinus grain .17/.055 -> SD .0274 (too flat)
+//   v2 sinus grain .38/.080 -> SD .0607 but visible diagonal lattice (rejected)
+//   final uses periodic value noise to remove directional/checker repetition.
+//   value-noise candidate .27/.080/.045 -> SD .0399 (too flat), so only the
+//   non-directional fine and per-pixel grain amplitudes were raised.
+
+// Executed result (S25):
+// texture Hue 201.329 deg, saturation 0.316043, display luminance 0.474232,
+// 5x5 local SD 0.059131, seam LR/TB 0.000/0.000 (in 8-bit units), clip 0%.
+// Import: 512x512, sRGB, mipmaps, Repeat, aniso 4, Android ASTC 6x6.
+// Temporary L2 test preserved 4 layers, 12x12 tile size and alphamap
+// (0 / 4,194,304 changed values); SetPass/DC/tris stayed 25/57/47,445.
+// Visual gate: REJECTED FOR NOW. It shifted P1/BACK away from olive, but read as
+// cyan painted/camouflage ground with visible 12 m patch repetition, not a field
+// of many tiny flowers. TL_Seocheon_Meadow.diffuseTexture was restored to
+// T_Seocheon_Meadow.png and saved clean. The candidate PNG remains for revision.
+//   deterministic sparse hash flecks: pink at top 5.5%, orange at next 3.0%,
+//   each mixed at 18..34%; no shape larger than one source pixel.
+// Palettes:
+//   blueGrey (0.36,0.50,0.56), ochre (0.62,0.52,0.27),
+//   purple (0.49,0.38,0.58), pink (0.73,0.43,0.58), orange (0.78,0.50,0.22).

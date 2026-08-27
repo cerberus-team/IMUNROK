@@ -1,0 +1,30 @@
+// S35 - Wide cloud-card final implementation (plan of record)
+// Created before execution. Unity 6000.3 / URP / CodeDom C# 6.
+//
+// Scope
+// - Keep the current cloudless purple/pink/blue sky background, planet, satellite,
+//   stars, aurora, terrain, flowers, lighting, camera baseline, and Mist_Low unchanged.
+// - Keep _CloudFinal_FogParticles inactive; do not delete it.
+// - Replace only the visible high-cloud presentation with 3-5 distant static cards.
+//
+// Assets
+// - Reuse T_CloudBank_S33_v1.png (2048x512 RGBA wide cloud bank) after validating it.
+// - Create M_CloudCard_Final.mat using a project-available URP Unlit transparent
+//   alpha-blended shader. Additive blending and depth writing are forbidden.
+//
+// Build and validation order
+// 1. Back up the clean scene without saving unrelated assets.
+// 2. Create _CloudCards_Final and one Large_Left card only.
+// 3. Render P1. Continue only if it reads as one wide cloud bank, not smoke/streak/card.
+// 4. Add Center and Right cards; add at most two thin horizon cards only if needed.
+// 5. Vary width/height ratio (4:1 to 8:1), scale, Z roll (-3 to +3 deg),
+//    alpha, and texture mirroring/offset to avoid obvious repetition.
+// 6. Render P1, BACK, BASIN at the existing camera baselines.
+// 7. Restore camera, sky controller manual time, wind, and all diagnostic state.
+//
+// Management
+// - _CloudCards_Final can be toggled as one unit.
+// - Existing S33 Cloud_High is disabled, not deleted, once the S35 cards pass.
+// - Existing Mist_Low remains active and unchanged.
+// - Use SaveAssetIfDirty(target) only. Never call AssetDatabase.SaveAssets().
+// - DeleteAsset and filesystem deletion are forbidden.

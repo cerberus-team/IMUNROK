@@ -1,0 +1,18 @@
+string srcPath="Assets/_Project/Seocheon/Art/Sky/S33/T_SkyCloudDrama_S33.png";
+TextureImporter srcImp=UnityEditor.AssetImporter.GetAtPath(srcPath) as TextureImporter;if(srcImp==null)return "ERROR|source_importer";
+srcImp.isReadable=true;srcImp.textureCompression=TextureImporterCompression.Uncompressed;srcImp.mipmapEnabled=false;srcImp.wrapMode=TextureWrapMode.Repeat;srcImp.SaveAndReimport();
+Texture2D src=UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>(srcPath);Color32[] original=src.GetPixels32();Color32[] output=(Color32[])original.Clone();int w=src.width,h=src.height,band=128;
+for(int y=0;y<h;y++)for(int d=0;d<band;d++){
+ int li=y*w+d,ri=y*w+(w-1-d);float u=(float)d/(band-1);float t=u*u*(3f-2f*u);
+ Color a=original[li],b=original[ri],avg=(a+b)*0.5f;
+ output[li]=(Color32)Color.Lerp(avg,a,t);output[ri]=(Color32)Color.Lerp(avg,b,t);
+}
+Texture2D baked=new Texture2D(w,h,TextureFormat.RGBA32,false,true);baked.SetPixels32(output);baked.Apply(false,false);
+string dstPath="Assets/_Project/Seocheon/Art/Sky/S33/T_SkyCloudDrama_S33_Seamless.png";
+System.IO.File.WriteAllBytes(System.IO.Path.Combine(System.IO.Directory.GetParent(Application.dataPath).FullName,dstPath.Replace('/','\\')),baked.EncodeToPNG());UnityEngine.Object.DestroyImmediate(baked);
+UnityEditor.AssetDatabase.ImportAsset(dstPath,UnityEditor.ImportAssetOptions.ForceSynchronousImport);
+TextureImporter dstImp=UnityEditor.AssetImporter.GetAtPath(dstPath) as TextureImporter;dstImp.textureType=TextureImporterType.Default;dstImp.textureShape=TextureImporterShape.Texture2D;dstImp.sRGBTexture=true;dstImp.mipmapEnabled=true;dstImp.isReadable=false;dstImp.wrapMode=TextureWrapMode.Repeat;dstImp.maxTextureSize=2048;dstImp.textureCompression=TextureImporterCompression.CompressedHQ;dstImp.SaveAndReimport();
+srcImp.isReadable=false;srcImp.textureCompression=TextureImporterCompression.CompressedHQ;srcImp.mipmapEnabled=true;srcImp.SaveAndReimport();
+Texture2D seamless=UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>(dstPath);Material m=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Seocheon/Art/Sky/S33/M_Flowerfield_SkyPanorama_S33.mat");m.SetTexture("_MainTex",seamless);UnityEditor.EditorUtility.SetDirty(m);UnityEditor.AssetDatabase.SaveAssetIfDirty(m);
+IMUNROK.Seocheon.FlowerfieldSkyController sky=UnityEngine.Object.FindFirstObjectByType<IMUNROK.Seocheon.FlowerfieldSkyController>();if(sky!=null){sky.skyboxMaterial=m;RenderSettings.skybox=m;sky.Apply();UnityEditor.EditorUtility.SetDirty(sky);}
+return "SEAMLESS|src="+w+"x"+h+"|band="+band+"|dst="+dstPath+"|material="+m.name;
