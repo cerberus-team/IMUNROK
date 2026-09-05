@@ -24,8 +24,8 @@ namespace IMUNROK.Common
     public class JournalPanel : MonoBehaviour
     {
         [SerializeField] private Font _font;
-        [SerializeField] private int _titleFontSize = 34;
-        [SerializeField] private int _clueFontSize = 26;
+        [SerializeField] private int _titleFontSize = 44;
+        [SerializeField] private int _clueFontSize = 34;
         private Color _paperColor = UiLook.With(UiLook.Paper, 0.96f);
         private Color _inkColor = UiLook.Ink;
         private Color _cardColor = UiLook.With(UiLook.PaperDim, 0.45f);
@@ -45,7 +45,38 @@ namespace IMUNROK.Common
         private Text _title, _brief;
         private readonly List<GameObject> _cards = new List<GameObject>();
 
-        private const float PageW = 1500f, PageH = 900f;
+        /// <summary>
+        /// <b>판의 좌표계를 견우팀 꾸러미에서 통째로 받아 왔다.</b>
+        ///
+        /// 화면에 보이는 크기는 여태도 거의 같았다 — 재 보면 우리 82.8°×55.8°,
+        /// 저쪽 84°×55° 였고 본문 글자도 1.75° 대 1.82° 였다. 다른 것은 <b>단위</b>였다:
+        /// 저쪽은 1920×1120 을 0.0014m 로 세워 1.50m 앞에 두고, 우리는 1500×900 을
+        /// 0.001m 로 세워 0.85m 앞에 두었다. 보이기는 같은데 <b>적히는 수가 달라</b>,
+        /// 저쪽 치수를 한 줄도 그대로 옮겨 올 수 없었다.
+        ///
+        /// 그래서 좌표계째로 받는다. 그러면 칸 320×272 · 사이 28 · 본문 34 같은 수가
+        /// <b>뜻을 지닌 채</b> 건너온다 — 자막 바에서 <c>BarStyle</c> 을 그렇게 받아 온 것과
+        /// 같은 셈이다. 한 줄에 다섯 장이 들어가는 것도 이 폭에서 저절로 나온다.
+        /// </summary>
+        private const float PageW = 1920f, PageH = 1120f;
+
+        /// <summary>저쪽 <c>InventoryUI.CanvasScale</c>. 판 치수를 바꿀 일이 생기면 여기만 만진다.</summary>
+        private const float CanvasScale = 0.0014f;
+
+        /// <summary>
+        /// <b>저쪽 판이 저쪽 화면에서 차지하던 몫을 우리 화면에서도 지킨다.</b>
+        ///
+        /// 저쪽 <c>PanelDistance</c> 는 1.50m 인데, 그 값은 <b>세로 화각 70°</b> 짜리
+        /// 게임 뷰를 놓고 잡은 것이다 — 거기서 55° 짜리 판은 화면의 79% 를 덮어
+        /// 「거의 채운」 것으로 읽힌다. 우리 카메라는 60° 라, 같은 1.50m 에 세우면
+        /// 92% 가 되어 <b>아래가 잘려 나간다</b>(재 보니 뷰포트 −0.23 까지 내려갔다).
+        ///
+        /// 그래서 거리로 되받는다. 1.568m 짜리 판이 47.4°(=60°의 79%)로 보이는 자리는
+        /// 1.79m 다. 재 보면 가로 74% · 세로 76% — 저쪽이 적어 둔 「70%대」다.
+        /// 숫자를 옮겨 오는 것과 <b>보이는 몫을 옮겨 오는 것</b>은 다른 일이고,
+        /// 여기서 지킬 것은 뒤엣것이다.
+        /// </summary>
+        private const float PanelDistance = 1.79f;
 
         public static void Open(JournalView owner)
         {
@@ -91,8 +122,12 @@ namespace IMUNROK.Common
             _instance = this;
             _anchor = GetComponent<WorldHudAnchor>();
             if (_anchor == null) _anchor = gameObject.AddComponent<WorldHudAnchor>();
-            // 수첩은 손에 든 것처럼 가깝게, 눈높이보다 조금 아래
-            _anchor.SetDistance(0.85f, -0.20f);
+            // 견우팀 꾸러미와 같은 좌표계에, 저쪽이 저쪽 화면에서 차지하던 몫으로 세운다.
+            _anchor.SetCanvasScale(CanvasScale);
+            _anchor.SetDistance(PanelDistance, -0.08f);   // 눈높이보다 아주 조금만 아래
+            // 저쪽은 죽은 구간 7도에 0.16초로 따라온다 — 20도로 두면 고개를 크게 돌려야
+            // 비로소 움직여서, 같은 판인데 손에 걸리는 느낌이 다르다.
+            _anchor.SetFollow(7f, 6f);
             _anchor.SetStowable(false);   // 물러나는 쪽이 아니라 물러나게 하는 쪽이다
 
             _font = UiFont.Resolve(_font);
@@ -246,7 +281,9 @@ namespace IMUNROK.Common
                 return;
             }
 
-            const float cw = 320f, ch = 190f, gap = 14f;
+            // 저쪽 <c>InventoryUI</c> 의 칸 치수 그대로다(CellW 320 · CellH 272 · Gap 28).
+            // 여태 190×14 였다 — 좌표계가 달라 그 수를 못 받아 오고 눈대중으로 잡았던 자리다.
+            const float cw = 320f, ch = 272f, gap = 28f;
             int perRow = Mathf.Max(1, Mathf.FloorToInt((w + gap) / (cw + gap)));
             float x0 = -(perRow * cw + (perRow - 1) * gap) * 0.5f + cw * 0.5f;
 

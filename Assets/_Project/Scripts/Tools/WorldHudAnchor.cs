@@ -487,6 +487,26 @@ namespace IMUNROK.Common
         /// <summary>이 창도 물러나야 하는가. 수첩 자신처럼 앞에 서는 것은 끈다.</summary>
         public void SetStowable(bool on) { _stowable = on; if (!on) _stow = 0f; }
 
+        /// <summary>
+        /// <b>캔버스 한 칸이 몇 m 인가.</b> 판의 좌표계를 통째로 바꿀 때 쓴다 —
+        /// 치수를 저쪽에서 베껴 오면 그 좌표계도 같이 받아야 숫자가 뜻을 지킨다.
+        /// </summary>
+        public void SetCanvasScale(float scale)
+        {
+            _canvasScale = Mathf.Max(0.00001f, scale);
+            if (_rect != null) _rect.localScale = Vector3.one * _canvasScale;
+        }
+
+        /// <summary>
+        /// <b>얼마나 굼뜨게 따라올 것인가.</b> 죽은 구간(도)과 따라잡는 빠르기.
+        /// 견우팀 꾸러미는 7도 · 0.16초로 잡아 두었다.
+        /// </summary>
+        public void SetFollow(float recenterAngle, float damping)
+        {
+            _recenterAngle = Mathf.Clamp(recenterAngle, 0f, 60f);
+            _damping = Mathf.Clamp(damping, 0.5f, 12f);
+        }
+
         /// <summary>다음 프레임에 감쇠 없이 눈앞으로 다시 가져온다(패널을 열 때 호출).</summary>
         public void Recenter() => _placed = false;
     }
