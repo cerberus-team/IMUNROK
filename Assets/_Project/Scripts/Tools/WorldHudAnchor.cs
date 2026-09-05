@@ -245,10 +245,10 @@ namespace IMUNROK.Common
         /// 모니터에는 그런 일이 없다 — 화면이 곧 시야라서, 늦게 따라오는 것은
         /// <b>손해일 뿐</b>이다.
         ///
-        /// 그래서 헤드셋 유무로 가른다. <see cref="Pinned"/>(세워 둔 판)와
-        /// <see cref="Frozen"/>은 제 뜻이 따로 있으므로 건드리지 않는다.
+        /// <see cref="Pinned"/>(세워 둔 판)와 <see cref="Frozen"/>은 제 뜻이 따로
+        /// 있으므로 건드리지 않는다.
         /// </summary>
-        private bool ScreenFixed { get { return _screenFixedOnPc && !VRRig.Active; } }
+        private bool ScreenFixed { get { return _screenFixedOnPc; } }
 
         [Header("벽 피하기")]
         [Tooltip("앞을 막은 것이 있으면 그 앞으로 당겨 온다. 당긴 만큼 배율도 함께 줄어 " +

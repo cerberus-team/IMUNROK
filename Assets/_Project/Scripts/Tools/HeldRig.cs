@@ -25,45 +25,6 @@ namespace IMUNROK.Common
     /// </summary>
     public static class HeldRig
     {
-        /// <summary>
-        /// <b>진짜 손에 들릴 자리</b> — 컨트롤러(<see cref="VRRig.RightHand"/>) 기준.
-        ///
-        /// 위의 <see cref="TryGet"/> 값들은 <b>머리</b> 기준이다. 화면으로 할 때는
-        /// 그것이 맞다 — 손이 없으니 눈앞 어딘가에 띄워 두는 수밖에 없다.
-        /// 그런데 헤드셋을 쓰면 카메라가 곧 <b>목</b>이라, 그 자리 그대로 두면
-        /// 도구가 <b>얼굴에 못 박혀</b> 고개를 돌리는 대로 따라다닌다.
-        /// 컨트롤러를 아무리 움직여도 등불은 코앞에 그대로 있다.
-        ///
-        /// 그래서 손에 들릴 때는 자리를 다시 잡는다. 컨트롤러는 <b>쥔 자리</b>이므로
-        /// 값이 훨씬 작다 — 눈앞 55cm 가 아니라 손아귀에서 몇 cm 다.
-        ///
-        /// ⚠ 이 값들은 <b>아직 헤드셋으로 못 맞춰 본 첫 짐작</b>이다. 기울기는 머리
-        /// 기준 값을 그대로 가져왔다(컨트롤러도 대체로 앞을 본다). 쓰고 보면서
-        /// 여기 한 군데만 고치면 모든 사건에 함께 먹는다.
-        /// </summary>
-        public static bool TryGetHand(string toolId, out Pose pose)
-        {
-            switch (toolId)
-            {
-                // 등불은 <b>손아귀에 매달린다</b>. 고리를 쥔 것이라 조금 아래.
-                case "lantern":
-                    pose = new Pose { position = new Vector3(0f, -0.05f, 0.02f), euler = new Vector3(8f, 0f, 0f), scale = 19.5f };
-                    return true;
-                // 돋보기는 자루를 쥔다. 기울기는 머리 기준 것을 그대로 — 유리가 바로 선다.
-                case "magnify":
-                    pose = new Pose { position = new Vector3(0f, -0.01f, 0.05f), euler = new Vector3(-45f, 0f, 90f), scale = 0.68f };
-                    return true;
-                case "mapae":
-                    pose = new Pose { position = new Vector3(0f, -0.01f, 0.04f), euler = new Vector3(12f, 195f, 5f), scale = 1f };
-                    return true;
-                case "yucheok":
-                    pose = new Pose { position = new Vector3(0f, -0.01f, 0.04f), euler = new Vector3(-12f, -72f, 6f), scale = 1f };
-                    return true;
-            }
-            pose = default(Pose);
-            return false;
-        }
-
         /// <summary>도구 하나가 손에 들리는 자리와 기울기(카메라 기준), 그리고 <b>크기</b>.</summary>
         public struct Pose
         {
@@ -147,11 +108,6 @@ namespace IMUNROK.Common
         public static void Apply(Transform holder, string toolId, Transform model = null)
         {
             if (holder == null) return;
-
-            // <b>손에 태울 것을 적어 둔다.</b> 헤드셋은 늦게 선다 — 링크를 두드려
-            // 손이 생기기까지 몇 초가 걸린다. 그때 이 목록을 훑어 옮긴다.
-            // 도구마다 따로 챙기게 하면 도구가 늘 때마다 잊는 자리가 하나씩 는다.
-            HeldHand.Register(holder, toolId, model);
 
             Pose p;
             if (!TryGet(toolId, out p)) return;

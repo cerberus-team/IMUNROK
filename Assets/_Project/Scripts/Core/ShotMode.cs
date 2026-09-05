@@ -3,9 +3,9 @@ namespace IMUNROK.Common
     /// <summary>
     /// <b>지금은 찍는 중이다</b>를 켜 두는 스위치 하나.
     ///
-    /// 씬을 손보는 것만으로는 조용해지지 않는 것들이 있다. <see cref="VRRig"/> 와
-    /// <see cref="NoiseMeter"/> 는 씬에 놓여 있지 않고 <c>RuntimeInitializeOnLoadMethod</c>
-    /// 로 <b>제 발로 선다</b> — 그러니 편집 모드에서 재우려 해도 재울 것이 없다.
+    /// 씬을 손보는 것만으로는 조용해지지 않는 것들이 있다. <see cref="NoiseMeter"/> 는
+    /// 씬에 놓여 있지 않고 <c>RuntimeInitializeOnLoadMethod</c> 로 <b>제 발로 선다</b> —
+    /// 그러니 편집 모드에서 재우려 해도 재울 것이 없다.
     /// 실제로 그래서 [영상 채비] 가 소리계를 재웠다고 적어 놓고도 재생하면
     /// 마이크가 열렸다.
     ///

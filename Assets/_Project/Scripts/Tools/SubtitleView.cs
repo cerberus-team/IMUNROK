@@ -242,66 +242,13 @@ namespace IMUNROK.Common
             if (was && !on && byUser) OnClosed?.Invoke();
         }
 
-        /// <summary>
-        /// 눈앞의 말을 치운다. 헤드셋에는 Esc 가 없으니 <b>보이는 표</b>가 본길이고,
-        /// 키는 모니터로 시험할 때 쓰는 곁길이다.
-        /// </summary>
-        private bool _fitted;
-
-        /// <summary>
-        /// <b>글씨가 하한(1.30도) 밑으로 안 내려가게 한 번 재서 키운다.</b>
-        ///
-        /// 재 보니 안내 줄이 30단위로 <b>1.29도</b>였다 — 하한에서 0.01도 모자란다.
-        /// 눈으로는 못 가리는 차이인데, 그런 자리가 헤드셋에서 「읽히긴 하는데 눈이
-        /// 피로한」 것이 된다.
-        ///
-        /// <b>지을 때 재면 안 된다.</b> 처음에 Build 에서 쟀더니 아무것도 안 커졌다 —
-        /// 그때는 판이 아직 제자리에 안 가 있어 배율이 1 이고, 1단위가 37도로 잡혀
-        /// 「넉넉하다」는 답이 나온다. 앵커가 판을 옮기고 줄인 <b>뒤</b>에 재야 한다.
-        /// 그래서 첫 칸이 아니라 <b>자리를 잡은 첫 칸</b>에 한 번 한다.
-        /// </summary>
-        private void FitToEye()
-        {
-            if (_fitted || _lineText == null) return;
-
-            // <b>이것은 헤드셋의 규칙이다.</b> 1.30도 하한은 「눈에서 몇 도로 보이나」를
-            // 따지는 값인데, 모니터에서는 그 물음이 성립하지 않는다 — 화면이 곧 시야라
-            // 몇 미터 앞에 앉느냐로 정해지지 우리가 정할 수가 없다.
-            //
-            // 그런데 여태 모니터에서도 이걸 돌리고 있었다. 재 보니 1.5m·0.001배에서
-            // 1단위가 0.038도라 안내 줄 <b>19가 35로</b>, 이름 32가 35로 부풀었다.
-            // 저쪽 PC판은 19·32 그대로다 — 판 치수를 한 픽셀까지 맞춰 놓고
-            // <b>글씨만 두 배로 키워</b> 놓고 있었던 것이다.
-            if (!VRRig.Active) { _fitted = true; return; }
-            float scale = transform.lossyScale.y;
-            if (scale > 0.5f) return;              // 아직 앵커가 안 줄였다
-            var cam = Camera.main;
-            if (cam == null) return;
-            float dist = Vector3.Distance(cam.transform.position, transform.position);
-            if (dist < 0.05f || dist > 20f) return;   // 아직 제자리가 아니다
-
-            _fitted = true;
-            Bump(_lineText, ref _lineFontSize, scale, dist);
-            Bump(_nameText, ref _nameFontSize, scale, dist);
-            Bump(_hintText, ref _hintFontSize, scale, dist);
-            // 닫기 딱지의 글씨도 안내 줄과 같은 크기로 짓는다 — 같이 키운다
-            if (_closeTab != null)
-                foreach (var t in _closeTab.GetComponentsInChildren<Text>(true))
-                    if (t.fontSize < _hintFontSize) t.fontSize = _hintFontSize;
-        }
-
-        private void Bump(Text t, ref int size, float scale, float dist)
-        {
-            if (t == null) return;
-            int want = UiLook.AtLeast(size, scale, dist);
-            if (want == size) return;
-            size = want;
-            t.fontSize = want;
-        }
-
+        // <b>눈각 맞추기(FitToEye)를 걷어냈다.</b> 1.30도 하한은 「눈에서 몇 도로
+        // 보이나」를 따지는 헤드셋의 규칙인데, 모니터에서는 그 물음이 성립하지 않는다 —
+        // 화면이 곧 시야라 몇 미터 앞에 앉느냐로 정해지지 우리가 정할 수가 없다.
+        // 여태 모니터에서도 이걸 돌려서 안내 줄 19가 35로 부풀어 있었다.
+        // 이제 <see cref="StyleNow"/> 가 적어 둔 값이 그대로 그려진다.
         private void Update()
         {
-            FitToEye();
             SitNow();
             if (_group == null || _group.alpha < 0.5f) return;
             PaintHeard();
@@ -375,27 +322,21 @@ namespace IMUNROK.Common
 
             if (_heardHint != null)
             {
-                string want = VRRig.Active
-                            ? Controls.SpeakPrompt
-                            : "묻고 싶은 것을 치거나, " + Controls.SpeakPrompt;
+                string want = "묻고 싶은 것을 치거나, " + Controls.SpeakPrompt;
                 if (_heardHint.text != want) _heardHint.text = want;
             }
 
-            // ── 헤드셋에서는 칠 수 없다 ──
-            //
-            // 저쪽 주석 그대로: 칸을 통째로 감춰 봤더니 <b>받아 적힌 말이 어디에도
-            // 안 보였다</b> — 무엇으로 전해지는지 확인하지 못한 채 던지게 된다.
-            // 그래서 칸은 남기되 못 치게만 한다.
-            bool canType = !VRRig.Active;
-            if (_field.interactable != canType) _field.interactable = canType;
-            if (_field.readOnly == canType) _field.readOnly = !canType;
+            // 칸은 늘 칠 수 있다. 헤드셋을 쓰던 때는 여기서 못 치게 막았다 —
+            // 쥘 손이 없어서였다. 이제 막을 까닭이 없다.
+            if (!_field.interactable) _field.interactable = true;
+            if (_field.readOnly) _field.readOnly = false;
 
             // ── 칸을 늘 잡아 둔다 ──
             //
             // 빈 곳을 한 번 누르면 선택이 풀린다. 그러면 치던 사람이 <b>아무 일도
             // 안 일어나는 것</b>을 겪는다. 심문하는 동안에는 늘 잡혀 있어야 한다.
             // (저쪽도 같은 까닭으로 같은 일을 한다)
-            if (canType && _inputRow != null && _inputRow.gameObject.activeSelf
+            if (_inputRow != null && _inputRow.gameObject.activeSelf
                 && !_field.isFocused && EventSystem.current != null)
                 _field.ActivateInputField();
         }
@@ -414,7 +355,7 @@ namespace IMUNROK.Common
             _draftSeen = "";
             a.SetDraft(say);
             a.AskDraft();
-            if (!VRRig.Active) _field.ActivateInputField();
+            _field.ActivateInputField();
         }
 
         /// <summary>
@@ -483,12 +424,6 @@ namespace IMUNROK.Common
         /// </summary>
         private static BarStyle StyleNow()
         {
-            if (VRRig.Active)
-                return new BarStyle {
-                    w = 1500f, line = 46, name = 36, input = 34, foot = 34, inputH = 76f,
-                    padX = 60f, padTop = 18f, nameToRule = 12f, ruleH = 3f, ruleToLine = 28f,
-                    lineToInput = 40f, inputToFoot = 26f, footToEdge = 24f, footH = 36f };
-
             return new BarStyle {
                 w = 2900f, line = 42, name = 32, input = 28, foot = 19, inputH = 62f,
                 padX = 90f, padTop = 14f, nameToRule = 10f, ruleH = 3f, ruleToLine = 24f,
@@ -633,24 +568,12 @@ namespace IMUNROK.Common
         /// 그렇게 되는 거리에 바를 세우면, 당기든 물러나든 <b>화면에서 차지하는 자리가
         /// 그대로</b>다. 42°에서는 1.5m 가 아니라 2.26m 에 선다.
         ///
-        /// ⚠️ 헤드셋에서는 <c>cam.fieldOfView</c> 를 읽으면 안 된다 — HMD 투영이 덮어써
-        ///    뜻을 잃는다(저쪽 <c>UiTuning</c> 주석에 같은 경고가 있다). VR은 저쪽처럼
-        ///    1.5m 에 못 박고 −16°로 눕힌다.
         /// </summary>
         private void SitNow()
         {
             if (!_useCommonLook || _anchor == null || _barH <= 0f) return;
             var cam = Camera.main;
             if (cam == null) return;
-
-            if (VRRig.Active)
-            {
-                const float vrDist = 1.5f, vrUpDeg = -16f;
-                if (_sitFov > 0f) return;                       // VR은 한 번이면 된다
-                _sitFov = 1f;
-                _anchor.SetDistance(vrDist, vrDist * Mathf.Tan(vrUpDeg * Mathf.Deg2Rad));
-                return;
-            }
 
             float fov = cam.fieldOfView;
             if (Mathf.Abs(fov - _sitFov) < 0.05f) return;       // 안 바뀌었으면 손대지 않는다

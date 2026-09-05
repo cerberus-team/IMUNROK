@@ -83,47 +83,6 @@ namespace IMUNROK.Common
             Wire();
         }
 
-        /// <summary>
-        /// <b>헤드셋을 쓰고 있으면 헤드셋 마이크를 잡는다.</b>
-        ///
-        /// Voice SDK 는 <b>목록의 첫째</b>를 잡는다. 이 컴퓨터에서 그것은
-        /// "마이크 배열(Realtek)" — <b>책상에 붙은 마이크</b>다. 헤드셋을 쓰고 앉아
-        /// 있으면 입에서 한참 떨어진 그 마이크가 방 울림을 같이 담아, 말은 하는데
-        /// 못 알아듣는 일이 난다. 눈에 안 보이는 고장이라 한참 헤맬 자리다.
-        ///
-        /// 헤드셋이 붙어 있을 때만 바꾼다 — 책상에서 고칠 때는 첫째가 맞다.
-        /// </summary>
-        private void PickHeadsetMic()
-        {
-            if (!UnityEngine.XR.XRSettings.isDeviceActive) return;
-
-            // <b>이름으로 찾아 부른다.</b> Meta.WitAi.Lib.Mic 을 직접 쓰면 이 어셈블리가
-            // 그 꾸러미에 매인다 — Voice SDK 를 빼는 순간 게임 코드가 통째로 안 열린다.
-            // 없으면 없는 대로 조용히 지나간다.
-            MonoBehaviour mic = null;
-            foreach (var mb in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                if (mb != null && mb.GetType().FullName == "Meta.WitAi.Lib.Mic") { mic = mb; break; }
-            if (mic == null) return;
-
-            var type = mic.GetType();
-            var devices = type.GetProperty("Devices").GetValue(mic, null) as System.Collections.Generic.List<string>;
-            var idxProp = type.GetProperty("CurrentDeviceIndex");
-            var change = type.GetMethod("ChangeMicDevice");
-            if (devices == null || idxProp == null || change == null) return;
-
-            for (int i = 0; i < devices.Count; i++)
-            {
-                var name = devices[i];
-                if (string.IsNullOrEmpty(name)) continue;
-                if (name.IndexOf("Oculus", StringComparison.OrdinalIgnoreCase) < 0 &&
-                    name.IndexOf("Headset", StringComparison.OrdinalIgnoreCase) < 0) continue;
-                if (i == (int)idxProp.GetValue(mic, null)) return;
-                change.Invoke(mic, new object[] { i });
-                Debug.Log("[MicInput] 헤드셋 마이크로 바꿨습니다 — " + name);
-                return;
-            }
-        }
-
         private void Wire()
         {
             if (_wired || _dictation == null) return;
@@ -148,12 +107,6 @@ namespace IMUNROK.Common
         public void StartListening()
         {
             if (IsListening || _dictation == null) return;
-
-            // <b>들을 때마다 고른다.</b> 처음에는 Start 에서 한 번만 골랐는데, 그때는
-            // Voice SDK 의 Mic 부품이 <b>아직 안 생겨</b> 있어 찾지 못하고 조용히 지나갔다.
-            // 그 부품은 처음 쓸 때 저 혼자 생긴다. 이미 맞게 잡혀 있으면 곧 돌아오니
-            // 매번 불러도 헛일이 아니다.
-            PickHeadsetMic();
 
             IsListening = true;
             _listenTimer = 0f;

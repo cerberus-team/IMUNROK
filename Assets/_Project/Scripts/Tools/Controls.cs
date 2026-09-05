@@ -19,21 +19,19 @@ namespace IMUNROK.Common
     /// 뿐이다. 그래서 이름을 <c>IMUNROK.Ui.UiWords</c> 와 하나씩 짝지어 두었다 —
     /// 저쪽이 단추를 옮기면 여기도 그대로 옮기면 된다.
     ///
-    /// <b>다만 값을 물어 오지는 않는다.</b> <c>UiWords</c> 는 <c>UiModes.IsVr</c>(F8 로
-    /// 손수 바꾸는 스위치)를 보고, 우리는 <see cref="VRRig.Active"/>(헤드셋이 실제로
-    /// 서 있나)를 본다. 판단하는 근거가 다르므로 <b>말만 맞추고 판단은 우리가 한다</b>.
+    /// <b>2026-09-05 — 헤드셋을 걷어냈다.</b> 여기 있던 이름들은 하나같이
+    /// 「헤드셋이면 이 말, 아니면 저 말」로 갈려 있었다. 이제 갈릴 일이 없으므로
+    /// 책상 쪽 말만 남긴다. 갈래가 없어진 만큼 <b>적히는 말과 실제로 눌리는 글쇠가
+    /// 어긋날 자리도 없어졌다</b> — 이 클래스가 애초에 막으려던 것이 그것이다.
     ///
-    /// 지금 매여 있는 자리는 <see cref="VRButtons"/> 와 <see cref="ToolRaise"/> 에 있다.
+    /// 짝짓기는 그대로 둔다. <c>UiWords</c> 가 단추를 옮기면 여기도 옮긴다.
     /// </summary>
     public static class Controls
     {
-        /// <summary>헤드셋을 쓰고 서 있나.</summary>
-        public static bool Vr { get { return VRRig.Active; } }
-
         // ── 꾸러미와 짝지은 이름들 (UiWords 와 한 줄씩 대응) ──────────
 
         /// <summary>누르기 — 좌클릭 / 트리거. (<c>UiWords.Press</c>)</summary>
-        public static string Press { get { return Vr ? "트리거" : "좌클릭"; } }
+        public static string Press { get { return "좌클릭"; } }
 
         /// <summary>
         /// 물러나기 — Esc / B·Y. (<c>UiWords.Back</c>)
@@ -45,13 +43,13 @@ namespace IMUNROK.Common
         /// 없는 단추를 적지 않으려고 만든 것이 이 클래스인데, 있는 단추에 두 가지 일을
         /// 시켜 놓고 적는 것도 같은 거짓말이다. 그래서 <b>Esc 만</b> 적는다.
         /// </summary>
-        public static string Back { get { return Vr ? "B·Y" : "Esc"; } }
+        public static string Back { get { return "Esc"; } }
 
         /// <summary>수첩 여닫기 — I·Esc / 메뉴 버튼. (<c>UiWords.Menu</c>)</summary>
-        public static string Menu { get { return Vr ? "메뉴 버튼" : "I / Esc"; } }
+        public static string Menu { get { return "I / Esc"; } }
 
         /// <summary>가리키는 동작 — 바라보고 / 겨누고. (<c>UiWords.Aim</c>)</summary>
-        public static string Aim { get { return Vr ? "겨누고" : "바라보고"; } }
+        public static string Aim { get { return "바라보고"; } }
 
         /// <summary>
         /// 말하기 — 왼쪽 Ctrl / 그립. (<c>UiWords.Talk</c>)
@@ -59,14 +57,11 @@ namespace IMUNROK.Common
         /// <b>T 에서 왼쪽 Ctrl 로 옮겼다.</b> T 를 고른 까닭이 따로 있던 것이 아니라
         /// 그냥 비어 있는 글쇠였다. 저쪽이 Ctrl 인 이상 맞추는 편이 낫다 —
         /// 글쇠 칸에 한글을 치는 중에도 Ctrl 은 글자를 먹지 않기 때문이다.
-        ///
-        /// VR 쪽은 <b>왼손 X 에서 그립으로</b> 옮겼다. 그러려고 짚기(광선)에서 그립을
-        /// 떼어 냈다 — 둘이 같은 단추에 있으면 <b>말하려고 쥔 손이 눈앞의 단추를 누른다</b>.
         /// </summary>
-        public static string Speak { get { return Vr ? "그립" : "왼쪽 Ctrl"; } }
+        public static string Speak { get { return "왼쪽 Ctrl"; } }
 
         /// <summary>묻기(받아 적힌 말을 던지기) — Enter / 「묻 기」.</summary>
-        public static string Ask { get { return Vr ? "「묻 기」" : "Enter"; } }
+        public static string Ask { get { return "Enter"; } }
 
         /// <summary>
         /// 빈 입력줄에 묽게 앉는 말. 저쪽 <c>placeholder</c> 자리다.
@@ -84,22 +79,19 @@ namespace IMUNROK.Common
         /// <summary>도구를 눈앞으로 들어 올리는 손짓.</summary>
         public static string Raise
         {
-            get { return Vr ? "오른손 스틱을 <b>누른 채</b>" : "오른쪽 단추를 <b>누른 채</b>"; }
+            get { return "오른쪽 단추를 <b>누른 채</b>"; }
         }
 
         /// <summary>든 것을 내려놓는 손짓.</summary>
         public static string PutDown
         {
-            get { return Vr ? "(오른손 B — 내려놓기)" : "(Esc — 내려놓기)"; }
+            get { return "(Esc — 내려놓기)"; }
         }
 
-        /// <summary>
-        /// 한 마디를 넘기는 손짓. 헤드셋에서는 <b>가만두면 저 혼자 넘어간다</b> —
-        /// 넘기는 단추를 따로 두지 않았으므로 없는 단추를 적지 않는다.
-        /// </summary>
+        /// <summary>한 마디를 넘기는 손짓.</summary>
         public static string Skip
         {
-            get { return Vr ? "(잠깐 두면 넘어갑니다)" : "(Space 넘기기)"; }
+            get { return "(Space 넘기기)"; }
         }
 
         /// <summary>
@@ -117,7 +109,6 @@ namespace IMUNROK.Common
                 // 저쪽은 TMP 라 여섯 자리도 알아듣지만, 우리 아랫줄은 아직 낡은
                 // <c>UI.Text</c> 라 <b>여덟 자리(투명도까지)</b>가 아니면 그냥 안 먹는다.
                 string red = "<color=#8E2C20FF>" + Speak + " — 누르고 말하기</color>";
-                if (Vr) return red + "     트리거 — 누르기     B·Y — 심문 끝내기";
                 return "Enter — 묻기     " + red + "     좌클릭 — 누르기     Esc — 심문 끝내기";
             }
         }

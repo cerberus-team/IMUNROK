@@ -58,11 +58,6 @@ namespace IMUNROK.Common
             if (_done) return;
             if (GameObject.Find("조사청_실내") == null) return;   // 조사청에서만
 
-            // 헤드셋을 쓰고 있으면 <b>앉히지 않는다</b>. 앉은 눈높이는 카메라를 내려서
-            // 만드는 것인데, VR 에서 눈높이를 정하는 것은 쓰고 있는 사람의 <b>실제 키</b>다.
-            // 거기에 대고 카메라를 끌어내리면 몸은 서 있는데 눈만 꺼지는 꼴이 되어
-            // 곧바로 멀미가 난다. 앉은 채 시작하는 연출은 VR 용으로 따로 지어야 한다.
-            if (UnityEngine.XR.XRSettings.isDeviceActive) return;
             var cam = Camera.main;
             if (cam == null || cam.GetComponent<EntryRise>() != null) return;
             cam.gameObject.AddComponent<EntryRise>();

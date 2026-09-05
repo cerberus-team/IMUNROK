@@ -356,12 +356,12 @@ namespace IMUNROK.Common
         private int _fromLine = -1;
 
         /// <summary>
-        /// 아랫줄. <b>헤드셋에서는 자판 이름을 안 적는다</b> — 누를 손이 없다.
+        /// 아랫줄.
         /// </summary>
         private string Hint()
         {
             if (!_finished) return Controls.Skip;
-            return Controls.Vr ? "— 복명을 마친다 —" : "— 복명을 마친다 —    (H: 조사청으로,  Esc: 종료)";
+            return "— 복명을 마친다 —    (H: 조사청으로,  Esc: 종료)";
         }
 
         private string CurrentLine()

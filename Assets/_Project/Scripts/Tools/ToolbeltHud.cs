@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.XR;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -175,7 +174,10 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// 월드 공간 벨트를 쓰는가. 헤드셋이 붙어 있으면 쓴다.
+        /// 월드 공간 벨트를 쓰는가.
+        ///
+        /// <b>헤드셋이 붙었나를 보던 자리다.</b> 볼 헤드셋이 없어졌으므로 이제는
+        /// 손으로 켜야만 쓴다 — 즉 평소에는 화면 아래 벨트 하나만 뜬다.
         ///
         /// <b>여태 둘이 한꺼번에 떠 있었다</b>. 이 값을 안 보고 무조건 월드 패널을
         /// 만들었기 때문에, 헤드셋 없이 에디터에서 돌리면 화면 아래에 OnGUI 벨트가
@@ -183,7 +185,7 @@ namespace IMUNROK.Common
         /// 바닥에 뭔가 겹쳐 놓인 것처럼 보이던 것이 그것이다.
         /// 뷰는 <b>하나만</b> 뜬다. 둘 다 보고 싶으면 두 강제 스위치를 같이 켜면 된다.
         /// </summary>
-        private bool UseWorldPanel => XRSettings.isDeviceActive || _forceWorldPanel;
+        private bool UseWorldPanel => _forceWorldPanel;
 
         private void Start()
         {

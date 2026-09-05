@@ -12,7 +12,7 @@ namespace IMUNROK.Common
     /// <see cref="Take"/> 가 읽는 즉시 지우므로, 「바로 시작」 메뉴를 누른 그 한 판만
     /// 건너뛰고 다음 재생은 처음부터다.
     ///
-    /// <see cref="ShotMode"/> · <see cref="VrPref"/> 와 같은 자리(EditorPrefs)에 산다 —
+    /// <see cref="ShotMode"/> 와 같은 자리(EditorPrefs)에 산다 —
     /// 빌드에는 코드째 안 들어가고, 적어 둔 채로 빌드해도 아무 일도 안 일어난다.
     /// </summary>
     public static class StartAt
