@@ -106,24 +106,24 @@ namespace IMUNROK.Common
             rt.sizeDelta = new Vector2(W, H);
             rt.localScale = Vector3.one * 0.00072f;
 
-            _paper = Panel("종이", Vector2.zero, new Vector2(W, H), new Color(0.93f, 0.89f, 0.78f, 0.98f), rt);
+            _paper = Panel("종이", Vector2.zero, new Vector2(W, H), UiLook.With(UiLook.Paper, 0.98f), rt);
             _title = Label("표제", "狀 啓", new Vector2(0f, 540f), new Vector2(W - 80f, 80f), _paper, Base + 20);
-            _title.color = new Color(0.16f, 0.12f, 0.09f);
+            _title.color = UiLook.Ink;
             _head = Label("머리말", "", new Vector2(0f, 452f), new Vector2(W - 120f, 84f), _paper, Base);
             _tail = Label("맺음말", "", new Vector2(0f, -318f), new Vector2(W - 140f, 130f), _paper, Base - 1);
             _hint = Label("안내", "", new Vector2(0f, -428f), new Vector2(W - 120f, 70f), _paper, Base - 4);
-            _hint.color = new Color(0.42f, 0.32f, 0.22f);
+            _hint.color = UiLook.Lit(UiLook.InkSoft, 0.15f);
 
             // 마패로 봉하는 자리
-            var seal = Panel("봉함", new Vector2(0f, -518f), new Vector2(560f, 92f), new Color(0.36f, 0.15f, 0.13f, 0.95f), _paper);
+            var seal = Panel("봉함", new Vector2(0f, -518f), new Vector2(560f, 92f), UiLook.With(UiLook.Deep(UiLook.Seal, 0.45f), 0.95f), _paper);
             _sealBtn = seal.gameObject.AddComponent<Button>();
             _sealBtn.targetGraphic = seal.GetComponent<Image>();
             _sealBtn.onClick.AddListener(Seal);
             _sealLabel = Label("라벨", "마패로 봉하다", Vector2.zero, new Vector2(540f, 86f), seal, Base);
-            _sealLabel.color = new Color(0.96f, 0.92f, 0.84f);
+            _sealLabel.color = UiLook.SealText;
 
             _wordBox = Panel("말고르기", new Vector2(0f, -700f), new Vector2(W, 40f),
-                             new Color(0.16f, 0.13f, 0.11f, 0.96f), rt);
+                             UiLook.With(UiLook.Ink, 0.96f), rt);
             _wordBox.gameObject.SetActive(false);
         }
 
@@ -144,14 +144,14 @@ namespace IMUNROK.Common
             {
                 int at = i;
                 var row = Panel("줄" + i, new Vector2(0f, top - i * RowH), new Vector2(W - 100f, RowH - 14f),
-                                new Color(1f, 1f, 1f, 0.06f), _paper);
+                                UiLook.With(UiLook.Paper, 0.06f), _paper);
                 var btn = row.gameObject.AddComponent<Button>();
                 btn.targetGraphic = row.GetComponent<Image>();
                 btn.onClick.AddListener(() => PickRow(at));
                 // 글상자를 살짝 오른쪽으로 밀어 왼쪽에 여백을 준다 — 번호가 테두리에 붙으면 안 읽힌다
                 var lab = Label("글", "", new Vector2(14f, 0f), new Vector2(W - 150f, RowH - 20f), row, Base);
                 lab.alignment = TextAnchor.MiddleLeft;
-                lab.color = new Color(0.14f, 0.11f, 0.08f);
+                lab.color = UiLook.Ink;
                 _rows.Add(row); _rowLabels.Add(lab);
             }
 
@@ -201,8 +201,8 @@ namespace IMUNROK.Common
                             + (string.IsNullOrEmpty(b.뒤) ? "" : " " + b.뒤);
                 _rowLabels[i].text = Emphasis.Rich(Num(i) + ".  " + body, Emphasis.OnPaper);
                 var img = _rows[i].GetComponent<Image>();
-                img.color = i == _openRow ? new Color(0.55f, 0.42f, 0.20f, 0.22f)
-                          : (_picked[i] >= 0 ? new Color(0f, 0f, 0f, 0.05f) : new Color(0.70f, 0.45f, 0.15f, 0.10f));
+                img.color = i == _openRow ? UiLook.With(UiLook.Gold, 0.22f)
+                          : (_picked[i] >= 0 ? UiLook.With(UiLook.Ink, 0.05f) : UiLook.With(UiLook.Gold, 0.10f));
             }
 
             bool all = true;
@@ -239,7 +239,7 @@ namespace IMUNROK.Common
             {
                 var none = Label("없음", "여기에 쓸 말을 아직 알지 못한다.", Vector2.zero,
                                  new Vector2(W - 60f, 70f), _wordBox, Base - 6);
-                none.color = new Color(0.75f, 0.66f, 0.55f);
+                none.color = UiLook.Dim;
                 return;
             }
 
@@ -248,13 +248,13 @@ namespace IMUNROK.Common
             {
                 int idx = usable[k];
                 var row = Panel("말" + k, new Vector2(0f, y - k * 78f), new Vector2(W - 60f, 66f),
-                                new Color(1f, 1f, 1f, 0.08f), _wordBox);
+                                UiLook.With(UiLook.Paper, 0.08f), _wordBox);
                 var btn = row.gameObject.AddComponent<Button>();
                 btn.targetGraphic = row.GetComponent<Image>();
                 int at = _openRow;
                 btn.onClick.AddListener(() => PickWord(at, idx));
                 var lab = Label("글", b.보기[idx].말, Vector2.zero, new Vector2(W - 90f, 60f), row, Base - 4);
-                lab.color = new Color(0.94f, 0.90f, 0.82f);
+                lab.color = UiLook.Text;
             }
         }
 
@@ -378,7 +378,7 @@ namespace IMUNROK.Common
             t.alignment = TextAnchor.MiddleCenter;
             t.horizontalOverflow = HorizontalWrapMode.Wrap;
             t.verticalOverflow = VerticalWrapMode.Overflow;
-            t.color = new Color(0.18f, 0.14f, 0.10f);
+            t.color = UiLook.Ink;
             t.raycastTarget = false;
             return t;
         }

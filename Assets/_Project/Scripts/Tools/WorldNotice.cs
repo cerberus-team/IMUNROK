@@ -84,7 +84,7 @@ namespace IMUNROK.Common
 
             var panel = NewRect("바탕", Vector2.zero, new Vector2(1100f, 420f), transform);
             _bg = panel.gameObject.AddComponent<Image>();
-            _bg.color = new Color(0.03f, 0.035f, 0.05f, 0.72f);
+            _bg.color = UiLook.With(UiLook.Panel, 0.72f);
 
             var imgRt = NewRect("그림", Vector2.zero, new Vector2(1040f, 380f), panel);
             _image = imgRt.gameObject.AddComponent<RawImage>();
@@ -95,7 +95,7 @@ namespace IMUNROK.Common
             _text = txtRt.gameObject.AddComponent<Text>();
             _text.font = UiFont.Resolve(null);
             _text.fontSize = 40;
-            _text.color = new Color(1f, 0.93f, 0.78f);
+            _text.color = UiLook.Text;
             _text.alignment = TextAnchor.MiddleCenter;
             _text.horizontalOverflow = HorizontalWrapMode.Wrap;
             _text.verticalOverflow = VerticalWrapMode.Overflow;

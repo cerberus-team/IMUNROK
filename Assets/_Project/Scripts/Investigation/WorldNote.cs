@@ -24,8 +24,8 @@ namespace IMUNROK.Common
         [SerializeField] private float _lift = 0.14f;
         [Tooltip("이만큼(초) 떠 있다가 스러진다")]
         [SerializeField] private float _seconds = 3.2f;
-        [SerializeField] private Color _inkColor = new Color(1f, 0.94f, 0.82f);
-        [SerializeField] private Color _plateColor = new Color(0.05f, 0.05f, 0.06f, 0.72f);
+        private Color _inkColor { get { return UiLook.Text; } }
+        private Color _plateColor { get { return UiLook.With(UiLook.Panel, 0.72f); } }
 
         private static WorldNote _instance;
 

@@ -277,8 +277,8 @@ namespace IMUNROK.Common
         private void EnsureStyles()
         {
             if (_iconText != null) return;
-            _slot   = Solid(new Color(1f, 1f, 1f, 0.08f));
-            _slotOn = Solid(new Color(1f, 0.85f, 0.4f, 0.32f));
+            _slot   = Solid(UiLook.With(UiLook.Paper, 0.08f));
+            _slotOn = Solid(UiLook.With(UiLook.Gold, 0.32f));
             _iconText = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
@@ -287,7 +287,7 @@ namespace IMUNROK.Common
             _label = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 13, alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = new Color(1f, 0.9f, 0.6f, 0.95f) }
+                normal = { textColor = UiLook.With(UiLook.Lit(UiLook.Gold, 0.30f), 0.95f) }
             };
         }
 

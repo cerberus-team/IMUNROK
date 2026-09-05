@@ -65,9 +65,9 @@ namespace IMUNROK.Common
         [SerializeField] private float _readLabelDistance = 0.34f;
         [Tooltip("이름표 글씨 크기. 보이는 크기는 거리에 상관없이 늘 같다")]
         [SerializeField] private int _labelFontSize = 56;
-        [SerializeField] private Color _labelColor = new Color(1f, 0.92f, 0.72f);
+        private Color _labelColor { get { return UiLook.Text; } }
 
-        [SerializeField] private Color _paperColor = new Color(0.85f, 0.80f, 0.68f); // 종이/한지 색
+        private Color _paperColor { get { return UiLook.Paper; } }   // 종이/한지 색
         [Range(0f, 1f)]
         [SerializeField] private float _hoverBrighten = 0.30f;
 
@@ -564,7 +564,7 @@ namespace IMUNROK.Common
             _labelText.horizontalOverflow = HorizontalWrapMode.Overflow;
             _labelText.verticalOverflow = VerticalWrapMode.Overflow;
             var sh = t.AddComponent<UnityEngine.UI.Shadow>();
-            sh.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            sh.effectColor = UiLook.Shadow;
             sh.effectDistance = new Vector2(2.5f, -2.5f);
             var trt = t.GetComponent<RectTransform>();
             trt.SetParent(rt, false);

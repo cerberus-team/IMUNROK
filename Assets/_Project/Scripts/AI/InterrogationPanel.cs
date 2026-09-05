@@ -31,25 +31,25 @@ namespace IMUNROK.Common
         [SerializeField] private int _fontSize = 30;
         [Tooltip("켜면 색을 <b>꾸러미(IMUNROK.Ui)</b> 에서 받아 온다 — 자막 바·수첩과 한 결이 된다")]
         [SerializeField] private bool _useCommonLook = true;
-        [SerializeField] private Color _chipColor = new Color(0.06f, 0.06f, 0.07f, 0.85f);
-        [SerializeField] private Color _micColor = new Color(0.20f, 0.35f, 0.28f, 0.9f);
-        [SerializeField] private Color _micOnColor = new Color(0.72f, 0.20f, 0.16f, 0.95f);
+        [SerializeField] private Color _chipColor = UiLook.With(UiLook.Slot, 0.85f);
+        [SerializeField] private Color _micColor = UiLook.With(UiLook.Slot, 0.90f);
+        [SerializeField] private Color _micOnColor = UiLook.With(UiLook.Seal, 0.95f);
         [Tooltip("되돌릴 수 없는 '마치기' 버튼")]
-        [SerializeField] private Color _endColor = new Color(0.42f, 0.30f, 0.10f, 0.95f);
+        [SerializeField] private Color _endColor = UiLook.With(UiLook.WoodLit, 0.95f);
         [Tooltip("되물을 때의 색. 한 번 더 눌러야 끝난다는 것이 색으로도 보여야 한다")]
-        [SerializeField] private Color _confirmColor = new Color(0.62f, 0.16f, 0.12f, 0.97f);
+        [SerializeField] private Color _confirmColor = UiLook.With(UiLook.Seal, 0.97f);
 
         [Tooltip("명령 단추. 묻는 것과 <b>색으로 갈라 둔다</b> — 이 줄을 누르면 대답이 아니라 일이 벌어진다")]
-        [SerializeField] private Color _orderColor = new Color(0.46f, 0.11f, 0.09f, 0.95f);
+        [SerializeField] private Color _orderColor = UiLook.With(UiLook.Seal, 0.95f);
 
         [Tooltip("부를 사람 이름표")]
-        [SerializeField] private Color _seatColor = new Color(0.10f, 0.09f, 0.13f, 0.88f);
+        [SerializeField] private Color _seatColor = UiLook.With(UiLook.Slot, 0.88f);
         [Tooltip("지금 불려 나와 있는 사람")]
-        [SerializeField] private Color _seatUpColor = new Color(0.30f, 0.26f, 0.12f, 0.95f);
+        [SerializeField] private Color _seatUpColor = UiLook.With(UiLook.WoodLit, 0.95f);
         [Tooltip("아직 안 온 사람 — 자리는 있으나 사람이 없다")]
-        [SerializeField] private Color _seatEmptyColor = new Color(0.09f, 0.09f, 0.09f, 0.55f);
+        [SerializeField] private Color _seatEmptyColor = UiLook.With(UiLook.Panel, 0.55f);
 
-        [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
+        [SerializeField] private Color _textColor = UiLook.Text;
 
         /// <summary>꾸러미의 결. 정적으로 들면 판을 넘겨 살아남되 내용이 죽는다 — 판마다 제 것.</summary>
         private readonly IMUNROK.Ui.InventorySkin _skin = new IMUNROK.Ui.InventorySkin();

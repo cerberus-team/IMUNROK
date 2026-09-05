@@ -30,12 +30,12 @@ namespace IMUNROK.Common
                  "뜯어고칠 일이 아니었다: 꾸러미의 소지품 판도 <b>한지</b>다(InventorySkin 의 " +
                  "색 한 벌이 한지·먹·주칠이다). 우리와 같은 결이라 값만 옮기면 된다")]
         [SerializeField] private bool _useCommonLook = true;
-        [SerializeField] private Color _paperColor = new Color(0.90f, 0.86f, 0.74f, 0.96f);
-        [SerializeField] private Color _inkColor = new Color(0.16f, 0.11f, 0.07f);
-        [SerializeField] private Color _cardColor = new Color(1f, 1f, 1f, 0.35f);
-        [SerializeField] private Color _presentColor = new Color(0.62f, 0.14f, 0.11f, 0.92f);
+        private Color _paperColor = UiLook.With(UiLook.Paper, 0.96f);
+        private Color _inkColor = UiLook.Ink;
+        private Color _cardColor = UiLook.With(UiLook.PaperDim, 0.45f);
+        private Color _presentColor = UiLook.With(UiLook.Seal, 0.92f);
         [Tooltip("물증을 다시 펼쳐 보는 단추. 들이밀기(붉은색)와 헷갈리지 않게 먹빛으로")]
-        [SerializeField] private Color _readColor = new Color(0.24f, 0.22f, 0.18f, 0.90f);
+        private Color _readColor = UiLook.With(UiLook.InkSoft, 0.90f);
 
         /// <summary>꾸러미의 결. 정적으로 들면 판을 넘겨 살아남되 내용이 죽는다 — 판마다 제 것.</summary>
         private readonly IMUNROK.Ui.InventorySkin _skin = new IMUNROK.Ui.InventorySkin();
@@ -115,30 +115,6 @@ namespace IMUNROK.Common
             Rebuild();
             SetVisible(true);
             if (_anchor != null) _anchor.Recenter();
-            _checked = false;      // 펼 때마다 한 번 잰다 — 단서가 늘면 글도 달라진다
-        }
-
-        private bool _checked;
-
-        /// <summary>
-        /// <b>헤드셋에서 읽을 만한 크기인지 한 번 잰다.</b>
-        ///
-        /// 자막 바는 글상자가 넉넉해서 모자라면 그냥 키웠는데, 수첩은 카드 크기가
-        /// 손으로 맞춰져 있어 글씨를 몰래 키우면 <b>글이 카드를 넘친다</b>.
-        /// 그래서 여기서는 고치지 않고 <b>이르기만 한다</b>.
-        ///
-        /// 2026-08-27 재 보니 지금은 다 넘는다(가장 작은 것이 1.31도, 하한 1.30도).
-        /// 이 자는 <b>다음에 줄일 때</b>를 위한 것이다.
-        ///
-        /// 펼치는 그 칸에 재면 안 된다 — 앵커가 아직 판을 제자리로 안 옮겨 배율이 1 이다.
-        /// 자막 바에서 이미 한 번 밟았다.
-        /// </summary>
-        private void LateUpdate()
-        {
-            if (_checked || _group == null || _group.alpha < 0.5f) return;
-            if (transform.lossyScale.y > 0.5f) return;      // 아직 앵커가 안 줄였다
-            _checked = true;
-            UiLook.WarnIfTooSmall(this, "수첩");
         }
 
         /// <summary>테두리 넉 줄. 상자 하나에 외곽선을 그릴 길이 없어 얇은 띠 넷을 두른다.</summary>
@@ -177,19 +153,10 @@ namespace IMUNROK.Common
 
         private void BuildFrame()
         {
-            // ── 색을 꾸러미에서 물어 온다 ────────────────
-            //
-            // 자막 바에 이어 여기도 <b>손으로 정한 색을 안 남긴다</b>. 견우팀이 고치면
-            // 우리 수첩도 따라간다. 알파(비침)만 우리 값을 지킨다 — 저쪽은 낱색만 주고
-            // 얼마나 비칠지는 판마다 다르다.
-            if (_useCommonLook)
-            {
-                _paperColor = new Color(UiLook.Paper.r, UiLook.Paper.g, UiLook.Paper.b, _paperColor.a);
-                _inkColor = UiLook.Ink;
-                _cardColor = new Color(UiLook.PaperDim.r, UiLook.PaperDim.g, UiLook.PaperDim.b, 0.45f);
-                _presentColor = new Color(UiLook.Seal.r, UiLook.Seal.g, UiLook.Seal.b, _presentColor.a);
-                _readColor = new Color(UiLook.InkSoft.r, UiLook.InkSoft.g, UiLook.InkSoft.b, _readColor.a);
-            }
+            // <b>여기서 색을 덮어쓰던 자리를 걷었다.</b> 인스펙터에 손으로 적어 둔 색이
+            // 씬에 구워져 있어서, 그것을 실행 중에 꾸러미 색으로 도로 갈아 끼우고
+            // 있었다. 이제 칸에 적힌 것이 곧 꾸러미 색이고 인스펙터에 새지도 않으므로
+            // 갈아 끼울 것이 없다 — 적힌 값과 보이는 값이 같아졌다.
 
             var page = NewRect("한지", Vector2.zero, new Vector2(PageW, PageH), transform);
             Skin(page.gameObject.AddComponent<Image>(), _skin.Hanji_, _paperColor);

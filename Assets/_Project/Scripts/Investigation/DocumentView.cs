@@ -40,8 +40,8 @@ namespace IMUNROK.Common
         [Tooltip("눈높이보다 이만큼 아래(m). 종이는 내려다보는 것이다")]
         [SerializeField] private float _holdDrop = -0.06f;
         [SerializeField] private Color _paper = Color.white;
-        [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
-        [SerializeField] private Color _tabColor = new Color(0.28f, 0.10f, 0.09f, 0.9f);
+        private Color _textColor { get { return UiLook.Text; } }
+        private Color _tabColor { get { return UiLook.With(UiLook.Deep(UiLook.Seal, 0.55f), 0.90f); } }
 
         [Header("옮긴 글")]
         [Tooltip("읽어낸 것을 <b>종이 위에</b> 얹는다 — 한자 위에 우리말이 배어 나오듯. " +
@@ -68,7 +68,7 @@ namespace IMUNROK.Common
         private RectTransform _pageRt;
 
         /// <summary>그림 없는 문서를 적을 빈 종이의 빛깔. 한지.</summary>
-        private static readonly Color _blankPaper = new Color(0.82f, 0.76f, 0.62f, 0.99f);
+        private static Color _blankPaper { get { return UiLook.With(UiLook.PaperDim, 0.99f); } }
         private Image _edge;
         private Image _backdrop;     // 수첩에서 볼 때 뒤를 덮는 어둠
         private Image _backFace;     // 종이 뒷면 — 뒤집었을 때 글씨가 비치지 않게
@@ -240,7 +240,7 @@ namespace IMUNROK.Common
             if (!go.activeSelf) go.SetActive(true);
             if (_trans.text.Length == 0) _trans.text = Emphasis.Rich(_finePrint, Emphasis.OnPaper);
 
-            _transPlate.color = new Color(0.96f, 0.93f, 0.85f, _transPlateAlpha * k);
+            _transPlate.color = UiLook.With(UiLook.Paper, _transPlateAlpha * k);
             var c = _trans.color;
             _trans.color = new Color(c.r, c.g, c.b, _transAlpha * k);
         }
@@ -427,8 +427,8 @@ namespace IMUNROK.Common
             if (_trans != null)
             {
                 _trans.text = "";
-                _trans.color = new Color(0.07f, 0.06f, 0.06f, 0f);
-                _transPlate.color = new Color(0.96f, 0.93f, 0.85f, 0f);
+                _trans.color = UiLook.With(UiLook.Ink, 0f);
+                _transPlate.color = UiLook.With(UiLook.Paper, 0f);
                 _transPlate.gameObject.SetActive(false);
             }
             _fine.gameObject.SetActive(false);
@@ -616,7 +616,7 @@ namespace IMUNROK.Common
             // 종이 <b>자체가</b> 달아오른다.
             _lit01 = Mathf.MoveTowards(_lit01, want, (want > _lit01 ? 1.9f : 0.8f) * Time.deltaTime);
             if (_page != null)
-                _page.color = Color.Lerp(_paper, new Color(1f, 0.90f, 0.66f), _lit01);
+                _page.color = Color.Lerp(_paper, UiLook.Lit(UiLook.Gold, 0.35f), _lit01);
             if (_pageLit != null && _pageLit.enabled)
                 _pageLit.color = new Color(1f, 1f, 1f, _lit01);
 
@@ -684,7 +684,7 @@ namespace IMUNROK.Common
             // 된다. 수첩에서 꺼내 들 때만 이 어둠을 켠다.
             var backRt = NewRect("어둠", Vector2.zero, new Vector2(6000f, 4500f), transform);
             _backdrop = backRt.gameObject.AddComponent<Image>();
-            _backdrop.color = new Color(0.02f, 0.02f, 0.03f, 0.99f);
+            _backdrop.color = UiLook.With(UiLook.Panel, 0.99f);
             _backdrop.raycastTarget = false;
             _backdrop.enabled = false;
 
@@ -711,7 +711,7 @@ namespace IMUNROK.Common
             // 종이 가장자리 — 방 색에 종이가 묻히지 않게 얇게 두른다
             var edgeRt = NewRect("가장자리", Vector2.zero, new Vector2(_pageSpan + 10f, _pageSpan + 10f), _hand);
             _edge = edgeRt.gameObject.AddComponent<Image>();
-            _edge.color = new Color(0.20f, 0.16f, 0.12f, 0.55f);
+            _edge.color = UiLook.With(UiLook.Wood, 0.55f);
             _edge.raycastTarget = false;
 
             // 등불빛은 <b>테두리로 두르지 않는다</b>.
@@ -749,11 +749,11 @@ namespace IMUNROK.Common
             // 배접 속에서 배어 나오는 글(등불)과는 빛깔도 자리도 다르다.
             var transRt = NewRect("옮긴글", Vector2.zero, new Vector2(_pageSpan * 0.86f, _pageSpan * 0.42f), _pageRt);
             _transPlate = transRt.gameObject.AddComponent<Image>();
-            _transPlate.color = new Color(0.96f, 0.93f, 0.85f, 0f);
+            _transPlate.color = UiLook.With(UiLook.Paper, 0f);
             _transPlate.raycastTarget = false;
             _trans = NewText("옮긴글자", "", Vector2.zero, new Vector2(_pageSpan * 0.80f, _pageSpan * 0.38f),
                              transRt, _fontSize - 8);
-            _trans.color = new Color(0.07f, 0.06f, 0.06f, 0f);
+            _trans.color = UiLook.With(UiLook.Ink, 0f);
             _trans.alignment = TextAnchor.MiddleCenter;
             _trans.horizontalOverflow = HorizontalWrapMode.Wrap;
             _trans.verticalOverflow = VerticalWrapMode.Overflow;
@@ -770,10 +770,10 @@ namespace IMUNROK.Common
             slipRt.anchoredPosition = new Vector2(17f, -13f);
             slipRt.localRotation = Quaternion.Euler(0f, 0f, 0.8f);        // 손으로 붙인 것은 반듯하지 않다
             _slip = slipRt.gameObject.AddComponent<Image>();
-            _slip.color = new Color(0.90f, 0.86f, 0.75f, 0.97f);
+            _slip.color = UiLook.With(UiLook.Paper, 0.97f);
             _slip.raycastTarget = false;
             _slipText = NewText("이름", "", Vector2.zero, new Vector2(30f, 116f), slipRt, 15);
-            _slipText.color = new Color(0.13f, 0.10f, 0.08f);             // 먹
+            _slipText.color = UiLook.Ink;             // 먹
             _slipText.alignment = TextAnchor.UpperCenter;
             _slipText.lineSpacing = 0.86f;
 
@@ -781,7 +781,7 @@ namespace IMUNROK.Common
             // 뒤집힌 글씨가 비치는 종이는 세상에 없다. 뒤를 보는 동안만 덮는다.
             var backFaceRt = NewRect("뒷면", Vector2.zero, new Vector2(_pageSpan, _pageSpan), _hand);
             _backFace = backFaceRt.gameObject.AddComponent<Image>();
-            _backFace.color = new Color(0.93f, 0.90f, 0.82f);
+            _backFace.color = UiLook.Lit(UiLook.Paper, 0.30f);
             _backFace.raycastTarget = false;
             _backFace.enabled = false;
 
@@ -794,7 +794,7 @@ namespace IMUNROK.Common
             // 것이므로, 읽어낸 바는 종이 밖에 적는다.
             _fine = NewText("읽어낸것", "", new Vector2(0f, -_pageSpan * 0.62f - 64f),
                             new Vector2(780f, 78f), _chrome.transform, _fontSize - 6);
-            _fine.color = new Color(1f, 0.93f, 0.74f);
+            _fine.color = UiLook.Lit(UiLook.Gold, 0.40f);
             _fine.gameObject.SetActive(false);
 
             // 빛에 배어 나온 것 — 읽어낸 것과 같은 자리, 다른 빛깔. 불에 익은 글씨는
@@ -878,7 +878,7 @@ namespace IMUNROK.Common
         }
 
         /// <summary>한지 위에 적는 먹빛.</summary>
-        private static readonly Color _paperInk = new Color(0.14f, 0.10f, 0.07f);
+        private static Color _paperInk { get { return UiLook.Ink; } }
 
         private RectTransform NewRect(string name, Vector2 pos, Vector2 size, Transform parent)
         {

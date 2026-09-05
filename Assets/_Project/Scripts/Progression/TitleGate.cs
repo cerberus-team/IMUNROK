@@ -56,8 +56,8 @@ namespace IMUNROK.Common
         [SerializeField] private float _titleMinHeight = 0.22f;
         [SerializeField] private float _titleScale = 0.00072f;
         [SerializeField] private Font _font;
-        [SerializeField] private Color _titleColor = new Color(0.97f, 0.93f, 0.82f);
-        [SerializeField] private Color _subtitleColor = new Color(0.78f, 0.24f, 0.19f);
+        private Color _titleColor { get { return UiLook.Text; } }
+        private Color _subtitleColor { get { return UiLook.Lit(UiLook.Seal, 0.15f); } }
 
         [Header("차례(초)")]
         [Tooltip("소리만 있고 아무것도 없는 시간")]
@@ -564,7 +564,7 @@ namespace IMUNROK.Common
 
             // 어둠 위에 얹는 글씨라 획이 흐려 보인다. 뒤에 그림자를 한 겹 깔면 또렷해진다.
             var sh = go.AddComponent<Shadow>();
-            sh.effectColor = new Color(0f, 0f, 0f, 0.75f);
+            sh.effectColor = UiLook.With(UiLook.Shadow, 0.75f);
             sh.effectDistance = new Vector2(3f, -3f);
 
             var rt = go.GetComponent<RectTransform>();

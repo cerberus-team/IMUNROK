@@ -190,7 +190,7 @@ namespace IMUNROK.Common
                 txt.alignment = TextAnchor.MiddleCenter;
                 // 어둠 위의 글씨다. 순백은 눈을 찌르고, 붉은 것은 경고문으로 읽힌다 —
                 // 앞서 엔딩이 통째로 붉어 그 꼴이 났다. 한지빛으로 둔다.
-                txt.color = new Color(0.95f, 0.91f, 0.82f);
+                txt.color = UiLook.Text;
                 txt.horizontalOverflow = HorizontalWrapMode.Wrap;
                 txt.verticalOverflow = VerticalWrapMode.Overflow;
                 txt.text = _blocks[i];

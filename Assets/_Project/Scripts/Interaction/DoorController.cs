@@ -357,13 +357,43 @@ namespace IMUNROK.Common
         [Tooltip("한 번 칠 때 나는 소리. 비우면 소리 없이 울림만 온다")]
         [SerializeField] private AudioClip _knockOnce;
 
+        [Tooltip("세 번 칠 때 사이 간격(초). 너무 좁으면 한 소리로 뭉치고, " +
+                 "너무 벌어지면 세 번이 아니라 세 사람이 친 것처럼 들린다")]
+        [SerializeField] private float _knockGap = 0.26f;
+
         // <b>몇 번 쳤나를 세던 값들을 걷었다.</b> 세던 것은 손으로 직접 치는 길
         // (KnockByHand) 하나뿐이었고 그것이 없어졌다. 짚어 누르는 길은 한 번에
         // 세 번을 대신 쳐 주므로 셀 것이 없다.
-        //
-        // ⚠ <c>_knockOnce</c> 는 남겨 두었는데 <b>지금 아무도 울리지 않는다</b> —
-        //   한 번 칠 때마다 울리던 자리가 그 손에 있었다. 짚어 누를 때 울릴지는
-        //   따로 정할 일이라 여기서 마음대로 바꾸지 않는다.
+
+        /// <summary>
+        /// <b>똑·똑·똑</b> — 짚어 누른 한 번을 세 번의 소리로 낸다.
+        ///
+        /// 소리를 내던 자리가 <b>VR 손</b>에 있었다. 손이 한 번 칠 때마다 한 번씩
+        /// 울렸으니, 손을 걷어내자 잠긴 문이 <b>소리 없이</b> 열리게 되었다.
+        ///
+        /// 그렇다고 한 번만 울리면 안 된다. 짚어 누르는 길은 <b>한 번에 세 번을
+        /// 대신 쳐 주는</b> 길이고(위 OnSelect 참고), 세 번 쳤다면서 한 번 소리가
+        /// 나면 보는 것과 들리는 것이 어긋난다.
+        ///
+        /// <b>NoiseMeter 를 거친다.</b> 이 집에서 소리는 잠행과 얽혀 있다 — 문을
+        /// 여닫는 소리도 그리로 간다(<see cref="Creak"/>). 두드리는 소리만 곧장
+        /// 울리면 <b>아무도 못 듣는 소리</b>가 되어, 문 앞에서 마음껏 두드려도
+        /// 순라가 오지 않는다. 두드리는 것은 원래 <b>남 들으라고</b> 하는 짓이다.
+        ///
+        /// 높낮이를 세 번 다 흔든다 — 같은 파일을 세 번 그대로 틀면 소리가 아니라
+        /// <b>기계</b>로 들린다. 문 여닫는 소리가 이미 같은 까닭으로 흔들고 있다.
+        /// </summary>
+        private System.Collections.IEnumerator KnockAloud()
+        {
+            if (_knockOnce == null || _noise <= 0f) yield break;
+            Vector3 at = ModelBounds.TryGet(transform, out var b) ? b.center : transform.position;
+            for (int i = 0; i < 3; i++)
+            {
+                float pitch = 1f + Random.Range(-_pitchJitter, _pitchJitter);
+                NoiseMeter.Play(at, _knockOnce, _noise, "문 두드리는 소리", pitch, _soundStartAt, _soundSeconds);
+                if (i < 2) yield return new WaitForSeconds(Mathf.Max(0.05f, _knockGap));
+            }
+        }
 
         // ── ISelectable(짚어 누르기) ──
         public void OnHoverEnter() { }   // 나중에 하이라이트 붙일 자리
@@ -383,6 +413,7 @@ namespace IMUNROK.Common
                 // 광선으로 짚어 두드린 것. 한 번에 세 번을 대신 쳐 준다 —
                 // 헤드셋을 쓰던 때는 손이 직접 세 번 치는 길(KnockByHand)이 따로
                 // 있었는데 그 길을 걷어냈으므로, 이제 두드리는 길은 여기 하나뿐이다.
+                StartCoroutine(KnockAloud());
                 OnKnock?.Invoke();   // 두드리기 → 시퀀스가 받아 처리
                 return;
             }

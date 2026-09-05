@@ -126,7 +126,7 @@ namespace IMUNROK.Common
             // 고르는 창의 「처음부터」와 같은 낙관빛. 어전은 어두워서 검은 판을
             // 두면 있는지조차 잘 안 보인다.
             var img = bgGo.GetComponent<Image>();
-            img.color = new Color(0.58f, 0.10f, 0.09f);
+            img.color = UiLook.Seal;
 
             var btn = bgGo.GetComponent<Button>();
             btn.targetGraphic = img;
@@ -150,7 +150,7 @@ namespace IMUNROK.Common
             txt.font = UiFont.Resolve(null);
             txt.fontSize = 36;                       // 고르는 창의 단추 글씨와 같다
             txt.alignment = TextAnchor.MiddleCenter;
-            txt.color = new Color(0.98f, 0.94f, 0.86f);
+            txt.color = UiLook.Text;
             txt.raycastTarget = false;
             txt.horizontalOverflow = HorizontalWrapMode.Overflow;
             txt.verticalOverflow = VerticalWrapMode.Overflow;

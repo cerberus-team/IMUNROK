@@ -33,12 +33,12 @@ namespace IMUNROK.Common
                  "우리에게 없는 판은 부품째 받고, 있는 판은 <b>디자인만</b> 맞추기로 한 그 갈래다. " +
                  "자막 바는 물증 제시·자막 흐름과 얽혀 있어 통째로 못 갈아 끼운다")]
         [SerializeField] private bool _useCommonLook = true;
-        [SerializeField] private Color _panelColor = new Color(0.03f, 0.035f, 0.05f, 0.86f);
-        [SerializeField] private Color _nameplateColor = new Color(0.62f, 0.14f, 0.11f, 0.95f);
-        [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
-        [SerializeField] private Color _hintColor = new Color(1f, 0.85f, 0.5f, 0.75f);
+        [SerializeField] private Color _panelColor = UiLook.Panel;
+        [SerializeField] private Color _nameplateColor = UiLook.Seal;
+        [SerializeField] private Color _textColor = UiLook.Text;
+        [SerializeField] private Color _hintColor = UiLook.Dim;
         [Tooltip("새로 알아낸 것을 말할 때의 글빛. 수첩에 안 적히는 말이라 여기서 한 번 눈에 박혀야 한다")]
-        [SerializeField] private Color _keyColor = new Color(0.95f, 0.34f, 0.28f);
+        [SerializeField] private Color _keyColor = UiLook.Lit(UiLook.Seal, 0.35f);
 
         /// <summary>
         /// 꾸러미의 <b>결(무늬)</b>. 한지·나뭇결·칸을 코드로 그려 들고 있다.
@@ -451,7 +451,6 @@ namespace IMUNROK.Common
                 _textColor = pal.text;
                 _hintColor = pal.dim;
                 _nameplateColor = UiLook.Seal;   // 주칠
-                _lineFontSize = 46; _nameFontSize = 36; _hintFontSize = 34;
             }
 
             // ── 치수는 모드에 따라 갈린다 ──────────────
@@ -650,7 +649,7 @@ namespace IMUNROK.Common
             _field.characterLimit = 120;
             _field.customCaretColor = true;
             _field.caretColor = pal.slotText;     // 어두운 칸에서는 커서도 밝아야 보인다
-            _field.selectionColor = new Color(0.667f, 0.216f, 0.161f, 0.35f);
+            _field.selectionColor = UiLook.With(UiLook.Seal, 0.35f);
             _field.targetGraphic = slotBg;
             _field.transition = Selectable.Transition.None;
             x += slotW + gap;
@@ -768,7 +767,7 @@ namespace IMUNROK.Common
             var rt = NewRect(name, at, size, parent);
             var im = rt.gameObject.AddComponent<Image>();
             Skin(im, _skin.Wood_, back);
-            NewText("글", label, Vector2.zero, size, rt, fontSize, IMUNROK.Ui.DialogueUI.Palette().text);
+            NewText("글", label, Vector2.zero, size, rt, fontSize, UiLook.Text);
             var btn = rt.gameObject.AddComponent<Button>();
             btn.targetGraphic = im;
             btn.onClick.AddListener(() => { if (onClick != null) onClick(); });
@@ -815,7 +814,7 @@ namespace IMUNROK.Common
                 size, panel);
             // 이 딱지 색도 손으로 정하지 않는다. 꾸러미의 <b>글쇠 칸</b> 색을 쓴다 —
             // 저쪽에서 「눌러도 되는 자리」를 알리는 데 쓰는 색이라 뜻이 맞는다.
-            Skin(rt.gameObject.AddComponent<Image>(), _skin.Slot_, IMUNROK.Ui.DialogueUI.Palette().slotBack);
+            Skin(rt.gameObject.AddComponent<Image>(), _skin.Slot_, UiLook.Slot);
             NewText("글", "✕", Vector2.zero, size, rt, _hintFontSize, _hintColor);
 
             _closeTab = rt.gameObject.AddComponent<NoticeCloseTab>();

@@ -417,7 +417,7 @@ namespace IMUNROK.Common
                 txt.font = UiFont.Resolve(null);
                 txt.fontSize = 150;
                 txt.alignment = TextAnchor.MiddleCenter;
-                txt.color = new Color(0.96f, 0.93f, 0.86f);
+                txt.color = UiLook.Text;
                 txt.horizontalOverflow = HorizontalWrapMode.Overflow;
                 txt.verticalOverflow = VerticalWrapMode.Overflow;
                 txt.text = _titleText;
