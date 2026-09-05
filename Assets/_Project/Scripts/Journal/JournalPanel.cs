@@ -26,10 +26,6 @@ namespace IMUNROK.Common
         [SerializeField] private Font _font;
         [SerializeField] private int _titleFontSize = 34;
         [SerializeField] private int _clueFontSize = 26;
-        [Tooltip("켜면 색을 <b>꾸러미(IMUNROK.Ui)</b> 에서 받아 온다 — 견우팀 판과 결이 같아진다. " +
-                 "뜯어고칠 일이 아니었다: 꾸러미의 소지품 판도 <b>한지</b>다(InventorySkin 의 " +
-                 "색 한 벌이 한지·먹·주칠이다). 우리와 같은 결이라 값만 옮기면 된다")]
-        [SerializeField] private bool _useCommonLook = true;
         private Color _paperColor = UiLook.With(UiLook.Paper, 0.96f);
         private Color _inkColor = UiLook.Ink;
         private Color _cardColor = UiLook.With(UiLook.PaperDim, 0.45f);
