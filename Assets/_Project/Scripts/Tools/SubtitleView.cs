@@ -410,11 +410,20 @@ namespace IMUNROK.Common
         ///
         /// 셈을 그대로 돌려 보면 저쪽이 적어 둔 판 높이가 나온다 —
         /// PC 461 · VR 535. 같은 값이 나오면 베낀 것이 맞게 옮겨진 것이다.
+        ///
+        /// <b>다만 대사만은 42 에서 56 으로 키웠다.</b> 베낀 값을 그대로 두었더니
+        /// 화면에서 대사가 <b>화면 높이의 2.4%</b>(42÷1732)밖에 안 돼, 판은 널찍한데
+        /// 글씨만 작아 보였다. 56 이면 3.2% 다.
+        ///
+        /// 그러면 판 높이가 따라 늘어 <b>461 이 아니라 526</b> 이 된다 — 위의 「PC 461」
+        /// 은 이제 맞춰 볼 수 없는 수다. 베낀 것이 맞는지 재던 잣대를 잃는 셈이지만,
+        /// 읽히지 않는 자막보다는 낫다. 나머지 치수(이름 32 · 입력 28 · 안내 19)는
+        /// 저쪽 그대로 두었으니, 어긋난 것은 대사 한 줄뿐임을 여기 적어 둔다.
         /// </summary>
         private static BarStyle StyleNow()
         {
             return new BarStyle {
-                w = 2900f, line = 42, name = 32, input = 28, foot = 19, inputH = 62f,
+                w = 2900f, line = 56, name = 32, input = 28, foot = 19, inputH = 62f,
                 padX = 90f, padTop = 14f, nameToRule = 10f, ruleH = 3f, ruleToLine = 24f,
                 lineToInput = 34f, inputToFoot = 22f, footToEdge = 19f, footH = 24f };
         }

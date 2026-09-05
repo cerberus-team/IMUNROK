@@ -40,12 +40,17 @@ namespace IMUNROK.Common
         /// <summary>
         /// 가만히 있을 때의 진하기.
         ///
-        /// <b>또렷할수록 좋은 것이 아니다.</b> 이 단추는 연출을 보는 사람에게
-        /// 필요 없는 물건이다 — 있다는 것만 알면 되고, 눈이 자꾸 그리로 가면
-        /// 어명을 보라고 띄운 화면에서 넘기라고 조르는 꼴이 된다.
-        /// 겨누면 단추 제 빛깔이 밝아지므로(highlightedColor) 흐려도 안 놓친다.
+        /// 한동안 0.62 로 흐리게 두었다. 「이 단추는 연출을 보는 사람에게 필요 없는
+        /// 물건이니 있다는 것만 알면 된다」는 셈이었는데, 화면으로 보면 그 흐림이
+        /// <b>다른 색</b>으로 보인다 — 판은 이름패와 똑같은 주칠인데, 0.62 로 깔리면
+        /// 밝은 돌바닥이 비쳐 올라와 <b>연분홍</b>이 된다. 같은 색을 쓴 자리가 둘인데
+        /// 한쪽만 물 빠진 꼴이라, 한 벌로 모은 보람이 화면에서 도로 흩어졌다.
+        ///
+        /// 그래서 판을 그대로 세운다. 눈이 그리로 가는 것은 <b>자리</b>(귀퉁이)와
+        /// <b>배어 나오는 시간</b>(fadeIn)으로 눌러 두면 되지, 색을 물 타서 할 일이
+        /// 아니었다.
         /// </summary>
-        private const float Rest = 0.62f;
+        private const float Rest = 1f;
 
         /// <summary>눈에서 이만큼 앞(m). 표제 글씨와 같은 거리라 앞뒤로 다투지 않는다.</summary>
         private const float Distance = 0.85f;
@@ -123,10 +128,21 @@ namespace IMUNROK.Common
             brt.anchoredPosition = Vector2.zero;
             brt.sizeDelta = Size;
 
-            // 고르는 창의 「처음부터」와 같은 낙관빛. 어전은 어두워서 검은 판을
-            // 두면 있는지조차 잘 안 보인다.
+            // <b>자막의 이름패와 같은 깊이의 주칠.</b>
+            //
+            // 여태 <c>UiLook.Seal</c> 을 그대로 썼는데, 그러면 <b>같은 값인데 화면에서
+            // 딴 색으로 보인다</b>. 재 보면 이렇다 —
+            //   이 단추 : 화면에 (0.667, 0.220, 0.165) · 적어 둔 주칠 그대로
+            //   이름패 : 화면에 (0.184, 0.019, 0.006) · 훨씬 깊다
+            // 둘 다 <c>UiLook.Seal</c> 이고 알파도 1 인데 그렇다. 자막판이 제 그림들의
+            // 재질을 앞에 그리도록 갈아 끼우면서(<c>SubtitleView.DrawOnTop</c>) 색이 한 켜
+            // 더 가라앉는 듯한데, 그 뿌리는 여기서 손댈 자리가 아니다.
+            //
+            // 눈에 보이는 것을 맞춘다. 왕의 이름패가 이 게임의 주칠이 어떤 깊이인지
+            // 정해 놓았으니, 귀퉁이 단추가 거기 맞추는 것이 옳다 — 값이 같은 것보다
+            // <b>같아 보이는 것</b>이 색을 한 벌로 모은 까닭이었다.
             var img = bgGo.GetComponent<Image>();
-            img.color = UiLook.Seal;
+            img.color = UiLook.Deep(UiLook.Seal, 0.72f);
 
             var btn = bgGo.GetComponent<Button>();
             btn.targetGraphic = img;
@@ -148,7 +164,13 @@ namespace IMUNROK.Common
             trt.sizeDelta = Size;
             var txt = txtGo.GetComponent<Text>();
             txt.font = UiFont.Resolve(null);
-            txt.fontSize = 36;                       // 고르는 창의 단추 글씨와 같다
+            // <b>자막의 대사와 같은 크기로 맞춘다.</b> 캔버스가 서로 달라 숫자만으로는
+            // 견줄 수 없다 — 화면 높이에서 차지하는 몫으로 재야 한다.
+            //   자막  : 대사 56단위 ÷ 화면 1732단위 = 3.23%
+            //   여기  : 화면 반높이가 0.85m·화각 60°에서 520단위이므로 34 ÷ 1039 = 3.27%
+            // 36 이던 것은 3.46% 라 대사보다 도리어 컸다. 넘기라고 조르는 말이
+            // 왕의 말보다 큰 것은 앞뒤가 뒤집힌 것이다.
+            txt.fontSize = 34;
             txt.alignment = TextAnchor.MiddleCenter;
             txt.color = UiLook.Text;
             txt.raycastTarget = false;
