@@ -59,7 +59,7 @@ namespace IMUNROK.Common
         private RectTransform _panel;
         private Text _nameText, _lineText, _hintText;
         private RectTransform _nameplate;
-        private NoticeCloseTab _closeTab;
+        private GameObject _closeTab;
 
         /// <summary>
         /// <b>닫을 수 있는 자막인가.</b>
@@ -221,17 +221,10 @@ namespace IMUNROK.Common
             bool was = _group.alpha > 0.5f;
             _group.alpha = on ? 1f : 0f;
             _group.blocksRaycasts = on;
-            // 안 보이는 동안에는 닫기 표의 콜라이더도 꺼야 한다. 켜 둔 채로 두면
-            // 눈앞에 보이지 않는 판이 남아 뒤쪽 물건으로 가는 레이를 가로챈다.
-            if (_closeTab != null)
-            {
-                // <b>둘을 따로 꺼야 한다.</b> NoticeCloseTab.SetActive 는 짚는
-                // 콜라이더만 여닫는다 — 그것만 꺼 두면 <b>글씨는 그대로 남아</b>
-                // 「닫기 ✕」가 눌리지도 않으면서 화면에 붙어 있다.
-                // 엔딩에서 실제로 그렇게 됐다.
-                _closeTab.SetActive(on && Closable);
-                _closeTab.gameObject.SetActive(on && Closable);
-            }
+            // 딱지는 통째로 여닫는다. 콜라이더를 따로 여닫던 시절에는 그것만 꺼 두면
+            // <b>글씨가 그대로 남아</b> 눌리지도 않는 「✕」가 화면에 붙어 있었다
+            // (엔딩에서 실제로 그렇게 됐다). 이제 UI 단추 하나라 그럴 일이 없다.
+            if (_closeTab != null) _closeTab.SetActive(on && Closable);
             if (was && !on && byUser) OnClosed?.Invoke();
         }
 
@@ -776,8 +769,15 @@ namespace IMUNROK.Common
             Skin(rt.gameObject.AddComponent<Image>(), _skin.Slot_, UiLook.Slot);
             NewText("글", "✕", Vector2.zero, size, rt, _hintFontSize, _hintColor);
 
-            _closeTab = rt.gameObject.AddComponent<NoticeCloseTab>();
-            _closeTab.Bind(() => SetVisible(false, true), new Vector3(size.x, size.y, 8f));
+            // <b>UI 단추로 받는다.</b> 여태 이 딱지는 <see cref="NoticeCloseTab"/> 이었다 —
+            // 콜라이더를 달고 세상의 광선(<see cref="MouseRaySelector"/>)에 짚히는 물건.
+            // 판이 월드에 있을 때는 그것이 맞았지만, 화면에 붙인 뒤로는 콜라이더가
+            // <b>화면 픽셀 좌표를 세계 좌표로 들고</b> 엉뚱한 데 서 있게 된다.
+            // 화면에 그려지는 것은 화면의 손으로 받아야 한다.
+            var closeBtn = rt.gameObject.AddComponent<Button>();
+            closeBtn.targetGraphic = rt.GetComponent<Image>();
+            closeBtn.onClick.AddListener(() => SetVisible(false, true));
+            _closeTab = rt.gameObject;
             _closeTab.SetActive(false);
         }
 

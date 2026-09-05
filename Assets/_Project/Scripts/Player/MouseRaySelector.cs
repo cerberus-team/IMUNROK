@@ -48,6 +48,16 @@ namespace IMUNROK.Common
             // 한 손으로 두 가지를 할 수는 없다 — 먼저 내려놓아야(Esc) 방에 손이 간다.
             if (DocumentView.IsOpen) { ReleaseHold(); _current?.OnHoverExit(); _current = null; return; }
 
+            // <b>화면 판 위에서는 방을 짚지 않는다.</b>
+            //
+            // 자막의 「✕ 닫기」를 누르면 그 너머의 문이 열리고 있었다. 화면 UI 와 세상이
+            // 같은 누름 하나를 나눠 갖고 있었기 때문이다 — 이 프로젝트에서 손이 판 위에
+            // 있는지 묻는 데가 <b>한 곳도 없었다</b>.
+            //
+            // 가리키는 것까지 함께 끊는다. 판 뒤의 물건이 판 너머에서 밝아 있으면
+            // 「이건 눌러도 되나」가 흐려진다 — 덮인 것은 안 보이는 것이 맞다.
+            if (UiGuard.OverPanel) { ReleaseHold(); _current?.OnHoverExit(); _current = null; return; }
+
             Vector2 mousePos = mouse.position.ReadValue();
             Ray ray = _camera.ScreenPointToRay(mousePos);
 

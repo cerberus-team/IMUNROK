@@ -238,10 +238,8 @@ namespace IMUNROK.Common
             // 애초에 안내도 "물건을 눌러서" 가 아니라 <b>"눌러서 다음"</b> 이었다 —
             // 어디를 눌러도 넘어가는 것이 맞다.
 #if ENABLE_INPUT_SYSTEM
-            var mouse = UnityEngine.InputSystem.Mouse.current;
-            if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
+            if (!UiGuard.AnywherePressed) return;                        // 단추 위면 그 단추 몫이다
             if (Time.unscaledTime - _stepShownAt < StepGuard) return;   // 아직 읽는 중이다
-            if (PointerOnCloseTab()) return;                            // 그만두려는 손이다
             NextStep();
 #endif
         }
@@ -263,25 +261,10 @@ namespace IMUNROK.Common
             else if (_busy == this && !_awaiting && !_hefting) _busy = null;
         }
 
-        /// <summary>
-        /// 지금 가리키는 것이 자막의 <b>닫기 표</b>인가.
-        ///
-        /// 어디를 눌러도 넘어가게 해 두면 그만두는 길이 막힌다. 닫기 표만은
-        /// 넘기기로 세지 않고 제 일을 하게 둔다.
-        /// </summary>
-        private static bool PointerOnCloseTab()
-        {
-#if ENABLE_INPUT_SYSTEM
-            var cam = Camera.main;
-            var mouse = UnityEngine.InputSystem.Mouse.current;
-            if (cam == null || mouse == null) return false;
-            RaycastHit h;
-            if (!Physics.Raycast(cam.ScreenPointToRay(mouse.position.ReadValue()), out h, 8f)) return false;
-            return h.collider.GetComponentInParent<NoticeCloseTab>() != null;
-#else
-            return false;
-#endif
-        }
+        // <b>닫기 표를 손으로 찾던 것을 걷었다.</b> 세상의 광선을 쏘아 NoticeCloseTab 을
+        // 맞히는 방식이었는데, 자막판이 화면에 붙은 뒤로는 그 광선에 아무것도 안 맞는다.
+        // 「어디를 눌러도 넘어가되 단추만은 제 일을 하게 둔다」는 이 판단은 이제
+        // UiGuard.AnywherePressed 가 판마다 따로 짓지 않고 한 군데에서 내린다.
 
         // ── 손대기 ────────────────────────────────────
 
@@ -603,9 +586,7 @@ namespace IMUNROK.Common
             while (SubtitleView.IsShowing)
             {
 #if ENABLE_INPUT_SYSTEM
-                var mouse = UnityEngine.InputSystem.Mouse.current;
-                if (mouse != null && mouse.leftButton.wasPressedThisFrame
-                    && Time.unscaledTime - shown > StepGuard && !PointerOnCloseTab()) break;
+                if (UiGuard.AnywherePressed && Time.unscaledTime - shown > StepGuard) break;
 #endif
                 yield return null;
             }
@@ -680,9 +661,7 @@ namespace IMUNROK.Common
             while (true)
             {
 #if ENABLE_INPUT_SYSTEM
-                var mouse = UnityEngine.InputSystem.Mouse.current;
-                if (mouse != null && mouse.leftButton.wasPressedThisFrame
-                    && Time.unscaledTime - shown > StepGuard && !PointerOnCloseTab()) break;
+                if (UiGuard.AnywherePressed && Time.unscaledTime - shown > StepGuard) break;
 #endif
                 yield return null;
             }
@@ -734,9 +713,8 @@ namespace IMUNROK.Common
             while (SubtitleView.IsShowing)
             {
 #if ENABLE_INPUT_SYSTEM
-                var mouse = UnityEngine.InputSystem.Mouse.current;
-                if (mouse != null && mouse.leftButton.wasPressedThisFrame
-                    && Time.unscaledTime - shown > 0.5f) { SubtitleView.Hide(); break; }
+                if (UiGuard.AnywherePressed && Time.unscaledTime - shown > 0.5f)
+                { SubtitleView.Hide(); break; }
 #endif
                 yield return null;
             }

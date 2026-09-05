@@ -427,8 +427,9 @@ namespace IMUNROK.Common
             var kb = Keyboard.current;
             var mouse = Mouse.current;
             bool space = kb != null && kb.spaceKey.wasPressedThisFrame;
-            bool click = mouse != null && mouse.leftButton.wasPressedThisFrame;
-            return space || click;
+            // 단추 위에서는 안 센다 — 「튜토리얼 넘기기」를 눌렀는데 그것이 눌리는
+            // 동시에 대사가 한 줄 넘어가면, 한 번 누른 것이 두 걸음이 된다.
+            return space || UiGuard.AnywherePressed;
 #else
             return false;
 #endif
@@ -441,8 +442,7 @@ namespace IMUNROK.Common
             var kb = Keyboard.current;
             var mouse = Mouse.current;
             bool space = kb != null && kb.spaceKey.isPressed;
-            bool click = mouse != null && mouse.leftButton.isPressed;
-            return space || click;
+            return space || UiGuard.AnywhereHeld;
 #else
             return false;
 #endif

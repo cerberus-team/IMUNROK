@@ -478,7 +478,7 @@ namespace IMUNROK.Common
         {
 #if ENABLE_INPUT_SYSTEM
             var mouse = Mouse.current;
-            return mouse != null && mouse.leftButton.isPressed;
+            return UiGuard.AnywhereHeld;   // 단추 위에서는 안 센다(연출이 같이 건너뛰어진다)
 #else
             return false;
 #endif

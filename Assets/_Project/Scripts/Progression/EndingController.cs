@@ -251,7 +251,7 @@ namespace IMUNROK.Common
             var kb = Keyboard.current;
             var mouse = Mouse.current;
             bool space = kb != null && kb.spaceKey.wasPressedThisFrame;
-            bool click = mouse != null && mouse.leftButton.wasPressedThisFrame;
+            bool click = UiGuard.AnywherePressed;   // 단추 위에서는 안 센다
             return space || click;
 #else
             return false;
