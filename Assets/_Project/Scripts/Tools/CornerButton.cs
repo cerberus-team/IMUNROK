@@ -65,7 +65,7 @@ namespace IMUNROK.Common
         private const float Rest = 1f;
 
         /// <summary>단추에 적히는 글씨 크기(칸). 자막의 대사와 같아 보이도록 맞춘 값이다.</summary>
-        private const int FontSize = 34;
+        private const int FontSize = 56;
 
         /// <summary>자막의 이름패가 쓰는 것과 같은 나뭇결. 판마다 새로 그릴 것이 없어 한 벌만 든다.</summary>
         private static readonly IMUNROK.Ui.InventorySkin Skin = new IMUNROK.Ui.InventorySkin();
@@ -84,10 +84,14 @@ namespace IMUNROK.Common
         ///
         /// 거리가 0.85m 로 조금 가까우므로 그만큼 줄여야 <b>보이는 크기</b>가 같다.
         /// </summary>
-        private const float Scale = 0.001f * (Distance / 0.90f);
+        /// <summary>
+        /// <b>화면 높이를 1732단위로 치는 자막판의 자를 그대로 쓴다.</b>
+        /// 그래야 「대사와 같은 크기」가 곱셈 없이 같은 수로 적힌다.
+        /// </summary>
+        private const float RefH = 1732f;
 
         /// <summary>단추 한 장의 크기(칸). 고르는 창의 단추와 같다 — <b>가장 작을 때</b>다.</summary>
-        private static readonly Vector2 Size = new Vector2(280f, 84f);
+        private static readonly Vector2 Size = new Vector2(461f, 138f);
 
         /// <summary>
         /// 이 말을 담을 판의 크기. 한글 한 자를 글씨 크기만큼으로 치고 양옆에 한 자씩
@@ -100,8 +104,8 @@ namespace IMUNROK.Common
             return new Vector2(Mathf.Max(Size.x, (n + 2) * FontSize), Size.y);
         }
 
-        private Transform _eye;
-        private Camera _cam;
+        /// <summary>이제 안 쓴다 — 화면에 붙였으므로 거리가 없다. 셈의 내력으로 남긴다.</summary>
+
         private CanvasGroup _group;
         private Action _onPress;
         private bool _spent;
@@ -116,14 +120,12 @@ namespace IMUNROK.Common
             var cam = Camera.main;
             if (cam == null) return null;
 
-            var go = new GameObject("귀퉁이_단추", typeof(Canvas), typeof(CanvasGroup),
-                                    typeof(GraphicRaycaster), typeof(CornerButton));
+            var go = new GameObject("귀퉁이_단추", typeof(Canvas), typeof(CanvasScaler),
+                                    typeof(CanvasGroup), typeof(GraphicRaycaster), typeof(CornerButton));
             var cb = go.GetComponent<CornerButton>();
-            cb._eye = cam.transform;
-            cb._cam = cam;
             cb._onPress = onPress;
             cb._at = at ?? Corner;
-            cb.Build(label, cam);
+            cb.Build(label);
             cb.StartCoroutine(cb.FadeIn(fadeIn));
             _live = cb;
             return cb;
@@ -140,11 +142,23 @@ namespace IMUNROK.Common
         /// <summary>지금 서 있나.</summary>
         public static bool Up => _live != null;
 
-        private void Build(string label, Camera cam)
+        private void Build(string label)
         {
+            // <b>화면에 붙인다.</b> 여태 눈앞 0.85m 허공에 세우고 매 칸 화면 귀퉁이로
+            // 끌어다 놓았다 — 자리는 화면으로 잡으면서 판만 세상에 있던 셈이다.
+            // 그러느라 판이 기둥에 가리고, 색도 세상을 거쳐 나오느라 자막의 이름패와
+            // 어긋났다(민판 0.667 대 이름패 0.184). 화면에 붙이면 둘 다 없어진다.
             var canvas = GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.WorldSpace;
-            canvas.worldCamera = cam;                 // 없으면 마우스가 못 짚는다
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 100;                // 자막과 같은 켜
+
+            var scaler = GetComponent<CanvasScaler>();
+            if (scaler == null) scaler = gameObject.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(RefH * 16f / 9f, RefH);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 1f;
+
             _group = GetComponent<CanvasGroup>();
             _group.alpha = 0f;
 
@@ -155,13 +169,11 @@ namespace IMUNROK.Common
             var size = SizeFor(label);
 
             var rt = canvas.GetComponent<RectTransform>();
-            rt.sizeDelta = size;
-            rt.localScale = Vector3.one * Scale;
 
             var bgGo = new GameObject("판", typeof(Image), typeof(Button));
             var brt = bgGo.GetComponent<RectTransform>();
             brt.SetParent(rt, false);
-            brt.anchoredPosition = Vector2.zero;
+            brt.anchorMin = brt.anchorMax = brt.pivot = new Vector2(0.5f, 0.5f);
             brt.sizeDelta = size;
 
             // <b>왕의 이름패와 똑같이 세운다 — 나뭇결 위의 주칠.</b>
@@ -232,11 +244,7 @@ namespace IMUNROK.Common
             if (f != null) f();
         }
 
-        private void LateUpdate()
-        {
-            if (_cam == null || _eye == null) { Destroy(gameObject); return; }
-            Place();
-        }
+
 
         /// <summary>
         /// 화면 귀퉁이에 붙여 세운다.
@@ -252,8 +260,10 @@ namespace IMUNROK.Common
         /// </summary>
         private void Place()
         {
-            transform.position = _cam.ViewportToWorldPoint(new Vector3(_at.x, _at.y, Distance));
-            transform.rotation = _eye.rotation;
+            // 화면을 0~1 로 본 자리를 <b>가운데 기준 단위</b>로 옮긴다.
+            var rt = (RectTransform)transform.GetChild(0);
+            rt.anchoredPosition = new Vector2((_at.x - 0.5f) * RefH * 16f / 9f,
+                                              (_at.y - 0.5f) * RefH);
         }
 
         private IEnumerator FadeIn(float seconds)

@@ -55,7 +55,8 @@ namespace IMUNROK.Common
 
         private static SubtitleView _instance;
         private CanvasGroup _group;
-        private WorldHudAnchor _anchor;
+        /// <summary>바탕 판. 화면 아래에 눕히는 자리를 여기에 준다.</summary>
+        private RectTransform _panel;
         private Text _nameText, _lineText, _hintText;
         private RectTransform _nameplate;
         private NoticeCloseTab _closeTab;
@@ -94,8 +95,8 @@ namespace IMUNROK.Common
                     _instance = FindFirstObjectByType<SubtitleView>();
                     if (_instance == null)
                     {
-                        var go = new GameObject("VR_자막", typeof(Canvas));
-                        go.AddComponent<WorldHudAnchor>().Configure(WorldHudAnchor.Placement.Front);
+                        var go = new GameObject("자막", typeof(Canvas),
+                                                typeof(CanvasScaler), typeof(GraphicRaycaster));
                         _instance = go.AddComponent<SubtitleView>();
                     }
                 }
@@ -130,9 +131,11 @@ namespace IMUNROK.Common
             // 익히기는 물건이 떠오르기 <b>전에</b> 자리를 잡아 둔다 — 그 사이에는
             // _instance 가 없어서 여기서 조용히 돌아 나갔고, 그렇게 잡아 둔 자리는
             // 없던 일이 되었다. 아무 말도 안 나오니 고쳐도 그대로인 것처럼 보인다.
+            // <b>이제 아무 일도 하지 않는다.</b> 판이 화면에 붙었으므로 「눈에서 몇 m」가
+            // 없다. 부르는 자리(심문판·도구 익히기)를 다 고치는 대신 여기서 받아만 두는
+            // 까닭은, 저 자리들이 <b>무엇을 바라는지</b>가 이름에 남아 있어서다 —
+            // 「읽기 좋은 자리에 두어라」. 화면에서는 그 자리가 늘 같으므로 시킬 것이 없다.
             _wantDistance = distance; _wantDrop = verticalOffset; _hasWantDistance = true;
-            if (_instance == null || _instance._anchor == null) return;   // 없으면 만들지 않는다
-            _instance._anchor.SetDistance(distance, verticalOffset);
         }
 
         // 자막판이 생기기 전에 미리 시켜 둔 것들. 태어날 때 이대로 받아 든다.
@@ -149,10 +152,8 @@ namespace IMUNROK.Common
         /// </summary>
         public static void SetPinned(bool on)
         {
-            _wantPinned = on;                                             // 없어도 적어 둔다(위 참조)
-            if (_instance == null || _instance._anchor == null) return;
-            _instance._anchor.Pinned = on;
-            if (on) _instance._anchor.Recenter();
+            // 화면에 붙은 판은 <b>늘 붙박여 있다</b>. 시킬 것이 없어졌다(위 참조).
+            _wantPinned = on;
         }
 
         /// <summary>지금 자막이 떠 있는가(다른 UI가 겹치지 않게 참고).</summary>
@@ -162,11 +163,8 @@ namespace IMUNROK.Common
         /// </summary>
         public static void KeepInFrontOf(Transform target)
         {
-            // Instance 를 쓰면 안 된다 — 없을 때 새로 만들어 버린다.
-            // 심문이 끝날 때(OnDisable) 풀어주는데, 그 순간이 씬이 닫히는 중일 수 있다.
-            // 그러면 "닫는 중에 오브젝트가 새로 생겼다"고 유니티가 경고한다.
-            if (_instance == null || _instance._anchor == null) return;
-            _instance._anchor.KeepInFrontOf(target);
+            // 화면에 붙은 판은 <b>상대 몸에 가릴 수가 없다</b> — 세상보다 앞에 그려진다.
+            // 이 부탁이 막으려던 일 자체가 없어졌다.
         }
 
         public static bool IsShowing => _instance != null && _instance._group != null && _instance._group.alpha > 0.5f;
@@ -175,11 +173,7 @@ namespace IMUNROK.Common
         {
             if (_instance != null && _instance != this) { Destroy(gameObject); return; }
             _instance = this;
-            _anchor = GetComponent<WorldHudAnchor>();
-            if (_anchor == null) _anchor = gameObject.AddComponent<WorldHudAnchor>();
-            // 태어나기 전에 시켜 둔 것을 받아 든다
-            if (_hasWantDistance) _anchor.SetDistance(_wantDistance, _wantDrop);
-            _anchor.Pinned = _wantPinned;
+            SitOnScreen();
             Build();
             SetVisible(false);
         }
@@ -206,8 +200,6 @@ namespace IMUNROK.Common
             if (_inputRow != null) _inputRow.gameObject.SetActive(InterrogationController.AnyOpen);
 
             SetVisible(true);
-            // 숨겨져 있다가 다시 뜰 땐 눈앞으로 바로 가져온다(감쇠 때문에 옆에서 날아오지 않게)
-            if (wasHidden && _anchor != null) _anchor.Recenter();
         }
 
         /// <summary>
@@ -250,8 +242,6 @@ namespace IMUNROK.Common
         // 이제 <see cref="StyleNow"/> 가 적어 둔 값이 그대로 그려진다.
         private void Update()
         {
-            SitNow();
-            KeepOnTop();
             if (_group == null || _group.alpha < 0.5f) return;
             PaintHeard();
             TickConfirm();
@@ -357,51 +347,6 @@ namespace IMUNROK.Common
         /// 이것은 방에 놓인 물건이 아니라 <b>눈앞에 든 글</b>이므로 무엇에도 가리면
         /// 안 된다. 문서의 어둠판이 이미 같은 까닭으로 같은 일을 한다.
         /// </summary>
-        private static readonly int ZTestId = Shader.PropertyToID("unity_GUIZTestMode");
-
-        /// <summary>앞에 그리라고 갈아 끼운 재질들. 되돌려지는지 지켜보려고 들고 있는다.</summary>
-        private readonly List<Material> _onTop = new List<Material>();
-
-        private void DrawOnTop(Graphic g)
-        {
-            if (g == null) return;
-            var src = g.material != null ? g.material : g.defaultMaterial;
-            if (src == null) return;
-            var m = new Material(src) { name = src.name + "_앞에", hideFlags = HideFlags.HideAndDontSave };
-            m.SetInt(ZTestId, (int)UnityEngine.Rendering.CompareFunction.Always);
-            g.material = m;
-            _onTop.Add(m);
-        }
-
-        private void AllOnTop()
-        {
-            _onTop.Clear();
-            foreach (var g in GetComponentsInChildren<Graphic>(true)) DrawOnTop(g);
-        }
-
-        /// <summary>
-        /// <b>앞에 그리라는 말은 한 번으로 안 듣는다.</b>
-        ///
-        /// 이 바는 눈높이보다 아래에 눕는다 — 어전에서는 <b>바닥 밑</b>이다. 월드 캔버스도
-        /// 깊이 검사를 받으므로, 그냥 두면 전돌바닥이 바를 통째로 가린다.
-        /// 그래서 <see cref="DrawOnTop"/> 로 재질을 갈아 끼워 깊이 검사를 끈다.
-        ///
-        /// 그런데 그 값이 <b>도로 0 으로 돌아간다</b>. 재 보니 재질 이름은 「_앞에」인 채로
-        /// <c>unity_GUIZTestMode</c> 만 0 이었다 — 유니티가 캔버스를 다시 짤 때 제 값으로
-        /// 되돌려 놓는다. 그러면 바가 <b>아무 오류 없이 바닥 밑으로 사라진다</b>.
-        /// 실제로 그렇게 됐고, 판이 안 보이는데 <c>IsShowing</c> 은 참이라 한참을 헤맸다.
-        ///
-        /// 그래서 매 칸 살펴 되돌려 놓는다. 한 장만 보면 된다 — 되돌릴 때 통째로 되돌린다.
-        /// </summary>
-        private void KeepOnTop()
-        {
-            if (_onTop.Count == 0) return;
-            var probe = _onTop[0];
-            if (probe == null || probe.GetInt(ZTestId) == (int)UnityEngine.Rendering.CompareFunction.Always) return;
-            for (int i = 0; i < _onTop.Count; i++)
-                if (_onTop[i] != null)
-                    _onTop[i].SetInt(ZTestId, (int)UnityEngine.Rendering.CompareFunction.Always);
-        }
 
         /// <summary>
         /// <b>꾸러미 하단바의 치수 한 벌.</b> 이름과 뜻을 저쪽 <c>BottomStyle</c> 에서 그대로 가져왔다.
@@ -507,6 +452,7 @@ namespace IMUNROK.Common
             float w = st.w;
 
             var panel = NewRect("바탕", Vector2.zero, new Vector2(w, h), transform);
+            _panel = panel;
             panel.gameObject.AddComponent<Image>().color = _panelColor;
             Edge(panel, w, h, pal.border);
 
@@ -547,7 +493,9 @@ namespace IMUNROK.Common
 
             BuildCloseTab(panel, w, h, st);
             SitLikeTheBar(w, h);
-            AllOnTop();
+            // <b>앞에 그리라는 손질은 더 안 한다.</b> 화면에 붙인 판은 세상보다 뒤에
+            // 그려질 수가 없다. 재질을 스물두 장 복제해 깊이 검사를 끄던 일도,
+            // 그 값이 도로 0 으로 돌아가는지 매 칸 살피던 일도 함께 없어졌다.
         }
 
         /// <summary>
@@ -564,12 +512,11 @@ namespace IMUNROK.Common
         /// 화각을 60으로 못 박지 않고 <b>지금 카메라에서 뽑는다</b> — 60이 아닌 날에도 맞는다.
         /// </summary>
         private float _barH;
-        private float _sitFov = -1f;
 
         /// <summary>
         /// 캔버스 1단위 = 1mm. 저쪽과 같다.
         /// </summary>
-        private const float BarScale = 0.001f;
+        private const float BarScale = 0.001f;   // 월드에 세우던 시절의 값. 셈의 내력으로 남긴다
 
         /// <summary>
         /// <b>화면 반높이를 단위로 적은 것.</b> 1.5m 앞, 세로 화각 60°에서
@@ -581,47 +528,65 @@ namespace IMUNROK.Common
         /// </summary>
         private const float RefHalfHeight = 866f;
 
+        /// <summary>
+        /// <b>자막판을 월드에서 떼어 화면에 붙인다.</b>
+        ///
+        /// 이 판은 헤드셋 시절부터 눈앞 허공에 세워 두고 고개를 따라오게 했다.
+        /// 그러느라 치른 값이 셋이다 —
+        ///
+        ///   · <b>바닥 밑으로 사라진다.</b> 판이 눈높이보다 아래 눕는데 어전에서는
+        ///     그 자리가 바닥 밑이라, 깊이 검사를 끄지 않으면 전돌에 통째로 잠겼다.
+        ///     그 끈 값이 유니티에 도로 되돌려지는 함정까지 딸려 있었다.
+        ///   · <b>화각을 좇아야 했다.</b> 심문이 60°에서 42°로 당기면 같은 자리의 바가
+        ///     1.5배로 부풀어 양옆이 잘렸다. 그래서 매 칸 거리를 다시 재고 있었다.
+        ///   · <b>떠다닌다.</b> 고개를 돌리면 뒤따라 흔들린다.
+        ///
+        /// 셋 다 「화면에 적힌 말을 세상 속에 세워 둔」 데서 나온 것이고, 화면에 붙이면
+        /// 한꺼번에 없어진다. 헤드셋이 없는 지금 세상에 세워 둘 까닭도 없다.
+        ///
+        /// 치수는 그대로다. 이 판의 셈은 애초에 <b>화면 반높이를 866단위로 치는</b>
+        /// 것이었으므로(<see cref="RefHalfHeight"/>), 그 값을 기준 해상도로 넘기기만
+        /// 하면 폭 2900(=94%)도 아래 여백 46도 뜻을 지킨다.
+        /// </summary>
+        private void SitOnScreen()
+        {
+            var canvas = GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 100;           // 수첩(200)보다 아래. 수첩을 펴면 자막이 가린다
+
+            var old = GetComponent<WorldHudAnchor>();
+            if (old != null) Destroy(old);
+
+            var scaler = GetComponent<CanvasScaler>();
+            if (scaler == null) scaler = gameObject.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            float refH = RefHalfHeight * 2f;     // 1732 — 이 판의 셈이 늘 치던 화면 높이
+            scaler.referenceResolution = new Vector2(refH * 16f / 9f, refH);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 1f;      // 세로로 맞춘다
+
+            if (GetComponent<GraphicRaycaster>() == null) gameObject.AddComponent<GraphicRaycaster>();
+        }
+
         private void SitLikeTheBar(float w, float h)
         {
             _barH = h;
-            _sitFov = -1f;
-            // 넓고 아래에 눕는 판이라 <b>화면과 나란히</b> 서야 한다 — 눈을 마주 보게
-            // 눕히면 사다리꼴로 일그러진다(재 보니 좌우 귀퉁이가 화면에서 0.04 어긋났다).
-            if (_anchor != null) _anchor.SetScreenParallel(true);
-            SitNow();
+            // <b>화면 아래 끝에서 46단위 띄워 눕힌다.</b> 저쪽 셈 그대로다 —
+            // 화면 반높이를 866단위로 치므로, 중심 y = −(866 − 높이/2 − 46).
+            //
+            // 여태 이 값을 <b>거리</b>로 풀었다. 월드에 세운 판이라 화각이 바뀌면
+            // 화면에서 차지하는 몫이 달라져서, 화각을 좇아 판을 앞뒤로 옮겨야
+            // 그 몫이 지켜졌다(심문이 열리면 60°에서 42°로 당긴다). 화면에 붙인
+            // 뒤로는 그럴 일이 없다 — 화각은 화면 UI 를 건드리지 않는다.
+            if (_panel != null)
+                _panel.anchoredPosition = new Vector2(0f, -(RefHalfHeight - h * 0.5f - 46f));
         }
 
-        /// <summary>
-        /// <b>바가 앉는 자리를 매 칸 다시 잡는다.</b>
-        ///
-        /// 여태는 <see cref="Build"/> 에서 <b>한 번만</b> 쟀다. 그 순간의 화각으로 재고
-        /// 끝냈으니, 화각이 그대로인 동안에는 맞았다.
-        ///
-        /// 그런데 이 게임은 <b>심문이 열리면 화각을 좁힌다</b> —
-        /// <see cref="ConversationView"/> 가 60°에서 42°로 당긴다(인물에 초점을 준다).
-        /// 화각이 좁아지면 화면이 확대되는 것이라, 같은 자리에 선 바가 <b>1.5배로 부푼다</b>.
-        /// 재 보니 화면 폭의 94%였던 것이 <b>141%</b>가 되어 양옆이 잘려 나갔다.
-        /// 「자막이 너무 크다」와 「인물에 너무 당겨진다」가 <b>같은 하나였다</b>.
-        ///
-        /// 그래서 화각을 좇는다. 화면 높이를 늘 <see cref="RefHalfHeight"/>×2 단위로 치고
-        /// 그렇게 되는 거리에 바를 세우면, 당기든 물러나든 <b>화면에서 차지하는 자리가
-        /// 그대로</b>다. 42°에서는 1.5m 가 아니라 2.26m 에 선다.
-        ///
-        /// </summary>
-        private void SitNow()
-        {
-            if (!_useCommonLook || _anchor == null || _barH <= 0f) return;
-            var cam = Camera.main;
-            if (cam == null) return;
+        // <b>SitNow 를 걷었다.</b> 화각을 좇아 바를 앞뒤로 옮기던 자리다 —
+        // 심문이 60°에서 42°로 당기면 같은 자리의 바가 1.5배로 부풀어(폭 94% → 141%)
+        // 양옆이 잘려 나갔고, 그것을 거리로 되받고 있었다. 화면에 붙인 판은 화각이
+        // 어떻든 차지하는 몫이 그대로라, 좇을 것이 없어졌다.
 
-            float fov = cam.fieldOfView;
-            if (Mathf.Abs(fov - _sitFov) < 0.05f) return;       // 안 바뀌었으면 손대지 않는다
-            _sitFov = fov;
-
-            float dist = RefHalfHeight * BarScale / Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad);
-            float y = -(RefHalfHeight - _barH * 0.5f - 46f);    // 아래 끝에서 46단위 — 이건 안 변한다
-            _anchor.SetDistance(dist, y * BarScale);
-        }
 
         private RectTransform _inputRow;
         private Text _heardText, _heardHint;
