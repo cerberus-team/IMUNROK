@@ -410,6 +410,7 @@ namespace IMUNROK.Common
 
             float dur = Mathf.Max(0.05f, seconds);
             float t = 0f;
+            bool eyesClosing = false;
             while (t < 1f)
             {
                 t += Time.deltaTime / dur;
@@ -417,6 +418,20 @@ namespace IMUNROK.Common
 
                 // 끝에서 빨라진다 — 다가오는 것은 가까울수록 빨리 커진다
                 float e = k * k * k;
+
+                // <b>다가오는 동안 눈이 감긴다.</b>
+                //
+                // 종이만 끌어다 붙이면 <b>얼굴에 부딪히는</b> 것이 된다 — 아무 예고 없이
+                // 커지기만 하다가 씬이 바뀌니, 덮은 것이 아니라 들이받은 꼴이었다.
+                // 덮는다는 것은 시야가 <b>닫힌다</b>는 뜻이고, 닫히는 것은 어두워지는 것이다.
+                //
+                // 절반쯤 왔을 때부터 어두워지기 시작해 종이가 눈앞에 닿을 때 다 감긴다.
+                // 처음부터 어둡게 하면 무엇이 다가오는지 못 보고, 끝에만 하면 급하다.
+                if (!eyesClosing && k >= 0.45f)
+                {
+                    eyesClosing = true;
+                    ScreenFade.To(1f, dur * 0.55f);
+                }
 
                 // 눈 바로 앞. 카메라의 앞 자름면보다 조금 앞이라야 잘리지 않는다.
                 float near = Mathf.Max(cam.nearClipPlane + 0.02f, 0.055f);

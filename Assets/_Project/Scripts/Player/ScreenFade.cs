@@ -77,6 +77,38 @@ namespace IMUNROK.Common
         /// <summary>목표 어둡기(0=밝음, 1=완전 검정)로 서서히 바꾼다.</summary>
         public static void To(float target, float duration) => Instance.StartTo(target, duration);
 
+        /// <summary>
+        /// <b>검은 화면에서 씬이 다 읽히기를 기다렸다가 들여보내고, 눈을 뜬다.</b>
+        ///
+        /// <c>SceneManager.LoadScene</c> 은 동기라 부르는 순간 화면이 그 자리에서 굳는다.
+        /// 재 보니 에디터에서 서천 1.72초 · 옹고집 1.15초였다 — 덮으러 다가오던 것이
+        /// <b>얼굴 앞에서 얼어붙는다</b>. 연출이 끝나는 바로 그 순간에 멎기 때문이다.
+        ///
+        /// 그래서 미리(<c>LoadSceneAsync</c> + <c>allowSceneActivation = false</c>) 읽어
+        /// 두고 이것을 부른다. 읽는 일은 덮는 연출 뒤에서 돌고, 다 읽혔을 때 들여보낸다.
+        /// 아직 덜 읽혔으면 <b>검은 화면에서</b> 기다린다 — 기다림은 어둠 속이라야 한다.
+        ///
+        /// 이 판은 씬을 넘어 살아남으므로(DontDestroyOnLoad) 새 씬에서 눈뜨는 일까지
+        /// 여기서 마칠 수 있다. 부르는 쪽은 씬과 함께 사라지니 거기 맡길 수 없다.
+        /// </summary>
+        public static void EnterWhenReady(AsyncOperation op, float openSeconds = 0.9f)
+        {
+            Instance.StartCoroutine(Instance.EnterRoutine(op, openSeconds));
+        }
+
+        private IEnumerator EnterRoutine(AsyncOperation op, float openSeconds)
+        {
+            // 0.9 에서 멎는다 — 들여보내라고 하기 전까지 유니티가 더 올리지 않는다.
+            while (op != null && !op.isDone && op.progress < 0.9f) yield return null;
+            if (op != null) op.allowSceneActivation = true;
+
+            // 새 씬이 첫 칸을 돌 때까지 어둠을 붙들고 있는다. 한 칸으로 모자랄 때가
+            // 있어 둘을 센다 — 눈뜬 첫 그림에 아직 안 선 것이 비치면 그게 더 눈에 띈다.
+            yield return null;
+            yield return null;
+            StartTo(0f, openSeconds);
+        }
+
         private void Awake()
         {
             if (_instance != null && _instance != this) { Destroy(gameObject); return; }

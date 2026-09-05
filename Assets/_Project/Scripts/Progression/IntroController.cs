@@ -70,8 +70,10 @@ namespace IMUNROK.Common
         [Tooltip("받은 뒤 조사청으로 넘어가기까지(초)")]
         [SerializeField] private float _leaveAfter = 1.8f;
         [Header("어디로 가는지")]
-        [Tooltip("봉서를 맡은 뒤, 눈을 감기 직전에 한 마디. 비우면 안 뜬다")]
-        [SerializeField] private string _goingLine = "조사청으로 든다.";
+        [Tooltip("봉서를 맡은 뒤, 눈을 감기 직전에 한 마디. 비우면 안 뜬다. " +
+                 "<b>갈 곳을 밝히지 않는다</b> — 봉서마다 가는 데가 다르므로 여기서 " +
+                 "한 곳을 대면 셋 중 둘에게 거짓말이 된다")]
+        [SerializeField] private string _goingLine = "길을 나선다.";
         [SerializeField] private string _goingSpeaker = "";
         [Tooltip("그 한 마디를 읽을 틈(초). 떠나는 시간이 그만큼 늘어난다")]
         [SerializeField] private float _goingHold = 1.6f;
@@ -383,7 +385,13 @@ namespace IMUNROK.Common
 
             if (taken != null && _coverSeconds > 0.01f)
             {
-                taken.CoverScreen(_coverSeconds, () => SceneManager.LoadScene(go));
+                // <b>덮는 동안 뒤에서 읽는다.</b> 동기로 읽으면 연출이 끝나는 바로 그
+                // 순간에 화면이 굳는다 — 재 보니 서천 1.72초 · 옹고집 1.15초였다.
+                // 종이가 눈앞에 닿은 채로 그만큼 얼어붙으니 덮은 것이 아니라 멈춘 것이
+                // 됐다. 미리 읽어 두면 그 멎음이 <b>연출 뒤로 숨는다</b>.
+                var op = SceneManager.LoadSceneAsync(go);
+                op.allowSceneActivation = false;
+                taken.CoverScreen(_coverSeconds, () => ScreenFade.EnterWhenReady(op));
                 return;
             }
 
