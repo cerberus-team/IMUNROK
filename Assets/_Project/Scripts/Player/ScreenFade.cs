@@ -91,12 +91,12 @@ namespace IMUNROK.Common
         /// 이 판은 씬을 넘어 살아남으므로(DontDestroyOnLoad) 새 씬에서 눈뜨는 일까지
         /// 여기서 마칠 수 있다. 부르는 쪽은 씬과 함께 사라지니 거기 맡길 수 없다.
         /// </summary>
-        public static void EnterWhenReady(AsyncOperation op, float openSeconds = 0.9f)
+        public static void EnterWhenReady(AsyncOperation op, float openSeconds = 0.9f, float blackHold = 0.4f)
         {
-            Instance.StartCoroutine(Instance.EnterRoutine(op, openSeconds));
+            Instance.StartCoroutine(Instance.EnterRoutine(op, openSeconds, blackHold));
         }
 
-        private IEnumerator EnterRoutine(AsyncOperation op, float openSeconds)
+        private IEnumerator EnterRoutine(AsyncOperation op, float openSeconds, float blackHold)
         {
             // 0.9 에서 멎는다 — 들여보내라고 하기 전까지 유니티가 더 올리지 않는다.
             while (op != null && !op.isDone && op.progress < 0.9f) yield return null;
@@ -106,6 +106,13 @@ namespace IMUNROK.Common
             // 있어 둘을 센다 — 눈뜬 첫 그림에 아직 안 선 것이 비치면 그게 더 눈에 띈다.
             yield return null;
             yield return null;
+
+            // <b>검은 채로 한 박자 둔다.</b> 다 읽히자마자 곧바로 눈을 뜨면 어두워진 것이
+            // <b>깜빡임</b>으로 지나가 버려서, 옮겨 간 것이 아니라 화면이 튄 것이 된다.
+            // 눈을 감았다는 것이 한 번은 느껴져야 뜨는 것도 느껴진다.
+            float held = 0f;
+            while (held < blackHold) { held += Time.unscaledDeltaTime; yield return null; }
+
             StartTo(0f, openSeconds);
         }
 

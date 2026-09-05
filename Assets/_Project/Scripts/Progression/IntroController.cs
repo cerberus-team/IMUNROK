@@ -320,8 +320,14 @@ namespace IMUNROK.Common
             // 어디로 가는지 한 마디. 여태 여기서 곧장 캄캄해졌다 낯선 마당에서
             // 떴는데, 그러면 화면이 <b>바뀐 것</b>이지 <b>간 것</b>이 아니다.
             // 갈 곳을 듣고 나서 눈을 감아야 옮겨 간 것이 된다.
+            //
+            // <b>받는 말이 다 읽히고 나서</b> 다음 말을 얹는다. 여태 <c>_leaveAfter</c> 의
+            // 0.55 배(=0.99초) 만에 갈아치웠는데, 「…삼가 받잡겠나이다.」는 열 자다 —
+            // 눈이 닿기도 전에 다른 말로 바뀌니 <b>한 번 깜빡이고 만</b> 꼴이었다.
+            // 이제 그 값을 그대로 쓴다(1.8초). 떠나는 때는 그만큼 뒤로 밀리지 않는다 —
+            // 어차피 <c>_goingHold</c> 를 더해 세기 때문이다.
             if (!string.IsNullOrEmpty(_goingLine))
-                Invoke(nameof(SayGoing), Mathf.Max(0.1f, _leaveAfter) * 0.55f);
+                Invoke(nameof(SayGoing), Mathf.Max(0.1f, _leaveAfter));
 
             Invoke(nameof(LeaveForHub), Mathf.Max(0.1f, _leaveAfter) + _goingHold);
         }

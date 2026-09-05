@@ -480,7 +480,14 @@ namespace IMUNROK.Common
             var pal = IMUNROK.Ui.DialogueUI.Palette();
             if (_useCommonLook)
             {
-                _panelColor = pal.back;          // 먹빛 65%
+                // <b>먹빛은 저쪽 것을 쓰되 진하기만 올린다.</b>
+                //
+                // 꾸러미 바는 알파 0.65 다. 저쪽 화면에서는 그것이 맞는데, 어전은
+                // <b>밝은 전돌바닥</b> 위에 바가 눕는다 — 0.65 면 돌 무늬가 글씨 사이로
+                // 그대로 올라와 어디까지가 판이고 어디부터가 바닥인지 알 수 없다.
+                // 빛깔은 저쪽 것 그대로 두고 진하기만 올린다. 색을 한 벌로 모은 것은
+                // 지키면서 읽히기는 하는 자리를 찾는 셈이다.
+                _panelColor = UiLook.With(pal.back, 0.88f);
                 _textColor = pal.text;
                 _hintColor = pal.dim;
                 _nameplateColor = UiLook.Seal;   // 주칠
