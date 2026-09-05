@@ -72,6 +72,8 @@ namespace IMUNROK.Common
         private Image _edge;
         private Image _backdrop;     // 수첩에서 볼 때 뒤를 덮는 어둠
         private Image _backFace;     // 종이 뒷면 — 뒤집었을 때 글씨가 비치지 않게
+        private RawImage _backArt;   // 뒤에 새겨진 것(있으면)
+        private bool _hasBackArt;
         private Image _transPlate;   // 옮긴 글이 앉는 바탕 — 종이 위에 한 켜
         private Text _trans;         // 옮긴 글 — 한자 위에 얹히는 우리말
         private Image _slip;         // 종이에 붙은 표제 쪽지
@@ -129,7 +131,7 @@ namespace IMUNROK.Common
         public static void Show(Texture page, string title, string body,
                                 string finePrint = null, System.Action onRead = null, bool dim = false,
                                 Texture litPage = null, string litPrint = null, System.Action onLit = null,
-                                string litGlyphs = null)
+                                string litGlyphs = null, Texture backPage = null)
         {
             if (_instance == null)
             {
@@ -143,7 +145,7 @@ namespace IMUNROK.Common
             }
             // 읽는 자리는 하나뿐이다. 수첩이나 개요가 펴져 있으면 그쪽이 닫힌다.
             ReadingFocus.Claim(ReadingFocus.Panel.Document, Hide);
-            _instance.ShowInternal(page, title, body, finePrint, onRead, dim, litPage, litPrint, onLit, litGlyphs);
+            _instance.ShowInternal(page, title, body, finePrint, onRead, dim, litPage, litPrint, onLit, litGlyphs, backPage);
         }
 
         /// <summary>
@@ -354,8 +356,15 @@ namespace IMUNROK.Common
         private void ShowInternal(Texture page, string title, string body,
                                   string finePrint, System.Action onRead, bool dim,
                                   Texture litPage, string litPrint, System.Action onLit,
-                                  string litGlyphs)
+                                  string litGlyphs, Texture backPage)
         {
+            // 뒤에 새겨진 것이 있으면 뒷면에 얹는다. 없으면 예전처럼 민면이다.
+            if (_backArt != null)
+            {
+                _backArt.texture = backPage;
+                _backArt.enabled = false;          // 켜고 끄는 것은 뒤를 볼 때 정한다
+            }
+            _hasBackArt = backPage != null;
             // 수첩에서 꺼내 든 것은 <b>어둠 위에</b> 놓는다. 방을 보며 조사하는 중이 아니라
             // 앉아서 물건 하나를 뜯어보는 중이므로, 둘레가 비면 그 하나에만 눈이 간다.
             // 방에서 곧바로 짚은 것에는 어둠을 깔지 않는다 — 그때는 방도 함께 봐야 한다.
@@ -593,6 +602,8 @@ namespace IMUNROK.Common
                 bool seeingBack = cam != null &&
                     Vector3.Dot(_pageRt.forward, _pageRt.position - cam.transform.position) < 0f;
                 if (_backFace.enabled != seeingBack) _backFace.enabled = seeingBack;
+                bool showArt = seeingBack && _hasBackArt;
+                if (_backArt != null && _backArt.enabled != showArt) _backArt.enabled = showArt;
             }
 
             _sinceRead += Time.deltaTime;
@@ -779,11 +790,24 @@ namespace IMUNROK.Common
 
             // 종이 뒷면. UI는 앞뒤가 없어서 돌려 보면 글씨가 그대로 비쳐 보인다 —
             // 뒤집힌 글씨가 비치는 종이는 세상에 없다. 뒤를 보는 동안만 덮는다.
+            //
+            // <b>덮는 것이 곧 뒷면이다.</b> 여태 이 판은 한지빛 민면이었고, 앞글씨를
+            // 가리는 것이 하는 일의 전부였다. 그런데 뒤에 <b>새겨진 것이 있는</b> 종이가
+            // 있다 — 맞은편 백지에 눌린 자국, 재에 닿아 그을린 쪽, 배접과 수결.
+            // 그런 것을 받을 자리를 낸다. 안 주면 예전처럼 민면이다.
             var backFaceRt = NewRect("뒷면", Vector2.zero, new Vector2(_pageSpan, _pageSpan), _hand);
             _backFace = backFaceRt.gameObject.AddComponent<Image>();
             _backFace.color = UiLook.Lit(UiLook.Paper, 0.30f);
             _backFace.raycastTarget = false;
             _backFace.enabled = false;
+
+            // 뒤에 새겨진 것. 뒷면 판 위에 얹되 <b>좌우를 뒤집어</b> 그린다 —
+            // 종이를 넘긴 것이므로 뒷그림도 넘긴 대로 서야 한다.
+            var backArtRt = NewRect("뒷그림", Vector2.zero, new Vector2(_pageSpan, _pageSpan), backFaceRt);
+            backArtRt.localScale = new Vector3(-1f, 1f, 1f);
+            _backArt = backArtRt.gameObject.AddComponent<RawImage>();
+            _backArt.raycastTarget = false;
+            _backArt.enabled = false;
 
             // 읽어낸 것 — 종이 <b>아래</b>에 뜬다. 종이 위에는 아무것도 덧그리지 않는다.
             //

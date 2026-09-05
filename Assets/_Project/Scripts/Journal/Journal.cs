@@ -175,6 +175,7 @@ namespace IMUNROK.Common
             public string title;
             public string body;
             public string fine;    // 돋보기로만 읽히는 잔글씨
+            public Texture2D back;  // 뒤에 새겨진 것 — 뒤집어야 나온다
         }
 
         private readonly Dictionary<string, ClueDocument> _clueDocs = new Dictionary<string, ClueDocument>();
@@ -186,11 +187,12 @@ namespace IMUNROK.Common
         /// 심문 도중 "그 장부에 뭐라 적혀 있었더라" 하고 되짚을 때 방으로 돌아갈 수는 없다.
         /// </summary>
         public void AttachDocument(CaseId caseId, string key, Texture2D page,
-                                   string title, string body, string fine = null)
+                                   string title, string body, string fine = null,
+                                   Texture2D back = null)
         {
             if (page == null || string.IsNullOrEmpty(key)) return;
             _clueDocs[ImgKey(caseId, key)] = new ClueDocument
-            { page = page, title = title, body = body, fine = fine };
+            { page = page, title = title, body = body, fine = fine, back = back };
         }
 
         /// <summary>이 단서에 딸린 문서(없으면 null).</summary>
