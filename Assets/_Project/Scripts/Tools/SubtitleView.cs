@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -250,6 +251,7 @@ namespace IMUNROK.Common
         private void Update()
         {
             SitNow();
+            KeepOnTop();
             if (_group == null || _group.alpha < 0.5f) return;
             PaintHeard();
             TickConfirm();
@@ -355,19 +357,50 @@ namespace IMUNROK.Common
         /// 이것은 방에 놓인 물건이 아니라 <b>눈앞에 든 글</b>이므로 무엇에도 가리면
         /// 안 된다. 문서의 어둠판이 이미 같은 까닭으로 같은 일을 한다.
         /// </summary>
+        private static readonly int ZTestId = Shader.PropertyToID("unity_GUIZTestMode");
+
+        /// <summary>앞에 그리라고 갈아 끼운 재질들. 되돌려지는지 지켜보려고 들고 있는다.</summary>
+        private readonly List<Material> _onTop = new List<Material>();
+
         private void DrawOnTop(Graphic g)
         {
             if (g == null) return;
             var src = g.material != null ? g.material : g.defaultMaterial;
             if (src == null) return;
             var m = new Material(src) { name = src.name + "_앞에", hideFlags = HideFlags.HideAndDontSave };
-            m.SetInt("unity_GUIZTestMode", (int)UnityEngine.Rendering.CompareFunction.Always);
+            m.SetInt(ZTestId, (int)UnityEngine.Rendering.CompareFunction.Always);
             g.material = m;
+            _onTop.Add(m);
         }
 
         private void AllOnTop()
         {
+            _onTop.Clear();
             foreach (var g in GetComponentsInChildren<Graphic>(true)) DrawOnTop(g);
+        }
+
+        /// <summary>
+        /// <b>앞에 그리라는 말은 한 번으로 안 듣는다.</b>
+        ///
+        /// 이 바는 눈높이보다 아래에 눕는다 — 어전에서는 <b>바닥 밑</b>이다. 월드 캔버스도
+        /// 깊이 검사를 받으므로, 그냥 두면 전돌바닥이 바를 통째로 가린다.
+        /// 그래서 <see cref="DrawOnTop"/> 로 재질을 갈아 끼워 깊이 검사를 끈다.
+        ///
+        /// 그런데 그 값이 <b>도로 0 으로 돌아간다</b>. 재 보니 재질 이름은 「_앞에」인 채로
+        /// <c>unity_GUIZTestMode</c> 만 0 이었다 — 유니티가 캔버스를 다시 짤 때 제 값으로
+        /// 되돌려 놓는다. 그러면 바가 <b>아무 오류 없이 바닥 밑으로 사라진다</b>.
+        /// 실제로 그렇게 됐고, 판이 안 보이는데 <c>IsShowing</c> 은 참이라 한참을 헤맸다.
+        ///
+        /// 그래서 매 칸 살펴 되돌려 놓는다. 한 장만 보면 된다 — 되돌릴 때 통째로 되돌린다.
+        /// </summary>
+        private void KeepOnTop()
+        {
+            if (_onTop.Count == 0) return;
+            var probe = _onTop[0];
+            if (probe == null || probe.GetInt(ZTestId) == (int)UnityEngine.Rendering.CompareFunction.Always) return;
+            for (int i = 0; i < _onTop.Count; i++)
+                if (_onTop[i] != null)
+                    _onTop[i].SetInt(ZTestId, (int)UnityEngine.Rendering.CompareFunction.Always);
         }
 
         /// <summary>
@@ -411,19 +444,21 @@ namespace IMUNROK.Common
         /// 셈을 그대로 돌려 보면 저쪽이 적어 둔 판 높이가 나온다 —
         /// PC 461 · VR 535. 같은 값이 나오면 베낀 것이 맞게 옮겨진 것이다.
         ///
-        /// <b>다만 대사만은 42 에서 56 으로 키웠다.</b> 베낀 값을 그대로 두었더니
-        /// 화면에서 대사가 <b>화면 높이의 2.4%</b>(42÷1732)밖에 안 돼, 판은 널찍한데
-        /// 글씨만 작아 보였다. 56 이면 3.2% 다.
+        /// <b>다만 대사와 이름은 키웠다</b> — 대사 42→56, 이름 32→56. 베낀 값을 그대로
+        /// 두었더니 화면에서 대사가 <b>화면 높이의 2.4%</b>(42÷1732)밖에 안 돼, 판은
+        /// 널찍한데 글씨만 작아 보였다. 56 이면 3.2% 다. 이름패도 대사와 같은 크기로
+        /// 두어, 누가 말하는지가 그 말과 같은 무게로 읽히게 한다
+        /// (이름패 너비는 <c>st.name * 7</c> 이라 220 에서 392 로 따라 넓어진다).
         ///
-        /// 그러면 판 높이가 따라 늘어 <b>461 이 아니라 526</b> 이 된다 — 위의 「PC 461」
+        /// 그러면 판 높이가 따라 늘어 <b>461 이 아니라 550</b> 이 된다 — 위의 「PC 461」
         /// 은 이제 맞춰 볼 수 없는 수다. 베낀 것이 맞는지 재던 잣대를 잃는 셈이지만,
         /// 읽히지 않는 자막보다는 낫다. 나머지 치수(이름 32 · 입력 28 · 안내 19)는
-        /// 저쪽 그대로 두었으니, 어긋난 것은 대사 한 줄뿐임을 여기 적어 둔다.
+        /// 저쪽 그대로 두었으니, 어긋난 것은 대사와 이름 둘뿐임을 여기 적어 둔다.
         /// </summary>
         private static BarStyle StyleNow()
         {
             return new BarStyle {
-                w = 2900f, line = 56, name = 32, input = 28, foot = 19, inputH = 62f,
+                w = 2900f, line = 56, name = 56, input = 28, foot = 19, inputH = 62f,
                 padX = 90f, padTop = 14f, nameToRule = 10f, ruleH = 3f, ruleToLine = 24f,
                 lineToInput = 34f, inputToFoot = 22f, footToEdge = 19f, footH = 24f };
         }
