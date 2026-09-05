@@ -34,8 +34,20 @@ namespace IMUNROK.Common
         /// <summary>지금 서 있는 단추. 한 번에 하나만 둔다 — 귀퉁이는 하나다.</summary>
         private static CornerButton _live;
 
-        /// <summary>화면을 0~1 로 본 자리. 오른쪽 <b>위</b>.</summary>
-        private static readonly Vector2 At = new Vector2(0.82f, 0.89f);
+        /// <summary>화면을 0~1 로 본 자리. 여느 때는 오른쪽 <b>위</b>다.</summary>
+        public static readonly Vector2 Corner = new Vector2(0.82f, 0.89f);
+
+        /// <summary>
+        /// 아래 <b>가운데</b>. 연출을 넘기는 단추가 아니라 <b>고르는 단추</b>가 설 자리다.
+        ///
+        /// 귀퉁이는 「지금 보고 있는 것에서 빠져나가는 길」의 자리라 눈이 잘 안 간다.
+        /// 봉서 셋을 놓고 「어느 것을 맡을까」를 묻는 자리에서는, 고를 것 하나가
+        /// 그 셋과 <b>같은 줄에</b> 있어야 함께 견줘진다.
+        /// </summary>
+        public static readonly Vector2 Below = new Vector2(0.5f, 0.12f);
+
+        /// <summary>이 단추가 선 자리. <see cref="Show"/> 가 정한다.</summary>
+        private Vector2 _at = Corner;
 
         /// <summary>
         /// 가만히 있을 때의 진하기.
@@ -51,6 +63,9 @@ namespace IMUNROK.Common
         /// 아니었다.
         /// </summary>
         private const float Rest = 1f;
+
+        /// <summary>단추에 적히는 글씨 크기(칸). 자막의 대사와 같아 보이도록 맞춘 값이다.</summary>
+        private const int FontSize = 34;
 
         /// <summary>눈에서 이만큼 앞(m). 표제 글씨와 같은 거리라 앞뒤로 다투지 않는다.</summary>
         private const float Distance = 0.85f;
@@ -68,8 +83,19 @@ namespace IMUNROK.Common
         /// </summary>
         private const float Scale = 0.001f * (Distance / 0.90f);
 
-        /// <summary>단추 한 장의 크기(칸). 고르는 창의 단추와 같다.</summary>
+        /// <summary>단추 한 장의 크기(칸). 고르는 창의 단추와 같다 — <b>가장 작을 때</b>다.</summary>
         private static readonly Vector2 Size = new Vector2(280f, 84f);
+
+        /// <summary>
+        /// 이 말을 담을 판의 크기. 한글 한 자를 글씨 크기만큼으로 치고 양옆에 한 자씩
+        /// 여백을 둔다 — 재서 맞추는 것이 아니라 넉넉히 잡는 셈이다. 짧은 말은
+        /// <see cref="Size"/> 그대로라 여태 서던 단추의 크기가 안 변한다.
+        /// </summary>
+        private static Vector2 SizeFor(string label)
+        {
+            int n = string.IsNullOrEmpty(label) ? 0 : label.Length;
+            return new Vector2(Mathf.Max(Size.x, (n + 2) * FontSize), Size.y);
+        }
 
         private Transform _eye;
         private Camera _cam;
@@ -81,7 +107,7 @@ namespace IMUNROK.Common
         /// 귀퉁이에 단추를 세운다. 이미 서 있으면 그것을 걷고 새로 세운다 —
         /// 두 개가 겹쳐 서면 어느 것을 눌렀는지 알 수 없다.
         /// </summary>
-        public static CornerButton Show(string label, Action onPress, float fadeIn = 1.2f)
+        public static CornerButton Show(string label, Action onPress, float fadeIn = 1.2f, Vector2? at = null)
         {
             Hide();
             var cam = Camera.main;
@@ -93,6 +119,7 @@ namespace IMUNROK.Common
             cb._eye = cam.transform;
             cb._cam = cam;
             cb._onPress = onPress;
+            cb._at = at ?? Corner;
             cb.Build(label, cam);
             cb.StartCoroutine(cb.FadeIn(fadeIn));
             _live = cb;
@@ -118,15 +145,21 @@ namespace IMUNROK.Common
             _group = GetComponent<CanvasGroup>();
             _group.alpha = 0f;
 
+            // <b>긴 말은 판을 넓혀서 받는다.</b> 글씨는 넘쳐도 그려지도록 해 두었으므로
+            // (horizontalOverflow), 판만 280 으로 못 박아 두면 글씨가 판 밖으로 비어져
+            // 나와 허공에 뜬다. 「튜토리얼 넘기기」는 여덟 자라 280 에 들어맞지만,
+            // 고르는 말은 그보다 길다.
+            var size = SizeFor(label);
+
             var rt = canvas.GetComponent<RectTransform>();
-            rt.sizeDelta = Size;
+            rt.sizeDelta = size;
             rt.localScale = Vector3.one * Scale;
 
             var bgGo = new GameObject("판", typeof(Image), typeof(Button));
             var brt = bgGo.GetComponent<RectTransform>();
             brt.SetParent(rt, false);
             brt.anchoredPosition = Vector2.zero;
-            brt.sizeDelta = Size;
+            brt.sizeDelta = size;
 
             // <b>자막의 이름패와 같은 깊이의 주칠.</b>
             //
@@ -161,7 +194,7 @@ namespace IMUNROK.Common
             var trt = txtGo.GetComponent<RectTransform>();
             trt.SetParent(brt, false);
             trt.anchoredPosition = Vector2.zero;
-            trt.sizeDelta = Size;
+            trt.sizeDelta = size;
             var txt = txtGo.GetComponent<Text>();
             txt.font = UiFont.Resolve(null);
             // <b>자막의 대사와 같은 크기로 맞춘다.</b> 캔버스가 서로 달라 숫자만으로는
@@ -170,7 +203,8 @@ namespace IMUNROK.Common
             //   여기  : 화면 반높이가 0.85m·화각 60°에서 520단위이므로 34 ÷ 1039 = 3.27%
             // 36 이던 것은 3.46% 라 대사보다 도리어 컸다. 넘기라고 조르는 말이
             // 왕의 말보다 큰 것은 앞뒤가 뒤집힌 것이다.
-            txt.fontSize = 34;
+            // (값은 <see cref="FontSize"/> 에 있다 — 판 너비 셈도 그것을 쓴다)
+            txt.fontSize = FontSize;
             txt.alignment = TextAnchor.MiddleCenter;
             txt.color = UiLook.Text;
             txt.raycastTarget = false;
@@ -212,7 +246,7 @@ namespace IMUNROK.Common
         /// </summary>
         private void Place()
         {
-            transform.position = _cam.ViewportToWorldPoint(new Vector3(At.x, At.y, Distance));
+            transform.position = _cam.ViewportToWorldPoint(new Vector3(_at.x, _at.y, Distance));
             transform.rotation = _eye.rotation;
         }
 

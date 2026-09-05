@@ -78,6 +78,9 @@ namespace IMUNROK.Common
 
         [SerializeField] private string _hubSceneName = "HubScene";
 
+        [Tooltip("봉서를 안 고르고 조사청으로 드는 단추에 적힐 말. <b>비우면 그 단추가 안 뜬다</b>")]
+        [SerializeField] private string _hubLabel = "사건은 나중에 · 조사청으로";
+
         [Header("건너뛰기")]
         // <b>꾹 누르기를 걷어냈다.</b> 눌러도 한참 아무 일이 없다가 갑자기 되는 방식이라
         // 처음 온 사람에게는 고장난 것과 구별이 안 되고, 무엇보다 <b>건너뛸 수 있다는
@@ -184,6 +187,52 @@ namespace IMUNROK.Common
 
             ShowPickPrompt("(봉서를 가리켜 집는다)");
             RevealDocuments();
+            RaiseHubButton();
+        }
+
+        /// <summary>
+        /// <b>사건을 안 고르고 조사청으로 드는 길.</b>
+        ///
+        /// 여태 어전을 빠져나가는 길은 봉서를 집는 것 하나뿐이었다. 그런데 이 자리는
+        /// 「어느 사건을 맡을까」를 고르는 자리이지 「반드시 지금 고르라」는 자리가
+        /// 아니다 — 셋을 다 펼쳐 읽어 보고도 정하지 못할 수 있고, 조사청을 먼저
+        /// 둘러보고 싶을 수도 있다. 고르지 않은 봉서는 어차피 사건판에 남으므로
+        /// 나중에 아무 때나 집으면 된다.
+        ///
+        /// 자리는 <b>아래 가운데</b>다(<see cref="CornerButton.Below"/>). 귀퉁이에
+        /// 두면 「빠져나가는 길」로 보이는데, 이것은 빠져나가는 길이 아니라
+        /// <b>넷째 선택지</b>다 — 봉서 셋과 같은 줄에 서야 함께 견줘진다.
+        /// </summary>
+        private void RaiseHubButton()
+        {
+            if (_taken || string.IsNullOrEmpty(_hubLabel)) return;
+            CornerButton.Show(_hubLabel, GoToHubWithoutCase, _skipFadeIn, CornerButton.Below);
+        }
+
+        /// <summary>사건을 안 맡은 채 조사청으로 든다.</summary>
+        public void GoToHubWithoutCase()
+        {
+            if (_taken) return;
+            _taken = true;
+
+            CornerButton.Hide();
+            SubtitleView.Hide();
+
+            // 발치의 봉서는 걷는다 — 화면을 덮을 것이 없으니 그냥 두면 캄캄해진
+            // 화면 위에 그것만 남아 떠 있다(맡고 갈 때와 같은 까닭이다).
+            if (_documents != null)
+                foreach (var d in _documents)
+                    if (d != null) d.HideNow();
+
+            if (string.IsNullOrEmpty(_hubSceneName) || !Application.CanStreamedLevelBeLoaded(_hubSceneName))
+            {
+                Debug.LogWarning($"[IntroController] 조사청 씬('{_hubSceneName}')을 빌드 목록에서 " +
+                                 "못 찾았습니다. File ▸ Build Profiles 를 확인하세요.", this);
+                _taken = false;
+                return;
+            }
+
+            ScreenFade.Blink(0.45f, 0.5f, () => SceneManager.LoadScene(_hubSceneName));
         }
 
         /// <summary>봉서 셋을 시차를 두고 등장시키고 집을 수 있게 만든다.</summary>
@@ -256,6 +305,8 @@ namespace IMUNROK.Common
             if (_taken) return;
             _taken = true;
             _takenCase = chosen;
+
+            CornerButton.Hide();      // 「조사청으로」는 고르기 전까지만 서 있다
 
             // 고르지 않은 둘은 사건판에 회색으로 남는다. 나중에 아무 때나 집으면 된다.
             foreach (var d in _documents)
