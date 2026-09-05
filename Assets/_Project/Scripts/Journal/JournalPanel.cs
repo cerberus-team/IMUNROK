@@ -40,7 +40,6 @@ namespace IMUNROK.Common
 
         private JournalView _owner;
         private CanvasGroup _group;
-        private WorldHudAnchor _anchor;
         private RectTransform _col;
         private Text _title, _brief;
         private readonly List<GameObject> _cards = new List<GameObject>();
@@ -60,8 +59,14 @@ namespace IMUNROK.Common
         /// </summary>
         private const float PageW = 1920f, PageH = 1120f;
 
-        /// <summary>저쪽 <c>InventoryUI.CanvasScale</c>. 판 치수를 바꿀 일이 생기면 여기만 만진다.</summary>
-        private const float CanvasScale = 0.0014f;
+        /// <summary>
+        /// <b>판이 화면 세로에서 차지하는 몫.</b>
+        ///
+        /// 월드에 세울 때는 「1.79m 앞」이 그 몫을 정했다. 화면에 붙인 뒤로는 거리라는
+        /// 것이 없으므로 그 몫을 <b>곧바로</b> 적는다 — 저쪽 판이 저쪽 화면에서 덮던
+        /// 79%, 우리가 재서 맞춰 둔 76% 가 이 수다.
+        /// </summary>
+        private const float PageScreenShare = 0.76f;
 
         /// <summary>
         /// <b>저쪽 판이 저쪽 화면에서 차지하던 몫을 우리 화면에서도 지킨다.</b>
@@ -76,7 +81,7 @@ namespace IMUNROK.Common
         /// 숫자를 옮겨 오는 것과 <b>보이는 몫을 옮겨 오는 것</b>은 다른 일이고,
         /// 여기서 지킬 것은 뒤엣것이다.
         /// </summary>
-        private const float PanelDistance = 1.79f;
+        /// (더 쓰지 않는다 — 화면에 붙였으므로 거리가 없다. 위 셈의 내력이라 남긴다)
 
         public static void Open(JournalView owner)
         {
@@ -85,8 +90,9 @@ namespace IMUNROK.Common
                 _instance = FindFirstObjectByType<JournalPanel>();
                 if (_instance == null)
                 {
-                    var go = new GameObject("VR_수첩", typeof(Canvas));
-                    go.AddComponent<WorldHudAnchor>().Configure(WorldHudAnchor.Placement.Front);
+                    var go = new GameObject("수첩", typeof(Canvas),
+                                            typeof(UnityEngine.UI.CanvasScaler),
+                                            typeof(UnityEngine.UI.GraphicRaycaster));
                     _instance = go.AddComponent<JournalPanel>();
                 }
             }
@@ -120,15 +126,7 @@ namespace IMUNROK.Common
         {
             if (_instance != null && _instance != this) { Destroy(gameObject); return; }
             _instance = this;
-            _anchor = GetComponent<WorldHudAnchor>();
-            if (_anchor == null) _anchor = gameObject.AddComponent<WorldHudAnchor>();
-            // 견우팀 꾸러미와 같은 좌표계에, 저쪽이 저쪽 화면에서 차지하던 몫으로 세운다.
-            _anchor.SetCanvasScale(CanvasScale);
-            _anchor.SetDistance(PanelDistance, -0.08f);   // 눈높이보다 아주 조금만 아래
-            // 저쪽은 죽은 구간 7도에 0.16초로 따라온다 — 20도로 두면 고개를 크게 돌려야
-            // 비로소 움직여서, 같은 판인데 손에 걸리는 느낌이 다르다.
-            _anchor.SetFollow(7f, 6f);
-            _anchor.SetStowable(false);   // 물러나는 쪽이 아니라 물러나게 하는 쪽이다
+            SitOnScreen();
 
             _font = UiFont.Resolve(_font);
             _group = gameObject.GetComponent<CanvasGroup>();
@@ -145,7 +143,48 @@ namespace IMUNROK.Common
             _owner = owner;
             Rebuild();
             SetVisible(true);
-            if (_anchor != null) _anchor.Recenter();
+        }
+
+        /// <summary>
+        /// <b>수첩을 월드에서 떼어 화면에 붙인다.</b>
+        ///
+        /// 여태 이 판은 눈앞 허공에 세워 두고 고개를 따라오게 했다. 헤드셋을 쓰던
+        /// 시절의 방식이다 — 거기서는 화면이라는 것이 없어서 <b>세울 데가 세상밖에</b>
+        /// 없었다. 헤드셋을 걷어낸 지금 그 방식이 남기는 것은 두 가지 탈뿐이다:
+        ///
+        ///   · <b>기둥에 뚫린다.</b> 월드에 놓인 판이라 깊이 검사를 받는다. 조사청에서
+        ///     재 보니 대들보가 수첩을 가로질러 지나갔다. 자막판이 재질을 갈아 끼워
+        ///     피하던 바로 그 탈이고, 이쪽은 그 손질조차 없었다.
+        ///   · <b>떠다닌다.</b> 아무리 굼뜨게 잡아도 고개를 돌리면 판이 뒤따라 흔들린다.
+        ///     화면 게임에서 수첩은 <b>펴면 거기 있는</b> 것이지 쫓아오는 것이 아니다.
+        ///
+        /// 화면에 붙이면 둘 다 한꺼번에 없어진다. 덧붙여 누르기도 제대로 산다 —
+        /// 월드 캔버스에는 <c>GraphicRaycaster</c> 조차 안 붙어 있었다.
+        ///
+        /// 치수는 그대로 쓴다. 견우팀에서 받아 온 1920×1120 좌표계를 <c>CanvasScaler</c>
+        /// 의 기준 해상도로 넘기면 칸 320×272 도 글씨 34 도 뜻을 지킨다. 기준 세로를
+        /// <c>PageH ÷ PageScreenShare</c> 로 잡는 것이 요점이다 — 그래야 판이 화면
+        /// 세로의 그 몫만큼만 덮고, 화면이 넓든 좁든 그 몫이 변하지 않는다.
+        /// </summary>
+        private void SitOnScreen()
+        {
+            var canvas = GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 200;           // 다른 화면판보다 위. 수첩은 펴면 맨 앞이다
+
+            var old = GetComponent<WorldHudAnchor>();
+            if (old != null) Destroy(old);       // 씬에 미리 놓인 판에 붙어 있을 수 있다
+
+            var scaler = GetComponent<UnityEngine.UI.CanvasScaler>();
+            if (scaler == null) scaler = gameObject.AddComponent<UnityEngine.UI.CanvasScaler>();
+            scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            float refH = PageH / PageScreenShare;
+            scaler.referenceResolution = new Vector2(refH * 16f / 9f, refH);
+            scaler.screenMatchMode = UnityEngine.UI.CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 1f;      // 세로로 맞춘다 — 몫을 정하는 것은 세로다
+
+            if (GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
+                gameObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
         }
 
         /// <summary>테두리 넉 줄. 상자 하나에 외곽선을 그릴 길이 없어 얇은 띠 넷을 두른다.</summary>

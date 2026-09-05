@@ -13,7 +13,7 @@ namespace IMUNROK.Common
     /// <b>왜 I 인가</b>: J 는 왼손 검지가 놓이는 자리라 걷기(WASD)와 멀고, 오른손으로
     /// 옮겨 잡아야 눌린다. I 는 조사(調査)의 머리글자이기도 하다.
     ///
-    /// 이 클래스는 열림/닫힘 상태만 들고 있고, 그리기는 JournalPanel(월드 Canvas)이 맡는다.
+    /// 이 클래스는 열림/닫힘 상태만 들고 있고, 그리기는 JournalPanel(화면 Canvas)이 맡는다.
     /// </summary>
     public class JournalView : MonoBehaviour
     {
@@ -71,7 +71,7 @@ namespace IMUNROK.Common
         }
 
         // ─────────────────────────────────────────────
-        //  그리기는 JournalPanel(월드 공간 Canvas)이 맡는다.
+        //  그리기는 JournalPanel(화면에 붙은 Canvas)이 맡는다.
         //  OnGUI는 헤드셋에 렌더링되지 않아 VR에서 수첩이 통째로 안 보였고,
         //  데스크탑에선 월드 UI와 겹쳐 보여 오히려 가렸다.
         // ─────────────────────────────────────────────
