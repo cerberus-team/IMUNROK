@@ -67,10 +67,33 @@ namespace IMUNROK.Common
         //
         // 저쪽에 짝이 없다. 도구를 손에 드는 놀이가 우리 쪽에만 있어서다.
 
-        /// <summary>도구를 눈앞으로 들어 올리는 손짓.</summary>
+        /// <summary>
+        /// 도구를 눈앞으로 들어 올리는 손짓.
+        ///
+        /// <b>2026-09-05 늦게 잡은 것.</b> 헤드셋을 걷어내면서 이 클래스의 다른 이름은
+        /// 다 책상 쪽 말로 갈았는데 <b>이것 하나가 남아 있었다</b> — 「오른쪽 단추를
+        /// 누른 채」. 화면판에는 오른쪽 단추가 없다. 실제로 눌리는 것은
+        /// <see cref="ToolRaise.Key_"/> 곧 <b>F</b> 다. 시킨 대로 눌러도 아무 일이
+        /// 없으니 도구가 고장 난 것으로 읽혔을 것이고, 그것이 바로 이 클래스가
+        /// 애초에 막으려던 일이다.
+        ///
+        /// 글쇠는 <see cref="Key"/> 로 감싸 <b>글쇠처럼 보이게</b> 적는다.
+        /// </summary>
         public static string Raise
         {
-            get { return "오른쪽 단추를 <b>누른 채</b>"; }
+            get { return Key(ToolRaise.Key_.ToString()) + " 를 <b>누른 채</b>"; }
+        }
+
+        /// <summary>
+        /// <b>글쇠 하나를 글쇠처럼 보이게 적는다.</b>
+        ///
+        /// 「F 를 누른 채」라고 그냥 적으면 F 가 문장에 묻힌다. 화면 게임의 안내는
+        /// 눌러야 할 것을 <b>글줄에서 떼어</b> 보여 준다 — 낡은 <c>UI.Text</c> 라
+        /// 테두리를 그릴 수는 없으니, 낙관빛과 굵기로 그 자리만 도드라지게 한다.
+        /// </summary>
+        public static string Key(string key)
+        {
+            return "<color=#B8452AFF><b>[" + key + "]</b></color>";
         }
 
         /// <summary>든 것을 내려놓는 손짓.</summary>

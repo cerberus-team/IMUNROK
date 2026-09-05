@@ -391,9 +391,47 @@ namespace IMUNROK.Common
             if (_handAtStep >= 0 && _step == _handAtStep) TakeInHand();
 
             string name = _tool != null ? _tool.displayName : "";
-            string hint = (_step == _steps.Length - 1) ? "(눌러서 마친다)" : "(눌러서 다음)";
-            SubtitleView.Show(name, _steps[_step], hint);
+            string hint = StepHint();
+            SubtitleView.Show(name, Fill(_steps[_step]), hint);
             _stepShownAt = Time.unscaledTime;
+        }
+
+        /// <summary>
+        /// <b>몇 마디 중 몇째인가를 함께 적는다.</b>
+        ///
+        /// 여태 「(눌러서 다음)」만 있었다. 그러면 이 이야기가 <b>언제 끝나는지</b>를
+        /// 알 수 없어서, 읽는 사람은 눌러야 할지 그만둬야 할지를 매 마디 다시 정해야
+        /// 한다. 화면 게임의 안내가 「1 / 3」을 달아 두는 까닭이 그것이다 — 끝이 보이면
+        /// 끝까지 읽는다.
+        /// </summary>
+        private string StepHint()
+        {
+            string count = (_step + 1) + " / " + _steps.Length;
+            string what = (_step == _steps.Length - 1) ? "눌러서 마친다" : "눌러서 다음";
+            return count + "      " + Controls.Press + " — " + what;
+        }
+
+        /// <summary>
+        /// <b>안내에 적힌 자리표를 지금 글쇠로 바꾼다.</b>
+        ///
+        /// 익힘 글줄은 씬에 적어 두는 것이라, 거기 「F」라고 박아 두면 글쇠를 옮기는
+        /// 날 씬을 열어 고쳐야 한다. 그리고 그런 자리는 반드시 하나가 남는다 —
+        /// 실제로 「오른쪽 단추를 쥐고 있으면」이 헤드셋을 걷어낸 뒤에도 남아 있었다.
+        /// 그래서 글줄에는 <b>무엇을 하는 손짓인지</b>만 적고, 그 이름을
+        /// <see cref="Controls"/> 가 지금 글쇠로 풀어 준다.
+        ///
+        ///   {들기} {내려놓기} {누르기} {넘기기} {도구}
+        /// </summary>
+        private string Fill(string line)
+        {
+            if (string.IsNullOrEmpty(line)) return line;
+            if (line.IndexOf('{') < 0) return line;
+            string nm = _tool != null ? _tool.displayName : "";
+            return line.Replace("{들기}", Controls.Raise)
+                       .Replace("{내려놓기}", Controls.PutDown)
+                       .Replace("{누르기}", Controls.Press)
+                       .Replace("{넘기기}", Controls.Skip)
+                       .Replace("{도구}", nm);
         }
 
         /// <summary>손에 쥐여 준다 — 문갑의 물건은 제자리로 돌아간다. 지금 든 것이 곧 그것이므로.</summary>
@@ -485,7 +523,7 @@ namespace IMUNROK.Common
             {
                 _awaiting = true;
                 ToolPractice.OnUsed += OnPracticed;
-                SubtitleView.Show(_tool != null ? _tool.displayName : "", _practice, "(직접 해 보면 된다)");
+                SubtitleView.Show(_tool != null ? _tool.displayName : "", Fill(_practice), "(직접 해 보면 된다)");
 
                 // 예시 증거를 <b>쥐여 준다</b>.
                 //
@@ -526,7 +564,7 @@ namespace IMUNROK.Common
 
             string nm = _tool != null ? _tool.displayName : "";
             if (!string.IsNullOrEmpty(_endWord))
-                SubtitleView.Show(nm, string.Format(_endWord, nm), "(눌러서 내려놓는다)");
+                SubtitleView.Show(nm, Fill(string.Format(_endWord, nm)), "(눌러서 내려놓는다)");
 
             // 여기서 GoHome 을 부르지 않는다 — 마지막 한 마디도 <b>손에 든 채로</b>
             // 읽는 것이다. 내려놓는 것은 그 한 마디를 읽고 눌렀을 때다.
@@ -598,7 +636,7 @@ namespace IMUNROK.Common
             if (speak)
             {
                 string nm = _tool != null ? _tool.displayName : "";
-                SubtitleView.Show(nm, string.Format(_putDownWord, nm), "(눌러서 마친다)");
+                SubtitleView.Show(nm, Fill(string.Format(_putDownWord, nm)), "(눌러서 마친다)");
                 StartCoroutine(DismissOnClick());
             }
 

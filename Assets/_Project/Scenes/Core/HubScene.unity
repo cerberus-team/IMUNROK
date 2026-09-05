@@ -11316,8 +11316,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _knockOnce: {fileID: 0}
-  _knocksNeeded: 3
-  _knockWindow: 1.6
+  _knockGap: 0.26
 --- !u!1001 &120792011
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -27116,6 +27115,7 @@ MonoBehaviour:
   _creakAdds: 0.28
   _dirtQuieter: 0.55
   _stoneQuieter: 0.8
+  _showHud: 0
 --- !u!114 &270294125
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -55989,8 +55989,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _knockOnce: {fileID: 0}
-  _knocksNeeded: 3
-  _knockWindow: 1.6
+  _knockGap: 0.26
 --- !u!1 &589693177
 GameObject:
   m_ObjectHideFlags: 0
@@ -57148,8 +57147,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _knockOnce: {fileID: 0}
-  _knocksNeeded: 3
-  _knockWindow: 1.6
+  _knockGap: 0.26
 --- !u!1 &602879545
 GameObject:
   m_ObjectHideFlags: 0
@@ -63944,8 +63942,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 673598091}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.005587373, y: 0.9365202, z: -0.034946676, w: 0.3488229}
-  m_LocalPosition: {x: 71.35074, y: 139.28406, z: 282.5525}
+  m_LocalRotation: {x: -0.66218203, y: -0.2480221, z: -0.2480221, w: 0.66218203}
+  m_LocalPosition: {x: 72.05429, y: 138.91475, z: 284.91174}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -105286,8 +105284,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _knockOnce: {fileID: 0}
-  _knocksNeeded: 3
-  _knockWindow: 1.6
+  _knockGap: 0.26
 --- !u!1 &1080104874
 GameObject:
   m_ObjectHideFlags: 0
@@ -111836,8 +111833,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _knockOnce: {fileID: 0}
-  _knocksNeeded: 3
-  _knockWindow: 1.6
+  _knockGap: 0.26
 --- !u!1 &1156879128
 GameObject:
   m_ObjectHideFlags: 0
@@ -141523,16 +141519,15 @@ MonoBehaviour:
   _steps:
   - "\uB3CB\uBCF4\uAE30\uB2E4. \uB208\uACFC \uBB3C\uAC74 \uC0AC\uC774\uC5D0 \uB07C\uC6B0\uB294
     \uC720\uB9AC\uC694."
-  - "\uC624\uB978\uCABD \uB2E8\uCD94\uB97C \uC950\uACE0 \uC788\uC73C\uBA74 \uB208\uC55E\uC73C\uB85C
-    \uC62C\uB77C\uC628\uB2E4. \uB193\uC73C\uBA74 \uB0B4\uB9B0\uB2E4."
+  - "{\uB4E4\uAE30} \uC788\uC73C\uBA74 \uB208\uC55E\uC73C\uB85C \uC62C\uB77C\uC628\uB2E4.
+    \uC190\uC744 \uB5BC\uBA74 \uB0B4\uB9B0\uB2E4."
   - "\uC62C\uB9B0 \uCC44\uB85C \uBCFC \uAC83\uC744 \uACA8\uB204\uACE0 \uC788\uC73C\uBA74,
     \uB9E8\uB208\uC73C\uB85C\uB294 \uBABB \uC77D\uB358 \uC794\uAE00\uC528\uAC00 \uC77D\uD78C\uB2E4."
   _endWord: "{0}\uC744 \uC190\uC5D0 \uC775\uD614\uB2E4. \uC774\uC81C \uC5B8\uC81C\uB4E0
     \uAEBC\uB0B4 \uC4F8 \uC218 \uC788\uB2E4."
   _example: {fileID: 693705541}
-  _practice: "\uC608\uC2DC\uB85C \uD55C \uC7A5 \uB4DC\uB9AC\uACA0\uC18C. \uC624\uB978\uCABD
-    \uB2E8\uCD94\uB97C \uC954 \uCC44, \uC885\uC774\uB97C \uCC2C\uCC2C\uD788 \uD6D1\uC5B4
-    \uBCF4\uC2DC\uC624."
+  _practice: "\uC608\uC2DC\uB85C \uD55C \uC7A5 \uB4DC\uB9AC\uACA0\uC18C. {\uB4E4\uAE30}
+    \uC885\uC774\uB97C \uCC2C\uCC2C\uD788 \uD6D1\uC5B4 \uBCF4\uC2DC\uC624."
   _practiceDone: "\uB410\uB2E4. \uC774\uB9CC\uD558\uBA74 {0}\uC740 \uC190\uC5D0 \uC775\uC5C8\uB2E4.
     \uBB3C\uAC74\uC740 \uC5EC\uAE30 \uB450\uACE0 \uAC00\uC2DC\uC624 \u2014 \uC0AC\uAC74\uC5D0\uC11C\uB294
     \uB530\uB85C \uCC59\uACA8 \uB4DC\uB9AC\uB9AC\uB2E4."
@@ -163860,8 +163855,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _knockOnce: {fileID: 0}
-  _knocksNeeded: 3
-  _knockWindow: 1.6
+  _knockGap: 0.26
 --- !u!1001 &1680944928
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -184086,8 +184080,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _knockOnce: {fileID: 0}
-  _knocksNeeded: 3
-  _knockWindow: 1.6
+  _knockGap: 0.26
 --- !u!1 &1909113889
 GameObject:
   m_ObjectHideFlags: 0
@@ -198808,8 +198801,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _knockOnce: {fileID: 0}
-  _knocksNeeded: 3
-  _knockWindow: 1.6
+  _knockGap: 0.26
 --- !u!1001 &2061780408
 PrefabInstance:
   m_ObjectHideFlags: 0
