@@ -67,6 +67,9 @@ namespace IMUNROK.Common
         /// <summary>단추에 적히는 글씨 크기(칸). 자막의 대사와 같아 보이도록 맞춘 값이다.</summary>
         private const int FontSize = 34;
 
+        /// <summary>자막의 이름패가 쓰는 것과 같은 나뭇결. 판마다 새로 그릴 것이 없어 한 벌만 든다.</summary>
+        private static readonly IMUNROK.Ui.InventorySkin Skin = new IMUNROK.Ui.InventorySkin();
+
         /// <summary>눈에서 이만큼 앞(m). 표제 글씨와 같은 거리라 앞뒤로 다투지 않는다.</summary>
         private const float Distance = 0.85f;
 
@@ -161,21 +164,24 @@ namespace IMUNROK.Common
             brt.anchoredPosition = Vector2.zero;
             brt.sizeDelta = size;
 
-            // <b>자막의 이름패와 같은 깊이의 주칠.</b>
+            // <b>왕의 이름패와 똑같이 세운다 — 나뭇결 위의 주칠.</b>
             //
-            // 여태 <c>UiLook.Seal</c> 을 그대로 썼는데, 그러면 <b>같은 값인데 화면에서
-            // 딴 색으로 보인다</b>. 재 보면 이렇다 —
-            //   이 단추 : 화면에 (0.667, 0.220, 0.165) · 적어 둔 주칠 그대로
-            //   이름패 : 화면에 (0.184, 0.019, 0.006) · 훨씬 깊다
-            // 둘 다 <c>UiLook.Seal</c> 이고 알파도 1 인데 그렇다. 자막판이 제 그림들의
-            // 재질을 앞에 그리도록 갈아 끼우면서(<c>SubtitleView.DrawOnTop</c>) 색이 한 켜
-            // 더 가라앉는 듯한데, 그 뿌리는 여기서 손댈 자리가 아니다.
+            // 여태 <c>UiLook.Seal</c> 을 민판에 그대로 발랐다. 그러면 값은 같은데 화면에서
+            // 딴 색이 된다. 재 보면 이렇다 —
+            //   민판에 주칠 : (0.667, 0.220, 0.165)  적어 둔 값 그대로, 훤하다
+            //   이름패      : (0.184, 0.019, 0.006)  훨씬 깊다
             //
-            // 눈에 보이는 것을 맞춘다. 왕의 이름패가 이 게임의 주칠이 어떤 깊이인지
-            // 정해 놓았으니, 귀퉁이 단추가 거기 맞추는 것이 옳다 — 값이 같은 것보다
-            // <b>같아 보이는 것</b>이 색을 한 벌로 모은 까닭이었다.
+            // 한동안 이것을 그리기 탓으로 알고 어두운 값을 손으로 지어 맞췄는데, 뿌리는
+            // 그게 아니었다. 이름패는 <c>Skin(im, _skin.Wood_, Seal)</c> 이다 — <b>주칠을
+            // 나뭇결 무늬 위에 입힌 것</b>이고, 그 무늬가 어두워 색이 가라앉는다.
+            // 민판에 같은 값을 발라 놓고 색이 다르다 한 것은 애초에 다른 물건이었다.
+            //
+            // 그래서 무늬까지 같이 쓴다. 지어낸 값이 하나도 없으니 저쪽 색이 바뀌면
+            // 이쪽도 따라간다.
             var img = bgGo.GetComponent<Image>();
-            img.color = UiLook.Deep(UiLook.Seal, 0.72f);
+            img.sprite = Skin.Wood_;
+            img.type = Image.Type.Simple;
+            img.color = UiLook.Seal;
 
             var btn = bgGo.GetComponent<Button>();
             btn.targetGraphic = img;
