@@ -252,7 +252,6 @@ namespace IMUNROK.Common
             SitNow();
             if (_group == null || _group.alpha < 0.5f) return;
             PaintHeard();
-            PaintMic();
             TickConfirm();
 #if ENABLE_INPUT_SYSTEM
             // 옛 Input 클래스를 쓰면 안 된다. 이 프로젝트는 입력을 Input System 으로
@@ -285,16 +284,6 @@ namespace IMUNROK.Common
         /// 비었으면 <b>방금 던진 말이 묽게</b>, 그것마저 없으면 무엇을 누르라는 안내가 온다.
         /// 던진 말을 지워 버리면 무엇으로 전해졌는지 확인할 데가 없어진다.
         /// </summary>
-        /// <summary>듣고 있는 동안 마이크가 <b>주칠로 물든다</b> — 저쪽이 하는 것과 같다.
-        /// 단추가 눌린 것만으로는 정말 듣고 있는지 알 수가 없다.</summary>
-        private void PaintMic()
-        {
-            if (_micIcon == null) return;
-            bool listening = MicInput.Instance != null && MicInput.Instance.IsListening;
-            var want = listening ? UiLook.Seal : UiLook.Paper;
-            if (_micIcon.color != want) _micIcon.color = want;
-        }
-
         /// <summary>되물은 뒤 이만큼 지나면 없던 일로 한다 — 잘못 눌렀을 때 그냥 두면 된다.</summary>
         private void TickConfirm()
         {
@@ -322,7 +311,7 @@ namespace IMUNROK.Common
 
             if (_heardHint != null)
             {
-                string want = "묻고 싶은 것을 치거나, " + Controls.SpeakPrompt;
+                string want = Controls.AskPrompt;
                 if (_heardHint.text != want) _heardHint.text = want;
             }
 
@@ -608,14 +597,17 @@ namespace IMUNROK.Common
             float h = st.inputH;
 
             // 폭 배분도 저쪽 셈 그대로다 (DialogueUI.InputRowBottom):
-            //   말하기는 정사각(낮은 바에서 가장 안 튄다), 묻기 10.5%, 증거 제시 16.5%, 사이 16.
+            //   묻기 10.5%, 증거 제시 16.5%, 사이 16.
             // 「마치 기」 하나만 우리가 더한다 — 아래 주석 참고.
+            //
+            // <b>「말하기」 칸이 여기 있었다.</b> 정사각으로 한 자리를 차지했는데,
+            // 말로 묻는 길을 걷어냈으므로 그 자리를 <b>글쇠 칸에 준다</b> — 이제 묻는
+            // 길이 치는 것 하나뿐이니 칠 자리가 넓은 편이 맞다.
             const float gap = 16f;
-            float micW  = h;
             float askW  = Mathf.Max(120f, inner * 0.105f);
             float presW = Mathf.Max(180f, inner * 0.165f);
             float endW  = Mathf.Max(180f, inner * 0.165f);
-            float slotW = inner - micW - askW - presW - endW - gap * 4f;
+            float slotW = inner - askW - presW - endW - gap * 3f;
 
             float x = -inner * 0.5f;
 
@@ -654,23 +646,6 @@ namespace IMUNROK.Common
             _field.transition = Selectable.Transition.None;
             x += slotW + gap;
 
-            // ── 말하기 ──
-            //
-            // 여태 이 자리에는 <b>그림만</b> 있었다. 마이크처럼 생긴 것을 그려 놓고
-            // 누를 수는 없게 두었으니, 실제로 말하려면 옛 심문 판의 「눌러서 말하기」를
-            // 눌러야 했다 — <b>같은 일이 두 판에 나뉘어</b> 있었다.
-            // 저쪽은 이 단추를 「왼쪽 Ctrl 을 누른 것과 똑같이」 친다. 그대로 한다:
-            // <b>누르고 있는 동안</b> 듣는다. 한 번 눌러 켜는 방식으로 하면 끄는 것을
-            // 잊은 채 돌아다니다 엉뚱한 혼잣말이 인물에게 날아간다.
-            _micRt = NewRect("말하기", new Vector2(x + micW * 0.5f, 0f), new Vector2(micW, h), _inputRow);
-            _micBg = _micRt.gameObject.AddComponent<Image>();
-            Skin(_micBg, _skin.Wood_, UiLook.Wood);
-            var micIcon = NewRect("그림", Vector2.zero, new Vector2(h * 0.56f, h * 0.56f), _micRt);
-            _micIcon = micIcon.gameObject.AddComponent<Image>();
-            Skin(_micIcon, _skin.Mic_, UiLook.Paper);
-            PushToTalk(_micRt);
-            x += micW + gap;
-
             // ── 묻 기 ── 저쪽은 이것만 주칠이다. 한 줄에서 <b>지금 할 일</b>이 그것이라서다.
             Chip(_inputRow, "묻기", "묻 기", new Vector2(x + askW * 0.5f, 0f), new Vector2(askW, h),
                  st.input, UiLook.Seal, AskNow);
@@ -701,8 +676,8 @@ namespace IMUNROK.Common
             _inputRow.gameObject.SetActive(false);
         }
 
-        private RectTransform _micRt, _endChip;
-        private Image _micBg, _micIcon, _endBg;
+        private RectTransform _endChip;
+        private Image _endBg;
         private Text _endLabel;
 
         private const string EndWord = "이만 마치겠소";
@@ -727,38 +702,6 @@ namespace IMUNROK.Common
         {
             if (_endLabel != null && _endLabel.text != EndWord) _endLabel.text = EndWord;
             if (_endBg != null && _endBg.color != UiLook.Wood) _endBg.color = UiLook.Wood;
-        }
-
-        /// <summary>
-        /// <b>누르고 있는 동안 듣는다.</b> 마우스든 VR 광선이든 같은 이벤트로 들어온다 —
-        /// <c>Button</c> 은 「눌렀다 뗐다」만 알려 주므로 쓰지 않고 눌림·뗌을 직접 받는다.
-        /// </summary>
-        private void PushToTalk(RectTransform rt)
-        {
-            var trig = rt.gameObject.AddComponent<EventTrigger>();
-            var down = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
-            down.callback.AddListener(delegate { if (MicInput.Instance != null) MicInput.Instance.StartListening(); });
-            var up = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
-            up.callback.AddListener(delegate { if (MicInput.Instance != null) MicInput.Instance.StopListening(); });
-            // 단추 밖에서 손을 떼도 녹음이 안 끊기면 영원히 듣고 있게 된다.
-            var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
-            exit.callback.AddListener(delegate {
-                if (MicInput.Instance != null && MicInput.Instance.IsListening) MicInput.Instance.StopListening();
-            });
-            trig.triggers.Add(down);
-            trig.triggers.Add(up);
-            trig.triggers.Add(exit);
-
-            // <b>판정면을 따로 깔면 안 된다.</b> 한 번 그렇게 했다가 판이 통째로 안 떴다 —
-            // <c>Graphic</c> 은 <c>DisallowMultipleComponent</c> 라 이 물건에 이미 붙어
-            // 있는 나뭇결 위에 <c>Image</c> 를 하나 더 붙이면 <b>null 이 돌아오고</b>,
-            // 거기에 색을 칠하려다 터져서 <b>그 아래로 짓던 것이 전부 없던 일이 된다</b>
-            // (안내 줄도, 닫기 딱지도, 바 자리 잡기까지). 오류 한 줄만 나고 화면은
-            // 그냥 「입력이 안 되는」 것으로 보인다.
-            //
-            // 이미 있는 나뭇결이 판정면 노릇을 한다. 광선을 받게만 켜 준다.
-            var bg = rt.GetComponent<Image>();
-            if (bg != null) bg.raycastTarget = true;
         }
 
         private RectTransform Chip(RectTransform parent, string name, string label, Vector2 at, Vector2 size,

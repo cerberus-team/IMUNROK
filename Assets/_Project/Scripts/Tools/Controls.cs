@@ -51,26 +51,17 @@ namespace IMUNROK.Common
         /// <summary>가리키는 동작 — 바라보고 / 겨누고. (<c>UiWords.Aim</c>)</summary>
         public static string Aim { get { return "바라보고"; } }
 
-        /// <summary>
-        /// 말하기 — 왼쪽 Ctrl / 그립. (<c>UiWords.Talk</c>)
-        ///
-        /// <b>T 에서 왼쪽 Ctrl 로 옮겼다.</b> T 를 고른 까닭이 따로 있던 것이 아니라
-        /// 그냥 비어 있는 글쇠였다. 저쪽이 Ctrl 인 이상 맞추는 편이 낫다 —
-        /// 글쇠 칸에 한글을 치는 중에도 Ctrl 은 글자를 먹지 않기 때문이다.
-        /// </summary>
-        public static string Speak { get { return "왼쪽 Ctrl"; } }
-
         /// <summary>묻기(받아 적힌 말을 던지기) — Enter / 「묻 기」.</summary>
         public static string Ask { get { return "Enter"; } }
 
         /// <summary>
         /// 빈 입력줄에 묽게 앉는 말. 저쪽 <c>placeholder</c> 자리다.
         ///
-        /// 저쪽 PC 문구는 「묻고 싶은 것을 치거나, 왼쪽 Ctrl을 누르고 말하시오…」인데
-        /// <b>우리는 칠 칸이 없다</b> — 물을 길이 목소리 하나뿐이라 앞 절을 뺀다.
+        /// <b>2026-09-05 — 말하기를 걷어냈다.</b> 저쪽 문구는 「묻고 싶은 것을 치거나,
+        /// 왼쪽 Ctrl을 누르고 말하시오…」인데, 이제 우리에게는 <b>뒤 절이 없다</b>.
         /// 있지도 않은 조작을 적지 않는다는 규칙이 여기에도 그대로 걸린다.
         /// </summary>
-        public static string SpeakPrompt { get { return Speak + "을 누르고 말하시오…"; } }
+        public static string AskPrompt { get { return "묻고 싶은 것을 치시오…"; } }
 
         // ── 우리에게만 있는 것들 ─────────────────────────────
         //
@@ -108,8 +99,11 @@ namespace IMUNROK.Common
                 // 색은 저쪽 값 그대로다. 다만 자릿수를 여덟로 적는다 —
                 // 저쪽은 TMP 라 여섯 자리도 알아듣지만, 우리 아랫줄은 아직 낡은
                 // <c>UI.Text</c> 라 <b>여덟 자리(투명도까지)</b>가 아니면 그냥 안 먹는다.
-                string red = "<color=#8E2C20FF>" + Speak + " — 누르고 말하기</color>";
-                return "Enter — 묻기     " + red + "     좌클릭 — 누르기     Esc — 심문 끝내기";
+                //
+                // 붉게 물드는 것은 <b>지금 할 일</b> 하나다. 여태는 말하기였는데
+                // 그것을 걷어냈으므로, 이제 그 자리는 묻기가 받는다.
+                string red = "<color=#8E2C20FF>Enter — 묻기</color>";
+                return red + "     좌클릭 — 누르기     Esc — 심문 끝내기";
             }
         }
 

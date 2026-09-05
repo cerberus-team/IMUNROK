@@ -32,8 +32,6 @@ namespace IMUNROK.Common
         [Tooltip("켜면 색을 <b>꾸러미(IMUNROK.Ui)</b> 에서 받아 온다 — 자막 바·수첩과 한 결이 된다")]
         [SerializeField] private bool _useCommonLook = true;
         [SerializeField] private Color _chipColor = UiLook.With(UiLook.Slot, 0.85f);
-        [SerializeField] private Color _micColor = UiLook.With(UiLook.Slot, 0.90f);
-        [SerializeField] private Color _micOnColor = UiLook.With(UiLook.Seal, 0.95f);
         [Tooltip("되돌릴 수 없는 '마치기' 버튼")]
         [SerializeField] private Color _endColor = UiLook.With(UiLook.WoodLit, 0.95f);
         [Tooltip("되물을 때의 색. 한 번 더 눌러야 끝난다는 것이 색으로도 보여야 한다")]
@@ -59,9 +57,6 @@ namespace IMUNROK.Common
         private InterrogationController _owner;
         private CanvasGroup _group;
         private WorldHudAnchor _anchor;
-        private Image _micBg;
-        private Text _micLabel;
-        private RectTransform _micRt;
         private readonly List<GameObject> _chips = new List<GameObject>();
         private readonly List<GameObject> _orderChips = new List<GameObject>();
         private readonly List<GameObject> _seatChips = new List<GameObject>();
@@ -246,7 +241,6 @@ namespace IMUNROK.Common
             // <b>같은 일이 두 판에 나뉘어</b> 있었다 — 어느 쪽을 눌러야 하는지 알 수가 없다.
             // 그래서 둘을 바로 옮겼다. 이 판에는 <b>이 판에만 있는 것</b>만 남는다:
             // 추천 질문·명령·자리. 저쪽에 짝이 없는 것들이다.
-            _micRt.gameObject.SetActive(false);
             _endRt.gameObject.SetActive(false);
             RebuildChips(owner != null ? owner.Topics : null);
             BuildOrders();
@@ -263,7 +257,6 @@ namespace IMUNROK.Common
             _confirmLeft = 0f;
             ResetEndLook();
             ApplyPlacement();
-            _micRt.gameObject.SetActive(false);
             _endRt.gameObject.SetActive(false);
             RebuildChips(null);
             BuildOrders();
@@ -282,12 +275,6 @@ namespace IMUNROK.Common
 
         private void Update()
         {
-            // 듣는 중이면 마이크 버튼을 붉게 — 말해도 되는지 한눈에 보이게
-            var mic = MicInput.Instance;
-            bool listening = mic != null && mic.IsListening;
-            if (_micBg != null) _micBg.color = listening ? _micOnColor : _micColor;
-            if (_micLabel != null) _micLabel.text = listening ? "● 듣는 중 (다시 눌러 끝내기)" : "🎤 눌러서 말하기";
-
             if (_confirmLeft > 0f)
             {
                 _confirmLeft -= Time.deltaTime;
@@ -325,8 +312,6 @@ namespace IMUNROK.Common
             var pal = IMUNROK.Ui.DialogueUI.Palette();
 
             _chipColor      = Keep(pal.slotBack, _chipColor.a);      // 물음 칩 — 고를 수 있는 자리
-            _micColor       = Keep(pal.slotBack, _micColor.a);       // 마이크(평소)
-            _micOnColor     = Keep(UiLook.Seal, _micOnColor.a);      // 마이크(녹음 중) — 주칠
             _endColor       = Keep(UiLook.WoodLit, _endColor.a);     // 마치기 — 나뭇결
             _confirmColor   = Keep(UiLook.Seal, _confirmColor.a);    // 다짐 — 주칠
             _orderColor     = Keep(UiLook.Seal, _orderColor.a);      // 명령 — 주칠
@@ -349,26 +334,13 @@ namespace IMUNROK.Common
 
         private void BuildFixedParts()
         {
-            // 마이크 — 가장 크게. VR에서 주된 입력 수단이다.
-            _micRt = NewRect("마이크", new Vector2(-250f, 88f), new Vector2(560f, 96f), transform);
-            _micBg = _micRt.gameObject.AddComponent<Image>();
-            Skin(_micBg, _skin.Slot_, _micColor);
-            var micBtn = _micRt.gameObject.AddComponent<Button>();
-            micBtn.targetGraphic = _micBg;
-            micBtn.onClick.AddListener(() => MicInput.Instance?.Toggle());
-            // <b>그림글자 🎤 는 조선 궁서체에 없다</b> — 네모로 뜬다. 꾸러미도 같은 데서
-            // 걸려 마이크를 직접 그려 두었다(InventorySkin.Mic_). 그 그림을 얻어 쓴다.
-            var micIcon = NewRect("마이크그림", new Vector2(-200f, 0f), new Vector2(56f, 56f), _micRt);
-            Skin(micIcon.gameObject.AddComponent<Image>(), _skin.Mic_, _textColor);
-            _micLabel = NewText("라벨", "눌러서 말하기", new Vector2(30f, 0f), new Vector2(460f, 96f), _micRt, _fontSize);
-
             // 마치기 — 이건 되돌릴 수 없다. 상대가 자리를 뜬다.
             //
             // 한때 '잠시 멈추다' 를 곁에 두었다. 손이 미끄러진 한 번에 심문이 영영 끝나는
             // 것을 막으려던 것인데, 마주 앉아 있는 자리에서 <b>대화를 잠시 치운다</b>는 것이
             // 무슨 뜻인지 애매했다 — 치워 놓고 할 일이 없다. 안전은 버튼을 하나 더 두어
             // 얻을 것이 아니라 <b>이 버튼 자신이</b> 두 번 물어 얻는 것이다.
-            _endRt = NewRect("마치기", new Vector2(300f, 88f), new Vector2(340f, 96f), transform);
+            _endRt = NewRect("마치기", new Vector2(0f, 88f), new Vector2(340f, 96f), transform);
             _endBg = _endRt.gameObject.AddComponent<Image>();
             Skin(_endBg, _skin.Wood_, _endColor);
             var endBtn = _endRt.gameObject.AddComponent<Button>();

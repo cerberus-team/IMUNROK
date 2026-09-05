@@ -6,12 +6,17 @@ namespace IMUNROK.Common
 {
     /// <summary>
     /// 심문 무대 진행. 세 가지 행동:
-    ///  ① 말하기 — 마이크로 직접 묻는다(<see cref="MicInput"/>의 전사가 <see cref="Say"/>로 들어옴)
+    ///  ① 손으로 치기 — 자막 바의 글쇠 칸에 물음을 쳐서 던진다(<see cref="Say"/>로 들어옴)
     ///  ② 추천 질문 — 인물마다 정해둔 질문 칩을 눌러 묻는다(대화로 단서를 얻기도 함)
     ///  ③ 증거 제시 — 수첩에서 단서를 골라 들이밀기(맞는 증거면 인물이 사실을 실토)
     ///
     /// NPC 대답은 INpcResponder가 만든다(Mock=미리 정한 대사 / Gemini=실제 AI).
-    /// 마이크는 씬에 MicInput이 있을 때만 붙는다 — 없으면 ②③으로만 진행된다.
+    ///
+    /// <b>2026-09-05 — 말하기(마이크)를 걷어냈다.</b> ①은 원래 마이크로 말하면 받아
+    /// 적히는 길이었다. Voice SDK(Wit.ai)가 헤드셋 꾸러미에 딸려 오는 물건이라,
+    /// 헤드셋을 걷어내면서 같이 나갔다. 그 자리는 <b>글쇠 칸</b>이 받는다 —
+    /// 받아 적힌 말을 사람이 눈으로 보고 던지던 절차가 이미 있었으므로
+    /// (<see cref="Draft"/>), 그 절차의 앞머리만 목소리에서 손으로 바뀐 셈이다.
     ///
     /// UI는 전부 월드 공간이다 — 대사는 SubtitleView, 조작은 InterrogationPanel.
     /// 둘 다 씬에 미리 둘 필요 없이 심문이 시작될 때 스스로 만들어진다.
@@ -127,10 +132,6 @@ namespace IMUNROK.Common
 
         /// <summary>방금 던진 말. 칸이 비어 있을 때 <b>묽게</b> 남아 무엇을 물었는지 보여 준다.</summary>
         public string LastPlayerLine { get { return _lastPlayerLine; } }
-
-        [Tooltip("받아 적히자마자 곧바로 던진다. 끄면 칸에 올려 두고 Enter/「묻 기」를 기다린다 " +
-                 "— 꾸러미와 같은 절차이므로 꺼 두는 것이 기본이다")]
-        [SerializeField] private bool _voiceAutoSend;
 
         /// <summary>
         /// 지금 대사가 <b>새로 알아낸 것</b>인가. 그러면 자막이 붉게 나온다.
@@ -302,12 +303,6 @@ namespace IMUNROK.Common
             // 지난 사람에게 하려던 말이 다음 사람 칸에 남아 있으면 안 된다.
             Draft = "";
 
-            if (MicInput.Instance != null)
-            {
-                MicInput.Instance.OnPartial += OnMicPartial;
-                MicInput.Instance.OnFinal += OnMicFinal;
-            }
-
             RefreshSubtitle();
             InterrogationPanel.Open(this);
 
@@ -323,17 +318,9 @@ namespace IMUNROK.Common
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); }
             if (Active == this) Active = null;
             Draft = "";
-            UnsubscribeMic();
             SubtitleView.KeepInFrontOf(null);
             SubtitleView.Hide();
             InterrogationPanel.Close();
-        }
-
-        private void UnsubscribeMic()
-        {
-            if (MicInput.Instance == null) return;
-            MicInput.Instance.OnPartial -= OnMicPartial;
-            MicInput.Instance.OnFinal -= OnMicFinal;
         }
 
         // ── 클릭/VR 레이로 인물을 선택하면 심문 시작 ──
@@ -361,7 +348,6 @@ namespace IMUNROK.Common
             if (_beginOnStart) { _exitRequested = true; return; }      // 단독 무대 → 조사청 복귀
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); } // 큐브 → 패널만 닫기
             if (Active == this) Active = null;
-            UnsubscribeMic();
             SubtitleView.KeepInFrontOf(null);
             InterrogationPanel.Close();
 
@@ -393,9 +379,9 @@ namespace IMUNROK.Common
             return new MockNpcResponder();
         }
 
-        // ── 행동 ①: 말하기(마이크) ──
+        // ── 행동 ①: 손으로 쳐서 묻기 ──
 
-        /// <summary>플레이어가 말한 문장을 인물에게 던진다. MicInput의 최종 전사가 여기로 들어온다.</summary>
+        /// <summary>플레이어의 물음을 인물에게 던진다. 글쇠 칸에 친 말이 여기로 들어온다.</summary>
         public void Say(string text)
         {
             if (!_active || _busy || string.IsNullOrWhiteSpace(text)) return;
@@ -421,17 +407,6 @@ namespace IMUNROK.Common
         }
 
         // 말하는 도중의 중간 전사 — 확정 전이라 대화 기록엔 넣지 않고 입력줄에만 비친다.
-        private void OnMicPartial(string text) { if (!_active) return; Draft = text ?? ""; RefreshSubtitle(); }
-
-        // 다 말했다. <b>던지지 않는다</b> — 칸에 올려 두고 사람이 보게 한다(Draft 주석 참고).
-        private void OnMicFinal(string text)
-        {
-            if (!_active) return;
-            Draft = (text ?? "").Trim();
-            if (_voiceAutoSend) AskDraft();
-            else RefreshSubtitle();
-        }
-
         /// <summary>손으로 친 말을 칸에서 받아 온다 — 자막 바가 던지기 직전에 부른다.</summary>
         public void SetDraft(string text) { Draft = text == null ? "" : text; }
 

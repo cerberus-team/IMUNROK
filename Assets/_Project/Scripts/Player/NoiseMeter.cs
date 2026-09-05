@@ -345,13 +345,10 @@ namespace IMUNROK.Common
             // <b>말을 알아듣는 쪽이 있으면 마이크를 내준다.</b> 창이 닫히면 도로 잡는다 —
             // 이 갈아타기는 사람 눈에 안 띈다.
             //
-            // 심문창은 이름으로 안다. 그 밖의 것(UI 꾸러미의 대화창 같은)은 <b>다른
-            // 어셈블리</b>라 이름으로 알 수가 없고, 알게 만들면 핵심이 UI 에 매인다.
-            // 그래서 <see cref="MicHold"/> 라는 이름 없는 걸쇠를 본다 — 누가 올렸는지
-            // 모른 채 비켜 준다. 안 비키면 그쪽이 마이크를 여는 순간 이 눈금이
-            // <b>오류 한 줄 없이 죽는다</b>.
-            bool talking = _yieldMicToInterrogation
-                           && (InterrogationController.AnyOpen || MicHold.Held);
+            // <b>걸쇠(MicHold)를 걷었다.</b> 마이크를 두고 다투던 상대가 「말하기」였는데
+            // 그것을 걷어냈으므로 이제 이 귀를 넘볼 자가 없다. 심문 중에 비켜서는 것은
+            // 그대로 둔다 — 마주 앉아 이야기하는 동안 발소리를 재는 것은 뜻이 없다.
+            bool talking = _yieldMicToInterrogation && InterrogationController.AnyOpen;
             if (talking && _micReady) StopMic();
 
             // 권한을 물어보고 온 참이면 여기서 다시 연다. 매 프레임 두드리면 안 된다 —
