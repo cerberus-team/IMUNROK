@@ -274,6 +274,7 @@ namespace IMUNROK.Common
                 foreach (var d in _documents)
                     if (d != null && d.IsReading) return;
             ShowPickPrompt("(가리켜 누르기)");
+            RaiseHubButton();        // 손에서 놓았으니 「조사청으로」도 도로 선다
         }
 
         /// <summary>
@@ -293,6 +294,11 @@ namespace IMUNROK.Common
         {
             _everPicked = true;
             SubtitleView.Hide();
+
+            // <b>봉서를 펼쳐 든 동안에는 「조사청으로」를 걷는다.</b> 읽고 있는 것은
+            // 「이 사건을 맡을까」를 재는 일이고, 그 앞에 「사건은 나중에」가 같이
+            // 떠 있으면 무엇을 묻는 화면인지 흐려진다. 도로 내려놓으면 다시 선다.
+            CornerButton.Hide();
             if (_documents == null) return;
             foreach (var d in _documents)
                 if (d != null && d != open) d.Lower();
@@ -311,8 +317,9 @@ namespace IMUNROK.Common
             CornerButton.Hide();      // 「조사청으로」는 고르기 전까지만 서 있다
 
             // 고르지 않은 둘은 사건판에 회색으로 남는다. 나중에 아무 때나 집으면 된다.
+            // 고른 하나는 <b>잠근다</b> — 받잡겠다 해 놓고 도로 물릴 수 있으면 그 말이 헛말이다.
             foreach (var d in _documents)
-                if (d != null && d.CaseId != chosen) d.Freeze();
+                if (d != null) { if (d.CaseId != chosen) d.Freeze(); else d.Seal(); }
 
             if (!string.IsNullOrEmpty(_takeLine)) SubtitleView.Show(_takeSpeaker, _takeLine);
             else SubtitleView.Hide();

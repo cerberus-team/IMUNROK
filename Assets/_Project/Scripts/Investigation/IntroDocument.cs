@@ -507,6 +507,23 @@ namespace IMUNROK.Common
             if (_collider != null) _collider.enabled = false;
         }
 
+        /// <summary>
+        /// <b>맡기로 한 봉서를 잠근다.</b> 자세는 그대로 둔다 — 이 종이가 곧 화면을 덮는다.
+        ///
+        /// <see cref="Freeze"/> 와 다르다. 저것은 <b>안 고른</b> 봉서를 굳히는 것이라
+        /// 들고 있던 것을 내려놓고 숨음으로 보내는데, 고른 봉서에 그러면 덮을 것이
+        /// 사라진다. 여기서는 <b>손만 뗀다</b> — 콜라이더를 끄고, 「물리기」 판을 걷고,
+        /// 이름표를 내린다. 이미 받잡겠다 한 뒤에 도로 물릴 수 있으면 그 말이 헛말이 된다.
+        /// </summary>
+        public void Seal()
+        {
+            _hovered = false;
+            if (_collider != null) _collider.enabled = false;
+            KillPutBackTarget();
+            HideLabel();
+            RefreshColor();
+        }
+
         public void Freeze()
         {
             _hovered = false;
