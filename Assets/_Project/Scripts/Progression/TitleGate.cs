@@ -116,6 +116,7 @@ namespace IMUNROK.Common
         private Transform _cam;
         private Quaternion _camHome;
         private Color _ambientHome;
+        private bool _ambientTaken;   // Awake 를 지났는가 — 안 지났으면 되돌릴 것도 없다
         private readonly List<Light> _lights = new List<Light>();
         private readonly List<float> _lightHome = new List<float>();
         private bool _done;
@@ -136,7 +137,43 @@ namespace IMUNROK.Common
             if (_intro != null) _intro.enabled = false;
 
             _ambientHome = RenderSettings.ambientLight;
+            _ambientTaken = true;
+
+            // 씬에 굳어 버린 어둠을 '제자리'로 잡으면, 밝아 올라도 어둠에서 어둠으로
+            // 보간할 뿐이라 <b>환경광이 영영 안 밝아진다</b>. 어떻게 굳는지는 OnDestroy 에.
+            if (SameLight(_ambientHome, _darkAmbient))
+                Debug.LogWarning("[TitleGate] 씬의 환경광이 표제의 어둠과 같습니다 — 밝아 올라도 " +
+                                 "돌아갈 자리가 없습니다. 씬 Lighting 의 Ambient Color 를 제 밝기로 " +
+                                 "되돌려 주십시오.", this);
+
             RenderSettings.ambientLight = _darkAmbient;
+        }
+
+        /// <summary>
+        /// <b>내려놓은 어둠을 나가는 길에 도로 걷는다.</b>
+        ///
+        /// 이 판은 환경광을 <see cref="_darkAmbient"/> 로 내려놓고, 어전이 밝아 오를 때
+        /// 제자리로 되돌린다. 그 사이에 판이 죽으면(씬을 옮기거나 플레이를 끊으면)
+        /// 내려놓은 어둠이 그대로 남는다. 에디터에서는 그 상태로 씬을 저장하면
+        /// <b>어둠이 씬에 굳는다</b>.
+        ///
+        /// 짐작이 아니다. IntroScene 의 환경광 이력을 보면 (0.1, 0.1, 0.12) 과
+        /// (0.012, 0.012, 0.018) 이 여러 커밋에 걸쳐 번갈아 들어와 있고, 뒤엣것은
+        /// 이 판의 <c>_darkAmbient</c> 기본값과 한 자리도 다르지 않다. 한 번 굳으면
+        /// 다음 판의 <see cref="Awake"/> 가 그 어둠을 제자리로 잡아 되돌릴 데를 잃는다 —
+        /// 오류도 경고도 없이 번지는 종류의 탈이라, 나가는 길에 반드시 걷는다.
+        /// </summary>
+        private void OnDestroy()
+        {
+            if (_ambientTaken) RenderSettings.ambientLight = _ambientHome;
+        }
+
+        /// <summary>두 빛이 눈으로 같은가. 색은 자잘한 자리에서 어긋나므로 딱 맞기를 묻지 않는다.</summary>
+        private static bool SameLight(Color a, Color b)
+        {
+            return Mathf.Abs(a.r - b.r) < 0.002f
+                && Mathf.Abs(a.g - b.g) < 0.002f
+                && Mathf.Abs(a.b - b.b) < 0.002f;
         }
 
         private void Start()
