@@ -317,7 +317,6 @@ GameObject:
   - component: {fileID: 183265546}
   - component: {fileID: 183265545}
   - component: {fileID: 183265544}
-  - component: {fileID: 183265547}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -416,18 +415,6 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!114 &183265547
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 183265542}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6532514eaf7f256409be17dc3e545f39, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.FixedView
 --- !u!1 &258836236
 GameObject:
   m_ObjectHideFlags: 0
