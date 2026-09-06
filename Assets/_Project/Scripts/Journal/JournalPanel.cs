@@ -57,7 +57,8 @@ namespace IMUNROK.Common
         /// <b>뜻을 지닌 채</b> 건너온다 — 자막 바에서 <c>BarStyle</c> 을 그렇게 받아 온 것과
         /// 같은 셈이다. 한 줄에 다섯 장이 들어가는 것도 이 폭에서 저절로 나온다.
         /// </summary>
-        private const float PageW = 1920f, PageH = 1120f;
+        private static float PageW { get { return IMUNROK.Ui.InventoryUI.PanelW; } }
+        private static float PageH { get { return IMUNROK.Ui.InventoryUI.PanelH; } }
 
         /// <summary>
         /// <b>판이 화면 세로에서 차지하는 몫.</b>
@@ -328,9 +329,12 @@ namespace IMUNROK.Common
                 return;
             }
 
-            // 저쪽 <c>InventoryUI</c> 의 칸 치수 그대로다(CellW 320 · CellH 272 · Gap 28).
-            // 여태 190×14 였다 — 좌표계가 달라 그 수를 못 받아 오고 눈대중으로 잡았던 자리다.
-            const float cw = 320f, ch = 272f, gap = 28f;
+            // <b>칸 치수를 저쪽에 물어 온다.</b> 여태 320·272·28 을 손으로 적어 두었는데,
+            // 적어 둔 수는 저쪽이 고쳐도 안 따라온다. 꾸러미의 그 칸들이 닫혀 있어
+            // 베낄 수밖에 없던 것이라, 열고 나서 갈아 끼웠다.
+            float cw = IMUNROK.Ui.InventoryUI.CellW;
+            float ch = IMUNROK.Ui.InventoryUI.CellH;
+            float gap = IMUNROK.Ui.InventoryUI.Gap;
             int perRow = Mathf.Max(1, Mathf.FloorToInt((w + gap) / (cw + gap)));
             float x0 = -(perRow * cw + (perRow - 1) * gap) * 0.5f + cw * 0.5f;
 
@@ -461,7 +465,8 @@ namespace IMUNROK.Common
                 return;
             }
 
-            const float cw = 320f, ch = 272f, gap = 28f;
+            float cw = IMUNROK.Ui.InventoryUI.CellW, ch = IMUNROK.Ui.InventoryUI.CellH,
+                  gap = IMUNROK.Ui.InventoryUI.Gap;
             float x0 = -(sheets.Count * cw + (sheets.Count - 1) * gap) * 0.5f + cw * 0.5f;
 
             for (int i = 0; i < sheets.Count; i++)

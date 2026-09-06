@@ -367,9 +367,9 @@ namespace IMUNROK.Common
         /// <summary>
         /// <b>꾸러미 하단바의 치수 한 벌.</b> 이름과 뜻을 저쪽 <c>BottomStyle</c> 에서 그대로 가져왔다.
         ///
-        /// ⚠ <b>베껴 온 것이다.</b> 색을 쥔 <c>Palette()</c> 는 공개라 물어 오는데,
-        ///   치수를 쥔 <c>StyleOf</c> 는 비공개다. 그것이 열리면 이 구조체를 지우고
-        ///   그쪽을 부르면 된다 — 팀원께 열어 달라고 청해 둘 것.
+        /// <b>이제 베끼지 않는다.</b> 색을 쥔 <c>Palette()</c> 도, 치수를 쥔 <c>StyleOf</c> 도
+        ///   저쪽에 물어 온다. 이 구조체는 그 답을 담는 그릇으로만 남는다 —
+        ///   저쪽 <c>BottomStyle</c> 과 칸 이름이 달라 그대로 쓸 수가 없어서다.
         /// </summary>
         private struct BarStyle
         {
@@ -418,10 +418,22 @@ namespace IMUNROK.Common
         /// </summary>
         private static BarStyle StyleNow()
         {
+            // <b>이제 저쪽에 물어본다.</b> 위 주석이 「그것이 열리면 이 구조체를 지우고
+            // 그쪽을 부르면 된다 — 팀원께 열어 달라고 청해 둘 것」이라 적어 둔 그 자리다.
+            // 청할 것도 없었다: 견우 사건 코드 쪽 사본에는 이미 열려 있었고 꾸러미만
+            // 안 따라와 있었다. 꾸러미를 열어 두 벌을 같은 데로 모았다.
+            var st = IMUNROK.Ui.DialogueUI.StyleOf(IMUNROK.Ui.DialogueLayout.하단바_확정);
+
             return new BarStyle {
-                w = 2900f, line = 56, name = 56, input = 28, foot = 19, inputH = 62f,
-                padX = 90f, padTop = 14f, nameToRule = 10f, ruleH = 3f, ruleToLine = 24f,
-                lineToInput = 34f, inputToFoot = 22f, footToEdge = 19f, footH = 24f };
+                w = 2900f,                       // 저쪽 BarGeom 이 이 배치에 주는 폭
+                // <b>대사와 이름만 우리 값이다.</b> 어긋난 자리는 이 둘뿐이고, 그 까닭은
+                // 위에 적어 두었다. 나머지는 한 자도 안 적는다 — 저쪽이 고치면 따라온다.
+                line = 56, name = 56,
+                input = st.inputSize, foot = st.footSize, inputH = st.inputH,
+                padX = st.padX, padTop = st.padTop, nameToRule = st.nameToRule,
+                ruleH = st.ruleH, ruleToLine = st.ruleToLine,
+                lineToInput = st.lineToInput, inputToFoot = st.inputToFoot,
+                footToEdge = st.footToEdge, footH = st.footH };
         }
 
         private void Build()
