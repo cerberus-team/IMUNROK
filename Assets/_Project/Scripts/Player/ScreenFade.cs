@@ -98,6 +98,12 @@ namespace IMUNROK.Common
 
         private IEnumerator EnterRoutine(AsyncOperation op, float openSeconds, float blackHold)
         {
+            // <b>먼저 다 감겨야 한다.</b> 아직 뜨고 있는 눈으로 씬을 갈아 끼우면
+            // 옮겨 간 것이 아니라 화면이 튄 것이 된다. 하염없이 기다리지는 않는다 —
+            // 부르는 쪽이 어둡게 걸지 않았을 수도 있다.
+            float waitBlack = 0f;
+            while (_alpha < 0.999f && waitBlack < 3f) { waitBlack += Time.unscaledDeltaTime; yield return null; }
+
             // 0.9 에서 멎는다 — 들여보내라고 하기 전까지 유니티가 더 올리지 않는다.
             while (op != null && !op.isDone && op.progress < 0.9f) yield return null;
             if (op != null) op.allowSceneActivation = true;

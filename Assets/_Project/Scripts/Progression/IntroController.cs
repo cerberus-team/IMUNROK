@@ -205,11 +205,7 @@ namespace IMUNROK.Common
         /// 두면 「빠져나가는 길」로 보이는데, 이것은 빠져나가는 길이 아니라
         /// <b>넷째 선택지</b>다 — 봉서 셋과 같은 줄에 서야 함께 견줘진다.
         /// </summary>
-        private void RaiseHubButton()
-        {
-            if (_taken || string.IsNullOrEmpty(_hubLabel)) return;
-            CornerButton.Show(_hubLabel, GoToHubWithoutCase, _skipFadeIn, CornerButton.Below);
-        }
+        private void RaiseHubButton() => UpdateHubButton();
 
         /// <summary>사건을 안 맡은 채 조사청으로 든다.</summary>
         public void GoToHubWithoutCase()
@@ -266,6 +262,16 @@ namespace IMUNROK.Common
         {
             if (_taken || !_speechDone) return;
 
+            // <b>단추는 안내와 따로 논다.</b> 아래 <c>_everPicked</c> 로 돌아 나가는 것은
+            // 「집어 보라」는 <b>안내</b>이지 「조사청으로」가 아니다. 한동안 둘을 한 줄에
+            // 묶어 두어서, 봉서를 한 번 집어 본 사람에게는 도로 내려놓아도 단추가
+            // 영영 안 돌아왔다.
+            // 손에서 놓았으면 그 표를 지운다. 여기서만 지운다 —
+            // <see cref="NowReading"/> 직후에는 <c>Lift()</c> 가 아직이라 IsReading 이
+            // 거짓이고, 그때 지우면 방금 집은 것을 안 집은 것으로 세게 된다.
+            if (_reading != null && !_reading.IsReading) _reading = null;
+            UpdateHubButton();
+
             // 한 번이라도 집어 본 사람에게는 다시 알리지 않는다. 그 안내는 무엇을
             // 하라는 것인지 모를 때를 위한 것이지, 아는 사람 앞을 계속 가릴 이유가 없다.
             if (_everPicked) return;
@@ -274,8 +280,47 @@ namespace IMUNROK.Common
                 foreach (var d in _documents)
                     if (d != null && d.IsReading) return;
             ShowPickPrompt("(가리켜 누르기)");
-            RaiseHubButton();        // 손에서 놓았으니 「조사청으로」도 도로 선다
         }
+
+        /// <summary>
+        /// <b>「조사청으로」가 지금 서 있어야 하는가</b> — 그 답이 <b>바뀔 때만</b> 손댄다.
+        ///
+        /// 여태 세우고 걷는 일을 자리마다 따로 불렀다. 그런데 <see cref="RestorePickPrompt"/>
+        /// 는 봉서에서 눈을 뗄 때마다 불린다 — 셋 위를 훑기만 해도 단추가 걷혔다 섰다
+        /// 하며 <b>깜빡였다</b>. <c>CornerButton.Show</c> 는 서 있던 것을 걷고 새로 세우면서
+        /// 배어 나오기를 처음부터 다시 하므로, 같은 값으로 다시 부르는 것이 곧 깜빡임이다.
+        ///
+        /// 그래서 <b>있어야 하는가</b>만 셈하고, 지금 모습과 다를 때만 세우거나 걷는다.
+        /// </summary>
+        private void UpdateHubButton()
+        {
+            bool want = _speechDone && !_taken && !string.IsNullOrEmpty(_hubLabel) && !AnyReading();
+            if (want == _hubUp) return;
+            _hubUp = want;
+            if (want) CornerButton.Show(_hubLabel, GoToHubWithoutCase, _skipFadeIn, CornerButton.Below);
+            else CornerButton.Hide();
+        }
+
+        /// <summary>
+        /// 봉서 하나라도 눈앞에 펼쳐 들고 있는가.
+        ///
+        /// <c>_reading</c> 을 따로 두는 까닭: <see cref="NowReading"/> 은 <c>Lift()</c> <b>앞에</b>
+        /// 불린다(다른 봉서를 먼저 내려놓아야 하므로). 그 순간에는 방금 집은 것조차
+        /// <c>IsReading</c> 이 아직 거짓이라, 이것만 보면 단추가 안 걷힌다.
+        /// </summary>
+        private bool AnyReading()
+        {
+            if (_reading != null) return true;
+            if (_documents == null) return false;
+            foreach (var d in _documents) if (d != null && d.IsReading) return true;
+            return false;
+        }
+
+        /// <summary>방금 집어 펼치려는 봉서. 위 참조.</summary>
+        private IntroDocument _reading;
+
+        /// <summary>지금 「조사청으로」가 서 있는가. 우리가 세운 것만 센다.</summary>
+        private bool _hubUp;
 
         /// <summary>
         /// 집으라는 안내를 띄운다 — <b>적을 것이 있을 때만</b>.
@@ -294,11 +339,12 @@ namespace IMUNROK.Common
         {
             _everPicked = true;
             SubtitleView.Hide();
+            _reading = open;
 
             // <b>봉서를 펼쳐 든 동안에는 「조사청으로」를 걷는다.</b> 읽고 있는 것은
             // 「이 사건을 맡을까」를 재는 일이고, 그 앞에 「사건은 나중에」가 같이
             // 떠 있으면 무엇을 묻는 화면인지 흐려진다. 도로 내려놓으면 다시 선다.
-            CornerButton.Hide();
+            UpdateHubButton();
             if (_documents == null) return;
             foreach (var d in _documents)
                 if (d != null && d != open) d.Lower();
@@ -314,7 +360,7 @@ namespace IMUNROK.Common
             _taken = true;
             _takenCase = chosen;
 
-            CornerButton.Hide();      // 「조사청으로」는 고르기 전까지만 서 있다
+            UpdateHubButton();        // 「조사청으로」는 고르기 전까지만 서 있다
 
             // 고르지 않은 둘은 사건판에 회색으로 남는다. 나중에 아무 때나 집으면 된다.
             // 고른 하나는 <b>잠근다</b> — 받잡겠다 해 놓고 도로 물릴 수 있으면 그 말이 헛말이다.
@@ -344,8 +390,7 @@ namespace IMUNROK.Common
             if (_taken) SubtitleView.Show(_goingSpeaker, _goingLine, "");
         }
 
-        [Tooltip("맡은 봉서로 화면을 덮으며 넘어가는 데 걸리는 시간(초). " +
-                 "0 이면 예전처럼 그냥 캄캄해졌다 뜬다")]
+        [Tooltip("눈이 감기는 데 걸리는 시간(초). 다 감긴 뒤에야 사건 씬으로 들어간다")]
         [SerializeField] private float _coverSeconds = 0.75f;
 
         [Header("사건 씬 이름 — 봉서를 집으면 여기로 곧장 간다")]
@@ -385,36 +430,23 @@ namespace IMUNROK.Common
                 return;
             }
 
-            // <b>맡은 봉서로 화면을 덮으며 넘어간다.</b>
+            // <b>눈을 감았다 뜬다.</b> 종이는 그 자리에 둔다 — 다가오지 않는다.
             //
-            // 여태는 그냥 캄캄해졌다 떴다. 그 검은 막은 아무것도 아니라서, 화면이
-            // <b>바뀐 것</b>이지 내가 <b>들고 간 것</b>이 아니었다. 손에 쥔 종이가
-            // 시야를 덮으며 넘어가면 그 봉서가 조사청까지 따라온 것이 된다 —
-            // 도착해서 손에 봉서가 있는 것이 그제야 자연스럽다.
-            IntroDocument taken = null;
-            if (_documents != null)
-                foreach (var d in _documents)
-                    if (d != null && d.CaseId == _takenCase && d.IsReading) taken = d;
-
-            if (taken != null && _coverSeconds > 0.01f)
-            {
-                // <b>덮는 동안 뒤에서 읽는다.</b> 동기로 읽으면 연출이 끝나는 바로 그
-                // 순간에 화면이 굳는다 — 재 보니 서천 1.72초 · 옹고집 1.15초였다.
-                // 종이가 눈앞에 닿은 채로 그만큼 얼어붙으니 덮은 것이 아니라 멈춘 것이
-                // 됐다. 미리 읽어 두면 그 멎음이 <b>연출 뒤로 숨는다</b>.
-                var op = SceneManager.LoadSceneAsync(go);
-                op.allowSceneActivation = false;
-                taken.CoverScreen(_coverSeconds, () => ScreenFade.EnterWhenReady(op));
-                return;
-            }
-
-            // 덮을 것이 없으면(펼치지 않고 맡았거나 값이 0) 예전 길로 간다.
-            // 눈앞에 들어 올린 두루마리는 검은 막보다 앞에 있어, 그냥 두면
-            // 캄캄해진 화면 위에 그것만 남아 떠 있다.
-            if (_documents != null)
-                foreach (var d in _documents)
-                    if (d != null) d.HideNow();
-            ScreenFade.Blink(0.45f, 0.5f, () => SceneManager.LoadScene(go));
+            // 한동안 맡은 봉서가 시야를 덮으며 넘어가게 했다. 「그 봉서가 조사청까지
+            // 따라온 것이 된다」는 뜻이었는데, 화면으로 보면 <b>종이가 얼굴로 날아드는</b>
+            // 것이다. 다가오는 결을 눅이고 시간을 늘려도 그 성질은 안 바뀌었다 —
+            // 덮는 물건은 시야 안에서 커지는 것이고, 커지는 것은 다가오는 것이다.
+            //
+            // 자리를 옮기는 데 필요한 것은 <b>덮개</b>가 아니라 <b>눈꺼풀</b>이다.
+            // 감았다 뜨면 그 사이에 어디로 갔든 자연스럽고, 무엇도 날아들지 않는다.
+            //
+            // <b>감는 동안 뒤에서 읽는다.</b> 동기로 읽으면 감긴 순간에 화면이 굳는다 —
+            // 재 보니 서천 1.72초 · 옹고집 1.15초였다. 미리 읽어 두면 그 멎음이
+            // 어둠 뒤로 숨는다. 다 감기기 전에는 들여보내지 않는다(EnterWhenReady).
+            var op = SceneManager.LoadSceneAsync(go);
+            op.allowSceneActivation = false;
+            ScreenFade.To(1f, Mathf.Max(0.2f, _coverSeconds));
+            ScreenFade.EnterWhenReady(op);
         }
 
         /// <summary>어느 사건을 맡았나 — 화면을 덮을 봉서를 고를 때 쓴다.</summary>

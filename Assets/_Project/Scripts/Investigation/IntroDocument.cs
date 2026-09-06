@@ -380,78 +380,13 @@ namespace IMUNROK.Common
         /// </summary>
         /// <param name="seconds">덮는 데 걸리는 시간</param>
         /// <param name="then">다 덮은 뒤에 할 일 — 대개 씬 갈아 끼우기</param>
-        public void CoverScreen(float seconds, System.Action then)
-        {
-            if (_moving != null) StopCoroutine(_moving);
-            _moving = StartCoroutine(CoverRoutine(seconds, then));
-        }
+        // <b>CoverScreen 을 걷었다.</b> 맡은 봉서가 시야를 덮으며 넘어가게 하던 자리다 —
+        // 「그 봉서가 조사청까지 따라온 것이 된다」는 뜻이었는데, 화면으로 보면
+        // <b>종이가 얼굴로 날아드는</b> 것이었다. 다가오는 결을 눅이고 시간을 늘려도
+        // 그 성질은 안 바뀐다 — 덮는 물건은 시야에서 커지는 것이고, 커지는 것은
+        // 다가오는 것이다. 자리를 옮기는 데 필요한 것은 덮개가 아니라 눈꺼풀이라,
+        // 이제 어전은 그냥 눈을 감았다 뜬다(IntroController.LeaveForHub).
 
-        private IEnumerator CoverRoutine(float seconds, System.Action then)
-        {
-            var cam = Camera.main;
-            if (cam == null) { if (then != null) then(); yield break; }
-
-            HideLabel();
-            KillPutBackTarget();
-            SubtitleView.Hide();
-            if (_collider != null) _collider.enabled = false;
-
-            // <b>읽는중에서 빠져나와야 한다.</b> LateUpdate 가 「읽는중」인 동안
-            // 종이를 <b>매 프레임 읽는 자리로 끌어다 놓기</b> 때문이다(고개를 돌려도
-            // 종이가 정면을 보게 하려고 둔 것). 코루틴이 당겨 놓으면 그 프레임 끝에
-            // 도로 밀려나서, 6초를 걸어 놓고도 종이가 <b>한 뼘도 안 움직였다</b>.
-            //
-            // 떠오르는중으로 옮긴다 — LateUpdate 는 손을 떼고, IsReading 은 참으로
-            // 남아 다른 데서 「지금 읽는 중」으로 세는 셈은 그대로 간다.
-            _phase = Phase.떠오르는중;
-
-            Vector3 fromPos = transform.position;
-            Quaternion fromRot = transform.rotation;
-
-            float dur = Mathf.Max(0.05f, seconds);
-            float t = 0f;
-            bool eyesClosing = false;
-            while (t < 1f)
-            {
-                t += Time.deltaTime / dur;
-                float k = Mathf.Clamp01(t);
-
-                // <b>처음부터 다가온다.</b> 여태 k³ 이었는데, 그러면 절반이 지나도록
-                // 열에 하나쯤(0.5³=0.125)밖에 안 와서 <b>가만히 있다가 갑자기 들이닥치는</b>
-                // 것으로 보였다. 다가오는 것은 가까울수록 커 보이므로, 같은 속도로 와도
-                // 이미 빨라지는 것처럼 보인다 — 거기에 세제곱까지 얹을 까닭이 없었다.
-                // k² 면 처음부터 눈에 띄게 움직이면서 끝에서만 한 번 당긴다.
-                float e = k * k;
-
-                // <b>다가오는 동안 눈이 감긴다.</b>
-                //
-                // 종이만 끌어다 붙이면 <b>얼굴에 부딪히는</b> 것이 된다 — 아무 예고 없이
-                // 커지기만 하다가 씬이 바뀌니, 덮은 것이 아니라 들이받은 꼴이었다.
-                // 덮는다는 것은 시야가 <b>닫힌다</b>는 뜻이고, 닫히는 것은 어두워지는 것이다.
-                //
-                // 절반쯤 왔을 때부터 어두워지기 시작해 종이가 눈앞에 닿을 때 다 감긴다.
-                // 처음부터 어둡게 하면 무엇이 다가오는지 못 보고, 끝에만 하면 급하다.
-                if (!eyesClosing && k >= 0.32f)
-                {
-                    eyesClosing = true;
-                    ScreenFade.To(1f, dur * 0.62f);
-                }
-
-                // 눈 바로 앞. 카메라의 앞 자름면보다 조금 앞이라야 잘리지 않는다.
-                float near = Mathf.Max(cam.nearClipPlane + 0.02f, 0.055f);
-                float half = PaperHalf();
-                Vector3 to = cam.transform.position
-                             + cam.transform.forward * near
-                             + cam.transform.up * half;      // 종이는 축에 매달려 아래로 자란다
-
-                transform.position = Vector3.Lerp(fromPos, to, e);
-                transform.rotation = Quaternion.Slerp(fromRot, ReadRotation(cam), Mathf.Min(1f, e * 2f));
-                yield return null;
-            }
-
-            _moving = null;
-            if (then != null) then();
-        }
 
         /// <summary>도로 발치에 내려놓는다(다른 봉서를 집었을 때).</summary>
         public void Lower()
@@ -487,6 +422,13 @@ namespace IMUNROK.Common
             transform.localPosition = _homeLocal;
             transform.localRotation = _homeRot;
             _phase = Phase.놓임;
+
+            // <b>다 내려놓았다고 알린다.</b> 여태 이 말을 <see cref="OnHoverExit"/> 만
+            // 하고 있었다 — 손을 물린 자리에서 마우스가 그대로 멎어 있으면 아무도
+            // 알리지 않아, 「조사청으로」가 걷힌 채로 남았다. 물리는 것과 눈을 떼는 것은
+            // 다른 일이므로 각자 알린다.
+            var intro = FindFirstObjectByType<IntroController>();
+            if (intro != null) intro.RestorePickPrompt();
             _moving = null;
         }
 
