@@ -57,15 +57,19 @@ namespace IMUNROK.Common
             if (!string.IsNullOrEmpty(_line))
             {
                 SubtitleView.Show(_speaker, _line, "");
-                StartCoroutine(HideLineSoon());
+                StartCoroutine(HideLineSoon(SubtitleView.Generation));
             }
             WayMark.Show(_aim.transform, _markLabel);
         }
 
-        private IEnumerator HideLineSoon()
+        private IEnumerator HideLineSoon(int mine)
         {
             yield return new WaitForSeconds(Mathf.Max(0.5f, _lineSeconds));
-            SubtitleView.Hide();
+
+            // <b>내 말이 아직 그대로일 때만 지운다.</b> 이 사이에 도구를 누르면 익히기가
+            // 제 말을 띄우는데, 그것까지 지워 버리면 글은 판에 적혀 있는데 판이 안 보인다 —
+            // 눌러도 아무 일이 없는 것으로 읽힌다.
+            SubtitleView.HideIfUnchanged(mine);
 
             // <b>길표도 말과 함께 걷는다.</b>
             //

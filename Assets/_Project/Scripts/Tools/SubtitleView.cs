@@ -183,8 +183,31 @@ namespace IMUNROK.Common
             if (_instance == this) _instance = null;
         }
 
+        /// <summary>
+        /// <b>몇 번째 말인가.</b> 한 마디 띄울 때마다 하나씩 오른다.
+        ///
+        /// 자막판은 하나인데 <b>쓰는 사람이 여럿</b>이다 — 조사청 안내, 도구 익히기,
+        /// 심문, 사건표. 그중에는 「몇 초 뒤에 내 말을 지워라」고 <b>미리 걸어 두는</b>
+        /// 것이 있는데, 그 사이에 다른 이가 제 말을 띄우면 그 예약이 <b>남의 말을 지운다</b>.
+        ///
+        /// 실제로 그랬다: 조사청에 들어서면 「조사청이오」가 4.5초짜리 지우기를 걸어 두는데,
+        /// 그 안에 돋보기를 누르면 익히기 첫 마디가 그 지우기에 맞아 사라졌다. 글은
+        /// 판에 적혀 있는데 판이 안 보이니, 눌러도 아무 일이 없는 것으로 읽힌다.
+        ///
+        /// 그래서 띄울 때 번호를 받아 두고, 지울 때 <b>그 번호가 그대로인지</b> 본다.
+        /// </summary>
+        public static int Generation { get; private set; }
+
+        /// <summary>내가 띄운 말이 아직 그대로면 지운다. 아니면 손대지 않는다.</summary>
+        public static void HideIfUnchanged(int generation)
+        {
+            if (generation != Generation) return;
+            Hide();
+        }
+
         private void ShowInternal(string speaker, string line, string hint, bool key = false)
         {
+            Generation++;
             bool wasHidden = _group.alpha < 0.5f;
 
             bool hasName = !string.IsNullOrEmpty(speaker);
