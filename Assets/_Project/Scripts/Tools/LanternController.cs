@@ -39,6 +39,11 @@ namespace IMUNROK.Common
         private Vector3 _restPose;
         private bool _restTaken;
 
+        /// <summary>내어 든 자리(카메라 기준). <see cref="HeldRig"/> 가 정한 것을 Awake 에서 받아 둔다.</summary>
+        private Vector3 _carry;
+        /// <summary>지금 실제로 내어 든 거리. 앞이 막히면 줄었다가 트이면 도로 는다.</summary>
+        private float _reach;
+
         /// <summary>
         /// 등불을 종이 뒤로 들어 올린다(0~1). <see cref="LanternReveal"/> 가 부른다.
         ///
@@ -63,6 +68,37 @@ namespace IMUNROK.Common
             // 모델까지 넘긴다 — 크기도 공통이다. 조사청의 등불이 옹고집전 것의
             // 절반이었고(8 대 21), 같은 방 문갑에 놓인 등불보다도 작았다.
             if (_useCommonPose) HeldRig.Apply(transform, _toolId, _model != null ? _model.transform : null);
+
+            _carry = transform.localPosition;
+            _reach = _carry.magnitude;
+        }
+
+        /// <summary>
+        /// <b>앞이 막히면 등불을 몸쪽으로 당긴다.</b>
+        ///
+        /// 등롱은 장대에 매달아 1.2m 앞으로 내어 든다 — 그래야 화면을 안 가리고
+        /// 장대도 장대 노릇을 한다. 그런데 사랑방처럼 좁은 데서 벽을 마주 보면
+        /// 그 자리가 <b>벽 속</b>이라, 등불이 벽을 뚫고 반쯤 잠긴다.
+        ///
+        /// 사람도 그렇게 한다. 좁은 데서는 등을 몸쪽으로 당겨 든다. 그러니 앞을
+        /// 짚어 보고 막힌 만큼만 당긴다. <b>천천히</b> 당기고 놓는 것이 요점이다 —
+        /// 지나가는 사람이나 문설주에 대고 즉시 튀면 등불이 덜덜 떤다.
+        /// </summary>
+        private void KeepOffWalls()
+        {
+            var eye = transform.parent;                  // 매단 자리는 카메라에 달려 있다
+            if (eye == null || _carry.sqrMagnitude < 1e-6f) return;
+
+            float far = _carry.magnitude;
+            Vector3 dir = eye.TransformDirection(_carry / far);
+
+            float want = far;
+            RaycastHit hit;
+            if (Physics.SphereCast(eye.position, 0.12f, dir, out hit, far, ~0, QueryTriggerInteraction.Ignore))
+                want = Mathf.Max(0.45f, hit.distance - 0.06f);
+
+            _reach = Mathf.MoveTowards(_reach, want, 2.5f * Time.deltaTime);
+            transform.localPosition = _carry * (_reach / far);
         }
 
         private void Start()
@@ -112,11 +148,23 @@ namespace IMUNROK.Common
 
             // 종이 뒤로 넘어가는 움직임.
             //
+            if (want) KeepOffWalls();
+
             if (_model != null)
             {
                 if (!_restTaken) { _restPose = _model.transform.localPosition; _restTaken = true; }
                 _raise = Mathf.MoveTowards(_raise, want ? _wantRaise : 0f, _raiseSpeed * Time.deltaTime);
-                _model.transform.localPosition = Vector3.Lerp(_restPose, _upPose, Mathf.SmoothStep(0f, 1f, _raise));
+
+                // <b>올라가는 자리는 카메라 기준이다.</b> 밭 설명에도 그렇게 적혀 있는데
+                // 여태 매단 자리 기준으로 쓰고 있었다. 매단 자리가 (0.28,-0.28,0.55) 일
+                // 때는 어긋난 채로도 그럭저럭 종이 뒤에 갔지만, 내어 드는 자리를 옮기면
+                // 그만큼 딸려 가서 종이보다 한참 뒤로 넘어간다. 종이는 눈에서 0.6m 앞에
+                // 있으므로 <b>눈</b>을 기준으로 잡아야 어디에 들었든 종이 뒤에 선다.
+                Vector3 up = _upPose;
+                var eye = transform.parent;
+                if (eye != null) up = transform.InverseTransformPoint(eye.TransformPoint(_upPose));
+
+                _model.transform.localPosition = Vector3.Lerp(_restPose, up, Mathf.SmoothStep(0f, 1f, _raise));
             }
         }
     }
