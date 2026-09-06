@@ -289,7 +289,7 @@ namespace IMUNROK.Common
             _armed = on;
             if (!on) { _act = 0f; _actWhat = null; }
             if (on && !_micReady) StartMic();
-            Debug.Log(on
+            DevLog.Note(on
                 ? "[소리계] 조사가 시작됐다 — 이제부터 소리가 무게를 가진다."
                 : "[소리계] 무게를 내린다. 눈금은 그대로 움직인다.");
         }
@@ -313,14 +313,14 @@ namespace IMUNROK.Common
 #endif
             if (Microphone.devices == null || Microphone.devices.Length == 0)
             {
-                Debug.Log("[소리계] 마이크가 없다 — 짓으로 낸 소리만 잰다.");
+                DevLog.Note("[소리계] 마이크가 없다 — 짓으로 낸 소리만 잰다.");
                 return;
             }
             _device = Microphone.devices[0];
             // 1초짜리 고리 하나면 된다. 저장하려는 것이 아니라 <b>지금 얼마나 큰가</b>만 본다.
             _clip = Microphone.Start(_device, true, 1, 16000);
             _micReady = _clip != null;
-            if (_micReady) Debug.Log("[소리계] 마이크: " + _device);
+            if (_micReady) DevLog.Note("[소리계] 마이크: " + _device);
         }
 
         private void StopMic()

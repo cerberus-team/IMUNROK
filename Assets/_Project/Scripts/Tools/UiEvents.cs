@@ -55,7 +55,7 @@ namespace IMUNROK.Common
 #else
             go.AddComponent<StandaloneInputModule>();
 #endif
-            Debug.Log("[UI] 이 씬에 EventSystem 이 없어 새로 세웠습니다 — 없으면 단추가 통째로 죽습니다.", go);
+            DevLog.Note("[UI] 이 씬에 EventSystem 이 없어 새로 세웠습니다 — 없으면 단추가 통째로 죽습니다.", go);
         }
     }
 }

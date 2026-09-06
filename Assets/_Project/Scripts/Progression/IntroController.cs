@@ -486,7 +486,7 @@ namespace IMUNROK.Common
         {
             PlayerPrefs.DeleteKey(SeenKey);
             PlayerPrefs.Save();
-            Debug.Log("[IntroController] 어명 본 기록을 지웠습니다 — 다음 실행에서 건너뛸 수 없습니다.");
+            DevLog.Note("[IntroController] 어명 본 기록을 지웠습니다 — 다음 실행에서 건너뛸 수 없습니다.");
         }
     }
 }

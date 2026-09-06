@@ -589,7 +589,7 @@ namespace IMUNROK.Common
 
             PaintPropOnTop();
 
-            Debug.Log("[돋보기] 소품 " + _prop.name + " 의 유리를 " + (_measureProp ? "쟀다" : "재지 않고 손값을 쓴다")
+            DevLog.Note("[돋보기] 소품 " + _prop.name + " 의 유리를 " + (_measureProp ? "쟀다" : "재지 않고 손값을 쓴다")
                       + " — 반지름 " + _glassRadius.ToString("F3") + "m, 잰 한가운데 " + center.ToString("F4")
                       + ", 실제로 쓰는 한가운데 " + GlassLocal.ToString("F4"), _prop);
         }

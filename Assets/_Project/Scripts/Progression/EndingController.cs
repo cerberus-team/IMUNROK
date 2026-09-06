@@ -108,7 +108,7 @@ namespace IMUNROK.Common
             // 단독 실행 등으로 판결이 비어 있으면 샘플로 채움(테스트 편의)
             if (_autofillIfEmpty && gs.CompletedCount == 0)
             {
-                Debug.Log("[EndingController] 판결 데이터가 없어 샘플 판결로 채웁니다(디버그).");
+                DevLog.Note("[EndingController] 판결 데이터가 없어 샘플 판결로 채웁니다(디버그).");
                 gs.SetVerdict(CaseId.Case1_Onggojip, Verdict.Truth);
                 gs.SetVerdict(CaseId.Case2_Seocheon, Verdict.Mercy);
                 gs.SetVerdict(CaseId.Case3_Gyeonu, Verdict.Truth);
@@ -216,7 +216,7 @@ namespace IMUNROK.Common
                 _index = _lines.Count - 1;
                 _finished = true;
                 _justFinished = true;
-                Debug.Log("[EndingController] 복명을 마칩니다.");
+                DevLog.Note("[EndingController] 복명을 마칩니다.");
             }
         }
 

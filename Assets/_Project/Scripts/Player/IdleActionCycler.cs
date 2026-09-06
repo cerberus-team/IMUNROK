@@ -244,7 +244,7 @@ namespace IMUNROK.Common
             var an = GetComponentInChildren<Animator>();
             if (an != null)
                 sb.AppendLine($"  Animator '{an.name}' (이 오브젝트와 {(an.transform == transform ? "같음" : "다름 — 자식")}) rootMotion={an.applyRootMotion}");
-            Debug.Log(sb.ToString(), this);
+            DevLog.Note(sb.ToString(), this);
         }
 
         /// <summary>에디터에서 지금 바로 바닥에 맞춰본다(Play 없이 확인용).</summary>

@@ -202,7 +202,7 @@ namespace IMUNROK.Common
             col.center = host.InverseTransformPoint(center);
             col.height = tall / Mathf.Max(0.0001f, Mathf.Abs(ls.y));
             col.radius = wide / Mathf.Max(0.0001f, Mathf.Abs(ls.x));
-            Debug.Log($"[InterrogationController] '{name}' — 몸을 덮는 콜라이더가 없어 '{host.name}' 에 자동으로 붙였습니다.");
+            DevLog.Note($"[InterrogationController] '{name}' — 몸을 덮는 콜라이더가 없어 '{host.name}' 에 자동으로 붙였습니다.");
         }
 
 #if UNITY_EDITOR
@@ -233,7 +233,7 @@ namespace IMUNROK.Common
                 sb.AppendLine($"  카메라~피벗 = {Vector3.Distance(cam.transform.position, transform.position):F2} m");
                 sb.AppendLine($"  카메라~몸   = {ModelBounds.DistanceTo(transform, cam.transform.position):F2} m   (허용 {_maxTalkDistance} m)");
             }
-            Debug.Log(sb.ToString(), this);
+            DevLog.Note(sb.ToString(), this);
         }
 #endif
 

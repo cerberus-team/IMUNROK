@@ -135,7 +135,7 @@ namespace IMUNROK.Common
             GameState.Instance.ResetAll();
             Journal.Instance.ClearAll();
             if (_instance != null) { _instance._armed = false; _instance._dirty = false; }
-            Debug.Log("[자동저장] 처음부터 — 지금 판을 비웠습니다(저장 파일은 그대로).");
+            DevLog.Note("[자동저장] 처음부터 — 지금 판을 비웠습니다(저장 파일은 그대로).");
         }
     }
 }

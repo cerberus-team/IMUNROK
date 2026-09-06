@@ -91,7 +91,7 @@ namespace IMUNROK.Common
             if (Time.time < _quietUntil || heard < _notice) return;
 
             _quietUntil = Time.time + _cooldown;
-            if (_log) Debug.Log($"[귀] {name} 이(가) 들었다 — {what ?? "무언가"} {heard * 100f:F0}% ({d:F1}m)", this);
+            if (_log) DevLog.Note($"[귀] {name} 이(가) 들었다 — {what ?? "무언가"} {heard * 100f:F0}% ({d:F1}m)", this);
 
             if (_turnToward)
             {

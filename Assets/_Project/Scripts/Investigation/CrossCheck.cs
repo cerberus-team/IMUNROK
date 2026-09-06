@@ -120,7 +120,7 @@ namespace IMUNROK.Common
                 sb.AppendLine($"  {p.이름}  {p.이쪽}{(a ? "○" : "×")} + {p.저쪽}{(b ? "○" : "×")}" +
                               (p.끝남 ? "   ← 이미 겹쳤다" : (a && b ? "   ← 곧 뜬다" : "")));
             }
-            Debug.Log(sb.ToString(), this);
+            DevLog.Note(sb.ToString(), this);
         }
 #endif
     }

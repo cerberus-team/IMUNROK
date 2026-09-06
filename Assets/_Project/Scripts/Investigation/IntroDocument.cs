@@ -642,7 +642,7 @@ namespace IMUNROK.Common
             if (_phase != Phase.읽는중) return;
 
             GameState.Instance.StartCase(_caseId);
-            Debug.Log($"[IntroDocument] {_caseId} 를 맡았습니다 — 조사청으로 갑니다.");
+            DevLog.Note($"[IntroDocument] {_caseId} 를 맡았습니다 — 조사청으로 갑니다.");
 
             var ic = FindFirstObjectByType<IntroController>();
             if (ic != null) { ic.TakeChosen(_caseId); return; }

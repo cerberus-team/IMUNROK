@@ -112,7 +112,7 @@ namespace IMUNROK.Common
 
         private IEnumerator OpenRoutine()
         {
-            Debug.Log("[WorldStateController] 세계가 열립니다 — 창호가 밝아집니다.");
+            DevLog.Note("[WorldStateController] 세계가 열립니다 — 창호가 밝아집니다.");
             float t = 0f;
             float dur = Mathf.Max(0.01f, _transitionDuration);
             while (t < 1f)

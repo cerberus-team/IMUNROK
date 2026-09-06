@@ -111,7 +111,7 @@ namespace IMUNROK.Common
             var fly = cam.GetComponent<DebugFlyCamera>();
             if (fly != null) fly.SyncAngles();
 
-            Debug.Log("[바로 시작] 사랑채 " + at.ToString("F2") + " 에 내려놓았다. 씬이 갈리기를 기다린다…");
+            DevLog.Note("[바로 시작] 사랑채 " + at.ToString("F2") + " 에 내려놓았다. 씬이 갈리기를 기다린다…");
 
             // 갈아끼우개는 Update 에서 방 안인지 보고 스스로 씬을 바꾼다. 그것을 기다린다.
             float waited = 0f;
@@ -136,7 +136,7 @@ namespace IMUNROK.Common
             var bokdong = Object.FindFirstObjectByType<BokdongController>();
             if (bokdong != null) bokdong.SitDown();
 
-            Debug.Log("[바로 시작] 사랑채에 들었다" + (bokdong != null ? " · 복동도 앉혔다" : "") + ".");
+            DevLog.Note("[바로 시작] 사랑채에 들었다" + (bokdong != null ? " · 복동도 앉혔다" : "") + ".");
             Object.Destroy(host);
         }
     }

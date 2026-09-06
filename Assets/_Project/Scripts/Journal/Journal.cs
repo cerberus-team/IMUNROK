@@ -134,7 +134,7 @@ namespace IMUNROK.Common
 
             var entry = new ClueEntry { caseId = caseId, key = key, text = text, kind = kind, presentable = presentable };
             _clues.Add(entry);
-            Debug.Log($"[Journal] 단서 기록: [{caseId}] {text}");
+            DevLog.Note($"[Journal] 단서 기록: [{caseId}] {text}");
             OnClueAdded?.Invoke(entry);
             JournalPanel.Refresh();   // 수첩을 펼쳐둔 채 단서를 얻어도 바로 반영되게
             return true;
@@ -154,7 +154,7 @@ namespace IMUNROK.Common
             var e = _clues.Find(c => c.caseId == caseId && c.key == key);
             if (e == null || string.IsNullOrEmpty(text) || e.text == text) return false;
             e.text = text;
-            Debug.Log($"[Journal] 단서를 고쳐 적음: [{caseId}] {text}");
+            DevLog.Note($"[Journal] 단서를 고쳐 적음: [{caseId}] {text}");
             JournalPanel.Refresh();
             return true;
         }
@@ -269,7 +269,7 @@ namespace IMUNROK.Common
             _clues.Clear();
             _clueImages.Clear();   // 그림 참조도 같이 버린다(안 지우면 텍스처를 계속 붙들고 있음)
             _clueDocs.Clear();
-            Debug.Log("[Journal] 수첩 초기화");
+            DevLog.Note("[Journal] 수첩 초기화");
         }
 
         /// <summary>한 사건의 단서만 지움.</summary>

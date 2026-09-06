@@ -119,7 +119,7 @@ namespace IMUNROK.Common
                 Debug.LogWarning("[사랑방 잇기] 실내 씬에서 못 찾은 이름:" + missing +
                                  "  — 이름이 바뀌었는지 확인하시오.", this);
             else
-                Debug.Log("[사랑방 잇기] 실내 씬을 다 이었습니다.", this);
+                DevLog.Note("[사랑방 잇기] 실내 씬을 다 이었습니다.", this);
         }
     }
 }
