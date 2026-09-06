@@ -81,7 +81,9 @@ namespace IMUNROK.Common
                 if (c != null && c.key == _key) c.presentable = false;
             if (_page != null)
                 journal.AttachDocument(_caseId, _key, _page, _title, body,
-                                       string.IsNullOrEmpty(_fine) ? null : _fine);
+                                       string.IsNullOrEmpty(_fine) ? null : _fine,
+                                       null, null, default,
+                                       caseSheet: true);   // 조사청에서도 펴 볼 수 있는 한 장
 
             if (knew || !_openOnArrive) yield break;
 

@@ -276,12 +276,7 @@ namespace IMUNROK.Common
             _cards.Clear();
 
             var gs = GameState.Instance;
-            if (!gs.InCase)
-            {
-                _title.text = "수첩 — 사건 밖에서는 물증이 보이지 않는다";
-                _brief.text = "";
-                return;
-            }
+            if (!gs.InCase) { FillCaseSheets(); return; }
 
             CaseId caseId = gs.CurrentCase.Value;
             var clues = Journal.Instance.GetClues(caseId);
@@ -426,6 +421,89 @@ namespace IMUNROK.Common
         }
 
         /// <summary>카드에 적을 짧은 이름. 문서가 있으면 그 제목, 없으면 단서 문구의 앞 토막.</summary>
+        /// <summary>
+        /// <b>조사청에서 펴면 사건 종이만 보인다.</b>
+        ///
+        /// 여태 「사건 밖에서는 물증이 보이지 않는다」 한 줄만 띄우고 판을 비웠다.
+        /// 물증이 안 보이는 것은 맞다 — 그것은 <b>사건 안에서 손에 잡은 것</b>이고,
+        /// 방을 나오면 그 방에 두고 온다. 그러나 <b>무엇을 맡았는지</b>는 방을 나와서도
+        /// 알아야 한다. 어전에서 받아 온 봉서는 물증이 아니라 <b>출발점</b>이기 때문이다.
+        ///
+        /// 그래서 조사청 수첩에는 받아 온 사건 종이만 사건 차례로 눕는다.
+        /// 끝난 사건의 물증을 여기서 다시 뒤지게 하지 않는다 — 조사청은 정리하는
+        /// 방이 아니라 <b>다음 사건을 고르는</b> 방이다.
+        /// </summary>
+        private void FillCaseSheets()
+        {
+            var sheets = Journal.Instance.CaseSheets();
+            _title.text = sheets.Count == 0
+                        ? "수첩 — 아직 맡은 사건이 없다"
+                        : "수첩 — 맡은 사건 " + sheets.Count;
+            _brief.text = "";
+            _pageCount = 1;
+            _pageNo = 0;
+            _shown = null;                  // 여기서는 이웃으로 넘길 물증 목록이 없다
+
+            float w = _col.sizeDelta.x;
+            float y = _col.sizeDelta.y * 0.5f - 40f;
+
+            var h = NewText("머리사건", "── 받아 온 봉서 ──", new Vector2(0f, y), new Vector2(w, 44f),
+                            _col, _clueFontSize + 4, _inkColor);
+            _cards.Add(h.gameObject);
+            y -= 64f;
+
+            if (sheets.Count == 0)
+            {
+                var e = NewText("없음", "(어전에서 봉서를 받으면 여기 남는다)",
+                                new Vector2(0f, y), new Vector2(w, 40f),
+                                _col, _clueFontSize, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.5f));
+                _cards.Add(e.gameObject);
+                return;
+            }
+
+            const float cw = 320f, ch = 272f, gap = 28f;
+            float x0 = -(sheets.Count * cw + (sheets.Count - 1) * gap) * 0.5f + cw * 0.5f;
+
+            for (int i = 0; i < sheets.Count; i++)
+            {
+                var d = sheets[i];
+                var card = NewRect("사건카드", new Vector2(x0 + i * (cw + gap), y - ch * 0.5f),
+                                   new Vector2(cw, ch), _col);
+                var bg = card.gameObject.AddComponent<Image>();
+                Skin(bg, _skin.Slot_, _cardColor);
+                _cards.Add(card.gameObject);
+
+                var shotRt = NewRect("모양", new Vector2(0f, 22f), new Vector2(cw - 40f, 108f), card);
+                if (d.page != null)
+                {
+                    var img = shotRt.gameObject.AddComponent<RawImage>();
+                    img.texture = d.page;
+                    img.raycastTarget = false;
+                    float ar = d.page.height > 0 ? (float)d.page.width / d.page.height : 1f;
+                    float hh = 108f, ww = hh * ar;
+                    if (ww > cw - 40f) { ww = cw - 40f; hh = ww / Mathf.Max(0.01f, ar); }
+                    shotRt.sizeDelta = new Vector2(ww, hh);
+                }
+
+                var name = NewText("이름", string.IsNullOrEmpty(d.title) ? d.caseId.ToString() : d.title,
+                                   new Vector2(0f, -66f), new Vector2(cw - 24f, 54f),
+                                   card, _clueFontSize - 4, _inkColor);
+                name.horizontalOverflow = HorizontalWrapMode.Wrap;
+                name.raycastTarget = false;
+
+                var btn = card.gameObject.AddComponent<Button>();
+                btn.targetGraphic = bg;
+                var dd = d;
+                btn.onClick.AddListener(() =>
+                {
+                    DocumentView.Show(dd.page, dd.title, dd.body, dd.fine, null, true,
+                                      null, null, null, null, dd.back);
+                    DocumentView.SetStageModel(dd.model, dd.modelEuler);
+                    _owner?.Close();
+                });
+            }
+        }
+
         /// <summary>지금 판에 깔린 물증들. 손에 든 종이에서 이웃으로 넘어갈 때 쓴다.</summary>
         private List<ClueEntry> _shown;
         private CaseId _shownCase;

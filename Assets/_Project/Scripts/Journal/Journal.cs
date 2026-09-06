@@ -181,6 +181,17 @@ namespace IMUNROK.Common
             public GameObject model;
             /// <summary>무대에 올릴 때의 첫 자세. 마패는 눕혀 두면 앞이 안 보인다.</summary>
             public Vector3 modelEuler;
+
+            /// <summary>
+            /// <b>사건 종이인가</b> — 어전에서 받아 온 봉서. 물증이 아니라 <b>출발점</b>이다.
+            ///
+            /// 조사청에서 수첩을 펴면 이것만 보인다. 물증은 사건 안의 것이라 사건을
+            /// 나오면 안 보이는 것이 맞지만, 무엇을 맡았는지는 방을 나와서도 알아야 한다.
+            /// </summary>
+            public bool caseSheet;
+
+            /// <summary>어느 사건의 것인가. 조사청에서 늘어놓을 때 차례를 잡는 데 쓴다.</summary>
+            public CaseId caseId;
         }
 
         private readonly Dictionary<string, ClueDocument> _clueDocs = new Dictionary<string, ClueDocument>();
@@ -194,7 +205,8 @@ namespace IMUNROK.Common
         public void AttachDocument(CaseId caseId, string key, Texture2D page,
                                    string title, string body, string fine = null,
                                    Texture2D back = null,
-                                   GameObject model = null, Vector3 modelEuler = default)
+                                   GameObject model = null, Vector3 modelEuler = default,
+                                   bool caseSheet = false)
         {
             // <b>종이가 없어도 받는다.</b> 마패·유척처럼 종이가 아닌 물증은 펼칠 장이
             // 없고 세울 모델만 있다. 여태 page 가 없으면 그냥 돌아 나갔다.
@@ -202,7 +214,21 @@ namespace IMUNROK.Common
             if (page == null && model == null) return;
             _clueDocs[ImgKey(caseId, key)] = new ClueDocument
             { page = page, title = title, body = body, fine = fine, back = back,
-              model = model, modelEuler = modelEuler };
+              model = model, modelEuler = modelEuler, caseSheet = caseSheet, caseId = caseId };
+        }
+
+        /// <summary>
+        /// <b>받아 온 사건 종이들</b> — 사건 차례대로.
+        ///
+        /// 조사청 수첩이 펴 보이는 것이 이것뿐이다. 사건 안의 물증은 사건 안에서 본다.
+        /// </summary>
+        public List<ClueDocument> CaseSheets()
+        {
+            var list = new List<ClueDocument>();
+            foreach (var kv in _clueDocs)
+                if (kv.Value != null && kv.Value.caseSheet) list.Add(kv.Value);
+            list.Sort((a, b) => ((int)a.caseId).CompareTo((int)b.caseId));
+            return list;
         }
 
         /// <summary>이 단서에 딸린 문서(없으면 null).</summary>
