@@ -55,6 +55,22 @@ namespace IMUNROK.Common
         [TextArea(2, 6)]
         [SerializeField] private string _fine = "";
 
+        [Header("현장에 들어서며 펴 보는 것")]
+        [Tooltip("봉서와 다른 한 장. 봉서에는 사건의 까닭만 적혀 있다 — 현장에 들어서는 사람에게 필요한 것은 누가 무엇을 언제, 무엇을 밝혀야 하는가다. 비우면 예전처럼 봉서를 편다")]
+        [SerializeField] private Texture2D _fieldPage;
+        [Tooltip("그 한 장의 표제")]
+        [SerializeField] private string _fieldTitle = "";
+        [TextArea(4, 12)]
+        [Tooltip("그 한 장에 적힌 것")]
+        [SerializeField] private string _fieldBody = "";
+        [Tooltip("그 한 장의 잔글씨(돋보기)")]
+        [TextArea(2, 6)]
+        [SerializeField] private string _fieldFine = "";
+        [Tooltip("수첩에서의 식별자. 봉서와 달라야 두 장이 따로 남는다")]
+        [SerializeField] private string _fieldKey = "조사문서";
+        [Tooltip("수첩에 적힐 한 줄")]
+        [SerializeField] private string _fieldLine = "조사 문서 — 무엇을 밝혀야 하는가";
+
         [Tooltip("화면이 밝아질 틈(초). 암전 중에 펴면 아무도 못 본다")]
         [SerializeField] private float _delay = 1.1f;
 
@@ -85,10 +101,34 @@ namespace IMUNROK.Common
                                        null, null, default,
                                        caseSheet: true);   // 조사청에서도 펴 볼 수 있는 한 장
 
+            // <b>현장 문서는 수첩에 따로 남는다.</b> 봉서와 한 장으로 묶지 않는다 —
+            // 하나는 왜 왔는지이고 하나는 무엇을 밝히는지라, 되짚어 볼 때 찾는 것이 다르다.
+            if (_fieldPage != null && !string.IsNullOrEmpty(_fieldKey))
+            {
+                journal.AddClue(_caseId, _fieldKey, _fieldLine, _fieldPage, ClueKind.물증, false);
+                foreach (var c in journal.GetClues(_caseId))
+                    if (c != null && c.key == _fieldKey) c.presentable = false;
+                journal.AttachDocument(_caseId, _fieldKey, _fieldPage,
+                                       string.IsNullOrEmpty(_fieldTitle) ? _title : _fieldTitle,
+                                       _fieldBody,
+                                       string.IsNullOrEmpty(_fieldFine) ? null : _fieldFine);
+            }
+
             if (knew || !_openOnArrive) yield break;
 
             yield return new WaitForSeconds(Mathf.Max(0f, _delay));
-            DocumentView.Show(_page, _title, body, string.IsNullOrEmpty(_fine) ? null : _fine);
+
+            // <b>들어서며 펴는 것은 조사 문서다.</b> 봉서는 어전에서 이미 읽었고
+            // 조사청 수첩에도 남아 있다 — 현장에 닿아 다시 그것을 펴면, 알던 것을
+            // 한 번 더 읽히고 정작 여기서 무엇을 해야 하는지는 안 적혀 있다.
+            // 아직 그 한 장이 없으면 예전처럼 봉서를 편다.
+            if (_fieldPage != null)
+                DocumentView.Show(_fieldPage,
+                                  string.IsNullOrEmpty(_fieldTitle) ? _title : _fieldTitle,
+                                  _fieldBody,
+                                  string.IsNullOrEmpty(_fieldFine) ? null : _fieldFine);
+            else
+                DocumentView.Show(_page, _title, body, string.IsNullOrEmpty(_fine) ? null : _fine);
         }
     }
 }
