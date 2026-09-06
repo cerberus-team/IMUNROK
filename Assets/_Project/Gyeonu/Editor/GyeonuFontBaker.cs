@@ -101,7 +101,8 @@ namespace IMUNROK.Gyeonu.EditorTools
         const int HanjaAtlas = 512;     // 실제 쓰는 한자는 열 자 안쪽 — 모자라면 자동으로 한 장 더 붙는다
 
         // ─────────────────────────────────────────────────────
-        [MenuItem("Tools/이문록/글꼴/TMP 폰트 에셋 굽기", false, 10)]
+        // 메뉴 자리를 견우 쪽으로 옮긴다 — 같은 경로를 꾸러미(IMUNROK_UI)도 쓰고 있어 둘 중 하나가 등록에 실패했다.
+        [MenuItem("Tools/이문록/견우/글꼴/TMP 폰트 에셋 굽기", false, 10)]
         public static void Bake()
         {
             var hangulTtf = FindTtf(HangulFile);
@@ -173,7 +174,8 @@ namespace IMUNROK.Gyeonu.EditorTools
             Debug.Log(sb.ToString());
         }
 
-        [MenuItem("Tools/이문록/글꼴/쓰이는 문자 조사", false, 11)]
+        // 메뉴 자리를 견우 쪽으로 옮긴다 — 같은 경로를 꾸러미(IMUNROK_UI)도 쓰고 있어 둘 중 하나가 등록에 실패했다.
+        [MenuItem("Tools/이문록/견우/글꼴/쓰이는 문자 조사", false, 11)]
         public static void SurveyMenu()
         {
             var s = Survey();
