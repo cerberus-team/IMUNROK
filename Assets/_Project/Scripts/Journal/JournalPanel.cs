@@ -107,6 +107,16 @@ namespace IMUNROK.Common
 #if ENABLE_INPUT_SYSTEM
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb != null && kb.escapeKey.wasPressedThisFrame) Close();
+
+            // 휠로도 쪽을 넘긴다. 저쪽 꾸러미가 휠에 쪽 넘기기를 걸어 두었으니
+            // 같은 판을 보는 사람이 같은 손짓을 쓰는 것이 맞다.
+            var m = UnityEngine.InputSystem.Mouse.current;
+            if (m != null && _pageCount > 1)
+            {
+                float dy = m.scroll.ReadValue().y;
+                if (dy > 0.01f) Turn(-1);
+                else if (dy < -0.01f) Turn(1);
+            }
 #endif
         }
 
@@ -141,6 +151,7 @@ namespace IMUNROK.Common
         private void OpenInternal(JournalView owner)
         {
             _owner = owner;
+            _pageNo = 0;              // 펼 때마다 첫 쪽부터
             Rebuild();
             SetVisible(true);
         }
@@ -303,6 +314,8 @@ namespace IMUNROK.Common
         /// </summary>
         private void FillEvidence(RectTransform col, List<ClueEntry> list, CaseId caseId, bool talking)
         {
+            _shown = list;            // 손에 들었을 때 이웃으로 넘어갈 수 있게 들고 있는다
+            _shownCase = caseId;
             float w = col.sizeDelta.x;
             float y = col.sizeDelta.y * 0.5f - 40f;
 
@@ -326,10 +339,27 @@ namespace IMUNROK.Common
             int perRow = Mathf.Max(1, Mathf.FloorToInt((w + gap) / (cw + gap)));
             float x0 = -(perRow * cw + (perRow - 1) * gap) * 0.5f + cw * 0.5f;
 
-            for (int i = 0; i < list.Count; i++)
+            // <b>넘치면 쪽을 넘긴다.</b> 여태 한 판에 다 깔았다 — 사건당 물증이 열 남짓이라
+            // 한 화면에 담긴다고 보았기 때문인데, 제2막의 관아 문서까지 더하면 그 수를
+            // 넘는다. 넘친 것은 <b>없는 것과 같다</b>: 판 밖으로 나간 카드는 보이지도
+            // 눌리지도 않으면서 있는 줄 알게 만든다.
+            //
+            // 몇 장이 들어가는지는 <b>남은 자리가 정한다</b>. 칸 크기를 저쪽에서 받아 왔으니
+            // 쪽당 장수도 저쪽 것을 베낄 것이 아니라 이 판에서 나와야 맞는다.
+            float roomY = y + col.sizeDelta.y * 0.5f - 56f;          // 아래에 쪽 넘기는 줄을 남긴다
+            int rows = Mathf.Max(1, Mathf.FloorToInt((roomY + gap) / (ch + gap)));
+            _perPage = Mathf.Max(1, perRow * rows);
+            int pages = Mathf.Max(1, Mathf.CeilToInt(list.Count / (float)_perPage));
+            _pageNo = Mathf.Clamp(_pageNo, 0, pages - 1);
+            _pageCount = pages;
+
+            int from = _pageNo * _perPage;
+            int to = Mathf.Min(list.Count, from + _perPage);
+
+            for (int i = from; i < to; i++)
             {
                 var c = list[i];
-                int r = i / perRow, k = i % perRow;
+                int r = (i - from) / perRow, k = (i - from) % perRow;
                 var card = NewRect("증거카드",
                                    new Vector2(x0 + k * (cw + gap), y - ch * 0.5f - r * (ch + gap)),
                                    new Vector2(cw, ch), col);
@@ -367,14 +397,10 @@ namespace IMUNROK.Common
                 // 카드 전체가 단추다 — 누르면 손에 든다
                 var btn = card.gameObject.AddComponent<Button>();
                 btn.targetGraphic = bg;
-                var dd = doc;
-                var cc = c;
+                int at = i;
                 btn.onClick.AddListener(() =>
                 {
-                    // 수첩에서 꺼내 든 것은 어둠 위에 놓는다(dim) — 둘레가 비어야 그 하나만 보인다
-                    if (dd != null) DocumentView.Show(dd.page, dd.title, dd.body, dd.fine, null, true,
-                                                      null, null, null, null, dd.back);
-                    else DocumentView.Show(shot, ShortName(null, cc), cc.text, null, null, true);
+                    OpenAt(at);
                     _owner?.Close();   // 수첩을 덮어야 두 손이 빈다
                 });
 
@@ -395,9 +421,87 @@ namespace IMUNROK.Common
                 NewText("라벨", "들이밀기", Vector2.zero, new Vector2(cw - 40f, 44f), b, _clueFontSize - 6,
                         UiLook.SealText);
             }
+
+            PageRow(col, pages);
         }
 
         /// <summary>카드에 적을 짧은 이름. 문서가 있으면 그 제목, 없으면 단서 문구의 앞 토막.</summary>
+        /// <summary>지금 판에 깔린 물증들. 손에 든 종이에서 이웃으로 넘어갈 때 쓴다.</summary>
+        private List<ClueEntry> _shown;
+        private CaseId _shownCase;
+
+        /// <summary>
+        /// <b>이 자리의 물증을 손에 든다</b> — 그리고 앞뒤 이웃을 일러 준다.
+        ///
+        /// 여태 카드를 누르면 종이 한 장을 펴 주고 끝이었다. 그러면 다음 것을 보려고
+        /// 매번 수첩을 폈다 덮었다 해야 하는데, 물증은 <b>견주어 보는</b> 물건이다 —
+        /// 필적이 같은지 다른지는 두 장을 잇달아 봐야 안다.
+        /// </summary>
+        private void OpenAt(int i)
+        {
+            if (_shown == null || i < 0 || i >= _shown.Count) return;
+            var c = _shown[i];
+            var doc = Journal.Instance.GetDocument(_shownCase, c.key);
+            Texture2D shot = doc != null ? doc.page : Journal.Instance.GetClueImage(_shownCase, c.key);
+
+            // 수첩에서 꺼내 든 것은 어둠 위에 놓는다(dim) — 둘레가 비어야 그 하나만 보인다
+            if (doc != null)
+                DocumentView.Show(doc.page, doc.title, doc.body, doc.fine, null, true,
+                                  null, null, null, null, doc.back);
+            else
+                DocumentView.Show(shot, ShortName(null, c), c.text, null, null, true);
+
+            DocumentView.SetNeighbors(i > 0 ? new System.Action(() => OpenAt(i - 1)) : null,
+                                      i < _shown.Count - 1 ? new System.Action(() => OpenAt(i + 1)) : null);
+        }
+
+        /// <summary>
+        /// <b>쪽 넘기는 줄</b> — 판 아래에 「◀   2 / 3   ▶」.
+        ///
+        /// 휠로도 넘어간다. 저쪽 꾸러미가 휠에 쪽 넘기기를 걸어 두었고(<c>UiWords.Wheel</c>),
+        /// 같은 판을 보는 사람이 같은 손짓을 쓰는 것이 맞다.
+        /// </summary>
+        private void PageRow(RectTransform col, int pages)
+        {
+            if (pages <= 1) return;
+            float w = col.sizeDelta.x;
+            float y = -col.sizeDelta.y * 0.5f + 30f;
+
+            var row = NewRect("쪽", new Vector2(0f, y), new Vector2(w, 56f), col);
+            _cards.Add(row.gameObject);
+
+            MakePageStep(row, -150f, "◀", -1);
+            var lab = NewText("쪽수", (_pageNo + 1) + " / " + pages, Vector2.zero, new Vector2(200f, 56f),
+                              row, _clueFontSize - 2, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.72f));
+            lab.raycastTarget = false;
+            MakePageStep(row, 150f, "▶", 1);
+        }
+
+        private void MakePageStep(RectTransform row, float x, string glyph, int step)
+        {
+            var rt = NewRect("쪽넘김", new Vector2(x, 0f), new Vector2(72f, 56f), row);
+            var bg = rt.gameObject.AddComponent<Image>();
+            Skin(bg, _skin.Wood_, new Color(UiLook.Wood.r, UiLook.Wood.g, UiLook.Wood.b, 0.85f));
+            var b = rt.gameObject.AddComponent<Button>();
+            b.targetGraphic = bg;
+            b.onClick.AddListener(() => Turn(step));
+            NewText("글", glyph, Vector2.zero, new Vector2(72f, 56f), rt, _clueFontSize, UiLook.SealText);
+        }
+
+        /// <summary>쪽을 넘긴다. 끝에서는 더 안 간다 — 도로 첫 쪽으로 돌면 어디까지 봤는지 잃는다.</summary>
+        private void Turn(int step)
+        {
+            int want = Mathf.Clamp(_pageNo + step, 0, Mathf.Max(0, _pageCount - 1));
+            if (want == _pageNo) return;
+            _pageNo = want;
+            Rebuild();
+        }
+
+        /// <summary>지금 보고 있는 쪽. 덮었다 펴면 첫 쪽부터다.</summary>
+        private int _pageNo;
+        private int _pageCount = 1;
+        private int _perPage = 15;
+
         private static string ShortName(Journal.ClueDocument doc, ClueEntry c)
         {
             if (doc != null && !string.IsNullOrEmpty(doc.title)) return Emphasis.Plain(doc.title);

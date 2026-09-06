@@ -54,8 +54,21 @@ namespace IMUNROK.Common
                  "0.6 안팎이면 <b>밑의 글자가 비쳐 보이면서도</b> 읽힌다")]
         [Range(0.2f, 1f)] [SerializeField] private float _transAlpha = 0.62f;
 
-        /// <summary>종이를 내려 두는 높이(m). 눈앞은 설명이 쓴다.</summary>
-        private const float LowDrop = -0.34f;
+        /// <summary>
+        /// <b>설명이 뜰 때 종이가 비켜서는 높이(m).</b>
+        ///
+        /// 여태 −0.34 였다 — 아래로 내려 두라는 뜻이다. 자막이 <b>눈앞 1.3m 허공에</b>
+        /// 서 있던 시절에는 그것이 맞았다: 종이가 0.6m 로 더 앞이라 자막 한가운데를
+        /// 통째로 덮었고, 그러니 종이가 내려가야 했다.
+        ///
+        /// 자막을 화면에 붙이면서 그 셈이 <b>뒤집혔다</b>. 화면판 자막은 아래 삼분의
+        /// 일에 눕는다 — 종이를 내리면 바로 그 위로 내려앉는다. 재 보니 종이가
+        /// 뷰포트 0.01 까지 밀려 화면 밑으로 반쯤 빠져 있었다.
+        ///
+        /// 비켜설 쪽이 아래에서 <b>위</b>로 바뀐 것이다. 종이(화면 높이의 43%)가
+        /// 자막 바(위 끝 0.34) 위에 앉으려면 가운데에서 조금 올라와야 한다.
+        /// </summary>
+        private const float LowDrop = 0.06f;
 
         private static DocumentView _instance;
 
@@ -365,6 +378,10 @@ namespace IMUNROK.Common
                 _backArt.enabled = false;          // 켜고 끄는 것은 뒤를 볼 때 정한다
             }
             _hasBackArt = backPage != null;
+
+            // 이웃은 <b>부르는 쪽이 그때그때</b> 일러 준다. 안 일러 주면 없는 것이다 —
+            // 앞서 수첩에서 꺼냈던 이웃이 방에서 집은 종이에 붙어 있으면 안 된다.
+            SetNeighbors(null, null);
             // 수첩에서 꺼내 든 것은 <b>어둠 위에</b> 놓는다. 방을 보며 조사하는 중이 아니라
             // 앉아서 물건 하나를 뜯어보는 중이므로, 둘레가 비면 그 하나에만 눈이 간다.
             // 방에서 곧바로 짚은 것에는 어둠을 깔지 않는다 — 그때는 방도 함께 봐야 한다.
@@ -844,6 +861,45 @@ namespace IMUNROK.Common
             closeBtn.targetGraphic = closeBg;
             closeBtn.onClick.AddListener(Hide);
             NewText("라벨", "내려놓기", Vector2.zero, new Vector2(150f, 56f), _closeRt, _fontSize - 8);
+
+            // <b>이웃으로 넘기는 두 짝.</b> 수첩에서 꺼내 든 종이는 여럿 가운데 하나다 —
+            // 다음 것을 보려고 매번 수첩을 폈다 덮었다 하면, 견주어 보는 일이 끊긴다.
+            // 부르는 쪽이 이웃을 일러 주지 않으면(SetNeighbors) 이 두 짝은 안 뜬다.
+            _prevRt = MakeStep(new Vector2(-_pageSpan * 0.78f, 0f), "◀", () => _onPrev?.Invoke());
+            _nextRt = MakeStep(new Vector2(_pageSpan * 0.78f, 0f), "▶", () => _onNext?.Invoke());
+            _prevRt.gameObject.SetActive(false);
+            _nextRt.gameObject.SetActive(false);
+        }
+
+        private RectTransform MakeStep(Vector2 at, string glyph, UnityEngine.Events.UnityAction onClick)
+        {
+            var rt = NewRect("이웃", at, new Vector2(88f, 120f), _chrome.transform);
+            var bg = rt.gameObject.AddComponent<Image>();
+            bg.color = _tabColor;
+            var b = rt.gameObject.AddComponent<Button>();
+            b.targetGraphic = bg;
+            b.onClick.AddListener(onClick);
+            NewText("글", glyph, Vector2.zero, new Vector2(88f, 120f), rt, _fontSize - 2);
+            return rt;
+        }
+
+        private RectTransform _prevRt, _nextRt;
+        private static System.Action _onPrev, _onNext;
+
+        /// <summary>
+        /// <b>지금 든 종이의 이웃을 일러 준다.</b> <see cref="Show"/> 바로 뒤에 부른다.
+        ///
+        /// Show 의 인자로 받지 않는 까닭: 이웃이 있고 없고는 <b>어디서 꺼냈느냐</b>에 달렸다.
+        /// 방에서 집은 종이에는 이웃이 없고, 수첩에서 꺼낸 것에는 있다. 같은 물건인데
+        /// 부르는 자리마다 다른 것이라, 종이의 생김새를 적는 자리에 끼워 넣을 것이 아니다.
+        /// 두 짝을 다 비우면(null) 안 뜬다.
+        /// </summary>
+        public static void SetNeighbors(System.Action prev, System.Action next)
+        {
+            _onPrev = prev; _onNext = next;
+            if (_instance == null) return;
+            if (_instance._prevRt != null) _instance._prevRt.gameObject.SetActive(prev != null);
+            if (_instance._nextRt != null) _instance._nextRt.gameObject.SetActive(next != null);
         }
 
         /// <summary>
