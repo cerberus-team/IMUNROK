@@ -87,6 +87,8 @@ namespace IMUNROK.Common
         private Image _backFace;     // 종이 뒷면 — 뒤집었을 때 글씨가 비치지 않게
         private RawImage _backArt;   // 뒤에 새겨진 것(있으면)
         private bool _hasBackArt;
+        private RawImage _stageImage;   // 종이가 아닌 것 — 무대에서 찍어 온 그림
+        private static bool _onStage;   // 지금 무대에 물건이 올라 있는가
         private Image _transPlate;   // 옮긴 글이 앉는 바탕 — 종이 위에 한 켜
         private Text _trans;         // 옮긴 글 — 한자 위에 얹히는 우리말
         private Image _slip;         // 종이에 붙은 표제 쪽지
@@ -190,6 +192,8 @@ namespace IMUNROK.Common
 
         public static void Hide()
         {
+            EvidenceStage.Clear();   // 안 보는 무대를 그릴 까닭이 없다
+            _onStage = false;
             ReadingFocus.Release(ReadingFocus.Panel.Document);
             var back = OnPutDown;
             OnPutDown = null;
@@ -382,6 +386,10 @@ namespace IMUNROK.Common
             // 이웃은 <b>부르는 쪽이 그때그때</b> 일러 준다. 안 일러 주면 없는 것이다 —
             // 앞서 수첩에서 꺼냈던 이웃이 방에서 집은 종이에 붙어 있으면 안 된다.
             SetNeighbors(null, null);
+
+            // 무대도 마찬가지다. 종이를 펴는 부름에 앞서 올려 둔 물건이 남아 있으면
+            // 종이 위에 마패가 겹쳐 뜬다.
+            SetStageModel(null, Vector3.zero);
             // 수첩에서 꺼내 든 것은 <b>어둠 위에</b> 놓는다. 방을 보며 조사하는 중이 아니라
             // 앉아서 물건 하나를 뜯어보는 중이므로, 둘레가 비면 그 하나에만 눈이 간다.
             // 방에서 곧바로 짚은 것에는 어둠을 깔지 않는다 — 그때는 방도 함께 봐야 한다.
@@ -596,6 +604,22 @@ namespace IMUNROK.Common
             _spinArmed = true;
 #endif
             Vector2 drag = _spinArmed ? DragDelta() : Vector2.zero;
+
+            // <b>무대에 물건이 올라 있으면 손은 그쪽으로 간다.</b> 종이는 판을 돌리지만
+            // 물건은 무대의 회전축을 돌린다 — 돌아가는 것이 다르므로 손도 갈린다.
+            if (_onStage)
+            {
+                if (drag.sqrMagnitude > 0.0001f) EvidenceStage.Spin(drag * 0.4f);
+#if ENABLE_INPUT_SYSTEM
+                var mw = UnityEngine.InputSystem.Mouse.current;
+                if (mw != null)
+                {
+                    float dy = mw.scroll.ReadValue().y;
+                    if (Mathf.Abs(dy) > 0.01f) EvidenceStage.Zoom(Mathf.Sign(dy));
+                }
+#endif
+            }
+
             _spin.x -= drag.x;
             _spin.y += drag.y;
             _spin.y = Mathf.Clamp(_spin.y, -85f, 85f);
@@ -618,6 +642,9 @@ namespace IMUNROK.Common
                 var cam = Camera.main;
                 bool seeingBack = cam != null &&
                     Vector3.Dot(_pageRt.forward, _pageRt.position - cam.transform.position) < 0f;
+                // 무대에 물건이 서 있으면 종이 쪽은 통째로 쉰다 — 뒷면 판이 켜지면
+                // 마패 뒤로 한지가 비쳐 「종이에 그려진 마패」가 된다.
+                if (_onStage) seeingBack = false;
                 if (_backFace.enabled != seeingBack) _backFace.enabled = seeingBack;
                 bool showArt = seeingBack && _hasBackArt;
                 if (_backArt != null && _backArt.enabled != showArt) _backArt.enabled = showArt;
@@ -826,6 +853,14 @@ namespace IMUNROK.Common
             _backArt.raycastTarget = false;
             _backArt.enabled = false;
 
+            // <b>종이가 아닌 것이 설 자리.</b> 마패·유척처럼 앞뒤가 아니라 사방이 있는
+            // 물건은 평면 한 장으로는 안 보인다. 무대(<see cref="EvidenceStage"/>)에서
+            // 찍어 온 그림을 여기 얹고, 그때는 종이 쪽을 통째로 끈다.
+            var stageRt = NewRect("무대", Vector2.zero, new Vector2(_pageSpan, _pageSpan), _hand);
+            _stageImage = stageRt.gameObject.AddComponent<RawImage>();
+            _stageImage.raycastTarget = false;
+            _stageImage.enabled = false;
+
             // 읽어낸 것 — 종이 <b>아래</b>에 뜬다. 종이 위에는 아무것도 덧그리지 않는다.
             //
             // 한때 이 글을 종이 면에 작게 얹었다. 잔글씨를 진짜로 작게 만들자는 뜻이었으나,
@@ -894,6 +929,34 @@ namespace IMUNROK.Common
         /// 부르는 자리마다 다른 것이라, 종이의 생김새를 적는 자리에 끼워 넣을 것이 아니다.
         /// 두 짝을 다 비우면(null) 안 뜬다.
         /// </summary>
+        /// <summary>
+        /// <b>종이 대신 물건을 세운다</b> — 무대에서 찍어 온 그림으로.
+        ///
+        /// <see cref="Show"/> 바로 뒤에 부른다. 인자로 안 받는 까닭은 이웃과 같다:
+        /// 3D 모델이 있고 없고는 <b>물건에 달린</b> 것이지 이 판의 생김새가 아니다.
+        /// <c>null</c> 을 주면 도로 종이로 돌아간다.
+        ///
+        /// 종이 쪽을 <b>통째로</b> 끈다 — 앞면·뒷면·뒷그림까지. 반쯤 남겨 두면
+        /// 마패 뒤로 한지가 비쳐 「종이에 그려진 마패」가 된다.
+        /// </summary>
+        public static void SetStageModel(GameObject prefab, Vector3 euler)
+        {
+            _onStage = prefab != null;
+            if (_instance == null) return;
+
+            if (_onStage) EvidenceStage.Show(prefab, euler);
+            else EvidenceStage.Clear();
+
+            if (_instance._stageImage != null)
+            {
+                _instance._stageImage.texture = EvidenceStage.Texture;
+                _instance._stageImage.enabled = _onStage;
+            }
+            if (_instance._page != null) _instance._page.enabled = !_onStage;
+            if (_instance._backFace != null && _onStage) _instance._backFace.enabled = false;
+            if (_instance._backArt != null && _onStage) _instance._backArt.enabled = false;
+        }
+
         public static void SetNeighbors(System.Action prev, System.Action next)
         {
             _onPrev = prev; _onNext = next;

@@ -176,6 +176,11 @@ namespace IMUNROK.Common
             public string body;
             public string fine;    // 돋보기로만 읽히는 잔글씨
             public Texture2D back;  // 뒤에 새겨진 것 — 뒤집어야 나온다
+
+            /// <summary>종이가 아닌 것 — 무대에 세워 돌려 보는 3D 모델(있으면).</summary>
+            public GameObject model;
+            /// <summary>무대에 올릴 때의 첫 자세. 마패는 눕혀 두면 앞이 안 보인다.</summary>
+            public Vector3 modelEuler;
         }
 
         private readonly Dictionary<string, ClueDocument> _clueDocs = new Dictionary<string, ClueDocument>();
@@ -188,11 +193,16 @@ namespace IMUNROK.Common
         /// </summary>
         public void AttachDocument(CaseId caseId, string key, Texture2D page,
                                    string title, string body, string fine = null,
-                                   Texture2D back = null)
+                                   Texture2D back = null,
+                                   GameObject model = null, Vector3 modelEuler = default)
         {
-            if (page == null || string.IsNullOrEmpty(key)) return;
+            // <b>종이가 없어도 받는다.</b> 마패·유척처럼 종이가 아닌 물증은 펼칠 장이
+            // 없고 세울 모델만 있다. 여태 page 가 없으면 그냥 돌아 나갔다.
+            if (string.IsNullOrEmpty(key)) return;
+            if (page == null && model == null) return;
             _clueDocs[ImgKey(caseId, key)] = new ClueDocument
-            { page = page, title = title, body = body, fine = fine, back = back };
+            { page = page, title = title, body = body, fine = fine, back = back,
+              model = model, modelEuler = modelEuler };
         }
 
         /// <summary>이 단서에 딸린 문서(없으면 null).</summary>

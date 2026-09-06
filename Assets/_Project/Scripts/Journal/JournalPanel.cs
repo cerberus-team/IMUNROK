@@ -446,8 +446,11 @@ namespace IMUNROK.Common
 
             // 수첩에서 꺼내 든 것은 어둠 위에 놓는다(dim) — 둘레가 비어야 그 하나만 보인다
             if (doc != null)
+            {
                 DocumentView.Show(doc.page, doc.title, doc.body, doc.fine, null, true,
                                   null, null, null, null, doc.back);
+                DocumentView.SetStageModel(doc.model, doc.modelEuler);   // 종이가 아니면 무대로
+            }
             else
                 DocumentView.Show(shot, ShortName(null, c), c.text, null, null, true);
 
