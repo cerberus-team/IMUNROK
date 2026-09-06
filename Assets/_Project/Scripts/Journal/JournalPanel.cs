@@ -180,23 +180,9 @@ namespace IMUNROK.Common
         /// </summary>
         private void SitOnScreen()
         {
-            var canvas = GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 200;           // 다른 화면판보다 위. 수첩은 펴면 맨 앞이다
-
-            var old = GetComponent<WorldHudAnchor>();
-            if (old != null) Destroy(old);       // 씬에 미리 놓인 판에 붙어 있을 수 있다
-
-            var scaler = GetComponent<UnityEngine.UI.CanvasScaler>();
-            if (scaler == null) scaler = gameObject.AddComponent<UnityEngine.UI.CanvasScaler>();
-            scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            float refH = PageH / PageScreenShare;
-            scaler.referenceResolution = new Vector2(refH * 16f / 9f, refH);
-            scaler.screenMatchMode = UnityEngine.UI.CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 1f;      // 세로로 맞춘다 — 몫을 정하는 것은 세로다
-
-            if (GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
-                gameObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+            // 수첩만 제 좌표계를 쓴다. 판이 화면 세로의 몇 할을 덮을지가 이 판의
+            // 셈이라, 기준 세로를 그 몫에서 낸다(다른 판은 공통 1732 를 쓴다).
+            ScreenPanel.Raise(gameObject, ScreenPanel.LayerBook, PageH / PageScreenShare);
         }
 
         /// <summary>테두리 넉 줄. 상자 하나에 외곽선을 그릴 길이 없어 얇은 띠 넷을 두른다.</summary>

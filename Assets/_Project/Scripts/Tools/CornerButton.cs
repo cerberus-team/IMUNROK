@@ -65,7 +65,7 @@ namespace IMUNROK.Common
         private const float Rest = 1f;
 
         /// <summary>단추에 적히는 글씨 크기(칸). 자막의 대사와 같아 보이도록 맞춘 값이다.</summary>
-        private const int FontSize = 56;
+        private const int FontSize = ScreenPanel.LineSize;
 
         /// <summary>자막의 이름패가 쓰는 것과 같은 나뭇결. 판마다 새로 그릴 것이 없어 한 벌만 든다.</summary>
         private static readonly IMUNROK.Ui.InventorySkin Skin = new IMUNROK.Ui.InventorySkin();
@@ -88,7 +88,7 @@ namespace IMUNROK.Common
         /// <b>화면 높이를 1732단위로 치는 자막판의 자를 그대로 쓴다.</b>
         /// 그래야 「대사와 같은 크기」가 곱셈 없이 같은 수로 적힌다.
         /// </summary>
-        private const float RefH = 1732f;
+        private const float RefH = ScreenPanel.RefHeight;
 
         /// <summary>단추 한 장의 크기(칸). 고르는 창의 단추와 같다 — <b>가장 작을 때</b>다.</summary>
         private static readonly Vector2 Size = new Vector2(461f, 138f);
@@ -109,6 +109,9 @@ namespace IMUNROK.Common
         private CanvasGroup _group;
         private Action _onPress;
         private bool _spent;
+
+        /// <summary>세운 판의 크기. 화면 안에 가둘 때 쓴다(<see cref="Place"/>).</summary>
+        private Vector2 _size;
 
         /// <summary>
         /// 귀퉁이에 단추를 세운다. 이미 서 있으면 그것을 걷고 새로 세운다 —
@@ -148,16 +151,7 @@ namespace IMUNROK.Common
             // 끌어다 놓았다 — 자리는 화면으로 잡으면서 판만 세상에 있던 셈이다.
             // 그러느라 판이 기둥에 가리고, 색도 세상을 거쳐 나오느라 자막의 이름패와
             // 어긋났다(민판 0.667 대 이름패 0.184). 화면에 붙이면 둘 다 없어진다.
-            var canvas = GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 100;                // 자막과 같은 켜
-
-            var scaler = GetComponent<CanvasScaler>();
-            if (scaler == null) scaler = gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(RefH * 16f / 9f, RefH);
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 1f;
+            var canvas = ScreenPanel.Raise(gameObject, ScreenPanel.LayerBar);
 
             _group = GetComponent<CanvasGroup>();
             _group.alpha = 0f;
@@ -166,7 +160,7 @@ namespace IMUNROK.Common
             // (horizontalOverflow), 판만 280 으로 못 박아 두면 글씨가 판 밖으로 비어져
             // 나와 허공에 뜬다. 「튜토리얼 넘기기」는 여덟 자라 280 에 들어맞지만,
             // 고르는 말은 그보다 길다.
-            var size = SizeFor(label);
+            var size = _size = SizeFor(label);
 
             var rt = canvas.GetComponent<RectTransform>();
 
@@ -262,8 +256,19 @@ namespace IMUNROK.Common
         {
             // 화면을 0~1 로 본 자리를 <b>가운데 기준 단위</b>로 옮긴다.
             var rt = (RectTransform)transform.GetChild(0);
-            rt.anchoredPosition = new Vector2((_at.x - 0.5f) * RefH * 16f / 9f,
-                                              (_at.y - 0.5f) * RefH);
+            float w = RefH * 16f / 9f, h = RefH;
+
+            // <b>판이 화면 밖으로 비어져 나가지 않게 가둔다.</b> 자리는 판 <b>가운데</b>를
+            // 가리키는데 판 크기는 말 길이를 따라 늘어난다(<see cref="SizeFor"/>). 그래서
+            // 귀퉁이 자리에 긴 말을 세우면 절반이 화면 밖으로 나간다 — 실제로
+            // 「공통화 확인」 여섯 자에서 오른쪽이 잘렸다. 여덟 자짜리 「튜토리얼
+            // 넘기기」로만 재 보던 자리라 여태 안 드러났다.
+            const float Margin = 24f;
+            float mx = Mathf.Max(0f, w * 0.5f - _size.x * 0.5f - Margin);
+            float my = Mathf.Max(0f, h * 0.5f - _size.y * 0.5f - Margin);
+            rt.anchoredPosition = new Vector2(
+                Mathf.Clamp((_at.x - 0.5f) * w, -mx, mx),
+                Mathf.Clamp((_at.y - 0.5f) * h, -my, my));
         }
 
         private IEnumerator FadeIn(float seconds)

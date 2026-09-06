@@ -135,13 +135,7 @@ namespace IMUNROK.Common
             // 없다. 부르는 자리(심문판·도구 익히기)를 다 고치는 대신 여기서 받아만 두는
             // 까닭은, 저 자리들이 <b>무엇을 바라는지</b>가 이름에 남아 있어서다 —
             // 「읽기 좋은 자리에 두어라」. 화면에서는 그 자리가 늘 같으므로 시킬 것이 없다.
-            _wantDistance = distance; _wantDrop = verticalOffset; _hasWantDistance = true;
         }
-
-        // 자막판이 생기기 전에 미리 시켜 둔 것들. 태어날 때 이대로 받아 든다.
-        private static bool _wantPinned;
-        private static bool _hasWantDistance;
-        private static float _wantDistance = 1.3f, _wantDrop = -0.28f;
 
         /// <summary>
         /// 자막을 <b>눈앞에 붙박는다</b> — 고개를 어디로 돌리든 늘 시야 한가운데.
@@ -153,7 +147,6 @@ namespace IMUNROK.Common
         public static void SetPinned(bool on)
         {
             // 화면에 붙은 판은 <b>늘 붙박여 있다</b>. 시킬 것이 없어졌다(위 참조).
-            _wantPinned = on;
         }
 
         /// <summary>지금 자막이 떠 있는가(다른 UI가 겹치지 않게 참고).</summary>
@@ -428,7 +421,7 @@ namespace IMUNROK.Common
                 w = 2900f,                       // 저쪽 BarGeom 이 이 배치에 주는 폭
                 // <b>대사와 이름만 우리 값이다.</b> 어긋난 자리는 이 둘뿐이고, 그 까닭은
                 // 위에 적어 두었다. 나머지는 한 자도 안 적는다 — 저쪽이 고치면 따라온다.
-                line = 56, name = 56,
+                line = ScreenPanel.LineSize, name = ScreenPanel.LineSize,
                 input = st.inputSize, foot = st.footSize, inputH = st.inputH,
                 padX = st.padX, padTop = st.padTop, nameToRule = st.nameToRule,
                 ruleH = st.ruleH, ruleToLine = st.ruleToLine,
@@ -554,7 +547,7 @@ namespace IMUNROK.Common
         /// 1732단위 높이」로 치고, 그렇게 되도록 <b>거리를 바꾼다</b>.
         /// 그러면 바가 차지하는 화면 비율이 변하지 않는다.
         /// </summary>
-        private const float RefHalfHeight = 866f;
+        private const float RefHalfHeight = ScreenPanel.RefHeight * 0.5f;
 
         /// <summary>
         /// <b>자막판을 월드에서 떼어 화면에 붙인다.</b>
@@ -578,22 +571,9 @@ namespace IMUNROK.Common
         /// </summary>
         private void SitOnScreen()
         {
-            var canvas = GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 100;           // 수첩(200)보다 아래. 수첩을 펴면 자막이 가린다
-
-            var old = GetComponent<WorldHudAnchor>();
-            if (old != null) Destroy(old);
-
-            var scaler = GetComponent<CanvasScaler>();
-            if (scaler == null) scaler = gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            float refH = RefHalfHeight * 2f;     // 1732 — 이 판의 셈이 늘 치던 화면 높이
-            scaler.referenceResolution = new Vector2(refH * 16f / 9f, refH);
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 1f;      // 세로로 맞춘다
-
-            if (GetComponent<GraphicRaycaster>() == null) gameObject.AddComponent<GraphicRaycaster>();
+            // 세우는 여덟 줄은 <see cref="ScreenPanel"/> 이 쥔다 — 자막·단추·수첩이
+            // 저마다 같은 줄을 적고 있었고, 기준 세로를 적는 법까지 셋으로 갈려 있었다.
+            ScreenPanel.Raise(gameObject, ScreenPanel.LayerBar);
         }
 
         private void SitLikeTheBar(float w, float h)
