@@ -14,8 +14,8 @@ namespace IMUNROK.Common
     /// 가리키기만 해도 헤집히면 지나가다 눈만 스쳐도 단서가 열려버린다 —
     /// 파헤치는 것은 마음먹고 하는 짓이어야 한다.
     ///
-    /// 노트북(비-VR)에서도 그대로 된다: 마우스를 올리면 MouseInspector 가 글을 띄우고,
-    /// 클릭하면 MouseRaySelector 가 OnSelect() 를 부른다. VR에서는 손이 같은 자리를 부른다.
+    /// 마우스를 올리면 MouseInspector 가 글을 띄우고, 클릭하면 MouseRaySelector 가
+    /// OnSelect() 를 부른다.
     ///
     /// 붙이는 법: 콜라이더 있는 오브젝트에 붙이고 _before / _after 에 각각의 모습을 연결.
     /// 단서는 헤집은 뒤에만 기록된다 — 덮인 재를 본 것으로 서찰을 찾았다 할 수 없다.

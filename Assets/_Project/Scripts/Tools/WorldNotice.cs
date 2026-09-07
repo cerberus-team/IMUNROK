@@ -68,7 +68,7 @@ namespace IMUNROK.Common
                 found._anchor.SetDistance(1.6f, verticalOffset);
                 return found;
             }
-            var go = new GameObject($"VR_알림_{key}", typeof(Canvas));
+            var go = new GameObject($"알림_{key}", typeof(Canvas));
             var anchor = go.AddComponent<WorldHudAnchor>();
             anchor.Configure(WorldHudAnchor.Placement.Front);
             anchor.SetDistance(1.6f, verticalOffset);

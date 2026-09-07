@@ -6,7 +6,7 @@ namespace IMUNROK.Common
     /// <summary>
     /// <b>화면에 붙는 판을 세우는 한 자리.</b>
     ///
-    /// 헤드셋을 걷어내면서 자막 바·귀퉁이 단추·수첩을 차례로 월드에서 떼어 화면에
+    /// 자막 바·귀퉁이 단추·수첩을 차례로 월드에서 떼어 화면에
     /// 붙였다. 그런데 <b>떼어낸 자리마다 같은 여덟 줄을 다시 적었다</b> — 겹치기 모드,
     /// 기준 해상도, 세로 맞춤, 레이캐스터, 씬에 남아 있을 <see cref="WorldHudAnchor"/>
     /// 걷어내기. 세 판이 세 벌을 갖게 됐고, <b>기준 세로를 적는 법까지 셋으로 갈렸다</b>:
@@ -34,7 +34,7 @@ namespace IMUNROK.Common
 
         /// <summary>
         /// <b>우리 대사 글씨.</b> 견우팀 것(42)보다 크다 — 저쪽은 눈앞 1.5m 에 뜬 판을
-        /// 헤드셋으로 보는 셈이었고 우리는 모니터 너머로 읽는다. 한 자리에 적어 두어야
+        /// 세상 속 판을 가까이서 보는 셈이었고 우리는 모니터 너머로 읽는다. 한 자리에 적어 두어야
         /// 자막과 귀퉁이 단추가 따로 놀지 않는다(그 둘이 어긋난 것을 이미 한 번 고쳤다).
         /// </summary>
         public const int LineSize = 56;
@@ -62,7 +62,7 @@ namespace IMUNROK.Common
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = order;
 
-            // 씬에 미리 놓인 판에는 헤드셋 시절의 추종기가 붙어 있을 수 있다.
+            // 씬에 미리 놓인 판에는 월드 시절의 추종기가 붙어 있을 수 있다.
             // 화면 판에 그것이 남으면 매 칸 자리를 도로 월드로 끌어간다.
             var anchor = go.GetComponent<WorldHudAnchor>();
             if (anchor != null) Object.Destroy(anchor);

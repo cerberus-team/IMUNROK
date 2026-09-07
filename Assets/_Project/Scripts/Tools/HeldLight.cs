@@ -47,7 +47,7 @@ namespace IMUNROK.Common
 
         private void Update()
         {
-            // 카메라는 늦게 바뀔 수 있다(VR 몸을 지으면서 옮겨 간다). 매 칸 확인한다.
+            // 카메라는 늦게 바뀔 수 있다(씬이 갈리면서 다른 것이 된다). 매 칸 확인한다.
             var cam = Camera.main;
             if (cam == null) return;
             if (_eye != cam.transform) Attach(cam.transform);

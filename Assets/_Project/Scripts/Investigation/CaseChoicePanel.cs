@@ -70,7 +70,7 @@ namespace IMUNROK.Common
                 _instance = FindFirstObjectByType<CaseChoicePanel>();
                 if (_instance == null)
                 {
-                    var go = new GameObject("VR_사건고르기", typeof(Canvas));
+                    var go = new GameObject("사건고르기_판", typeof(Canvas));
                     go.AddComponent<WorldHudAnchor>().Configure(WorldHudAnchor.Placement.Front);
                     _instance = go.AddComponent<CaseChoicePanel>();
                 }

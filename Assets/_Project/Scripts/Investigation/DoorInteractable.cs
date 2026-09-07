@@ -8,7 +8,7 @@ namespace IMUNROK.Common
 {
     /// <summary>
     /// "다가가서 · 바라보고 · 버튼" 방식으로 문(DoorHinge 여러 짝)을 여닫는 트리거.
-    /// ★XR Interaction Toolkit을 쓰지 않는다(미설치). 손으로 잡는 방식이 아니라 근접+조준+버튼이다.
+    /// 손으로 잡는 방식이 아니라 근접+조준+누르기다.
     ///
     /// [사용] 문 묶음의 부모 GO에 붙인다(예: 사립문 `Door01k (n)`).
     ///   Hinges           : 여닫을 DoorHinge들. ★비워 두면 자식에서 자동으로 모은다.

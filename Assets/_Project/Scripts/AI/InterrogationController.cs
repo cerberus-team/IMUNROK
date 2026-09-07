@@ -13,8 +13,8 @@ namespace IMUNROK.Common
     /// NPC 대답은 INpcResponder가 만든다(Mock=미리 정한 대사 / Gemini=실제 AI).
     ///
     /// <b>2026-09-05 — 말하기(마이크)를 걷어냈다.</b> ①은 원래 마이크로 말하면 받아
-    /// 적히는 길이었다. Voice SDK(Wit.ai)가 헤드셋 꾸러미에 딸려 오는 물건이라,
-    /// 헤드셋을 걷어내면서 같이 나갔다. 그 자리는 <b>글쇠 칸</b>이 받는다 —
+    /// 적히는 길이었다. Voice SDK(Wit.ai)가 딸려 오던 꾸러미를 걷어내면서
+    /// 그것도 같이 나갔다. 그 자리는 <b>글쇠 칸</b>이 받는다 —
     /// 받아 적힌 말을 사람이 눈으로 보고 던지던 절차가 이미 있었으므로
     /// (<see cref="Draft"/>), 그 절차의 앞머리만 목소리에서 손으로 바뀐 셈이다.
     ///
@@ -40,7 +40,7 @@ namespace IMUNROK.Common
         [Tooltip("켜짐=씬 시작 시 자동 심문(단독 무대). 꺼짐=인물 큐브 클릭 시 시작(큐브에 붙일 때 이걸로)")]
         [SerializeField] private bool _beginOnStart = true;
 
-        [Tooltip("추천 질문(대사 위 제안) 표시. VR(음성)에선 꺼서 '말로만' 진행 가능")]
+        [Tooltip("추천 질문(대사 위 제안)을 띄운다")]
         [SerializeField] private bool _showTopics = true;
 
         [Tooltip("한 번에 보여 줄 추천 질문 수. 넷 다 늘어놓으면 고르는 것이 아니라 훑는 것이 된다 — " +
@@ -323,7 +323,7 @@ namespace IMUNROK.Common
             InterrogationPanel.Close();
         }
 
-        // ── 클릭/VR 레이로 인물을 선택하면 심문 시작 ──
+        // ── 클릭으로 인물을 고르면 심문 시작 ──
         public void OnHoverEnter() { }
         public void OnHoverExit() { }
         public void OnSelect()
@@ -338,7 +338,7 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// 밖에서 닫아 달라 이를 때. 헤드셋을 쓰면 Esc 를 누를 손이 없어,
+        /// 밖에서 닫아 달라 이를 때. Esc 말고 다른 길이 필요해서,
         /// 컨트롤러 단추가 이리로 들어온다.
         /// </summary>
         public void CloseFromOutside() { if (_active) ClosePanel(); }
@@ -587,7 +587,7 @@ namespace IMUNROK.Common
         // ─────────────────────────────────────────────
         //  UI — 전부 월드 공간으로 옮겼다.
         //  대사는 SubtitleView, 조작(마이크·추천질문·닫기·증거그림)은 InterrogationPanel.
-        //  OnGUI는 헤드셋에 렌더링되지 않아 VR에서 아무것도 보이지 않았고,
+        //  OnGUI 는 세상 속 판과 켜가 어긋났고,
         //  데스크탑에선 월드 UI와 겹쳐 보여 오히려 가렸다.
         // ─────────────────────────────────────────────
 

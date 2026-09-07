@@ -39,7 +39,7 @@ namespace IMUNROK.Onggojip
 #endif
         }
 
-        // 목표 안내는 월드 공간 알림판으로 띄운다(OnGUI는 헤드셋에 안 보인다).
+        // 목표 안내는 월드 공간 알림판으로 띄운다.
         // 매 프레임 문자열을 새로 만들 필요가 없어 값이 바뀔 때만 갱신한다.
         private string _lastMain, _lastSub;
 

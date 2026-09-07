@@ -167,7 +167,7 @@ namespace IMUNROK.Common.Editor
         }
 
         /// <summary>
-        /// VR용 임포트 설정. 1024 정사각(POT)이라 블록압축이 걸린다.
+        /// 임포트 설정. 1024 정사각(POT)이라 블록압축이 걸린다.
         /// 알파가 필요한 것(타다 만 조각)은 DXT5/ASTC, 나머지는 절반 용량인 DXT1.
         /// </summary>
         private static bool ApplyImportSettings(string path, bool needsAlpha)

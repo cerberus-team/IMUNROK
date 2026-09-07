@@ -7,12 +7,12 @@ namespace IMUNROK.Common
     /// <summary>
     /// 시야를 검게 덮었다가 걷는 연출(페이드). 순간이동·장면 전환에 쓴다.
     ///
-    /// VR에서 왜 필요한가: 플레이어를 갑자기 다른 자리로 옮기면 눈은 움직였다고 하는데
-    /// 몸은 가만히 있어서 멀미가 난다. 옮기는 순간을 어둠으로 덮으면 그 충돌이 사라진다.
-    /// (이것이 VR 순간이동의 표준 방식 — 'blink teleport')
+    /// 왜 필요한가: 플레이어를 갑자기 다른 자리로 옮기면 눈은 움직였다고 하는데
+    /// 세상이 툭 갈린다. 옮기는 순간을 어둠으로 덮으면 그 끊김이 사라진다.
+    /// (눈을 감았다 뜨는 식 — 'blink teleport')
     ///
     /// 화면 전체를 덮는 UI가 아니라 카메라 코앞에 검은 판을 두는 방식이다.
-    /// 스크린 오버레이는 헤드셋에 렌더링되지 않기 때문.
+    /// 스크린 오버레이는 세상 속 판과 켜가 어긋나기 때문.
     ///
     /// 쓰는 법 — 씬에 미리 둘 필요 없다:
     ///   ScreenFade.Blink(0.25f, 0.35f, () => { 옮기는_처리(); });
@@ -167,7 +167,7 @@ namespace IMUNROK.Common
             if (_cam == null) _cam = Camera.main;
             if (_cam == null) return;
 
-            // 카메라 코앞에 붙여 시야를 통째로 덮는다. 넉넉히 키워 VR의 넓은 시야각도 남김없이 가린다.
+            // 카메라 코앞에 붙여 시야를 통째로 덮는다. 넉넉히 키워 가장자리까지 남김없이 가린다.
             float d = Mathf.Max(_cam.nearClipPlane * 2f, 0.05f);
             _quad.SetPositionAndRotation(_cam.transform.position + _cam.transform.forward * d,
                                          _cam.transform.rotation);

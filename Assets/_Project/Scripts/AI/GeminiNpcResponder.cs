@@ -25,7 +25,7 @@ namespace IMUNROK.Common
         private const int MaxOutputTokens = 120;
 
         // flash-lite = 가장 싸고 빠른 등급. NPC 대답은 1~2문장(120토큰)뿐이라 상위 등급이 필요 없고,
-        // VR 대화에선 응답 속도가 품질보다 체감에 크게 작용한다.
+        // 대화에서는 응답 속도가 품질보다 체감에 크게 작용한다.
         // '-latest' 별칭 대신 버전을 고정한다 — 별칭은 어느 날 모델이 바뀌며 말투가 달라질 수 있어
         // 시연을 앞둔 프로젝트에선 위험하다. 모델이 내려가면 그때 번호만 올리면 된다.
         private readonly string _model = "gemini-3.5-flash-lite";

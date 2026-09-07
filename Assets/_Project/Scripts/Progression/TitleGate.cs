@@ -101,8 +101,8 @@ namespace IMUNROK.Common
         [SerializeField] private string _startPromptFresh = "누르면 처음부터   ·   Space 로도 됩니다";
         [SerializeField] private string _hubSceneName = "HubScene";
 
-        [Tooltip("VR 에서 컨트롤러 레이로 누를 수 있도록 눈앞에 보이지 않는 판을 둔다. " +
-                 "키보드가 없는 헤드셋에서는 이것이 유일한 넘어가는 길이다")]
+        [Tooltip("아무 데나 눌러 넘어갈 수 있도록 눈앞에 보이지 않는 판을 둔다. " +
+                 "글쇠를 모르는 사람에게는 이것이 넘어가는 길이다")]
         [SerializeField] private bool _makePressTarget = true;
         [Tooltip("그 판의 한 변(m). 눈앞을 넉넉히 덮어야 아무 데나 겨눠도 집힌다")]
         [SerializeField] private float _pressTargetSize = 2f;
@@ -190,7 +190,7 @@ namespace IMUNROK.Common
                 _cam.rotation = Quaternion.Euler(e.x + _bowExtra, e.y, e.z);
             }
             BuildTitle();
-            // 누름판은 처음부터 둔다. 헤드셋에는 키보드가 없어 이것이 없으면
+            // 누름판은 처음부터 둔다. 글쇠를 모르면 이것이 없을 때
             // 연출이 다 끝날 때까지 손쓸 방법이 아예 없다.
             MakePressTarget();
             StartCoroutine(Sequence());
@@ -343,7 +343,7 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// 눈앞에 보이지 않는 판을 하나 둔다. 헤드셋에는 키보드가 없으므로
+        /// 눈앞에 보이지 않는 판을 하나 둔다. 글쇠를 모르는 사람에게는
         /// 컨트롤러 레이로 누를 것이 있어야 한다 — 이 게임의 다른 모든 것과 같은 길이다.
         /// </summary>
         private void MakePressTarget()
@@ -613,7 +613,7 @@ namespace IMUNROK.Common
     }
 
     /// <summary>
-    /// 표제에서 눈앞에 두는 보이지 않는 누름판. 헤드셋에는 키보드가 없으니
+    /// 표제에서 눈앞에 두는 보이지 않는 누름판. 글쇠를 모르면
     /// 컨트롤러 레이가 집을 것이 하나는 있어야 한다.
     /// <see cref="TitleGate"/> 가 코드로 붙이므로 인스펙터에서 다룰 일은 없다.
     /// </summary>

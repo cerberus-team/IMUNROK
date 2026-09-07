@@ -8,7 +8,7 @@ namespace IMUNROK.Common
     /// 심문의 조작부를 월드 공간 Canvas로 그린다. 대사 자체는 <see cref="SubtitleView"/>가
     /// 맡고, 여기는 "누를 것"만 담당한다.
     ///
-    /// OnGUI로는 헤드셋에 아무것도 안 뜨므로, 이게 없으면 VR에서 심문을 시작하거나
+    /// OnGUI 는 세상 속 판과 켜가 어긋나므로, 이게 없으면 심문을 시작하거나
     /// 끝낼 방법이 없다.
     ///
     /// <b>네 줄로 되어 있다</b>(위에서 아래로):
@@ -143,7 +143,7 @@ namespace IMUNROK.Common
             if (_instance != null) return;
             _instance = FindFirstObjectByType<InterrogationPanel>();
             if (_instance != null) return;
-            var go = new GameObject("VR_심문조작", typeof(Canvas));
+            var go = new GameObject("심문_조작판", typeof(Canvas));
             // 자막(-0.28)보다 아래 — 대사를 가리지 않게
             go.AddComponent<WorldHudAnchor>().Configure(WorldHudAnchor.Placement.Front);
             _instance = go.AddComponent<InterrogationPanel>();

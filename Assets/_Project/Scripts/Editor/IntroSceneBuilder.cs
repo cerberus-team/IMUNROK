@@ -50,7 +50,7 @@ namespace IMUNROK.Common.Editor
             RenderSettings.ambientLight = new Color(0.12f, 0.11f, 0.12f);
 
             // 카메라: 무릎 꿇고 고개 숙여(부복) 바닥을 내려다보는 고정 시점.
-            // 화면은 자유로 움직이지 않는다(VR에선 실제 고개 숙임, 선택은 손 뻗기).
+            // 화면은 자유로 움직이지 않는다 — 어전에서는 시점이 고정이다.
             var camGO = new GameObject("Main Camera");
             camGO.tag = "MainCamera";
             camGO.transform.SetParent(root.transform);
@@ -59,9 +59,9 @@ namespace IMUNROK.Common.Editor
             var cam = camGO.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.02f, 0.02f, 0.03f);
-            AtmosphereSetup.ApplyDarkSkybox(cam); // 360 배경(VR 규칙)
+            AtmosphereSetup.ApplyDarkSkybox(cam); // 360 배경
             camGO.AddComponent<AudioListener>();
-            camGO.AddComponent<MouseRaySelector>();  // 비-VR: 문서 클릭(VR에선 손 뻗기). 시점은 고정.
+            camGO.AddComponent<MouseRaySelector>();  // 문서 클릭. 시점은 고정.
 
             // 세 사건 문서: 무릎 앞 "바닥"에 눕혀 한 줄(왕이 내려놓은 형태).
             var holder = new GameObject("Documents");

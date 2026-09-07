@@ -157,7 +157,7 @@ namespace IMUNROK.Common
         {
             if (_canvas == null)
             {
-                var go = new GameObject("VR_오갈데", typeof(Canvas));
+                var go = new GameObject("오갈데_판", typeof(Canvas));
                 _anchor = go.AddComponent<WorldHudAnchor>();
                 _anchor.Configure(WorldHudAnchor.Placement.Front);
                 _anchor.SetDistance(1.3f, -0.10f);

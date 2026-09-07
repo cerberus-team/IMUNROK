@@ -30,7 +30,7 @@ namespace IMUNROK.Common
 #endif
         }
 
-        // 지도는 월드 공간 알림판으로 띄운다(OnGUI는 헤드셋에 안 보인다).
+        // 지도는 월드 공간 알림판으로 띄운다.
         private bool _shown;
 
         private void LateUpdate()

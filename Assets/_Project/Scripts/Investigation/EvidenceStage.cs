@@ -78,7 +78,6 @@ namespace IMUNROK.Common
             _cam.nearClipPlane = 0.02f;
             _cam.farClipPlane = 20f;                            // 본 카메라와 서로 안 보이게
             _cam.targetTexture = _rt;
-            _cam.stereoTargetEye = StereoTargetEyeMask.None;
             _cam.enabled = false;                               // 볼 때만 켠다
 
             var extra = camGo.GetComponent<UniversalAdditionalCameraData>();

@@ -6,11 +6,11 @@ using UnityEngine.InputSystem;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 에디터/비-VR 테스트용 선택 도구.
+    /// 마우스로 짚는 선택 도구.
     /// 카메라에서 마우스 방향으로 레이를 쏘아 ISelectable 대상을 가리키고(하이라이트),
     /// 좌클릭하면 OnSelect()를 호출한다.
     ///
-    /// ★ VR 단계에서는 이 컴포넌트 대신 컨트롤러 레이 인터랙터가 같은
+    /// ★ 짚는 방식이 바뀌면 이 부품 대신 다른 것이 같은
     ///   ISelectable.OnHoverEnter/Exit/Select 를 호출하게 만든다.
     ///   즉, 선택 "대상" 로직(CaseCube 등)은 그대로 두고 입력 "방식"만 갈아끼운다.
     /// </summary>

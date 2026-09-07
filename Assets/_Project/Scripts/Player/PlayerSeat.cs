@@ -16,7 +16,7 @@ namespace IMUNROK.Common
     /// 왜 아예 막는가: 심문하는 동안 뒤쪽 건넌방(장롱·문갑)에 미리 손대면 그 다음에
     /// 벌어질 일이 무너진다. "가지 마시오" 하고 말로 막는 것보다 앉혀 두는 편이 자연스럽다 —
     /// 앉은 사람은 원래 못 걷는다. 둘러보기는 그대로 둔다. 앉았다고 고개까지 굳으면
-    /// VR에서는 갇힌 느낌이 나고, 상대를 볼 수 없으면 심문이 성립하지 않는다.
+    /// 갇힌 느낌이 나고, 상대를 볼 수 없으면 심문이 성립하지 않는다.
     ///
     /// 붙이는 곳: 플레이어 카메라. 신호는 둘 —
     ///   · <see cref="Sit"/>   방에 들어선 순간(TeleportZone 의 도착 이벤트)
@@ -39,24 +39,11 @@ namespace IMUNROK.Common
         [Tooltip("일어섰을 때 바닥에서 눈까지(m). 카메라의 걷기 눈높이와 맞출 것")]
         [SerializeField] private float _standingEyeHeight = 1.60f;
 
-        [Header("헤드셋에서 앉기")]
-        [Tooltip("켜면 헤드셋에서는 <b>몸이 실제로 내려앉아야</b> 앉은 것으로 친다. " +
-                 "끄면 예전처럼 눈높이를 대신 내려 준다")]
-        [SerializeField] private bool _vrSitByHeight = true;
-        [Tooltip("선 키에서 이만큼(m) 내려앉으면 앉은 것으로 본다. " +
-                 "방바닥에 앉으면 50~60cm 내려가므로 30cm면 무릎을 굽힌 것만으로는 안 된다")]
-        [SerializeField] private float _sitDropRequired = 0.32f;
-        [Tooltip("내려앉은 자세를 이만큼(초) 지켜야 앉은 것으로 친다. 잠깐 숙인 것과 가른다")]
-        [SerializeField] private float _sitHoldSeconds = 0.4f;
 
         [Header("시간")]
         [Tooltip("앉는 데 걸리는 시간(초). 뚝 떨어지면 앉은 게 아니라 꺼진 것으로 보인다")]
         [SerializeField] private float _sitSeconds = 1.3f;
         [SerializeField] private float _standSeconds = 1.1f;
-
-        [Header("리그")]
-        [Tooltip("비우면 카메라의 최상위 부모를 쓴다. 데스크탑 테스트에서는 카메라 자신이다")]
-        [SerializeField] private Transform _rig;
 
         [Header("일어서기")]
         [Tooltip("앉은 채로 이 키를 누르면 <b>제 발로 일어선다</b>. None 이면 못 일어난다 — " +
@@ -89,19 +76,6 @@ namespace IMUNROK.Common
         /// <summary>자리를 권해 놓고 <b>기다리는</b> 중인가(방석을 누르거나 몸을 낮추기를).</summary>
         public bool Offered => _phase == Phase.Offered;
 
-        private float _standHeadY;      // 권할 때의 머리 높이(바닥 기준)
-        private float _offerFloorY;
-        private float _lowHold;         // 내려앉은 자세를 지킨 시간
-
-        private Transform Rig
-        {
-            get
-            {
-                if (_rig != null) return _rig;
-                return transform.root;
-            }
-        }
-
         private void Awake() { Instance = this; }
         private void OnDestroy() { if (Instance == this) Instance = null; }
 
@@ -113,12 +87,8 @@ namespace IMUNROK.Common
         /// <summary>
         /// 자리를 <b>권한다</b> — 앉히지는 않는다.
         ///
-        /// 화면(리그가 곧 카메라)에서는 방석을 눌러야 앉는다. 방에 들어서자마자 시야가
-        /// 스르르 내려가면 앉은 것이 아니라 가라앉은 것이 된다. 주인이 권하고 내가 골라
-        /// 앉아야 마주 앉은 것이 된다.
-        ///
-        /// 헤드셋에서는 <b>몸이 실제로 앉는다</b>. 방석을 눌러 앉으라고 하면 서 있는 채로
-        /// 눈만 내려앉아 멀미가 난다. 그래서 VR이면 권하는 절차 없이 눈높이만 내려 준다.
+        /// 방석을 눌러야 앉는다. 방에 들어서자마자 시야가 스르르 내려가면 앉은 것이
+        /// 아니라 가라앉은 것이 된다. 주인이 권하고 내가 골라 앉아야 마주 앉은 것이 된다.
         /// </summary>
         public void OfferSeat()
         {
@@ -126,28 +96,6 @@ namespace IMUNROK.Common
 
             var cushion = _seatSpot != null ? _seatSpot.GetComponentInChildren<SeatCushion>() : null;
             if (cushion == null) cushion = Object.FindFirstObjectByType<SeatCushion>();
-
-            if (Rig != transform)        // 리그가 따로 있다 = 헤드셋
-            {
-                if (!_vrSitByHeight) { SitAt(_seatSpot); return; }
-
-                // 방석 위로 몸만 옮겨 놓고, 앉는 것은 <b>사람이 한다</b>.
-                // 눈높이를 대신 내려 주면 몸은 선 채로 눈만 가라앉아 멀미가 난다.
-                if (_seatSpot != null)
-                {
-                    Vector3 d = _seatSpot.position - transform.position;
-                    d.y = 0f;
-                    Rig.position += d;
-                }
-                _offerFloorY = FloorY(transform.position, transform.position.y - _standingEyeHeight, _seatSpot);
-                _standHeadY = transform.position.y - _offerFloorY;
-                _lowHold = 0f;
-                _phase = Phase.Offered;
-                SetMoveLock(true);       // 권한 자리에서 걸어 나가지는 못한다
-                if (cushion != null) cushion.Offer();
-                _onOffered?.Invoke();
-                return;
-            }
 
             if (cushion == null) { SitAt(_seatSpot); return; }   // 방석이 없으면 그냥 앉힌다
 
@@ -160,14 +108,6 @@ namespace IMUNROK.Common
         public void SitAt(Transform spot)
         {
             if (_phase == Phase.Seated || _phase == Phase.SittingDown) return;
-
-            // 헤드셋에서 몸으로 앉기로 해 두었으면, 눈높이를 대신 내려 주지 않는다.
-            // 방석을 눌러 앉히는 길(데스크탑)이 이리로 들어오는 것도 여기서 막힌다.
-            if (Rig != transform && _vrSitByHeight)
-            {
-                if (_phase != Phase.Offered) OfferSeat();
-                return;
-            }
 
             Vector3 here = transform.position;
             Vector3 xz = spot != null ? spot.position : here;
@@ -188,15 +128,6 @@ namespace IMUNROK.Common
         {
             if (_phase == Phase.Standing || _phase == Phase.StandingUp) return;
 
-            // 헤드셋에서는 일어서는 것도 몸이 한다. 걸음만 풀어 주면 된다.
-            if (Rig != transform && _vrSitByHeight)
-            {
-                _phase = Phase.Standing;
-                SetMoveLock(false);
-                _onStood?.Invoke();
-                return;
-            }
-
             Vector3 here = transform.position;
 
             // <b>방석은 바닥이 아니다.</b> 앉을 때는 방석을 빼고 쟀는데(FloorY 의 ignore)
@@ -206,7 +137,7 @@ namespace IMUNROK.Common
             _standFloorY = floor;
             _to = new Vector3(here.x, floor + StandingEye, here.z);
             _toRot = transform.rotation;
-            _turn = false;                  // 일어서면서 고개까지 돌려 주면 멀미가 난다
+            _turn = false;                  // 일어서면서 고개까지 돌려 주지 않는다
             Begin(_standSeconds);
             _phase = Phase.StandingUp;
         }
@@ -224,7 +155,7 @@ namespace IMUNROK.Common
         {
             get
             {
-                var fly = Rig.GetComponentInChildren<DebugFlyCamera>();
+                var fly = GetComponentInChildren<DebugFlyCamera>();
                 if (fly == null) fly = GetComponent<DebugFlyCamera>();
                 return fly != null ? fly.EyeHeight : _standingEyeHeight;
             }
@@ -258,21 +189,8 @@ namespace IMUNROK.Common
         {
             RiseKey();
 
-            // 자리를 권해 놓고 기다리는 중 — 헤드셋이면 <b>머리가 내려오는 것</b>을 본다.
-            // 앉으라는 말을 듣고 실제로 앉는 것, 그것 말고는 진행시키지 않는다.
-            if (_phase == Phase.Offered)
-            {
-                if (Rig == transform || !_vrSitByHeight) return;   // 데스크탑은 방석을 누른다
-
-                float head = transform.position.y - _offerFloorY;
-                bool low = head <= _standHeadY - _sitDropRequired;
-                _lowHold = low ? _lowHold + Time.deltaTime : 0f;
-                if (_lowHold < _sitHoldSeconds) return;
-
-                _phase = Phase.Seated;
-                _onSeated?.Invoke();
-                return;
-            }
+            // 자리를 권해 놓고 기다리는 중 — 방석을 눌러야 앉는다.
+            if (_phase == Phase.Offered) return;
 
             if (_phase != Phase.SittingDown && _phase != Phase.StandingUp) return;
 
@@ -295,9 +213,9 @@ namespace IMUNROK.Common
 
                 // 카메라에게 <b>마루 높이를 알려 주고</b> 걸음을 푼다. 안 알려 주면
                 // 카메라가 제 발밑을 찾다가 방석을 딛고, 걸음을 뗄 때 키가 다시 흔들린다.
-                var fly = Rig.GetComponentInChildren<DebugFlyCamera>();
+                var fly = GetComponentInChildren<DebugFlyCamera>();
                 if (fly == null) fly = GetComponent<DebugFlyCamera>();
-                if (fly != null && Rig == transform) fly.StandAtFloor(_standFloorY);
+                if (fly != null) fly.StandAtFloor(_standFloorY);
 
                 SetMoveLock(false);
                 _onStood?.Invoke();
@@ -309,22 +227,10 @@ namespace IMUNROK.Common
         /// <summary>
         /// 머리를 이 자리에 둔다.
         ///
-        /// 데스크탑 테스트에서는 리그가 곧 카메라라 그냥 옮기면 된다. VR이면 머리는
-        /// 헤드셋이 쥐고 있으므로 손대지 않고, <b>수평으로만</b> 리그를 밀어 머리가 그 자리에
-        /// 오게 한다 — 높이는 실제로 앉은 사람의 몸이 정한다. 억지로 눈높이를 내리면
-        /// 몸은 서 있는데 눈만 내려가 멀미가 난다.
         /// </summary>
         private void PlaceHead(Vector3 pos, Quaternion rot)
         {
-            var rig = Rig;
-            if (rig == transform)
-            {
-                transform.SetPositionAndRotation(pos, rot);
-                return;
-            }
-            Vector3 d = pos - transform.position;
-            d.y = 0f;
-            rig.position += d;
+            transform.SetPositionAndRotation(pos, rot);
         }
 
         /// <summary>
@@ -414,7 +320,7 @@ namespace IMUNROK.Common
 
         private void SetMoveLock(bool locked)
         {
-            var fly = Rig.GetComponentInChildren<DebugFlyCamera>();
+            var fly = GetComponentInChildren<DebugFlyCamera>();
             if (fly == null) fly = GetComponent<DebugFlyCamera>();
             if (fly != null) fly.MoveLocked = locked;
         }

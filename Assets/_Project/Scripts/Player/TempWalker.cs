@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 임시 PC 워커 — VR(Meta 네이티브) 리그를 붙이기 전, 에디터/PC에서 실제로
+    /// PC 워커 — 에디터와 빌드에서 실제로
     /// 걸어다니며 경계 콜라이더(개천 링·성 밖 외곽·담·건물)를 검증하기 위한 이동 스크립트.
     /// ★파라미터는 최종 Meta 리그와 동일하게 맞춘다(CharacterController 쪽).
     ///

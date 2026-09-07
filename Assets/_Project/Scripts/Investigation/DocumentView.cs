@@ -153,7 +153,7 @@ namespace IMUNROK.Common
                 _instance = FindFirstObjectByType<DocumentView>();
                 if (_instance == null)
                 {
-                    var go = new GameObject("VR_문서보기", typeof(Canvas));
+                    var go = new GameObject("문서보기_판", typeof(Canvas));
                     go.AddComponent<WorldHudAnchor>().Configure(WorldHudAnchor.Placement.Front);
                     _instance = go.AddComponent<DocumentView>();
                 }

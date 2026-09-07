@@ -21,10 +21,8 @@ namespace IMUNROK.Common
     ///   3) 발동시킬 쪽에서 Play() 호출 — TeleportZone 의 _onTeleported 에 물리면 된다
     ///   4) (선택) _requireClueKey 에 단서 key → 그 단서를 이미 얻었을 때만 발동
     ///
-    /// VR 주의: 헤드셋이 붙으면 고개 각도(상하)는 강제할 수 없다. 리그가 있으면 좌우(yaw)만
-    /// 돌려 대상을 정면에 놓고, 상하는 플레이어에게 맡긴다. FOV 확대도 데스크탑 전용이다
-    /// (헤드셋은 자기 화각을 쓴다). 그래서 VR에서는 "돌려세워 주는" 정도로 약해진다 —
-    /// 그때는 연기를 키우거나 소리를 얹어 보완할 것.
+    /// 좌우(yaw)만 돌려 대상을 정면에 놓고, 상하는 플레이어에게 맡긴다 —
+    /// 위아래까지 뺏으면 시선을 빼앗긴 느낌이 너무 세다.
     /// </summary>
     public class ForcedGaze : MonoBehaviour
     {
@@ -123,10 +121,6 @@ namespace IMUNROK.Common
             var locked = ResolveLocks(cam);
             foreach (var b in locked) if (b != null) b.enabled = false;
 
-            // 리그가 있으면(VR) 리그를 좌우로 돌린다. 카메라가 곧 리그면(데스크탑) 카메라를 직접 돌린다.
-            Transform rig = cam.transform.root;
-            bool rigIsCamera = rig == cam.transform;
-
             float startFov = cam.fieldOfView;
             Quaternion startRot = cam.transform.rotation;
             Quaternion targetRot = Quaternion.LookRotation(_target.position - cam.transform.position);
@@ -135,12 +129,11 @@ namespace IMUNROK.Common
             for (float t = 0f; t < _turnSeconds; t += Time.deltaTime)
             {
                 float k = Smooth(t / _turnSeconds);
-                if (rigIsCamera) cam.transform.rotation = Quaternion.Slerp(startRot, targetRot, k);
-                else YawRigToward(rig, cam.transform, _target.position, k);
+                cam.transform.rotation = Quaternion.Slerp(startRot, targetRot, k);
                 cam.fieldOfView = Mathf.Lerp(startFov, _zoomFov, k);
                 yield return null;
             }
-            if (rigIsCamera) cam.transform.rotation = targetRot;
+            cam.transform.rotation = targetRot;
             cam.fieldOfView = _zoomFov;
 
             yield return new WaitForSeconds(_holdSeconds);
@@ -168,11 +161,10 @@ namespace IMUNROK.Common
                 for (float t = 0f; t < _lookBackSeconds; t += Time.deltaTime)
                 {
                     float k = Smooth(t / _lookBackSeconds);
-                    if (rigIsCamera) cam.transform.rotation = Quaternion.Slerp(from, back, k);
-                    else YawRigToward(rig, cam.transform, _lookBackAt.position, k);
+                    cam.transform.rotation = Quaternion.Slerp(from, back, k);
                     yield return null;
                 }
-                if (rigIsCamera) cam.transform.rotation = back;
+                cam.transform.rotation = back;
             }
 
             foreach (var b in locked) if (b != null) b.enabled = true;
@@ -210,23 +202,6 @@ namespace IMUNROK.Common
         }
         private float[] _baseRates;
 
-        /// <summary>
-        /// 리그를 머리 중심으로 좌우로만 돌려 대상을 정면에 놓는다.
-        /// 머리 위치는 그대로 두어야 몸만 돌아간 것이 된다(TeleportZone 과 같은 방식).
-        /// 상하 각도는 건드리지 않는다 — 헤드셋에서는 실제 목이 이긴다.
-        /// </summary>
-        private void YawRigToward(Transform rig, Transform head, Vector3 point, float k)
-        {
-            Vector3 headFlat = new Vector3(head.forward.x, 0f, head.forward.z);
-            Vector3 toTarget = point - head.position;
-            toTarget.y = 0f;
-            if (headFlat.sqrMagnitude < 0.0001f || toTarget.sqrMagnitude < 0.0001f) return;
-
-            // 남은 각도를 매 프레임 조금씩 갚는다. 목표까지의 각도를 다시 재므로
-            // 플레이어가 중간에 고개를 돌려도 어긋나지 않는다.
-            float remaining = Vector3.SignedAngle(headFlat, toTarget, Vector3.up);
-            rig.RotateAround(head.position, Vector3.up, remaining * Mathf.Clamp01(k));
-        }
 
         /// <summary>연출 동안 꺼둘 것들. 지정이 없으면 카메라의 시점 조작만 끈다.</summary>
         private Behaviour[] ResolveLocks(Camera cam)

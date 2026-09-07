@@ -114,7 +114,7 @@ namespace IMUNROK.Common.Editor
             RenderSettings.ambientLight = new Color(0.18f, 0.18f, 0.22f); // 전역 앰비언트
             _builtSun = light;
 
-            // 카메라: VR 전이라 비-VR로도 방을 볼 수 있게 배치(플레이어 눈높이).
+            // 카메라: 플레이어 눈높이에 둔다.
             var camGO = new GameObject("Main Camera");
             camGO.tag = "MainCamera";
             camGO.transform.SetParent(root.transform);
@@ -123,16 +123,16 @@ namespace IMUNROK.Common.Editor
             var cam = camGO.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.02f, 0.02f, 0.04f); // 창밖의 어둠/안개
-            AtmosphereSetup.ApplyDarkSkybox(cam); // 360 배경(VR 규칙)
+            AtmosphereSetup.ApplyDarkSkybox(cam); // 360 배경
             camGO.AddComponent<AudioListener>();
 
-            // 비-VR 테스트용 마우스 레이 선택기(사건 큐브 클릭 검증). VR 단계에서 컨트롤러 레이로 대체.
+            // 마우스 레이 선택기(사건 큐브 클릭).
             camGO.AddComponent<MouseRaySelector>();
 
-            // 비-VR 테스트용 자유 비행 카메라(RMB 누른 채 WASD로 방을 둘러봄). VR 단계에서 제거/비활성.
+            // 자유 비행 카메라(RMB 누른 채 WASD 로 방을 둘러봄) — 개발용.
             camGO.AddComponent<DebugFlyCamera>();
 
-            // 비-VR 테스트용 살펴보기(확대경 대역). 가리키면 IInspectable 정보 표시.
+            // 살펴보기(확대경 대역). 가리키면 IInspectable 정보 표시.
             camGO.AddComponent<MouseInspector>();
         }
 

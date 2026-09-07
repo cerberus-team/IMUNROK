@@ -57,7 +57,7 @@ namespace IMUNROK.Common
             if (_instance != null) return;
             _instance = FindFirstObjectByType<WorldNote>();
             if (_instance != null) return;
-            var go = new GameObject("VR_물건글", typeof(Canvas));
+            var go = new GameObject("물건글_판", typeof(Canvas));
             _instance = go.AddComponent<WorldNote>();
         }
 
