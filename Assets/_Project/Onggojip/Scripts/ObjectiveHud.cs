@@ -14,7 +14,8 @@ namespace IMUNROK.Onggojip
     /// <b>붙박아 두지 않는다.</b> 여태 이 줄은 화면에 <b>계속</b> 떠 있었다. 그러면
     /// 안내가 아니라 <b>창</b>이 된다 — 늘 있는 것은 안 읽히고, 안 읽히는데 자리는 차지한다.
     /// 그래서 <b>말이 바뀔 때만</b> 떠서 몇 초 머물다 스르르 진다.
-    /// 다시 보고 싶으면 <b>H</b> 를 누른다 — 끄는 스위치가 아니라 <b>다시 보기</b>다.
+    /// (<b>H</b> 를 누르면 다시 뜬다. 다만 <b>글에는 안 적는다</b> — 지나가는 한 마디에
+    ///  단축키까지 붙으면 그것이 도로 창이 된다.)
     ///
     /// 표시는 월드 공간 알림판(WorldNotice)이 맡는다.
     /// </summary>
@@ -91,12 +92,14 @@ namespace IMUNROK.Onggojip
             string sub = ready
                 ? "필수 단서 완료"
                 : (intro
-                    ? "(H — 다시 보기)"
-                    : $"필수 단서 {have}/{req}  ·  발견 {found}/{total}   (H — 다시 보기)");
+                    ? ""
+                    : $"필수 단서 {have}/{req}  ·  발견 {found}/{total}");
 
             if (main == _lastMain && sub == _lastSub) return;
             _lastMain = main; _lastSub = sub;
-            StatusPanel.Set("목표", 0, $"{main}\n{sub}");   // 상태창 맨 윗줄
+
+            // 곁말이 비면 줄바꿈도 없앤다 — 빈 줄이 남으면 한 마디가 괜히 두 줄이 된다.
+            StatusPanel.Set("목표", 0, string.IsNullOrEmpty(sub) ? main : $"{main}\n{sub}");
 
             // 말이 바뀐 <b>그때</b>부터 센다. 몇 초 뒤 저 혼자 진다 —
             // 늘 떠 있는 안내는 안내가 아니라 창이다.

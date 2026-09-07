@@ -31,6 +31,10 @@ namespace IMUNROK.Common
     /// 그래서 이것은 끝까지 <b>도구 목록에 없다</b>. 있다는 것은 아는데 꺼낼 수가 없다 —
     /// 그 답답함이 1막 내내 깔려 있다가 출도에서 한 번에 풀린다.
     ///
+    /// <b>맨손일 때만 나온다.</b> F 는 「들어 올린다」는 하나의 손짓이라 돋보기·등불과
+    /// 나눠 쓰는데, 손에 무언가 들려 있으면 그 F 는 <b>그 도구의 것</b>이다.
+    /// 마패는 품에서 나오는 것이므로 손이 비어 있어야 한다.
+    ///
     /// <b>꺼내는 느낌</b>: 톡 눌러 되돌릴 수 없는 일이 벌어지면 안 되므로 <b>꾹</b>
     /// 눌러야 한다. 누르고 있는 동안 패가 품에서 <b>천천히 올라온다</b>. 손을 떼면
     /// 도로 들어간다 — 그 되돌아가는 동작이 있어야 "아직 안 늦었다"가 몸으로 읽힌다.
@@ -171,9 +175,24 @@ namespace IMUNROK.Common
                 Say(string.Format(_readyLine, KeyName()));
             }
 
+            // <b>손이 비어 있어야 듣는다.</b>
+            //
+            // F 는 세 곳이 함께 쓴다 — 돋보기를 눈에 대고(MagnifierLens), 손에 든 것을
+            // 들어 올리고(ToolRaise), 마패를 품에서 꺼낸다. 앞의 둘은 <b>손에 무언가
+            // 들려 있을 때</b>의 손짓이고 마패는 <b>품</b>에서 나오는 것이므로, 셋이 한
+            // 키를 나눠 쓰는 것 자체는 옳다 — 「들어 올린다」는 하나의 손짓이다.
+            //
+            // 다만 마패가 <b>남의 차례에 말을 얹고 있었다</b>. 돋보기를 눈에 대려고
+            // F 를 누르면 마패도 그 F 를 듣고 「아직 이르다」를 뱉었다. 도구를 쓰는데
+            // 난데없이 출도 이야기가 뜨니, 도구가 잠긴 줄로 읽힌다.
+            //
+            // 그러니 <b>맨손일 때만</b> 듣는다. 어사가 돋보기를 눈에 대고 있는 채로
+            // 품에서 마패가 올라오는 그림도 말이 안 된다.
+            bool emptyHanded = string.IsNullOrEmpty(ToolbeltHud.SelectedToolId);
+
 #if ENABLE_INPUT_SYSTEM
             var kb = UnityEngine.InputSystem.Keyboard.current;
-            var key = kb != null ? kb[_raiseKey] : null;
+            var key = emptyHanded && kb != null ? kb[_raiseKey] : null;
             bool pressing = key != null && key.isPressed;
             bool tapped = key != null && key.wasPressedThisFrame;
 #else
