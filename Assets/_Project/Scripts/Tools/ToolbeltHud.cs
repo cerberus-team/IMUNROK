@@ -27,6 +27,9 @@ namespace IMUNROK.Common
         [Tooltip("벨트 글씨에 쓸 한글 폰트. 비우면 씬의 다른 UI 가 올려 둔 공용 폰트를 쓴다")]
         [SerializeField] private Font _font;
 
+        [Tooltip("사람과 마주 선 동안에도 손에 남는 도구 id. 나머지는 내려놓는다")]
+        [SerializeField] private string _keepWhileTalking = "lantern";
+
         /// <summary>
         /// 지금 손에 든 도구 id("" = 맨손).
         ///
@@ -176,8 +179,23 @@ namespace IMUNROK.Common
 
         private void Update()
         {
-            // 심문 중엔 도구 전환 잠금(든 도구 그대로 유지)
-            if (InterrogationController.AnyOpen) return;
+            // <b>사람과 마주 서면 손에 든 것을 내려놓는다 — 등불만 빼고.</b>
+            //
+            // 여태 심문 중에는 벨트만 잠갔다. 그런데 돋보기는 심문이 열리면 스스로
+            // 물러나므로(<see cref="MagnifierLens"/>), 손에 든 채로 말을 걸면 <b>렌즈가
+            // 소리 없이 사라졌다</b>. 벨트는 여전히 「손 : 돋보기」라 하는데 손에는
+            // 아무것도 없는 꼴이다.
+            //
+            // 사람 앞에 유리를 들이대는 것은 어차피 하는 일이 아니고, 등불은 다르다 —
+            // 밤에 얼굴을 보려면 불이 있어야 한다. 그래서 등불만 남기고 내려놓는다.
+            // 잠그는 대신 <b>실제로 손을 비운다</b>: 벨트가 말하는 것과 손에 있는 것이
+            // 어긋나지 않는 편이 낫다.
+            if (InterrogationController.AnyOpen)
+            {
+                string held = CurrentId;
+                if (!string.IsNullOrEmpty(held) && held != _keepWhileTalking) Select(0);
+                return;
+            }
 
 #if ENABLE_INPUT_SYSTEM
             var kb = Keyboard.current;
@@ -206,7 +224,15 @@ namespace IMUNROK.Common
             if (Hidden) return;
             EnsureStyles();
 
-            const float size = 54f, gap = 8f, margin = 16f;
+            // <b>칸은 화면에 맞춰 큰다.</b>
+            //
+            // 54는 <b>화소</b>였다. 1440줄짜리 화면에서 54화소면 손톱만 하고, 창을
+            // 반으로 줄여 보면 도로 커진다 — 화면이 커질수록 벨트가 작아진다는 뜻이다.
+            // 화면 세로의 몫으로 잡으면 어느 화면에서나 같은 크기로 보인다.
+            // 6.2%는 1080줄에서 67, 1440줄에서 89화소다.
+            float size = Mathf.Round(Screen.height * 0.062f);
+            float gap = Mathf.Round(size * 0.16f);
+            float margin = Mathf.Round(size * 0.34f);
             int n = SlotCount;
             float totalW = n * size + (n - 1) * gap;
             float y = Screen.height - size - margin;
@@ -218,8 +244,9 @@ namespace IMUNROK.Common
                 GUI.DrawTexture(r, i == _index ? _slotOn : _slot);
 
                 var icon = SlotIcon(i);
+                float pad = Mathf.Round(size * 0.13f);
                 if (icon != null)
-                    GUI.DrawTexture(new Rect(r.x + 7, r.y + 7, size - 14, size - 14), icon, ScaleMode.ScaleToFit);
+                    GUI.DrawTexture(new Rect(r.x + pad, r.y + pad, size - pad * 2f, size - pad * 2f), icon, ScaleMode.ScaleToFit);
                 else
                     GUI.Label(r, i == 0 ? "맨손" : First(SlotName(i)), _iconText);
 
@@ -236,25 +263,34 @@ namespace IMUNROK.Common
             // 그래서 <b>한 번이라도 갈아 들면</b> 그때부터 안 적는다. 갈아 들었다는 것이
             // 곧 익혔다는 뜻이다. 익히지 않은 사람에게는 그대로 남는다.
             string hint = _everSwitched ? "" : "     (Q / 휠 전환)";
-            GUI.Label(new Rect(x0, y - 24f, totalW, 22f),
+            float line = Mathf.Round(size * 0.42f);
+            GUI.Label(new Rect(x0, y - line - 4f, totalW, line),
                       $"손 : {SlotName(_index)}{hint}", _label);
         }
 
         private static string First(string s) => string.IsNullOrEmpty(s) ? "?" : s.Substring(0, 1);
 
+        private int _styledFor;   // 어느 화면 높이에 맞춰 지은 글씨인가
+
         private void EnsureStyles()
         {
-            if (_iconText != null) return;
-            _slot   = Solid(UiLook.With(UiLook.Paper, 0.08f));
-            _slotOn = Solid(UiLook.With(UiLook.Gold, 0.32f));
+            // 글씨도 칸을 따라 큰다. 칸만 키우고 글씨를 두면 「맨손」이 칸 한복판에
+            // 깨알같이 앉는다.
+            if (_iconText != null && _styledFor == Screen.height) return;
+            _styledFor = Screen.height;
+            float size = Mathf.Round(Screen.height * 0.062f);
+
+            if (_slot == null)   _slot   = Solid(UiLook.With(UiLook.Paper, 0.08f));
+            if (_slotOn == null) _slotOn = Solid(UiLook.With(UiLook.Gold, 0.32f));
             _iconText = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.RoundToInt(size * 0.34f), fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = Color.white }
             };
             _label = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 13, alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.RoundToInt(size * 0.24f), alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = UiLook.With(UiLook.Lit(UiLook.Gold, 0.30f), 0.95f) }
             };
         }

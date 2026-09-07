@@ -23,7 +23,10 @@ namespace IMUNROK.Onggojip
     {
         [Tooltip("한 번 뜨면 이만큼(초) 머물다 스르르 진다. 0 이면 안 사라진다")]
         [SerializeField] private float _holdSeconds = 6f;
-        [TextArea] [SerializeField] private string _introLine = "마을 어귀에 닿았다. 수첩(I)을 살피거나, 지나는 이에게 말을 걸어보자";
+        // 한 줄로 붙여 두면 방문 한 장이 화면을 가로지른다. 굵은 한 마디와
+        // 곁말로 나눈다 — 눈에 먼저 드는 것은 「어디에 닿았는가」다.
+        [TextArea] [SerializeField] private string _introLine = "마을 어귀에 닿았다";
+        [TextArea] [SerializeField] private string _introSub = "수첩(J)을 살피거나, 지나는 이에게 말을 걸어보자";
         [TextArea] [SerializeField] private string _investigateLine = "밤이다. 몰래 집 안을 조사하라";
         [TextArea] [SerializeField] private string _readyLine = "증거를 다 모았다 — 품속의 마패를 내보여라  (F 꾹 누르기)";
 
@@ -46,7 +49,7 @@ namespace IMUNROK.Onggojip
             // <b>H 는 다시 보기다.</b> 끄는 스위치가 아니다 — 어차피 저 혼자 진다.
             // 치는 동안에는 H 가 안내가 아니라 <b>글자</b>다.
             if (!Typing.Now && Keyboard.current != null && Keyboard.current.hKey.wasPressedThisFrame)
-                _lastMain = null;              // 같은 말이라도 다시 뜨게 한다
+                { _lastMain = null; _everShown = null; }   // 같은 말이라도 다시 뜨게 한다
 #endif
             if (_until > 0f && Time.time >= _until)
             {
@@ -58,6 +61,20 @@ namespace IMUNROK.Onggojip
         // 목표 안내는 월드 공간 알림판으로 띄운다.
         // 매 프레임 문자열을 새로 만들 필요가 없어 값이 바뀔 때만 갱신한다.
         private string _lastMain, _lastSub;
+
+        /// <summary>
+        /// <b>이미 한 번 띄운 말.</b> 지워진 뒤에도 남는다.
+        ///
+        /// 「마을 어귀에 닿았다」가 몇 번이고 다시 뜨던 까닭이 여기 있었다. 판이
+        /// 가려질 때마다(수첩을 펴거나 심문이 열릴 때) <see cref="_lastMain"/> 을
+        /// 비워 두었는데, 그것이 곧 「아직 한 번도 안 띄웠다」는 뜻이라 판이 걷히는
+        /// 순간 같은 말이 처음처럼 다시 떴다. 집 안에서 등불을 켜도, 단서를 아직
+        /// 하나도 못 얻었으면 문구는 여전히 도입이라 그것이 또 떠올랐다.
+        ///
+        /// 지우는 것과 <b>안 본 것으로 치는 것</b>은 다르다. 그래서 「지금 걸린 말」과
+        /// 「이미 본 말」을 따로 센다 — H 는 이쪽까지 비워 다시 보게 하는 손짓이다.
+        /// </summary>
+        private string _everShown;
 
         private void LateUpdate()
         {
@@ -93,11 +110,16 @@ namespace IMUNROK.Onggojip
             string sub = ready
                 ? "필수 단서 완료"
                 : (intro
-                    ? ""
+                    ? _introSub
                     : $"필수 단서 {have}/{req}  ·  발견 {found}/{total}");
 
             if (main == _lastMain && sub == _lastSub) return;
             _lastMain = main; _lastSub = sub;
+
+            // 이미 한 번 지나간 말이면 다시 안 띄운다. 값은 위에서 갱신해 두었으므로
+            // 다음에 <b>다른</b> 말이 되면 그때는 뜬다.
+            if (main == _everShown) return;
+            _everShown = main;
 
             // 곁말이 비면 줄바꿈도 없앤다 — 빈 줄이 남으면 한 마디가 괜히 두 줄이 된다.
             StatusPanel.Set("목표", 0, string.IsNullOrEmpty(sub) ? main : $"{main}\n{sub}");

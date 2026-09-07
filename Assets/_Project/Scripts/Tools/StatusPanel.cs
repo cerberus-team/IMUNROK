@@ -29,8 +29,15 @@ namespace IMUNROK.Common
         /// <summary>이 판이 쓰는 알림판 이름표. 다른 알림과 안 겹치게 한 군데로 모은다.</summary>
         private const string Key = "상태";
 
-        /// <summary>눈높이에서 이만큼 위(m). 앞을 가리지 않을 만큼만 올린다.</summary>
-        private const float Height = 0.42f;
+        /// <summary>
+        /// 눈높이에서 이만큼 위(m).
+        ///
+        /// <b>화면 위쪽으로 올렸다.</b> 0.42 는 눈높이 바로 위라 사람의 얼굴과 겹치는
+        /// 자리였다 — 지나가는 한 마디가 마주 선 사람 위에 겹쳐 뜨면 둘 다 안 읽힌다.
+        /// 1.6m 앞에서 화면 세로의 절반은 0.92m 이므로, 0.66 은 <b>위쪽 여백</b>께다.
+        /// 방문(榜文)이 붙는 자리가 눈앞이 아니라 문 위인 것과 같다.
+        /// </summary>
+        private const float Height = 0.66f;
 
         private struct Line
         {
@@ -91,7 +98,9 @@ namespace IMUNROK.Common
             string joined = sb.ToString();
             if (joined == _shown) return;
             _shown = joined;
-            WorldNotice.Show(Key, joined, Height);
+            // 한지 한 장에 금물 글씨로. 어두운 네모는 아무리 흐려도 「창」으로 읽히고,
+            // 창은 닫아야 하는 것이다 — 이 판은 읽고 흘려보낼 한 마디다.
+            WorldNotice.Show(Key, joined, Height, WorldNotice.Look.Hanji);
         }
     }
 }

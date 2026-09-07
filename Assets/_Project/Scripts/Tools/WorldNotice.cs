@@ -24,16 +24,30 @@ namespace IMUNROK.Common
         private RawImage _image;
         private Image _bg;
 
+        /// <summary>
+        /// <b>알림판의 두 결.</b>
+        ///
+        /// <c>Dark</c> — 어두운 판에 흰 글. 지도처럼 <b>들여다보는</b> 것에 쓴다.
+        /// <c>Hanji</c> — 한지빛 종잇조각에 <b>금물 글씨</b>. 지나가는 한 마디에 쓴다.
+        ///   어두운 네모는 아무리 흐려도 「창」으로 읽히는데, 이쪽은 종이 한 장이
+        ///   떴다 지는 것이라 읽고 흘려보내게 된다. 조선의 방문(榜文)이 그러하다.
+        /// </summary>
+        public enum Look { Dark, Hanji }
+
         /// <summary>글을 띄운다. verticalOffset은 눈높이 기준 위아래(m).</summary>
-        public static void Show(string key, string message, float verticalOffset)
+        public static void Show(string key, string message, float verticalOffset,
+                                Look look = Look.Dark)
         {
             var n = Get(key, verticalOffset);
+            n.Wear(look);
             // 별표로 감싼 낱말은 도드라지게 — 자막은 이걸 하는데 알림판은 안 해서,
             // 상태창에 "*문서고*" 가 <b>별표째로</b> 찍히고 있었다.
-            n._text.text = Emphasis.Rich(message ?? "", Emphasis.OnDark);
+            n._text.text = Emphasis.Rich(message ?? "",
+                                         look == Look.Hanji ? Emphasis.OnPaper : Emphasis.OnDark);
             n._text.gameObject.SetActive(true);
             n._image.gameObject.SetActive(false);
             n._bg.enabled = true;
+            n.FitPlate();
             n.SetVisible(true);
         }
 
@@ -41,6 +55,7 @@ namespace IMUNROK.Common
         public static void ShowImage(string key, Texture texture, float verticalOffset, string caption = null)
         {
             var n = Get(key, verticalOffset);
+            n.Wear(Look.Dark);
             n._image.texture = texture;
             n._image.gameObject.SetActive(texture != null);
             n._bg.enabled = true;
@@ -107,6 +122,44 @@ namespace IMUNROK.Common
             SetVisible(false);
         }
 
+        private Look _look = Look.Dark;
+        private Outline _glow;
+
+        /// <summary>
+        /// <b>결을 갈아입힌다.</b> 판 하나를 결마다 따로 만들 것 없다 — 알림판은
+        /// 이름표마다 한 장이고, 같은 이름표가 다른 결로 뜰 일은 없다.
+        /// </summary>
+        private void Wear(Look look)
+        {
+            if (_bg == null || _text == null) return;
+            _look = look;
+
+            if (look == Look.Hanji)
+            {
+                // 한지 한 장. 어두운 판보다 <b>진하게</b> 깐다 — 종이는 비치는 것이
+                // 아니라 앞을 가리는 것이고, 금물 글씨가 밤하늘 위에 그냥 뜨면
+                // 별빛에 묻힌다.
+                _bg.color = UiLook.With(UiLook.Paper, 0.86f);
+                // <b>금박이지 금빛이 아니다.</b> 밝은 금을 한지 위에 얹으면 종이와
+                // 같은 밝기라 글자가 안 읽힌다(<c>UiLook.Lit</c> 은 밝히기만 하므로
+                // 음수를 줘도 어두워지지 않는다 — 여기서 값을 직접 적는 까닭이다).
+                // 글자는 금물이 마른 <b>짙은 갈금</b>으로 두고,
+                _text.color = new Color(0.34f, 0.22f, 0.06f);
+                // 빛은 그 둘레에 두른 <b>밝은 금테</b>가 낸다. 낡은 UI.Text 에는
+                // 이것 말고 빛을 흉내 낼 길이 없고, 실제로 금박 글씨가 그렇게 보인다.
+                if (_glow == null) _glow = _text.gameObject.AddComponent<Outline>();
+                _glow.enabled = true;
+                _glow.effectColor = new Color(1f, 0.86f, 0.48f, 0.9f);
+                _glow.effectDistance = new Vector2(2.2f, -2.2f);
+            }
+            else
+            {
+                _bg.color = UiLook.With(UiLook.Panel, 0.28f);
+                _text.color = UiLook.Text;
+                if (_glow != null) _glow.enabled = false;
+            }
+        }
+
         /// <summary>가고자 하는 밝기. 실제 밝기는 이쪽으로 <b>스르르</b> 따라간다.</summary>
         private float _want;
 
@@ -132,6 +185,31 @@ namespace IMUNROK.Common
             if (Mathf.Approximately(_group.alpha, _want)) return;
             float speed = _want > _group.alpha ? 4.5f : 2.2f;      // 지는 것이 더 느리다
             _group.alpha = Mathf.MoveTowards(_group.alpha, _want, speed * Time.deltaTime);
+        }
+
+        /// <summary>
+        /// <b>종이를 글에 맞춘다.</b> 판을 1100×420 으로 못 박아 두면 한 줄짜리
+        /// 안내가 <b>벽보만 한 종잇장</b> 한복판에 앉는다. 글이 차지한 만큼에
+        /// 여백만 두르면 방문 한 장으로 읽힌다.
+        /// </summary>
+        private void FitPlate()
+        {
+            if (_bg == null || _text == null) return;
+            var plate = (RectTransform)_bg.transform;
+            if (_look != Look.Hanji) { plate.sizeDelta = new Vector2(1100f, 420f); return; }
+
+            // 넓이를 먼저 <b>가둔 뒤</b> 높이를 묻는다. <c>preferredWidth</c> 는 줄바꿈을
+            // 모르는 값이라, 그것만 보고 판을 잡으면 한 줄짜리 긴 글이 화면을 가로지른다.
+            // 반대로 <c>preferredHeight</c> 는 지금 칸 너비를 보고 답하므로, 너비를
+            // 정해 놓고 물어야 접힌 줄 수가 나온다.
+            const float MaxW = 900f;
+            var txt = (RectTransform)_text.transform;
+            txt.sizeDelta = new Vector2(MaxW - 72f, 400f);
+            float w = Mathf.Clamp(_text.preferredWidth + 96f, 340f, MaxW);
+            txt.sizeDelta = new Vector2(w - 72f, 400f);
+            float h = Mathf.Clamp(_text.preferredHeight + 56f, 92f, 400f);
+            txt.sizeDelta = new Vector2(w - 72f, h - 28f);
+            plate.sizeDelta = new Vector2(w, h);
         }
 
         private RectTransform NewRect(string name, Vector2 pos, Vector2 size, Transform parent)

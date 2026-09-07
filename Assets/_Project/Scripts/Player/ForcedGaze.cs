@@ -157,7 +157,10 @@ namespace IMUNROK.Common
                 if (_lookBackDelay > 0f) yield return new WaitForSeconds(_lookBackDelay);
 
                 Quaternion from = cam.transform.rotation;
-                Quaternion back = Quaternion.LookRotation(_lookBackAt.position - cam.transform.position);
+                // <b>피벗이 아니라 얼굴께를 본다.</b> 사람 모형의 피벗은 발밑이라,
+                // 그대로 겨누면 말을 일러 준 사람의 <b>발</b>을 보고 끝난다.
+                Quaternion back = Quaternion.LookRotation(
+                    ModelBounds.EyePoint(_lookBackAt) - cam.transform.position);
                 for (float t = 0f; t < _lookBackSeconds; t += Time.deltaTime)
                 {
                     float k = Smooth(t / _lookBackSeconds);

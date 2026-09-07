@@ -255,7 +255,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 450985cfff3338745ae308056bad0589, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.72655463
+      value: -0.7276883
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 450985cfff3338745ae308056bad0589, type: 3}
       propertyPath: m_LocalPosition.z
@@ -4679,7 +4679,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8510b609d1740a645a8067e4f9c7f801, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.0420624
+      value: -0.043196082
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8510b609d1740a645a8067e4f9c7f801, type: 3}
       propertyPath: m_LocalPosition.z
@@ -8059,7 +8059,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 3ff73f94b7fe8fc4b898461b9392220b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.011674523
+      value: 0.010540843
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 3ff73f94b7fe8fc4b898461b9392220b, type: 3}
       propertyPath: m_LocalPosition.z
@@ -36821,6 +36821,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 89dd9d56dbbea8f4daf5a73d6b0d39c0, type: 2}
   _leftHanded: 0
   _font: {fileID: 0}
+  _keepWhileTalking: lantern
 --- !u!114 &1760612924
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37652,12 +37653,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Onggojip::IMUNROK.Onggojip.ObjectiveHud
   _holdSeconds: 6
-  _introLine: "\uB9C8\uC744 \uC5B4\uADC0\uC5D0 \uB2FF\uC558\uB2E4. \uC218\uCCA9(J)\uC744
-    \uC0B4\uD53C\uAC70\uB098, \uC9C0\uB098\uB294 \uC774\uC5D0\uAC8C \uB9D0\uC744
-    \uAC78\uC5B4\uBCF4\uC790"
+  _introLine: "\uB9C8\uC744 \uC5B4\uADC0\uC5D0 \uB2FF\uC558\uB2E4"
+  _introSub: "\uC218\uCCA9(J)\uC744 \uC0B4\uD53C\uAC70\uB098, \uC9C0\uB098\uB294
+    \uC774\uC5D0\uAC8C \uB9D0\uC744 \uAC78\uC5B4\uBCF4\uC790"
   _investigateLine: "\uBC24\uC774\uB2E4. \uBAB0\uB798 \uC9D1 \uC548\uC744 \uC870\uC0AC\uD558\uB77C"
-  _readyLine: "\uC99D\uAC70\uB97C \uCDA9\uBD84\uD788 \uBAA8\uC558\uB2E4 \u2014 \uCD9C\uB3C4\uD558\uB77C! 
-    (F2 \u25B8 \uCD9C\uB3C4)"
+  _readyLine: "\uC99D\uAC70\uB97C \uB2E4 \uBAA8\uC558\uB2E4 \u2014 \uD488\uC18D\uC758
+    \uB9C8\uD328\uB97C \uB0B4\uBCF4\uC5EC\uB77C"
 --- !u!114 &1886234754
 MonoBehaviour:
   m_ObjectHideFlags: 0

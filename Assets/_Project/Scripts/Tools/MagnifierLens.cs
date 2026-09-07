@@ -975,8 +975,32 @@ namespace IMUNROK.Common
             var mainCam = _eye != null ? _eye.GetComponent<Camera>() : null;
             _lensCam.nearClipPlane = mainCam != null ? mainCam.nearClipPlane : 0.03f;
 
-            // 유리는 늘 눈을 마주 본다(비스듬히 들어도 그림이 어긋나지 않게)
-            _glass.transform.rotation = Quaternion.LookRotation(center - eye, _eye.up);
+            // <b>알은 테와 같은 평면에 눕는다.</b>
+            //
+            // 여태 알만 늘 눈을 정면으로 마주 보게 세워 두었다. 그런데 테는 손에 든
+            // 자세 그대로 <b>비스듬히</b> 서 있다. 정면인 알은 화면에 동그라미로,
+            // 기운 테는 <b>타원</b>으로 그려지고, 동그라미가 타원을 덮으면 긴지름의
+            // 두 끝만 삐져나온다 — 손에 들고 있을 때 테가 초승달 둘로 보이던 것이
+            // 이것이다. 눈에 댈 때는 테를 바로 세우므로 그때만 안 보였을 뿐,
+            // 고친 적이 없는 자리였다.
+            //
+            // 같은 평면에 누우면 둘이 <b>같은 타원</b>으로 그려져 어긋날 데가 없다.
+            // 비스듬한 유리에 비친 것이 납작해 보이는 것은 실제로 그러하다 —
+            // 읽으려고 눈에 대는 순간 테가 바로 서므로 읽을 때는 납작하지 않다.
+            //
+            // 위쪽만은 눈에서 받아 온다. 자루를 위로 삼으면 손을 기울일 때마다
+            // 알 속의 세상이 함께 돌아 버린다.
+            Vector3 faceAway = center - eye;
+            if (_propRoot != null)
+            {
+                Vector3 n0 = _propRoot.TransformDirection(
+                    _flipProp ? -_propNormalLocal : _propNormalLocal).normalized;
+                if (Vector3.Dot(n0, center - eye) < 0f) n0 = -n0;   // 눈에서 멀어지는 쪽
+                faceAway = n0;
+            }
+            Vector3 upInPlane = Vector3.ProjectOnPlane(_eye.up, faceAway);
+            if (upInPlane.sqrMagnitude < 1e-6f) upInPlane = _eye.up;
+            _glass.transform.rotation = Quaternion.LookRotation(faceAway, upInPlane);
 
             // <b>테가 유리를 뚫고 나오던 것</b> — 알 오른쪽이 검게 파여 보이던 까닭.
             //
@@ -995,14 +1019,26 @@ namespace IMUNROK.Common
                 Vector3 toEye = (eye - center).normalized;
                 Vector3 nrmW = _propRoot.TransformDirection(
                     _flipProp ? -_propNormalLocal : _propNormalLocal).normalized;
-                float cosT = Mathf.Clamp(Mathf.Abs(Vector3.Dot(nrmW, toEye)), 0f, 1f);
-                float sinT = Mathf.Sqrt(Mathf.Max(0f, 1f - cosT * cosT));
+                if (Vector3.Dot(nrmW, toEye) < 0f) nrmW = -nrmW;    // 눈 쪽 면
 
                 int flatAx = Mathf.Abs(_propNormalLocal.x) > 0.5f ? 0
                            : Mathf.Abs(_propNormalLocal.y) > 0.5f ? 1 : 2;
-                float halfW = _propHalfThick * Mathf.Abs(_propRoot.lossyScale[flatAx]);
+                // <b>잰 두께를 그대로 믿지 않는다.</b> _propHalfThick 는 소품 <b>전체</b>
+                // 경계의 얇은 축 절반이라, 자루와 술까지 든 값이다. 이 돋보기에서는
+                // 8.5cm 가 나왔다 — 테 두께가 아니라 물건의 폭이다. 그것을 밀어 낼
+                // 거리로 쓰면 알이 테에서 한 뼘 떠 버린다.
+                // 테가 알을 덮는 것은 앞면의 두께뿐이니 반지름의 4분의 1을 넘을 수 없다.
+                float halfW = Mathf.Min(_propHalfThick * Mathf.Abs(_propRoot.lossyScale[flatAx]),
+                                        _glassRadius * 0.25f);
 
-                push = halfW + _glassRadius * sinT + 0.012f;
+                // 알이 테와 같은 평면에 누웠으므로 <b>기울어 나온 만큼</b>을 더 밀
+                // 까닭이 없어졌다(그 항이 sinT 였다). 앞면 두께에 종잇장만큼만 얹는다.
+                //
+                // 미는 쪽은 <b>눈 쪽</b>이다. 면의 법선으로 밀면, 기울어 든 만큼
+                // 알이 옆으로도 밀려난다 — 1cm 를 밀어도 37도로 들면 6mm 가 옆으로
+                // 가고, 그만큼 알이 테에서 어긋나 앉는다. 눈 쪽으로 밀면 화면에서
+                // 자리는 그대로고 크기만 조금 커지므로, 그 몫은 아래에서 되돌린다.
+                push = halfW + 0.004f;
                 _glass.transform.position = center + toEye * push;
             }
 

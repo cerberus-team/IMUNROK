@@ -902,14 +902,17 @@ namespace IMUNROK.Common
                             _chrome.transform, _fontSize - 8);
             _hint.color = new Color(_textColor.r, _textColor.g, _textColor.b, 0.7f);
 
-            _closeRt = NewRect("닫기", new Vector2(_pageSpan * 0.66f, _pageSpan * 0.58f),
-                                  new Vector2(150f, 52f), _chrome.transform);
-            var closeBg = _closeRt.gameObject.AddComponent<Image>();
-            closeBg.color = _tabColor;
-            var closeBtn = _closeRt.gameObject.AddComponent<Button>();
-            closeBtn.targetGraphic = closeBg;
-            closeBtn.onClick.AddListener(Hide);
-            NewText("라벨", "내려놓기", Vector2.zero, new Vector2(150f, 56f), _closeRt, _fontSize - 8);
+            // <b>「내려놓기」 단추를 걷었다.</b>
+            //
+            // 이 판에만 있던 단추다. 수첩도 사건 고르기도 심문도 자막도, 그리고
+            // 견우팀 판도 전부 <b>Esc</b> 로 물러난다 — 이 종이 하나만 눌러야 닫히는
+            // 단추를 달고 있었다. 조작이 판마다 다르면 그것은 같은 게임의 화면이
+            // 아니라 <b>닮은 화면</b>이 된다.
+            //
+            // Esc 는 여기서도 이미 듣고 있었다(<see cref="Update"/>). 없앤 것은
+            // 길이 아니라 <b>둘 중 하나</b>고, 남긴 길은 온 판이 함께 쓰는 쪽이다.
+            // 안내줄이 그 자리를 대신한다 — <c>Controls.PutDown</c> 이 「(Esc — 내려놓기)」다.
+            _closeRt = null;
 
             // <b>이웃으로 넘기는 두 짝.</b> 수첩에서 꺼내 든 종이는 여럿 가운데 하나다 —
             // 다음 것을 보려고 매번 수첩을 폈다 덮었다 하면, 견주어 보는 일이 끊긴다.

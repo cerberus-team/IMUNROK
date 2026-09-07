@@ -317,6 +317,10 @@ namespace IMUNROK.Common
             // "뒤로 물러서세요" 라고 가르치는 대신, 창이 알아서 상대 앞으로 당겨 온다.
             SubtitleView.KeepInFrontOf(transform);
             InterrogationPanel.KeepInFrontOf(transform);
+
+            // 어디에 서서 눌렀든 <b>같은 그림</b>이 되게 잡고, 상대는 이쪽을 마주 본다.
+            // 단독 무대(동헌)는 제 연출이 따로 있으므로 건드리지 않는다.
+            if (!_beginOnStart) TalkFraming.Enter(transform);
         }
 
         private void OnDisable()
@@ -324,6 +328,7 @@ namespace IMUNROK.Common
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); }
             if (Active == this) Active = null;
             Draft = "";
+            TalkFraming.Leave();
             SubtitleView.SetClosable(true);   // 씬이 바뀌어도 닫는 길은 남겨 둔다
             SubtitleView.KeepInFrontOf(null);
             SubtitleView.Hide();
@@ -353,6 +358,7 @@ namespace IMUNROK.Common
         private void ClosePanel()
         {
             SubtitleView.SetClosable(true);                            // 물러났으면 도로 닫을 수 있어야 한다
+            TalkFraming.Leave();                                       // 좁혔던 화각을 되돌린다
             if (_beginOnStart) { _exitRequested = true; return; }      // 단독 무대 → 조사청 복귀
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); } // 큐브 → 패널만 닫기
             if (Active == this) Active = null;
