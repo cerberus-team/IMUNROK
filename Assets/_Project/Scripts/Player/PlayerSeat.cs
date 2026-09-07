@@ -308,7 +308,7 @@ namespace IMUNROK.Common
             else if (!string.IsNullOrEmpty(_seatedLine)) StatusPanel.Set("앉음", 3, _seatedLine);
 
             var kb = Keyboard.current;
-            if (kb != null && kb[_riseKey].wasPressedThisFrame)
+            if (kb != null && !Typing.Now && kb[_riseKey].wasPressedThisFrame)
             {
                 StatusPanel.Clear("앉음");
                 Stand();

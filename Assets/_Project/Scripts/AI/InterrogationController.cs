@@ -303,6 +303,12 @@ namespace IMUNROK.Common
             // 지난 사람에게 하려던 말이 다음 사람 칸에 남아 있으면 안 된다.
             Draft = "";
 
+            // <b>심문 중에는 「✕」를 내린다.</b> 그 딱지는 자막판의 것이라, 눌러도
+            // 자막만 사라지고 <b>묻는 창은 그대로 남는다</b> - 닫으려고 누른 사람 눈에는
+            // 아무 반응이 없는 단추다. 물러나는 길은 창 안의 「잠시 멈추다」·「이만
+            // 마치겠소」 두 줄로 충분하고, 그 둘은 자리를 파하는 일까지 제대로 한다.
+            SubtitleView.SetClosable(false);
+
             RefreshSubtitle();
             InterrogationPanel.Open(this);
 
@@ -318,6 +324,7 @@ namespace IMUNROK.Common
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); }
             if (Active == this) Active = null;
             Draft = "";
+            SubtitleView.SetClosable(true);   // 씬이 바뀌어도 닫는 길은 남겨 둔다
             SubtitleView.KeepInFrontOf(null);
             SubtitleView.Hide();
             InterrogationPanel.Close();
@@ -345,6 +352,7 @@ namespace IMUNROK.Common
 
         private void ClosePanel()
         {
+            SubtitleView.SetClosable(true);                            // 물러났으면 도로 닫을 수 있어야 한다
             if (_beginOnStart) { _exitRequested = true; return; }      // 단독 무대 → 조사청 복귀
             if (_active) { _active = false; s_openCount = Mathf.Max(0, s_openCount - 1); } // 큐브 → 패널만 닫기
             if (Active == this) Active = null;

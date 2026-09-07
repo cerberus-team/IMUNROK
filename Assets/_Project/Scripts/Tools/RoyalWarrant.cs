@@ -188,7 +188,8 @@ namespace IMUNROK.Common
             //
             // 그러니 <b>맨손일 때만</b> 듣는다. 어사가 돋보기를 눈에 대고 있는 채로
             // 품에서 마패가 올라오는 그림도 말이 안 된다.
-            bool emptyHanded = string.IsNullOrEmpty(ToolbeltHud.SelectedToolId);
+            // 치는 동안에도 안 듣는다 — F 는 글자이기도 하다.
+            bool emptyHanded = !Typing.Now && string.IsNullOrEmpty(ToolbeltHud.SelectedToolId);
 
 #if ENABLE_INPUT_SYSTEM
             var kb = UnityEngine.InputSystem.Keyboard.current;

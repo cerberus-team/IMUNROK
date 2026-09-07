@@ -183,7 +183,8 @@ namespace IMUNROK.Common
             var kb = Keyboard.current;
             var mouse = Mouse.current;
 
-            if (kb != null && kb.qKey.wasPressedThisFrame) { Next(); return; }
+            // 치는 동안에는 Q 가 도구가 아니라 <b>글자</b>다.
+            if (kb != null && !Typing.Now && kb.qKey.wasPressedThisFrame) { Next(); return; }
             if (mouse != null)
             {
                 float sy = mouse.scroll.ReadValue().y;

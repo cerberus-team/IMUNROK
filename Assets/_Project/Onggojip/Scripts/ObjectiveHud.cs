@@ -44,7 +44,8 @@ namespace IMUNROK.Onggojip
         {
 #if ENABLE_INPUT_SYSTEM
             // <b>H 는 다시 보기다.</b> 끄는 스위치가 아니다 — 어차피 저 혼자 진다.
-            if (Keyboard.current != null && Keyboard.current.hKey.wasPressedThisFrame)
+            // 치는 동안에는 H 가 안내가 아니라 <b>글자</b>다.
+            if (!Typing.Now && Keyboard.current != null && Keyboard.current.hKey.wasPressedThisFrame)
                 _lastMain = null;              // 같은 말이라도 다시 뜨게 한다
 #endif
             if (_until > 0f && Time.time >= _until)

@@ -25,6 +25,10 @@ namespace IMUNROK.Common
         private void Update()
         {
 #if ENABLE_INPUT_SYSTEM
+            // <b>치는 동안에는 안 듣는다.</b> 「지도」를 치면 ㅈㅣㄷㅗ 사이에 든 글쇠가
+            // 그대로 명령이 된다 — 묻는 말을 치다가 지도가 펴진다.
+            if (Typing.Now) return;
+
             var kb = Keyboard.current;
             if (kb != null && kb.mKey.wasPressedThisFrame) _open = !_open;
 #endif

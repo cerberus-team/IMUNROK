@@ -82,6 +82,23 @@ namespace IMUNROK.Common
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetClosable() { Closable = true; }
 
+        /// <summary>
+        /// <b>닫는 길을 그 자리에서 열고 닫는다.</b>
+        ///
+        /// <see cref="Closable"/> 를 그냥 바꾸면 <b>이미 떠 있는</b> 판의 딱지는 그대로다 -
+        /// 딱지를 여닫는 곳이 <see cref="SetVisible"/> 한 군데뿐이라, 다음에 판이 한 번
+        /// 접혔다 펴져야 말이 먹힌다. 심문은 자막이 <b>떠 있는 동안</b> 열리므로
+        /// 그때까지 「✕」가 남아 있게 된다. 그래서 값과 딱지를 함께 옮긴다.
+        /// </summary>
+        public static void SetClosable(bool on)
+        {
+            Closable = on;
+            var v = _instance;                       // 없으면 만들지 않는다 - 끄러 온 길이다
+            if (v == null || v._closeTab == null) return;
+            bool shown = v._group != null && v._group.alpha > 0.5f;
+            v._closeTab.SetActive(on && shown);
+        }
+
         /// <summary>자막이 닫힐 때 알린다. 도구 익히기처럼 자막에 얹혀 도는 것이 참고한다.</summary>
         public static event System.Action OnClosed;
 

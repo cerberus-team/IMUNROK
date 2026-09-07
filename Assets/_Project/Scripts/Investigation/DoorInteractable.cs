@@ -205,7 +205,7 @@ namespace IMUNROK.Common
             }
 
             var kb = Keyboard.current;
-            return kb != null && kb[_fallbackKey].isPressed;
+            return kb != null && !Typing.Now && kb[_fallbackKey].isPressed;
         }
 #endif
 
