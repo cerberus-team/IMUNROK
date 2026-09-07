@@ -739,7 +739,11 @@ namespace IMUNROK.Common
             // 된다. 수첩에서 꺼내 들 때만 이 어둠을 켠다.
             var backRt = NewRect("어둠", Vector2.zero, new Vector2(6000f, 4500f), transform);
             _backdrop = backRt.gameObject.AddComponent<Image>();
-            _backdrop.color = UiLook.With(UiLook.Panel, 0.99f);
+            // <b>덮되 지우지는 않는다.</b> 0.99 는 방을 통째로 없앤다 — 종이 한 장만
+            // 남아 어디서 읽고 있는지조차 사라지니, 읽는 것이 아니라 화면이 갈린 것이
+            // 된다. 0.82 면 뒤의 방이 <b>어렴풋이</b> 남아 「그 자리에서 종이를 든 것」
+            // 으로 읽히면서도 눈은 종이로 간다.
+            _backdrop.color = UiLook.With(UiLook.Panel, 0.82f);
             _backdrop.raycastTarget = false;
             _backdrop.enabled = false;
 

@@ -419,7 +419,13 @@ namespace IMUNROK.Common
                 // <b>대사와 이름만 우리 값이다.</b> 어긋난 자리는 이 둘뿐이고, 그 까닭은
                 // 위에 적어 두었다. 나머지는 한 자도 안 적는다 — 저쪽이 고치면 따라온다.
                 line = ScreenPanel.LineSize, name = ScreenPanel.LineSize,
-                input = st.inputSize, foot = st.footSize, inputH = st.inputH,
+
+                // <b>묻는 칸도 우리 값이다.</b> 저쪽 28·62 는 판을 눈앞 1.5m 에 세우고
+                // 보던 셈이라, 화면에 붙인 우리 판에서는 칸이 대사(56)의 절반이라
+                // <b>「여기에 친다」로 안 읽힌다</b> — 실제로 「너무 작다」는 말을 들었다.
+                // 대사보다는 작되 곁말(19)보다는 확실히 큰 자리로 올린다.
+                //   글자 28 → 40   ·   칸 높이 62 → 84
+                input = 40, inputH = 84f, foot = st.footSize,
                 padX = st.padX, padTop = st.padTop, nameToRule = st.nameToRule,
                 ruleH = st.ruleH, ruleToLine = st.ruleToLine,
                 lineToInput = st.lineToInput, inputToFoot = st.inputToFoot,

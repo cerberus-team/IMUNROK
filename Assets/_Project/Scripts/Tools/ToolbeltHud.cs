@@ -81,6 +81,9 @@ namespace IMUNROK.Common
         // ─────────────────────────────────────────────
 
         /// <summary>다음 도구로(마지막 다음은 맨손으로 순환). UnityEvent 에 연결할 수 있다.</summary>
+        /// <summary>한 번이라도 도구를 갈아 들었나. 그러면 「Q / 휠 전환」을 더는 안 적는다.</summary>
+        private bool _everSwitched;
+
         public void Next() => Select(_index + 1);
 
         /// <summary>이전 도구로. UnityEvent 에 연결할 수 있다.</summary>
@@ -145,6 +148,7 @@ namespace IMUNROK.Common
             int next = ((slot % n) + n) % n;
             if (next == _index) return;
             _index = next;
+            _everSwitched = true;      // 한 번 갈아 들었으면 익힌 것이다 — 안내를 걷는다
             Apply();
         }
 
@@ -221,8 +225,18 @@ namespace IMUNROK.Common
                 if (GUI.Button(r, GUIContent.none, GUIStyle.none)) Select(i);   // 클릭으로도 선택
             }
 
+            // <b>「Q / 휠 전환」은 처음 한 번만.</b>
+            //
+            // 한 번 익히면 다시 볼 일이 없는 말인데 화면 아래에 <b>내내</b> 붙어 있었다.
+            // 늘 있는 안내는 안 읽히면서 자리만 차지하고, 무엇보다 조선 후기 옹당촌에
+            // 「Q / 휠」이라 적힌 것이 계속 떠 있으면 그 말이 <b>세상 밖의 것</b>임이
+            // 매 순간 드러난다.
+            //
+            // 그래서 <b>한 번이라도 갈아 들면</b> 그때부터 안 적는다. 갈아 들었다는 것이
+            // 곧 익혔다는 뜻이다. 익히지 않은 사람에게는 그대로 남는다.
+            string hint = _everSwitched ? "" : "     (Q / 휠 전환)";
             GUI.Label(new Rect(x0, y - 24f, totalW, 22f),
-                      $"손 : {SlotName(_index)}     (Q / 휠 전환)", _label);
+                      $"손 : {SlotName(_index)}{hint}", _label);
         }
 
         private static string First(string s) => string.IsNullOrEmpty(s) ? "?" : s.Substring(0, 1);
