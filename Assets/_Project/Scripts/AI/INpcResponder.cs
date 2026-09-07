@@ -20,6 +20,18 @@ namespace IMUNROK.Common
         // 플레이어가 지금 누구로 보이는가(1막은 과객, 2막부터 어사). GameState가 정한다.
         public string playerTitle = "나그네";        // 대화 기록에 찍히는 이름표
         public string playerIdentityBrief = "";     // AI에게 주는 한 줄 설명
+
+        // ── 지금 상태 — 무너짐을 <b>두 겹</b>으로 가르기 위한 것 ──────────
+        //
+        // AI 혼자 무너질 때를 정하면 말을 잘 지어내는 사람에게만 사건이 열리고,
+        // 반대로 정해 둔 문구를 맞춰야 열리면 「복동아」와 「네 이름 복동이지?」가
+        // 다른 말이 되어 답답해진다. 그래서 <b>열쇠를 쥐었는가</b>는 게임이 정해
+        // 여기 실어 보내고, <b>정곡을 찔렀는가</b>는 AI가 뜻으로 읽는다.
+
+        public bool identityRevealed;              // 2막인가(어사임을 아는가)
+        public int stage;                          // 무너짐 단계 0~10
+        public bool canBreak;                      // 마지막 열쇠를 다 쥐었는가
+        public List<string> evidenceHeld;          // 어사가 지금 쥔 단서 줄들(제시했다는 뜻은 아니다)
     }
 
     /// <summary>

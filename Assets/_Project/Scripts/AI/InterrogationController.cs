@@ -415,9 +415,51 @@ namespace IMUNROK.Common
                 playerTitle = PlayerTitle,
                 playerIdentityBrief = GameState.Instance.PlayerIdentityBrief,
             };
+            Stamp(req);
             _busy = true;
             RefreshSubtitle();
             _responder.GetResponse(this, req, OnReply, OnError);
+        }
+
+        /// <summary>
+        /// <b>부탁에 지금 상태를 찍는다.</b>
+        ///
+        /// 막(1막/2막), 무너짐 단계, 마지막 열쇠를 쥐었는지, 어사가 지금 쥔 단서 — 넷이다.
+        /// 이 넷이 없으면 AI 는 「무너져도 되는 때」를 저 혼자 정하게 되고, 그러면
+        /// 말재간이 좋은 사람에게는 첫 마디에 사건이 열리고 그렇지 않은 사람에게는
+        /// 영영 안 열린다. <b>열쇠는 게임이 쥐고, 정곡은 AI 가 읽는다.</b>
+        ///
+        /// <b>단계</b>는 이 인물에게 <b>실제로 들이민</b> 증거가 몇 개나 먹혔는지로 센다.
+        /// 아는 것이 아니라 <b>내민 것</b>이라야 추궁의 무게가 된다.
+        /// </summary>
+        private void Stamp(NpcRequest req)
+        {
+            if (req == null) return;
+            var gs = GameState.Instance;
+            var journal = Journal.Instance;
+            req.identityRevealed = gs != null && gs.IdentityRevealed;
+
+            int gates = _character != null && _character.evidenceGates != null ? _character.evidenceGates.Count : 0;
+            req.stage = gates > 0
+                      ? Mathf.Clamp(Mathf.RoundToInt(10f * _unlockedGateKeys.Count / gates), 0, 10)
+                      : 0;
+
+            var keys = _character != null ? _character.BreakKeys() : System.Array.Empty<string>();
+            bool all = keys.Length > 0 && journal != null;
+            foreach (var k in keys)
+                if (journal == null || !journal.HasClue(_character.caseId, k)) { all = false; break; }
+            req.canBreak = all;
+            // 마지막 열쇠를 다 쥐었으면 단계도 끝까지 올린다 — 아직 안 내밀었어도
+            // 「무너질 수 있는 자리」에 서 있다는 것은 태도에 배어야 한다.
+            if (all) req.stage = Mathf.Max(req.stage, 8);
+
+            if (journal != null && _character != null)
+            {
+                var held = new System.Collections.Generic.List<string>();
+                foreach (var c in journal.GetClues(_character.caseId))
+                    if (c != null && !string.IsNullOrEmpty(c.text)) held.Add(c.text);
+                req.evidenceHeld = held;
+            }
         }
 
         // 말하는 도중의 중간 전사 — 확정 전이라 대화 기록엔 넣지 않고 입력줄에만 비친다.
@@ -468,6 +510,7 @@ namespace IMUNROK.Common
                 playerTitle = PlayerTitle,
                 playerIdentityBrief = GameState.Instance.PlayerIdentityBrief,
             };
+            Stamp(req);
             _busy = true;
             RefreshSubtitle();
             _responder.GetResponse(this, req, OnReply, OnError);
@@ -519,6 +562,7 @@ namespace IMUNROK.Common
                 playerTitle = PlayerTitle,
                 playerIdentityBrief = GameState.Instance.PlayerIdentityBrief,
             };
+            Stamp(req);
             _busy = true;
             RefreshSubtitle();
             _responder.GetResponse(this, req, OnReply, OnError);

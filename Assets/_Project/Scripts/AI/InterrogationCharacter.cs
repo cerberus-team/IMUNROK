@@ -79,9 +79,56 @@ namespace IMUNROK.Common
         [Tooltip("이 인물이 속한 사건(수첩 단서 범위와 연결)")]
         public CaseId caseId = CaseId.Case1_Onggojip;
 
-        [Tooltip("인물의 성격·아는 사실·말투. 실제 AI의 시스템 프롬프트가 되고, 목업의 성격 기준이 됨")]
+        [Tooltip("인물의 성격·아는 사실·말투. 실제 AI의 시스템 프롬프트가 되고, 목업의 성격 기준이 됨.\n" +
+                 "아래 1막/2막 성격이 적혀 있으면 그쪽이 먼저다 — 이 칸은 둘 다 비었을 때 쓰는 옛 자리")]
         [TextArea(4, 12)]
         public string persona = "";
+
+        [Header("막마다 다른 성격")]
+        [Tooltip("<b>1막 · 잠행</b> — 묻는 이가 하룻밤 청하는 과객으로 보인다. 경계가 풀려 있고, " +
+                 "그래서 흘리는 것이 있다. 비우면 아래 공통 성격을 쓴다")]
+        [TextArea(6, 24)]
+        public string personaAct1 = "";
+
+        [Tooltip("<b>2막 · 공개</b> — 묻는 이가 어사임을 안다. 방어하고, 증거 앞에서만 물러난다. " +
+                 "비우면 1막 것을, 그것도 비면 공통 성격을 쓴다")]
+        [TextArea(6, 24)]
+        public string personaAct2 = "";
+
+        [Header("무너지는 조건")]
+        [Tooltip("이 인물이 무너지려면 어사가 <b>쥐고 있어야</b> 하는 단서 key. 쉼표로 여럿(예: J13,G03).\n\n" +
+                 "<b>왜 조건을 자료로 두는가</b>: 무너짐을 AI 혼자 판단하게 두면 말을 잘 지어내는 사람에게만 " +
+                 "사건이 열린다. 반대로 <b>정확한 문구</b>를 맞춰야 열리면 「복동아」와 「네 이름 복동이지?」가 " +
+                 "다른 말이 되어 답답해진다. 그래서 두 겹으로 나눈다 — <b>열쇠를 쥐었는가</b>는 여기서 " +
+                 "게임이 정하고, <b>정곡을 찔렀는가</b>는 AI가 뜻으로 읽는다.\n\n" +
+                 "비우면 조건 없음(언제든 무너질 수 있음)")]
+        public string breakOnClues = "";
+
+        /// <summary>
+        /// 지금 막에 맞는 성격을 고른다. 2막 것이 비어 있으면 1막 것을, 그것도 비면 옛 칸을 쓴다 —
+        /// 아직 안 채운 인물이 말을 잃지 않게.
+        /// </summary>
+        public string PersonaFor(bool identityRevealed)
+        {
+            if (identityRevealed && !string.IsNullOrWhiteSpace(personaAct2)) return personaAct2;
+            if (!string.IsNullOrWhiteSpace(personaAct1)) return personaAct1;
+            if (!string.IsNullOrWhiteSpace(persona)) return persona;
+            return "너는 심문받는 인물이다.";
+        }
+
+        /// <summary>무너지는 데 필요한 단서 key 들. 비었으면 조건이 없다.</summary>
+        public string[] BreakKeys()
+        {
+            if (string.IsNullOrWhiteSpace(breakOnClues)) return System.Array.Empty<string>();
+            var raw = breakOnClues.Split(',');
+            var list = new List<string>();
+            foreach (var r in raw)
+            {
+                var t = r.Trim();
+                if (t.Length > 0) list.Add(t);
+            }
+            return list.ToArray();
+        }
 
         [Tooltip("심문 시작 시 인물의 첫 대사")]
         [TextArea(2, 4)]
