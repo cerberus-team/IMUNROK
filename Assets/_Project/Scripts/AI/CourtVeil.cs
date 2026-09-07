@@ -37,23 +37,61 @@ namespace IMUNROK.Common
         [Tooltip("널 두께(m)")]
         [SerializeField] private float _thick = 0.03f;
 
-        [Tooltip("내리고 올리는 빠르기(초당 0~1). 발은 스르르 풀린다")]
-        [SerializeField] private float _speed = 0.75f;
+        [Tooltip("풀려 내려오는 데 걸리는 시간(초). 손을 놓으면 제 무게로 떨어진다")]
+        [SerializeField] private float _dropSeconds = 1.1f;
+
+        [Tooltip("걷어 올리는 데 걸리는 시간(초). <b>내리는 것보다 느려야 한다</b> — " +
+                 "내리는 것은 놓는 일이고 올리는 것은 <b>당기는</b> 일이다")]
+        [SerializeField] private float _raiseSeconds = 2.0f;
+
+        [Tooltip("다 내려온 뒤 남아 흔들리는 폭(도). 0 이면 안 흔들린다")]
+        [SerializeField] private float _swayDegrees = 2.2f;
+
+        [Tooltip("흔들림이 잦아드는 데 걸리는 시간(초)")]
+        [SerializeField] private float _swaySeconds = 1.3f;
+
+        [Tooltip("풀리는 소리(대나무 발). 비우면 조용히 내려온다")]
+        [SerializeField] private AudioClip _sound;
 
         private Renderer _skin;
         private float _now = -1f;
+        private float _t;            // 0~1, 시간으로 재는 진행
+        private bool _falling;       // 지금 내려오는 중인가(소리·흔들림은 내릴 때만)
+        private float _swayLeft;
+        private bool _rang;
 
         private void Awake()
         {
             if (_blind != null) _skin = _blind.GetComponent<Renderer>();
+            _t = 0f;
             Place(0f);
         }
 
         private void Update()
         {
-            float want = (_who != null && _who.IsUp) ? 1f : 0f;
-            if (Mathf.Approximately(_now, want)) return;
-            Place(Mathf.MoveTowards(_now, want, _speed * Time.deltaTime));
+            bool want = _who != null && _who.IsUp;
+
+            if (want && _t < 1f)
+            {
+                if (!_falling) { _falling = true; _rang = false; }
+                if (!_rang) { Ring(); _rang = true; }
+                _t = Mathf.Min(1f, _t + Time.deltaTime / Mathf.Max(0.05f, _dropSeconds));
+                if (_t >= 1f) _swayLeft = _swaySeconds;
+            }
+            else if (!want && _t > 0f)
+            {
+                _falling = false; _rang = false; _swayLeft = 0f;
+                _t = Mathf.Max(0f, _t - Time.deltaTime / Mathf.Max(0.05f, _raiseSeconds));
+            }
+
+            // <b>내려오는 것과 올라가는 것의 결이 다르다.</b>
+            //
+            // 여태 둘 다 한 빠르기로 오르내렸다. 그러면 <b>기계로 감아 올리는 가림막</b>이지
+            // 발이 아니다. 발은 손을 놓으면 제 무게로 떨어지므로 <b>처음이 느리고 끝이
+            // 빠르다</b>(t²). 걷어 올릴 때는 사람이 줄을 당기는 것이라 고르게 올라간다.
+            float k = _falling ? _t * _t : _t;
+
+            if (!Mathf.Approximately(_now, k) || _swayLeft > 0f) Place(k);
         }
 
         /// <summary>0 = 다 걷힘, 1 = 다 내려옴.</summary>
@@ -71,7 +109,24 @@ namespace IMUNROK.Common
             float h = _length * _now;
             _blind.localScale = new Vector3(_width, h, _thick);
             _blind.localPosition = new Vector3(0f, -h * 0.5f, 0f);   // 위 끝이 제자리에 남는다
-            _blind.localRotation = Quaternion.identity;
+
+            // <b>다 내려온 뒤에 한 번 남아 흔들린다.</b> 떨어지던 것이 딱 멈추면 널이
+            // 아니라 벽이다. 매단 위 끝을 축으로 삼아 좌우로 조금 흔들고 잦아들게 둔다.
+            float deg = 0f;
+            if (_swayLeft > 0f)
+            {
+                _swayLeft = Mathf.Max(0f, _swayLeft - Time.deltaTime);
+                float u = _swayLeft / Mathf.Max(0.01f, _swaySeconds);       // 1 → 0
+                deg = _swayDegrees * u * u * Mathf.Sin(u * Mathf.PI * 6f);
+            }
+            _blind.localRotation = Quaternion.Euler(0f, 0f, deg);
+        }
+
+        /// <summary>풀리는 소리. 걷어 올릴 때는 안 낸다 — 조용히 당겨 올리는 일이다.</summary>
+        private void Ring()
+        {
+            if (_sound == null) return;
+            AudioSource.PlayClipAtPoint(_sound, transform.position, 0.8f);
         }
 
         /// <summary>세우는 도구가 값을 넣어 준다.</summary>
