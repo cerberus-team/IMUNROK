@@ -117,14 +117,26 @@ namespace IMUNROK.Common
             transform.rotation = Quaternion.RotateTowards(transform.rotation, _lookAt, _turnSpeed * Time.deltaTime);
         }
 
-        /// <summary>소리와 나 사이에 벽이 있나. 사람은 벽이 아니다.</summary>
+        /// <summary>
+        /// 소리와 나 사이에 벽이 있나.
+        ///
+        /// <b>사람은 벽이 아니다.</b> 이 말은 처음부터 여기 적혀 있었는데 코드는
+        /// <b>아무 콜라이더나</b> 벽으로 세고 있었다. 사람에게 몸이 없던 동안에는
+        /// 그래도 맞았지만(<see cref="PersonBody"/> 를 달면서 몸이 생겼다), 이제는
+        /// 마름이 앞을 지나간다고 서랍 소리가 안 들리는 일이 난다. 그래서 걸린 것을
+        /// 하나하나 보고 <b>사람의 몸은 건너뛴다</b>.
+        /// </summary>
         private bool Blocked(Vector3 at)
         {
             Vector3 ear = transform.position + Vector3.up * 1.4f;
             Vector3 to = at - ear;
             float dist = to.magnitude;
             if (dist < 0.05f) return false;
-            return Physics.Raycast(ear, to / dist, dist, _wallMask, QueryTriggerInteraction.Ignore);
+
+            var hits = Physics.RaycastAll(ear, to / dist, dist, _wallMask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < hits.Length; i++)
+                if (!PersonBody.Is(hits[i].collider)) return true;
+            return false;
         }
 
 #if UNITY_EDITOR

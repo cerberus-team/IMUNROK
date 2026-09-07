@@ -122,13 +122,21 @@ namespace IMUNROK.Common
             // 조사청 수첩에도 남아 있다 — 현장에 닿아 다시 그것을 펴면, 알던 것을
             // 한 번 더 읽히고 정작 여기서 무엇을 해야 하는지는 안 적혀 있다.
             // 아직 그 한 장이 없으면 예전처럼 봉서를 편다.
+            // <b>뒤를 어둡게 덮는다</b>(dim). 문서보기는 두 결로 쓰인다 —
+            // 방에서 곧바로 짚은 종이는 방을 보며 읽는 것이라 둘레를 안 덮고,
+            // <b>앉아서 하나만 뜯어보는</b> 것은 덮는다. 사건표는 뒤엣것이다:
+            // 현장에 막 들어서서 「무엇을 밝혀야 하는가」를 읽는 참이라, 이때
+            // 마당이며 지나가는 사람이며가 종이 뒤에서 어른거리면 그 한 장에 눈이 안 간다.
+            // (기본값이 false 라 여태 안 덮이고 있었다 — 안 넘긴 것이 곧 안 덮는 것이었다.)
             if (_fieldPage != null)
                 DocumentView.Show(_fieldPage,
                                   string.IsNullOrEmpty(_fieldTitle) ? _title : _fieldTitle,
                                   _fieldBody,
-                                  string.IsNullOrEmpty(_fieldFine) ? null : _fieldFine);
+                                  string.IsNullOrEmpty(_fieldFine) ? null : _fieldFine,
+                                  null, true);
             else
-                DocumentView.Show(_page, _title, body, string.IsNullOrEmpty(_fine) ? null : _fine);
+                DocumentView.Show(_page, _title, body, string.IsNullOrEmpty(_fine) ? null : _fine,
+                                  null, true);
         }
     }
 }
