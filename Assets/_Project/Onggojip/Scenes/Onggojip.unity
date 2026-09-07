@@ -255,7 +255,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 450985cfff3338745ae308056bad0589, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.5034451
+      value: 0.13
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 450985cfff3338745ae308056bad0589, type: 3}
       propertyPath: m_LocalPosition.z
@@ -444,7 +444,7 @@ Transform:
   m_GameObject: {fileID: 48542395}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -7.4, y: -3.2, z: -50}
+  m_LocalPosition: {x: -7.4, y: -3.2, z: -54}
   m_LocalScale: {x: 0.6, y: 1, z: 0.6}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -23409,10 +23409,10 @@ GameObject:
   - component: {fileID: 1366552798}
   - component: {fileID: 1366552800}
   - component: {fileID: 1366552802}
-  - component: {fileID: 1366552803}
   - component: {fileID: 1366552804}
   - component: {fileID: 1366552805}
   - component: {fileID: 1366552806}
+  - component: {fileID: 1366552807}
   m_Layer: 0
   m_Name: "\uB9C8\uC744\uC0AC\uB78C"
   m_TagString: Untagged
@@ -23429,7 +23429,7 @@ Transform:
   m_GameObject: {fileID: 1366552797}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.819152, z: -0, w: -0.57357645}
-  m_LocalPosition: {x: -3.6, y: -4.15, z: -47.5}
+  m_LocalPosition: {x: -4.2, y: -4.15, z: -46}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -23491,32 +23491,6 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _autoFitCollider: 1
---- !u!114 &1366552803
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1366552797}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4041863c47913348b6c5ae24d10c9f4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.WanderingNpc
-  _speed: 0.7
-  _radius: 4
-  _straightMin: 5
-  _straightMax: 7
-  _turnSpeed: 90
-  _turnAngleMin: 10
-  _turnAngleMax: 20
-  _turnSlowdown: 0.9
-  _pauseChance: 0
-  _pauseTime: 1.2
-  _facePlayerEase: 3.5
-  _animator: {fileID: 0}
-  _freezeWhenStopped: 1
-  _walkBool: IsWalking
 --- !u!114 &1366552804
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -23539,7 +23513,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   _rayUp: 2.5
-  _fallbackY: -1.67
+  _fallbackY: -4.15
   _sink: 0.01
   _soleOnGround: 1
   _pinHorizontally: 1
@@ -23594,6 +23568,29 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _log: 0
+--- !u!114 &1366552807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1366552797}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39d8a8703ace2a24893931bc7e6b1fa5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.RoadWalker
+  _a: {fileID: 0}
+  _b: {fileID: 0}
+  _fromXZ: {x: -7.4, y: -50}
+  _toXZ: {x: -7.4, y: -33}
+  _speed: 0.8
+  _turnSpeed: 160
+  _reach: 1.2
+  _restMin: 1.6
+  _restMax: 3.4
+  _animator: {fileID: 0}
+  _walkBool: IsWalking
 --- !u!1 &1379753155
 GameObject:
   m_ObjectHideFlags: 0

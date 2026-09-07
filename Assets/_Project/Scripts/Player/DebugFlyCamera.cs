@@ -347,6 +347,20 @@ namespace IMUNROK.Common
                 {
                     if (h.collider == null) continue;
                     if (h.collider.transform.IsChildOf(transform)) continue;   // 손에 든 것
+
+                    // <b>이미 파묻힌 채로 시작한 쓸기는 믿을 수 없다.</b>
+                    //
+                    // 캡슐이 처음부터 무언가와 겹쳐 있으면 유니티는 거리 0 에
+                    // <b>진행 방향의 반대</b>를 법선으로 돌려준다. 그 법선에 걸음을
+                    // 눕히면 어느 쪽으로 가도 0 이 되어 — <b>한 번 벽에 끼면 영영
+                    // 못 나온다</b>. 낙안읍성 담과 초가가 죄 오목한 메시 콜라이더라
+                    // 모서리에서 이 일이 잘 났고, 빠져나올 길이 없었다.
+                    //
+                    // 파묻힌 동안에는 막지 않는다. <b>나가는 길을 막는 것은 벽이
+                    // 아니다.</b> 벽에 제대로 부딪히는 경우에는 걸음이 벽 앞에서
+                    // 멈추므로 파묻힐 일이 없다 — 이 갈래는 잘못 끼었을 때만 탄다.
+                    if (h.distance <= 0f) continue;
+
                     // 바닥·천장은 걸음을 막지 않는다. 막는 것은 <b>서 있는 면</b>이다.
                     Vector3 n = h.normal; n.y = 0f;
                     if (n.sqrMagnitude < 0.04f) continue;
