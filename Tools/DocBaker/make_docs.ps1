@@ -14,11 +14,13 @@
 #            Fields: title, entries [{ text, hand 0|1, mark true|false }]
 #   burnt  - charred fragment on transparent background (half-burned letter).
 #            Fields: columns (text runs off where the paper is gone)
-#   file   - case file (事目): the ruled sheet handed to the inspector on arrival.
-#            Portrait box per suspect, household roster, what has to be settled,
-#            and a red slip pasted at the foot.
-#            Fields: title, subtitle, seal, portraitNote, suspects [{mark,caption}],
-#                    rosterLabel, roster [], asksLabel, asks [], tagHead, tagNote
+#   file   - case file (사목): the sheet the inspector keeps pulling out again.
+#            Korean and horizontal on purpose - it is read, not admired. Two men
+#            side by side, who is in the house, why the easy ways are closed, and
+#            what has to be settled. Red slip and seal at the foot.
+#            Fields: title, subtitle, seal, cards [{mark,lines[]}], tie [],
+#                    rosterLabel, roster [], rosterNote,
+#                    blockedLabel, blocked [], asksLabel, asks [], tagHead, tagNote
 param(
     [string]$ProjectRoot
 )
@@ -112,14 +114,14 @@ foreach ($d in $docs) {
     }
     # the case file keeps its words in fields of its own - gather those too, or the
     # face is chosen without ever seeing them and the sheet bakes full of tofu boxes.
-    foreach ($f in @('subtitle','portraitNote','rosterLabel','asksLabel','tagHead','tagNote')) {
+    foreach ($f in @('subtitle','rosterLabel','rosterNote','blockedLabel','asksLabel','tagHead','tagNote')) {
         if ($d.PSObject.Properties.Name -contains $f -and $d.$f) { $allText += $d.$f }
     }
-    foreach ($f in @('roster','asks')) {
+    foreach ($f in @('roster','asks','tie','blocked')) {
         if ($d.PSObject.Properties.Name -contains $f -and $d.$f) { $allText += $d.$f }
     }
-    if ($d.PSObject.Properties.Name -contains 'suspects' -and $d.suspects) {
-        foreach ($su in $d.suspects) { $allText += $su.mark; $allText += $su.caption }
+    if ($d.PSObject.Properties.Name -contains 'cards' -and $d.cards) {
+        foreach ($cd in $d.cards) { $allText += $cd.mark; $allText += $cd.lines }
     }
 }
 
@@ -483,157 +485,163 @@ function Draw-Pressed($g, $doc, $w, $h, $fontName, $rng) {
     $bodyFont.Dispose(); $shade.Dispose(); $glint.Dispose()
 }
 
-# A case file (事目). The petition says why the crown cares; this is the sheet an
-# inspector is handed when he reaches the place, and it says what he has to settle.
+# A case file (사목). The petition says why the crown cares; this is the sheet the
+# inspector keeps in his sleeve and pulls out again and again, so it is built to be
+# READ, not admired.
 #
-# It is a FORM, not a letter, and that is the whole difference: ruled cells, a
-# portrait box for each of the two men, the household roster, and the things to
-# establish. Everything inside is still vertical and right to left - the boxes are
-# what make it read as a file rather than a plea.
+# The first draft was a Joseon form: vertical hanja, ruled cells, an empty portrait
+# box. It looked the part and said almost nothing - and a sheet that is opened twenty
+# times has to earn each opening. So this one is Korean, horizontal, and carries the
+# two things a stuck investigation actually needs on the table:
 #
-# The portrait boxes are drawn EMPTY on purpose. This case is two men with one
-# face; a file that could show the face would already have answered it.
+#   - WHO STANDS WHERE. Two men, one face, and what each side has behind him.
+#   - WHY IT IS STILL OPEN. Not the answer - the reason the easy ways are closed.
+#     That is what turns a summary into a next step.
 #
-# Fields: title, subtitle, seal, portraitNote, suspects [{mark, caption}],
-#         rosterLabel, roster [], asksLabel, asks [], tagHead, tagNote
+# Hanja is down to the two case labels and the seal. 甲/乙 stay because the case
+# itself calls them that; a seal is a stamp, not something anyone reads.
+#
+# The period is carried by the paper, the ink rules, the vermilion seal and the red
+# slip - not by making the reader parse Chinese.
+#
+# Fields: title, subtitle, seal,
+#         cards [{mark, lines[]}], tie[],
+#         rosterLabel, roster[], rosterNote,
+#         blockedLabel, blocked[],
+#         asksLabel, asks[],
+#         tagHead, tagNote
 function Draw-File($g, $doc, $w, $h, $fontName, $rng) {
-    $ink     = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(238, 38, 30, 24))
-    $inkSoft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(205, 62, 50, 38))
-    $faint   = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(96, 96, 78, 58))
-    $rule    = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(178, 56, 44, 32), 3)
-    $hair    = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(112, 78, 62, 46), 2)
+    $ink     = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(240, 36, 28, 22))
+    $inkSoft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(206, 68, 56, 42))
+    $inkFar  = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(160, 92, 76, 58))
+    $red     = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(226, 150, 44, 34))
+    $rule    = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(180, 54, 42, 30), 3)
+    $hair    = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(108, 84, 68, 50), 2)
 
-    $M = 92
+    $M = 84
     $inner = $w - $M * 2
 
+    # Every face here is the repo's Korean face, not the brush faces - those are cut
+    # for Chinese and carry no Hangul at all, so a sheet set in them comes out as
+    # boxes. The titles keep the print face because the two hanja live there.
+    $kor = $script:fallbackName
+
+    function Line($text, $font, $brush, $x, $y) {
+        if (-not $text) { return }
+        $g.DrawString($text, $font, $brush, $x, $y)
+    }
+    function Mid($text, $font, $brush, $cx, $y) {
+        if (-not $text) { return }
+        $s = $g.MeasureString($text, $font)
+        $g.DrawString($text, $font, $brush, ($cx - $s.Width / 2), $y)
+    }
+
     # ---- head ---------------------------------------------------------
-    $titleFont = New-Face $fontName 112 ([System.Drawing.FontStyle]::Regular)
-    $ts = $g.MeasureString($doc.title, $titleFont)
-    $g.DrawString($doc.title, $titleFont, $ink, (($w - $ts.Width) / 2), 52)
+    $titleFont = New-Face $fontName 84 ([System.Drawing.FontStyle]::Regular)
+    Mid $doc.title $titleFont $ink ($w / 2) 46
 
-    $subFont = New-Face $fontName 36 ([System.Drawing.FontStyle]::Regular)
-    $sub = Get-Field $doc 'subtitle' ''
-    if ($sub) {
-        $ss = $g.MeasureString($sub, $subFont)
-        $g.DrawString($sub, $subFont, $inkSoft, (($w - $ss.Width) / 2), 202)
-    }
-    $g.DrawLine($rule, $M, 262, ($w - $M), 262)
-    $g.DrawLine($hair, $M, 272, ($w - $M), 272)
+    $subFont = New-Face $kor 32 ([System.Drawing.FontStyle]::Regular)
+    Mid (Get-Field $doc 'subtitle' '') $subFont $inkSoft ($w / 2) 168
 
-    # ---- the two men --------------------------------------------------
-    # Right to left: the one named first in docs.json sits on the right, because
-    # that is where a Joseon reader starts.
-    $bandY = 300; $bandH = 366
-    $g.DrawRectangle($rule, $M, $bandY, $inner, $bandH)
+    $g.DrawLine($rule, $M, 226, ($w - $M), 226)
 
-    $sus = Get-Field $doc 'suspects' @()
-    $n = [Math]::Max($sus.Count, 1)
-    $cellW = $inner / $n
-    $capTexts = @()
-    foreach ($su in $sus) { $capTexts += $su.caption }
-    $capStep = 50.0
-    if ($capTexts.Count -gt 0) {
-        $capStep = [Math]::Min(50.0, ($bandH - 96) / (Measure-Units $capTexts))
-    }
-    $capFont  = New-Face $fontName ([Math]::Max(20.0, $capStep * 0.80)) ([System.Drawing.FontStyle]::Regular)
-    $markFont = New-Face $fontName 62 ([System.Drawing.FontStyle]::Regular)
-    $noteFont = New-Face $fontName 30 ([System.Drawing.FontStyle]::Regular)
-    $pnote = Get-Field $doc 'portraitNote' ''
+    # ---- the two men ---------------------------------------------------
+    # Side by side, because that is the shape of the case: not a list, a pair.
+    $cards = Get-Field $doc 'cards' @()
+    $cardW = 388; $cardH = 258
+    $cardY = 250
+    $gapX  = $inner - $cardW * 2
+    $markFont = New-Face $fontName 66 ([System.Drawing.FontStyle]::Regular)
+    $cardFont = New-Face $kor 29 ([System.Drawing.FontStyle]::Regular)
 
-    for ($i = 0; $i -lt $sus.Count; $i++) {
-        $cellRight = $w - $M - ($i * $cellW)
-        $cellLeft  = $cellRight - $cellW
-        if ($i -gt 0) { $g.DrawLine($hair, $cellRight, ($bandY + 14), $cellRight, ($bandY + $bandH - 14)) }
+    for ($i = 0; $i -lt $cards.Count -and $i -lt 2; $i++) {
+        $x = $M + $i * ($cardW + $gapX)
+        $g.DrawRectangle($hair, $x, $cardY, $cardW, $cardH)
+        $cx = $x + $cardW / 2
+        Mid $cards[$i].mark $markFont $ink $cx ($cardY + 10)
 
-        # caption reads down the right edge of the cell
-        Paint-Column $g $sus[$i].caption $capFont ($cellRight - 44) ($bandY + 30) $capStep $ink $inkSoft 2 $rng | Out-Null
-
-        # empty portrait box
-        $bx = $cellLeft + 30; $by = $bandY + 26
-        $bw = $cellW - 30 - 92; $bh = $bandH - 106
-        $g.DrawRectangle($hair, $bx, $by, $bw, $bh)
-        if ($pnote) {
-            Paint-Column $g $pnote $noteFont ($bx + $bw / 2) ($by + $bh / 2 - 34) 36 $faint $faint 2 $rng | Out-Null
+        $ly = $cardY + 108
+        foreach ($ln in $cards[$i].lines) {
+            Mid $ln $cardFont $inkSoft $cx $ly
+            $ly += 44
         }
-
-        # the mark under the box
-        $ms = $g.MeasureString($sus[$i].mark, $markFont)
-        $g.DrawString($sus[$i].mark, $markFont, $ink, ($bx + $bw / 2 - $ms.Width / 2), ($by + $bh + 6))
     }
 
-    # ---- household roster ---------------------------------------------
-    $rY = 692; $rH = 122
-    $g.DrawRectangle($hair, $M, $rY, $inner, $rH)
-    $labFont = New-Face $fontName 44 ([System.Drawing.FontStyle]::Regular)
-    $rLabel = Get-Field $doc 'rosterLabel' ''
-    $labW = 0
-    if ($rLabel) {
-        $ls = $g.MeasureString($rLabel, $labFont)
-        $labW = $ls.Width + 40
-        $g.DrawString($rLabel, $labFont, $ink, ($w - $M - $ls.Width - 22), ($rY + $rH / 2 - $ls.Height / 2))
-        $g.DrawLine($hair, ($w - $M - $labW), ($rY + 12), ($w - $M - $labW), ($rY + $rH - 12))
-    }
+    # the brace between them - one face, and one of them lying
+    $tie = Get-Field $doc 'tie' @()
+    $tieY = $cardY + $cardH + 22
+    $midX = $w / 2
+    $g.DrawLine($hair, ($M + $cardW), ($cardY + $cardH / 2), ($M + $cardW + $gapX), ($cardY + $cardH / 2))
+    $tieFont  = New-Face $kor 34 ([System.Drawing.FontStyle]::Regular)
+    $tieFont2 = New-Face $kor 30 ([System.Drawing.FontStyle]::Regular)
+    if ($tie.Count -gt 0) { Mid $tie[0] $tieFont $ink $midX $tieY }
+    if ($tie.Count -gt 1) { Mid $tie[1] $tieFont2 $red $midX ($tieY + 44) }
+
+    # ---- who is in the house -------------------------------------------
+    $ry = 652
+    $headFont = New-Face $kor 32 ([System.Drawing.FontStyle]::Bold)
+    Line (Get-Field $doc 'rosterLabel' '') $headFont $ink $M $ry
+    $g.DrawLine($hair, $M, ($ry + 46), ($w - $M), ($ry + 46))
+
     $roster = Get-Field $doc 'roster' @()
-    $rFont = New-Face $fontName 46 ([System.Drawing.FontStyle]::Regular)
+    $rFont = New-Face $kor 34 ([System.Drawing.FontStyle]::Regular)
     if ($roster.Count -gt 0) {
-        $span = $inner - $labW - 24
-        $step = $span / $roster.Count
+        $step = $inner / $roster.Count
         for ($i = 0; $i -lt $roster.Count; $i++) {
-            $cx = $w - $M - $labW - 12 - ($i + 0.5) * $step
-            $es = $g.MeasureString($roster[$i], $rFont)
-            $g.DrawString($roster[$i], $rFont, $inkSoft, ($cx - $es.Width / 2), ($rY + $rH / 2 - $es.Height / 2))
+            Mid $roster[$i] $rFont $inkSoft ($M + ($i + 0.5) * $step) ($ry + 62)
         }
     }
+    $noteFont = New-Face $kor 27 ([System.Drawing.FontStyle]::Regular)
+    Mid (Get-Field $doc 'rosterNote' '') $noteFont $inkFar ($w / 2) ($ry + 120)
 
-    # ---- what has to be settled ----------------------------------------
-    $aLabel = Get-Field $doc 'asksLabel' ''
-    if ($aLabel) {
-        $as = $g.MeasureString($aLabel, $labFont)
-        $g.DrawString($aLabel, $labFont, $ink, ($w - $M - $as.Width), 836)
-    }
-    $aY = 896; $aH = 402
-    $g.DrawRectangle($rule, $M, $aY, $inner, $aH)
-
-    $asks = Get-Field $doc 'asks' @()
-    if ($asks.Count -gt 0) {
-        $maxUnits = Measure-Units $asks
-        $charStep = [Math]::Min(52.0, ($aH - 56) / $maxUnits)
-        $aFont = New-Face $fontName ([Math]::Max(22.0, $charStep * 0.80)) ([System.Drawing.FontStyle]::Regular)
-        $colStep = [Math]::Min(238.0, ($inner - 124) / [Math]::Max($asks.Count - 1, 1))
-        $startX = $w / 2 + ($asks.Count - 1) * $colStep / 2
-        Write-Host ("  {0}: file, {1} asks, charStep {2:N1}" -f $doc.file, $asks.Count, $charStep)
-        for ($i = 0; $i -lt $asks.Count; $i++) {
-            $x = $startX - ($i * $colStep)
-            if ($i -gt 0) { $g.DrawLine($hair, ($x + $colStep / 2), ($aY + 16), ($x + $colStep / 2), ($aY + $aH - 16)) }
-            Paint-Column $g $asks[$i] $aFont $x ($aY + 28) $charStep $ink $inkSoft 2 $rng | Out-Null
-        }
-        $aFont.Dispose()
+    # ---- why it is still open -------------------------------------------
+    # The point of the sheet. Not what is known - what is in the way.
+    $by = 848
+    Line (Get-Field $doc 'blockedLabel' '') $headFont $ink $M $by
+    $g.DrawLine($hair, $M, ($by + 46), ($w - $M), ($by + 46))
+    $bFont = New-Face $kor 30 ([System.Drawing.FontStyle]::Regular)
+    $ly = $by + 66
+    foreach ($b in (Get-Field $doc 'blocked' @())) {
+        $g.FillEllipse($red, ($M + 10), ($ly + 18), 9, 9)
+        Line $b $bFont $inkSoft ($M + 40) $ly
+        $ly += 48
     }
 
-    # ---- the red slip pasted at the foot --------------------------------
+    # ---- what has to be settled ------------------------------------------
+    $ay = 1058
+    Line (Get-Field $doc 'asksLabel' '') $headFont $ink $M $ay
+    $g.DrawLine($rule, $M, ($ay + 46), ($w - $M), ($ay + 46))
+    $aFont = New-Face $kor 34 ([System.Drawing.FontStyle]::Regular)
+    $ly = $ay + 70
+    foreach ($a in (Get-Field $doc 'asks' @())) {
+        Line $a $aFont $ink ($M + 12) $ly
+        $ly += 54
+    }
+    # The seal goes UNDER the last line, not beside it - a 118px block set at the
+    # same height ate the third item's opening word.
+
+    # ---- the red slip pasted at the foot ---------------------------------
     # A 첨지: a strip of red paper stuck onto a file to say what the office already
-    # suspects. It is not part of the document - it sits on top of it, a little
-    # askew, because a hand put it there.
+    # suspects. It sits ON the sheet, a little askew, because a hand put it there.
     $tagHead = Get-Field $doc 'tagHead' ''
     if ($tagHead) {
         $state = $g.Save()
-        $g.TranslateTransform(548, 1322)
-        $g.RotateTransform(-2.6)
-        $tw = 390; $th = 96
-        $red = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(214, 162, 44, 36))
-        $g.FillRectangle($red, 0, 0, $tw, $th)
-        $paper = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(236, 238, 226, 196))
-        $thFont = New-Face $fontName 52 ([System.Drawing.FontStyle]::Bold)
+        $g.TranslateTransform(534, 1306)
+        $g.RotateTransform(-2.4)
+        $tw = 404; $th = 92
+        $slip = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(214, 162, 44, 36))
+        $g.FillRectangle($slip, 0, 0, $tw, $th)
+        $paper = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(238, 240, 228, 198))
+        $thFont = New-Face $kor 42 ([System.Drawing.FontStyle]::Bold)
         $hs = $g.MeasureString($tagHead, $thFont)
-        $g.DrawString($tagHead, $thFont, $paper, 22, ($th / 2 - $hs.Height / 2))
+        $g.DrawString($tagHead, $thFont, $paper, 24, ($th / 2 - $hs.Height / 2))
         $tagNote = Get-Field $doc 'tagNote' ''
         if ($tagNote) {
-            $tnFont = New-Face $fontName 28 ([System.Drawing.FontStyle]::Regular)
+            $tnFont = New-Face $kor 27 ([System.Drawing.FontStyle]::Regular)
             $ns = $g.MeasureString($tagNote, $tnFont)
-            $g.DrawString($tagNote, $tnFont, $paper, (22 + $hs.Width + 10), ($th / 2 - $ns.Height / 2))
+            $g.DrawString($tagNote, $tnFont, $paper, (24 + $hs.Width + 10), ($th / 2 - $ns.Height / 2))
             $tnFont.Dispose()
         }
-        # the paste is uneven - break the block so it reads as stuck on, not printed
         for ($i = 0; $i -lt 90; $i++) {
             $r = $rng.Next(2, 9)
             $c = [System.Drawing.Color]::FromArgb($rng.Next(18, 54), 231, 217, 186)
@@ -642,16 +650,18 @@ function Draw-File($g, $doc, $w, $h, $fontName, $rng) {
             $br.Dispose()
         }
         $g.Restore($state)
-        $red.Dispose(); $paper.Dispose(); $thFont.Dispose()
+        $slip.Dispose(); $paper.Dispose(); $thFont.Dispose()
     }
 
     # 118 is the size Paint-Seal is cut for: it stacks glyphs at a fixed 52px step,
     # so anything smaller drops the second character out the bottom of the red block.
-    Paint-Seal $g (Get-Field $doc 'seal' '') ($M + 16) 1292 118 $fontName $rng
+    Paint-Seal $g (Get-Field $doc 'seal' '') ($M + 8) 1300 112 $fontName $rng
 
-    $titleFont.Dispose(); $subFont.Dispose(); $capFont.Dispose(); $markFont.Dispose()
-    $noteFont.Dispose(); $labFont.Dispose(); $rFont.Dispose()
-    $ink.Dispose(); $inkSoft.Dispose(); $faint.Dispose(); $rule.Dispose(); $hair.Dispose()
+    $titleFont.Dispose(); $subFont.Dispose(); $markFont.Dispose(); $cardFont.Dispose()
+    $tieFont.Dispose(); $tieFont2.Dispose(); $headFont.Dispose(); $rFont.Dispose()
+    $noteFont.Dispose(); $bFont.Dispose(); $aFont.Dispose()
+    $ink.Dispose(); $inkSoft.Dispose(); $inkFar.Dispose(); $red.Dispose()
+    $rule.Dispose(); $hair.Dispose()
 }
 
 # Account book. Entries run right to left, one per ruled column.
