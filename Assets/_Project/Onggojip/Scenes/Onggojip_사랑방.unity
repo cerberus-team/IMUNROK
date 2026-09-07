@@ -175,10 +175,15 @@ MonoBehaviour:
     \uC788\uB358 \uC0AC\uB78C\uC774 *\uC5F4\uC1E0 \uC5C6\uC774* \uBE44\uD2C0\uC5B4
     \uB72F\uC5C8\uB2E4."
   _clueNeedsMagnifier: 1
+  _model: {fileID: 0}
+  _modelEuler: {x: 0, y: 0, z: 0}
+  _backPage: {fileID: 0}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
   _litGlyphs: 
+  _litClueKey: 
+  _litClueOwnText: 
   _litClueText: 
   _title: "\uBD80\uC11C\uC9C4 \uC790\uBB3C\uC1E0"
   _body: "\uBB38\uAC11 \uC790\uBB3C\uC1E0\uAC00 *\uBE44\uD2C0\uB824 \uBD80\uC11C\uC838*
@@ -746,6 +751,9 @@ MonoBehaviour:
     \uD544\uC801\uC774 \uB2E4\uB974\uB2E4. \uAD00\uB9AC\uAC00 \uC544\uB2C8\uB77C
     \uC774 \uC9D1 \uC0AC\uB78C\uC758 \uC190\uC774\uB2E4."
   _clueNeedsMagnifier: 1
+  _model: {fileID: 0}
+  _modelEuler: {x: 0, y: 0, z: 0}
+  _backPage: {fileID: 0}
   _litPage: {fileID: 0}
   _litText: "\uACB9 \uC0AC\uC774\uC5D0 \uAC19\uC740 \uB450 \uC904\uC774 \uD55C \uC7A5
     \uB354 \uC788\uB2E4 \u2014 *\uBA3C\uC800 \uC368 \uBCF4\uACE0 \uBC84\uB9B0 \uC7A5*\uC774\uB2E4.
@@ -753,6 +761,8 @@ MonoBehaviour:
     \uB0B8 \uAC83\uC740 \uC774\uAC83\uC744 \uBCF4\uACE0 \uBCA0\uB080 \uAC83\uC774\uB2E4."
   _clueNeedsLantern: 0
   _litGlyphs: "\u5974 \u535C\u540C \u8F9B\u672A\u5E74 \u6B7B\u4EA1"
+  _litClueKey: 
+  _litClueOwnText: 
   _litClueText: "[J13] \uC62C\uD574 \uB0B8 \uD638\uAD6C\uB2E8\uC790. \uB178 \uBCF5\uB3D9\uC774
     *\uC2E0\uBBF8\uB144\uC5D0 \uC8FD\uC5C8\uB2E4*\uACE0 \uC801\uD600 \uC788\uB294\uB370
     \uAE00\uC528\uAC00 \uAD00\uB9AC\uC758 \uAC83\uC774 \uC544\uB2C8\uACE0, \uBC30\uC811
@@ -1404,10 +1414,15 @@ MonoBehaviour:
   _maxTouchDistance: 2.5
   _fineText: 
   _clueNeedsMagnifier: 0
+  _model: {fileID: 0}
+  _modelEuler: {x: 0, y: 0, z: 0}
+  _backPage: {fileID: 0}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
   _litGlyphs: 
+  _litClueKey: 
+  _litClueOwnText: 
   _litClueText: 
   _title: "\uBE48 \uC885\uC774"
   _body: "\uC544\uBB34\uAC83\uB3C4 \uC4F0\uC774\uC9C0 \uC54A\uC740 \uD55C\uC9C0 \uD55C
@@ -1565,10 +1580,15 @@ MonoBehaviour:
     \uB9C8\uC9C0\uB9C9 \uB450 \uC904\uC5D0\uB9CC \uB20C\uB824 \uC788\uB2E4. \u767D\u6728
     \u4E8C\u5341\u5339, \u7D19 \u4E09\u5341\u5377."
   _clueNeedsMagnifier: 1
+  _model: {fileID: 0}
+  _modelEuler: {x: 0, y: 0, z: 0}
+  _backPage: {fileID: 0}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
   _litGlyphs: 
+  _litClueKey: 
+  _litClueOwnText: 
   _litClueText: 
   _title: "\uBB3C\uBAA9 \uC7A5\uBD80"
   _body: "\uBC1B\uC740 \uBB3C\uAC74\uC744 \uC801\uC740 \uBB3C\uBAA9\uAE30\uB2E4."
@@ -1756,6 +1776,7 @@ GameObject:
   - component: {fileID: 794536287}
   - component: {fileID: 794536286}
   - component: {fileID: 794536288}
+  - component: {fileID: 794536289}
   m_Layer: 0
   m_Name: "\uBB38\uAC11_\uC11C\uB78D"
   m_TagString: Untagged
@@ -1812,6 +1833,13 @@ MonoBehaviour:
   _noise: 0.5
   _sound: {fileID: 8300000, guid: f99be1c47d98969408eca092594970ae, type: 3}
   _soundLoops: 1
+  _stirWidth: 0
+  _stirHz: 0.85
+  _flatten: 0
+  _dustWhileRaking: 0
+  _dustPerSecond: 26
+  _grit: {fileID: 0}
+  _gritPerSecond: 34
   _before: {fileID: 57506538}
   _after: {fileID: 1095863539}
   _puff: {fileID: 0}
@@ -1835,8 +1863,10 @@ MonoBehaviour:
   _onRaked:
     m_PersistentCalls:
       m_Calls: []
-  _lockedAtStart: 0
-  _lockedBody: "\uC9C0\uAE08\uC740 \uC190\uC744 \uB308 \uC218 \uC5C6\uB2E4."
+  _lockedAtStart: 1
+  _lockedBody: "\uC790\uBB3C\uC1E0\uAC00 \uACE0\uB9AC\uC5D0 \uBB3C\uB824 \uC788\uB2E4.
+    \uBD80\uC11C\uC84C\uB294\uB370\uB3C4 \uAC78\uB9B0 \uCC44\uB2E4."
+  _yieldWhenDone: 1
 --- !u!65 &794536287
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1875,6 +1905,20 @@ MonoBehaviour:
     \uD568\uBD80\uB85C \uC5EC\uB294 \uBC95\uC774 \uC5B4\uB514 \uC788\uC18C."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+--- !u!114 &794536289
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 794536284}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2675191074fc7c48af3e9199b463834, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.UnlockWhenClued
+  _clueKey: J15
+  _case: 0
 --- !u!1 &844021625
 GameObject:
   m_ObjectHideFlags: 0
@@ -2223,6 +2267,13 @@ MonoBehaviour:
   _noise: 0.25
   _sound: {fileID: 8300000, guid: 5b2362d77f56f6e4e97b1e24bb603531, type: 3}
   _soundLoops: 1
+  _stirWidth: 0
+  _stirHz: 0.85
+  _flatten: 0
+  _dustWhileRaking: 0
+  _dustPerSecond: 26
+  _grit: {fileID: 0}
+  _gritPerSecond: 34
   _before: {fileID: 900045298}
   _after: {fileID: 844021625}
   _puff: {fileID: 0}
@@ -2254,6 +2305,7 @@ MonoBehaviour:
       m_Calls: []
   _lockedAtStart: 1
   _lockedBody: "\uC8FC\uC778\uC774 \uADF8 \uC704\uC5D0 \uC549\uC544 \uC788\uB2E4."
+  _yieldWhenDone: 1
 --- !u!65 &910118046
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2648,10 +2700,15 @@ MonoBehaviour:
     \uB418\uB294 \uAC11\uB9AC(\u7532\u5229)\uB2E4. \u671F\uB97C \uB118\uAE30\uBA74
     \uB17C\uBC2D\uC73C\uB85C \uB300\uB0A9."
   _clueNeedsMagnifier: 1
+  _model: {fileID: 0}
+  _modelEuler: {x: 0, y: 0, z: 0}
+  _backPage: {fileID: 0}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
   _litGlyphs: 
+  _litClueKey: 
+  _litClueOwnText: 
   _litClueText: 
   _title: "\uCC28\uC6A9\uC99D"
   _body: "\uC639\uB355\uAD6C\uAC00 \uB0A8\uC5D0\uAC8C \uBCBC\uB97C \uAFB8\uC5B4 \uC8FC\uBA70
@@ -2746,6 +2803,8 @@ MonoBehaviour:
   OnOpened:
     m_PersistentCalls:
       m_Calls: []
+  _knockOnce: {fileID: 0}
+  _knockGap: 0.26
 --- !u!114 &1259042994
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3257,10 +3316,15 @@ MonoBehaviour:
     \uC0B4\uC544 \uC788\uB294 \uAC83\uC73C\uB85C \uC62C\uB77C \uC788\uB2E4. \uBC18\uB4EF\uD55C
     \uD55C \uC190, \uAD00\uB9AC\uC758 \uAE00\uC528\uB2E4."
   _clueNeedsMagnifier: 1
+  _model: {fileID: 0}
+  _modelEuler: {x: 0, y: 0, z: 0}
+  _backPage: {fileID: 0}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
   _litGlyphs: 
+  _litClueKey: 
+  _litClueOwnText: 
   _litClueText: 
   _title: "\uD638\uC801\uB300\uC7A5(\u6236\u7C4D\u5927\u5E33)"
   _body: "\uC0BC \uB144 \uC804 \uAD00\uAC00\uAC00 \uAC00\uC9C0\uACE0 \uC788\uB294
@@ -3613,10 +3677,15 @@ MonoBehaviour:
     \uC7AC\uC0B0\uC740 \uC8FC\uB418 \uC885\uC740 \uADF8\uB300\uB85C\uB2E4. \u8F9B\u672A\u5E74
     \u6B63\u6708 \u5B98\u7ACB\u6848."
   _clueNeedsMagnifier: 1
+  _model: {fileID: 0}
+  _modelEuler: {x: 0, y: 0, z: 0}
+  _backPage: {fileID: 0}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
   _litGlyphs: 
+  _litClueKey: 
+  _litClueOwnText: 
   _litClueText: 
   _title: "\uBCC4\uAE09\uBB38\uAE30(\u5225\u7D66\u6587\u8A18)"
   _body: "\uBCF4\uB8CC \uBC11\uC5D0 \uAE54\uB824 \uC788\uB358 \uC885\uC774\uB2E4.
@@ -3848,10 +3917,15 @@ MonoBehaviour:
   _fineText: "\uBC1B\uC744 \uACF3\uC774 \uC774 \uACE0\uC744\uC774 \uC544\uB2C8\uB2E4.
     \uAC1A\uC740 \uC790\uCDE8\uB3C4 \uC801\uD600 \uC788\uC9C0 \uC54A\uB2E4."
   _clueNeedsMagnifier: 1
+  _model: {fileID: 0}
+  _modelEuler: {x: 0, y: 0, z: 0}
+  _backPage: {fileID: 0}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
   _litGlyphs: 
+  _litClueKey: 
+  _litClueOwnText: 
   _litClueText: 
   _title: "\uC218\uD45C(\u624B\u6A19)"
   _body: "\uC7A5 \uC548\uC5D0 \uB530\uB85C \uB123\uC5B4 \uB454 \uC99D\uC11C\uB2E4.
