@@ -29721,10 +29721,10 @@ Light:
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
   m_Shadows:
-    m_Type: 0
+    m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.7
     m_Bias: 0.05
     m_NormalBias: 0.4
     m_NearPlane: 0.2
@@ -40922,6 +40922,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1736000309}
     m_Modifications:
+    - target: {fileID: 2223476502833635348, guid: cba4de886f1dd5149b85c3a27a2b809f, type: 3}
+      propertyPath: 'm_Materials.Array.data[5]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 7bd0b763561480a41a8010cfce8b2240, type: 2}
+    - target: {fileID: 2223476502833635348, guid: cba4de886f1dd5149b85c3a27a2b809f, type: 3}
+      propertyPath: 'm_Materials.Array.data[7]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 89c962daea2fe19479e946e029f5177b, type: 2}
     - target: {fileID: 2928385178280944638, guid: cba4de886f1dd5149b85c3a27a2b809f, type: 3}
       propertyPath: m_LocalPosition.x
       value: 13.4201
@@ -46583,9 +46591,9 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 4e6152a903422f14193fb610b86c4d84, type: 2}
+  - {fileID: 2100000, guid: 7bd0b763561480a41a8010cfce8b2240, type: 2}
   - {fileID: 2100000, guid: 2383aeb3678503b4094242482166a853, type: 2}
-  - {fileID: 2100000, guid: 203270eb2f9bc6847b587394b820f0a3, type: 2}
+  - {fileID: 2100000, guid: 89c962daea2fe19479e946e029f5177b, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
