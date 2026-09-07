@@ -55,7 +55,10 @@ namespace IMUNROK.Common
         [Range(-0.2f, 0.4f)] [SerializeField] private float _readyPush = 0.06f;
 
         [Tooltip("눈에 댔을 때 유리 한가운데가 눈에서 이만큼 앞에 온다(m). 크면 더 내밀고 든 꼴이 된다")]
-        [Range(0.15f, 0.7f)] [SerializeField] private float _eyeDistance = 0.36f;
+        // 0.36 은 <b>내민 것</b>이지 댄 것이 아니었다 — 팔을 뻗어 든 채로 멈춰 있어서,
+        // 키를 눌러도 돋보기가 눈으로 오는 것 같지가 않았다. 들여다보는 자세는
+        // 물건을 눈으로 가져오는 것이지 앞에 세워 두는 것이 아니다. 한 뼘 당긴다.
+        [Range(0.15f, 0.7f)] [SerializeField] private float _eyeDistance = 0.25f;
 
         [Tooltip("눈에 댔을 때 시선 한가운데에서 이만큼 아래로 비껴 둔다(m)")]
         [Range(-0.1f, 0.15f)] [SerializeField] private float _eyeDrop = 0.03f;
@@ -63,7 +66,7 @@ namespace IMUNROK.Common
         [Tooltip("눈에 댔을 때 돋보기가 이만큼 커진다. 1이면 평소 크기 그대로. " +
                  "<b>들여다보라고 든 것이니 들여다볼 만해야 한다</b> — 눈에 댄 돋보기가 " +
                  "엄지손톱만 하면 알 안을 볼 수가 없다")]
-        [Range(1f, 2.5f)] [SerializeField] private float _eyeScale = 1.5f;
+        [Range(1f, 2.5f)] [SerializeField] private float _eyeScale = 1.8f;
 
         [Tooltip("눈에 댈 때 맞춰 둔 기울기를 이만큼 바로 세운다. 0이면 그 각도 그대로 들여다본다")]
         // 0 이면 문갑에 놓였던 기울기 그대로 눈앞에 온다 — 유리가 비스듬히 서서
@@ -693,28 +696,23 @@ namespace IMUNROK.Common
             _holder.localScale = _holderRestScale * s;
             _glassRadius = _glassRadiusBase * s;
 
-            // 1) 기울기 — 맞춰 둔 그대로. 눈에 댈 때만 시킨 만큼 바로 세운다.
+            // 맞춰 둔 자세로 되돌려 놓고 시작한다 — 아래 셈은 전부 이 자리를 기준으로 한다.
             _holder.localRotation = _holderRestRot;
             _holder.localPosition = _holderRestPos;
-            if (_eyeStraighten > 0f && t > 0f)
-            {
-                // 유리 면이 지금 향한 쪽과, 향해야 할 쪽(눈).
-                Vector3 nrm = _flipProp ? -_propNormalLocal : _propNormalLocal;
-                Vector3 facing = _propRoot.TransformDirection(nrm);
-                Vector3 toEye = _eye.position - _propRoot.TransformPoint(GlassLocal);
-                if (facing.sqrMagnitude > 1e-6f && toEye.sqrMagnitude > 1e-6f)
-                {
-                    // <b>가장 짧은 길</b>로만 돌린다. 자세를 통째로 새로 지으면
-                    // 자루가 감긴 방향까지 정해져 버려, 고개를 숙일 때 그 기준이
-                    // 함께 기울다 어느 순간 홱 뒤집힌다.
-                    Quaternion delta = Quaternion.FromToRotation(facing.normalized, toEye.normalized);
-                    // 소품 뿌리가 아니라 매단 자리를 돌린다 — 뿌리를 돌리면 다음 프레임에 어긋난다.
-                    _holder.rotation = Quaternion.Slerp(_holder.rotation, delta * _holder.rotation,
-                                                        _eyeStraighten * t);
-                }
-            }
 
-            // 2) 자리 — 유리 한가운데를 옮긴다. 맞춰 둔 자리에서 지금 어디 있는지 먼저 잰다.
+            // 1) <b>어디로 갈 것인지 먼저 정한다.</b>
+            //
+            // 차례가 뒤바뀌어 있었다. 여태 <b>제자리에서</b> 눈을 마주 보게 돌려 놓고,
+            // 그 다음에 소품을 눈앞으로 끌어왔다. 그런데 평소 드는 자리는 오른쪽 아래
+            // (0.21, -0.17, 0.36)이고 눈에 댄 자리는 한가운데(0, -0.03, 0.25)라,
+            // 두 자리에서 눈을 보는 방향이 <b>30도 넘게</b> 다르다. 제자리 기준으로
+            // 돌려 놓고 옮기면 그 30도가 고스란히 남아, 테가 눈앞에서 <b>비스듬히
+            // 선다</b>.
+            //
+            // 알 그림은 늘 눈을 정면으로 마주 보는 <b>동그라미</b>인데 테만 기울면
+            // 테는 <b>타원</b>으로 보인다. 동그라미가 타원을 덮으면 긴지름의 두 끝만
+            // 삐져나온다 — 「테두리가 오른쪽 위·왼쪽 아래만 보인다」던 그 초승달 둘이
+            // 이것이다. 자리를 먼저 정하고 <b>갈 자리에서</b> 눈을 겨누면 안 생긴다.
             Vector3 rest = _eye.InverseTransformPoint(_propRoot.TransformPoint(GlassLocal));
 
             float floor = (Camera.main != null ? Camera.main.nearClipPlane : 0.05f) + 0.06f;
@@ -722,10 +720,32 @@ namespace IMUNROK.Common
             Vector3 peek = new Vector3(0f, -_eyeDrop, Mathf.Max(floor, _eyeDistance));
             Vector3 want = Vector3.Lerp(ready, peek, t);
             if (want.z < floor) want.z = floor;
+            Vector3 wantWorld = _eye.TransformPoint(want);
 
-            // 미는 것은 월드로 옮겨 더한다. 매단 자리가 카메라 바로 밑이 아니라
-            // 한 단계 더 들어가 있어도 그대로 맞는다.
-            _holder.position += _eye.TransformVector(want - rest);
+            // 2) 기울기 — 맞춰 둔 그대로. 눈에 댈 때만, <b>갈 자리에서</b> 눈을 겨눈다.
+            if (_eyeStraighten > 0f && t > 0f)
+            {
+                // 유리 면이 지금 향한 쪽과, 향해야 할 쪽(갈 자리에서 본 눈).
+                Vector3 nrm = _flipProp ? -_propNormalLocal : _propNormalLocal;
+                Vector3 facing = _propRoot.TransformDirection(nrm);
+                Vector3 toEye = _eye.position - wantWorld;
+                if (facing.sqrMagnitude > 1e-6f && toEye.sqrMagnitude > 1e-6f)
+                {
+                    // <b>가장 짧은 길</b>로만 돌린다. 자세를 통째로 새로 지으면
+                    // 자루가 감긴 방향까지 정해져 버려, 고개를 숙일 때 그 기준이
+                    // 함께 기울다 어느 순간 홱 뒤집힌다.
+                    Quaternion delta = Quaternion.FromToRotation(facing.normalized, toEye.normalized);
+                    // 소품 뿌리가 아니라 매단 자리를 돌린다 — 뿌리를 돌리면 다음 프레임에 어긋난다.
+                    // <b>제자리에서 한 번에</b> 돈다(Slerp 의 시작을 쉼 자세로 둔다).
+                    // 프레임마다 조금씩 따라가게 두면 고개를 돌릴 때 테가 뒤늦게
+                    // 쫓아와, 도는 동안 내내 기울어 있다.
+                    _holder.rotation = Quaternion.Slerp(_holder.rotation, delta * _holder.rotation,
+                                                        _eyeStraighten * t);
+                }
+            }
+
+            // 3) 자리 — 돌리고 나면 유리가 딴 데 가 있다. <b>다시 재서</b> 옮긴다.
+            _holder.position += wantWorld - _propRoot.TransformPoint(GlassLocal);
 
             // 3) 렌즈 자리를 소품의 유리에 맞춘다. 원판은 늘 눈을 마주 보므로 자리만 맞으면 된다.
             _lens.position = _propRoot.TransformPoint(GlassLocal);
