@@ -204,7 +204,6 @@ namespace IMUNROK.Common
             SetVisible(false);
         }
 
-        private void OnDestroy() { if (_instance == this) _instance = null; }
 
         /// <summary>
         /// 판과 자막이 서로를 밟지 않게 자리를 잡는다.
@@ -271,6 +270,17 @@ namespace IMUNROK.Common
             _group.alpha = on ? 1f : 0f;
             _group.blocksRaycasts = on;
             _group.interactable = on;
+
+            // 얼굴 찍개는 <b>판이 떠 있는 동안만</b> 돈다. 안 보는 그림을 매 칸 다시
+            // 그릴 까닭이 없다 — 다섯 대가 늘 돌면 밤 씬에서 그 값이 눈에 띈다.
+            FacePortrait.Show(on);
+        }
+
+        private void OnDestroy()
+        {
+            if (_instance == this) _instance = null;
+            // 씬을 갈아 끼우면 걷는다. 안 걷으면 없는 사람의 얼굴을 계속 그린다.
+            FacePortrait.Clear();
         }
 
         private void Update()
@@ -352,7 +362,7 @@ namespace IMUNROK.Common
             // 묻는 것보다 시키는 것이, 시키는 것보다 사람을 갈아 세우는 것이 큰일이다.
             _chipRow  = NewRect("물음줄", new Vector2(0f, -16f),  new Vector2(1200f, 90f), transform);
             _orderRow = NewRect("명령줄", new Vector2(0f, -104f), new Vector2(1200f, 72f), transform);
-            _seatRow  = NewRect("사람줄", new Vector2(0f, -188f), new Vector2(1200f, 76f), transform);
+            _seatRow  = NewRect("사람줄", new Vector2(0f, -196f), new Vector2(1200f, 104f), transform);
 
             // 제시한 증거 그림 — 평소엔 꺼져 있다가 잠깐 뜬다
             var evRt = NewRect("증거그림", new Vector2(0f, 300f), new Vector2(420f, 300f), transform);
@@ -448,7 +458,7 @@ namespace IMUNROK.Common
                 bool up = bench.IsUp(s);
                 bool here = s.사람 != null;
 
-                var rt = NewRect($"사람{i}", new Vector2(x0 + i * (w + gap), 0f), new Vector2(w, 70f), _seatRow);
+                var rt = NewRect($"사람{i}", new Vector2(x0 + i * (w + gap), 0f), new Vector2(w, 96f), _seatRow);
                 var bg = rt.gameObject.AddComponent<Image>();
                 Skin(bg, up ? _skin.Wood_ : _skin.Slot_,
                      !here ? _seatEmptyColor : (up ? _seatUpColor : _seatColor));
@@ -457,10 +467,50 @@ namespace IMUNROK.Common
                 var captured = s;
                 btn.onClick.AddListener(() => { bench.Call(captured); Refresh(); });
 
+                // <b>얼굴을 얹는다.</b> 이 사건이 가르는 것이 얼굴이다 — 甲과 乙을
+                // 「甲」「乙」이라는 글자로만 고르게 하면 두 사람을 한 번도 나란히 본 적
+                // 없이 판결까지 간다. 뜰에 실제로 선 그 사람을 그 자리에서 찍는다.
+                const float face = 72f;
+                float textX = 0f, textW = w - 20f;
+                if (here)
+                {
+                    var head = FindHead(s.사람.transform);
+                    var shot = FacePortrait.Of(head, s.사람.transform);
+                    if (shot != null)
+                    {
+                        var frt = NewRect("얼굴", new Vector2(-w * 0.5f + face * 0.5f + 10f, 0f),
+                                          new Vector2(face, face), rt);
+                        var raw = frt.gameObject.AddComponent<RawImage>();
+                        raw.texture = shot;
+                        raw.raycastTarget = false;      // 누르는 것은 이름표 전체다
+                        // 아직 안 나온 사람은 얼굴도 물러나 있다
+                        raw.color = up ? Color.white : new Color(1f, 1f, 1f, 0.78f);
+                        textX = face * 0.5f + 6f;
+                        textW = w - face - 28f;
+                    }
+                }
+
                 string label = !here ? s.이름 + " (아직)" : (up ? "▶ " + s.이름 : s.이름);
-                NewText("라벨", label, Vector2.zero, new Vector2(w - 20f, 70f), rt, _fontSize - 6);
+                var lab = NewText("라벨", label, new Vector2(textX, 0f), new Vector2(textW, 96f), rt, _fontSize - 6);
+                if (here) lab.alignment = TextAnchor.MiddleLeft;
                 _seatChips.Add(rt.gameObject);
             }
+        }
+
+        /// <summary>
+        /// 사람의 <b>머리뼈</b>를 찾는다. mixamo 리그면 <c>mixamorig:Head</c>, 손으로
+        /// 짠 리그면 그냥 <c>Head</c> 다. 못 찾으면 얼굴 없이 이름만 뜬다 —
+        /// 리그가 다른 사람이 하나 섞였다고 판이 통째로 안 뜨면 안 된다.
+        /// </summary>
+        private static Transform FindHead(Transform who)
+        {
+            if (who == null) return null;
+            foreach (var t in who.GetComponentsInChildren<Transform>(true))
+            {
+                string n = t.name.ToLower();
+                if (n == "head" || n.EndsWith(":head")) return t;
+            }
+            return null;
         }
 
         // ── UI 헬퍼 ──
