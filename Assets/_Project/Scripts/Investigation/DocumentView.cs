@@ -32,6 +32,9 @@ namespace IMUNROK.Common
         [SerializeField] private int _fontSize = 26;
         [Tooltip("펼친 종이의 긴 변(월드 캔버스 단위 = mm). 300이면 한 뼘 남짓")]
         [SerializeField] private float _pageSpan = 300f;
+
+        [Tooltip("앉아서 이 한 장만 뜯어보는 자리에서 종이를 이만큼 크게 편다(사건표·수첩에서 꺼낸 것)")]
+        [SerializeField] private float _studySpan = 1.4f;
         [Tooltip("종이를 든 거리(m). 팔을 굽혀 든 만큼 — 돋보기(0.4m)보다 멀어야 그 너머로 보인다")]
         [SerializeField] private float _holdDistance = 0.6f;
         [Tooltip("집은 자리에서 이만큼(m) 멀어지면 <b>도로 내려놓는다</b>. " +
@@ -406,7 +409,12 @@ namespace IMUNROK.Common
                 _page.texture = page;
                 _page.color = Color.white;      // 빈 종이를 깔며 물들여 둔 것을 되돌린다
                 float w = Mathf.Max(1, page.width), h = Mathf.Max(1, page.height);
-                float k = _pageSpan / Mathf.Max(w, h);
+                // <b>뜯어보는 자리에서는 크게 편다.</b> 방에서 짚은 종이는 방을 보며
+                // 곁눈으로 보는 것이라 팔 길이만 하면 되지만, 앉아서 이 한 장만
+                // 보는 자리(dim)에서는 <b>읽으라고</b> 편 것이다. 같은 크기로 두면
+                // 사목의 조목이 손톱만 하게 적혀, 종이를 폈는데도 못 읽는다.
+                float span = _pageSpan * (dim ? _studySpan : 1f);
+                float k = span / Mathf.Max(w, h);
                 var size = new Vector2(w * k, h * k);
                 _pageRt.sizeDelta = size;
                 _backFace.rectTransform.sizeDelta = size;
@@ -414,6 +422,7 @@ namespace IMUNROK.Common
                 _pageLit.rectTransform.sizeDelta = size;
                 _page.enabled = true;
                 _edge.enabled = true;
+                LayoutAround(size);
             }
             else
             {
@@ -434,6 +443,7 @@ namespace IMUNROK.Common
                 _pageLit.rectTransform.sizeDelta = size;
                 _page.enabled = true;
                 _edge.enabled = true;
+                LayoutAround(size);
             }
 
             SetSlip(page != null ? title : null);
@@ -453,7 +463,7 @@ namespace IMUNROK.Common
                        ? ""
                        : Emphasis.Rich(body, onPaper ? Emphasis.OnPaper : Emphasis.OnDark, !onPaper);
             _body.gameObject.SetActive(!string.IsNullOrEmpty(body));
-            if (onPaper) FitBody();
+            FitBody();
 
             bool hasFine = !string.IsNullOrEmpty(finePrint);
             _finePrint = hasFine ? finePrint : "";
@@ -975,6 +985,46 @@ namespace IMUNROK.Common
         /// 종이 위에 적을 때는 먹빛이라야 한다 — 한지 위에 흰 글씨를 얹으면 안 보인다.
         /// 그리고 위에서부터 적어 내려야 조목이 길어져도 첫 줄이 제자리에 있다.
         /// </summary>
+        /// <summary>
+        /// <b>곁것을 종이에 맞춰 다시 앉힌다.</b>
+        ///
+        /// 여태 닫기 단추도 요약 칸도 이웃 넘기는 짝도 전부 <see cref="_pageSpan"/> 을
+        /// 기준으로 <b>지을 때 한 번</b> 못 박았다. 종이가 늘 정사각 300 이라는 셈인데,
+        /// 종이는 문서마다 비율이 다르고 뜯어보는 자리에서는 크기까지 다르다.
+        /// 그래서 세로로 긴 사목을 펴면 「내려놓기」가 허공에 뜨고, 가로로 긴 장부를
+        /// 펴면 그 단추가 종이 위에 올라앉았다.
+        ///
+        /// 못 박을 것은 <b>종이 가장자리로부터의 거리</b>지 절대 좌표가 아니다.
+        /// 아래 값들은 옛 자리(정사각 300)에서 그대로 뽑아낸 것이라, 정사각 문서는
+        /// 고치기 전과 한 치도 다르지 않다.
+        /// </summary>
+        private void LayoutAround(Vector2 size)
+        {
+            float hx = size.x * 0.5f, hy = size.y * 0.5f;
+
+            if (_hand != null) _hand.sizeDelta = size * 1.2f;
+
+            // <b>단추는 종이 오른쪽 아래에 붙인다.</b> 여태 오른쪽 <b>위</b>였는데,
+            // 세로로 긴 종이를 크게 펴면 그 모서리가 화면 꼭대기 밖으로 나간다 —
+            // 「내려놓기」가 종이에서 떨어져 허공에 뜨고, 어떤 화면비에서는 잘린다.
+            // 아래 모서리는 종이가 아무리 커도 글 밑이라 늘 화면 안이다.
+            if (_closeRt != null) _closeRt.anchoredPosition = new Vector2(hx + 46f, -(hy + 26f));
+            if (_prevRt != null) _prevRt.anchoredPosition = new Vector2(-(hx + 84f), 0f);
+            if (_nextRt != null) _nextRt.anchoredPosition = new Vector2(hx + 84f, 0f);
+
+            // 종이 밑으로 내려 적는 것들. 요약 칸은 종이보다 좁을 까닭이 없다.
+            // <b>글자판은 손보다 먼저 지어졌다</b> — 곧 종이 <b>뒤</b>에 그려진다.
+            // 그러니 글이 종이에 조금이라도 걸치면 그대로 가려진다. 넉넉히 내린다.
+            if (_body != null && _body.rectTransform.parent != _pageRt)
+            {
+                _body.rectTransform.sizeDelta = new Vector2(Mathf.Max(700f, size.x), 76f);
+                _body.rectTransform.anchoredPosition = new Vector2(0f, -(hy + 64f));
+            }
+            if (_fine != null) _fine.rectTransform.anchoredPosition = new Vector2(0f, -(hy + 118f));
+            if (_lit != null) _lit.rectTransform.anchoredPosition = new Vector2(0f, -(hy + 160f));
+            if (_hint != null) _hint.rectTransform.anchoredPosition = new Vector2(0f, -(hy + 202f));
+        }
+
         private void PlaceBody(bool onPaper)
         {
             if (_body == null) return;
@@ -993,8 +1043,12 @@ namespace IMUNROK.Common
             else
             {
                 rt.SetParent(_chrome.transform, false);
-                rt.sizeDelta = new Vector2(700f, 76f);
-                rt.anchoredPosition = new Vector2(0f, -_pageSpan * 0.62f);
+                // 자리는 <b>LayoutAround</b> 가 지금 편 종이에 맞춰 잡아 둔다.
+                // 여기서 _pageSpan 으로 다시 덮으면, 크게 편 종이 <b>뒤에</b> 요약이
+                // 숨어 버린다(글자판이 손보다 먼저 지어져 종이 아래 켜에 그려진다).
+                float hy = _pageRt != null ? _pageRt.sizeDelta.y * 0.5f : _pageSpan * 0.5f;
+                rt.sizeDelta = new Vector2(Mathf.Max(700f, _pageRt != null ? _pageRt.sizeDelta.x : 700f), 76f);
+                rt.anchoredPosition = new Vector2(0f, -(hy + 64f));
                 _body.alignment = TextAnchor.MiddleCenter;
                 _body.color = _textColor;
                 _body.fontSize = _fontSize - 4;

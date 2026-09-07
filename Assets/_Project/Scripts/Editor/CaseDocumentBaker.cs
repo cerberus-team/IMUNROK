@@ -41,6 +41,10 @@ namespace IMUNROK.Common.Editor
             ("T_Doc_Case2_Seocheon", false, SharedFolder),   // 제2사건 · 서천꽃밭 — 첩보(牒報)
             ("T_Doc_Case3_Gyeonu",   false, SharedFolder),   // 제3사건 · 견우직녀 — 전령(傳令)
 
+            // 제1사건 사건 파일 — 현장에 들어서며 받는 한 장(事目).
+            // 봉서는 "왜 왔는가"고 이것은 "무엇을 밝히는가"다. 사건 전용이라 옹고집 폴더로.
+            ("T_Doc_Case1_Field",    false, OnggojipFolder),  // 제1사건 · 사목(事目) — 두 얼굴·집안·살필 것
+
             // 제1사건 잠행 단서 — 옹고집 전용
             ("T_Doc_J06_Jangbu",   false, OnggojipFolder),   // J06 전조기 — 최근 두 줄만 필적이 다르다
             ("T_Doc_J07_Mulmok",   false, OnggojipFolder),   // J07 물목기 — 최근 두 줄에만 수결(押)
@@ -167,8 +171,12 @@ namespace IMUNROK.Common.Editor
         }
 
         /// <summary>
-        /// 임포트 설정. 1024 정사각(POT)이라 블록압축이 걸린다.
-        /// 알파가 필요한 것(타다 만 조각)은 DXT5/ASTC, 나머지는 절반 용량인 DXT1.
+        /// 임포트 설정. 알파가 필요한 것(타다 만 조각)은 DXT5/ASTC, 나머지는 절반 용량인 DXT1.
+        ///
+        /// <b>1024 로 조이지 않는다.</b> 문서는 그린 비율 그대로(세로 1024×1448,
+        /// 가로 1448×1024) 떨어진다 — 긴 변이 1448 이라 1024 로 조이면 유니티가
+        /// 724×1024 로 줄여 버려, 비율을 지키려고 한 일이 해상도만 깎고 끝난다.
+        /// 두 변 다 4의 배수라 이 크기 그대로 블록압축이 걸린다.
         /// </summary>
         private static bool ApplyImportSettings(string path, bool needsAlpha)
         {
@@ -188,14 +196,14 @@ namespace IMUNROK.Common.Editor
             ti.anisoLevel = 4;
             ti.wrapMode = TextureWrapMode.Clamp;
             ti.npotScale = TextureImporterNPOTScale.None;
-            ti.maxTextureSize = 1024;
+            ti.maxTextureSize = 2048;
             ti.textureCompression = TextureImporterCompression.Compressed;
 
             foreach (string platform in new[] { "Standalone", "Android" })
             {
                 var ps = ti.GetPlatformTextureSettings(platform);
                 ps.overridden = true;
-                ps.maxTextureSize = 1024;
+                ps.maxTextureSize = 2048;
                 ps.format = platform == "Android"
                     ? TextureImporterFormat.ASTC_6x6                                     // ASTC는 알파를 같이 담는다
                     : (needsAlpha ? TextureImporterFormat.DXT5 : TextureImporterFormat.DXT1);
