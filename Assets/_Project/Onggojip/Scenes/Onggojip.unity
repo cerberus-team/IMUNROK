@@ -590,6 +590,9 @@ MonoBehaviour:
   _maxTouchDistance: 3
   _fineText: 
   _clueNeedsMagnifier: 0
+  _model: {fileID: 0}
+  _modelEuler: {x: 0, y: 0, z: 0}
+  _backPage: {fileID: 0}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
@@ -6690,8 +6693,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 647629101}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.04361953, z: -0, w: -0.99904823}
-  m_LocalPosition: {x: 12.4, y: -1.27, z: -14.9}
+  m_LocalRotation: {x: -0, y: 0.56062883, z: -0, w: 0.8280673}
+  m_LocalPosition: {x: 19.5, y: -1.67, z: -11.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -6839,6 +6842,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.ServantCheck
   _home: {fileID: 1449671401}
   _checkSpot: {fileID: 1889712466}
+  _via:
+  - {fileID: 1489630757}
   _walkSpeed: 0.85
   _turnSpeed: 200
   _arrive: 0.25
@@ -7254,6 +7259,9 @@ MonoBehaviour:
     '\uC0AC\uB791\uBC29\uC744 \uCE58\uC6CC \uB450\uAC8C', \uADF8\uB9AC\uACE0 \uC774\uB984
     '\uB355\uAD6C' \uAC00 \uC77D\uD78C\uB2E4."
   _clueNeedsMagnifier: 0
+  _model: {fileID: 0}
+  _modelEuler: {x: 0, y: 0, z: 0}
+  _backPage: {fileID: 0}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
@@ -11998,12 +12006,8 @@ MonoBehaviour:
   _lookAt: {fileID: 2064993465}
   _seatedEyeHeight: 1.05
   _standingEyeHeight: 1.6
-  _vrSitByHeight: 1
-  _sitDropRequired: 0.32
-  _sitHoldSeconds: 0.4
   _sitSeconds: 1.3
   _standSeconds: 1.1
-  _rig: {fileID: 0}
   _riseKey: 0
   _seatedLine: 
   _onOffered:
@@ -23966,8 +23970,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1449671400}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.04361953, z: -0, w: -0.99904823}
-  m_LocalPosition: {x: 12.4, y: -1.27, z: -14.9}
+  m_LocalRotation: {x: -0, y: 0.56062883, z: -0, w: 0.8280673}
+  m_LocalPosition: {x: 19.5, y: -1.67, z: -11.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -24279,6 +24283,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8573173560056127949, guid: 0942f42c511a88c4481d7036120b69c3, type: 3}
   m_PrefabInstance: {fileID: 115340905}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1489630756
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1489630757}
+  m_Layer: 0
+  m_Name: "\uD558\uC778_\uACBD\uC720\uC810"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1489630757
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1489630756}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 16, y: -1.67, z: -17}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1994009601}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1502938949
 GameObject:
   m_ObjectHideFlags: 0
@@ -36436,10 +36471,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d4ed2d4018efb4b40bf0271bef1152fa, type: 2}
   - {fileID: 11400000, guid: 89dd9d56dbbea8f4daf5a73d6b0d39c0, type: 2}
   _leftHanded: 0
-  _forceLegacyGui: 0
-  _forceWorldPanel: 0
-  _autoCreateVrPanel: 1
-  _vrFont: {fileID: 0}
+  _font: {fileID: 0}
 --- !u!114 &1760612924
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37296,6 +37328,13 @@ MonoBehaviour:
   _body: 
   _page: {fileID: 2800000, guid: b534ecce5322f4244bfa389a9cc08fa2, type: 3}
   _fine: 
+  _fieldPage: {fileID: 0}
+  _fieldTitle: 
+  _fieldBody: 
+  _fieldFine: 
+  _fieldKey: "\uC870\uC0AC\uBB38\uC11C"
+  _fieldLine: "\uC870\uC0AC \uBB38\uC11C \u2014 \uBB34\uC5C7\uC744 \uBC1D\uD600\uC57C
+    \uD558\uB294\uAC00"
   _delay: 1.1
   _openOnArrive: 1
 --- !u!1 &1889712465
@@ -38499,6 +38538,7 @@ Transform:
   - {fileID: 405787240}
   - {fileID: 24486987}
   - {fileID: 11733251}
+  - {fileID: 1489630757}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2007637631
