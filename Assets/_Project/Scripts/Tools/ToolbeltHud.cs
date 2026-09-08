@@ -258,13 +258,21 @@ namespace IMUNROK.Common
             float gap = Mathf.Round(size * 0.16f);
             float margin = Mathf.Round(size * 0.34f);
             int n = SlotCount;
-            float totalW = n * size + (n - 1) * gap;
-            float y = Screen.height - size - margin;
-            float x0 = (Screen.width - totalW) * 0.5f;   // 하단 중앙(수첩·지도 코너와 안 겹침)
+            float totalH = n * size + (n - 1) * gap;
+
+            // <b>띠를 화면 아래에서 오른쪽 벽으로 옮겼다.</b>
+            //
+            // 하단 중앙은 <b>보는 자리</b>다. 걸어가면서 발밑과 앞을 보는 눈길이 그리로
+            // 지나는데, 거기에 네모 셋이 가로로 박혀 있으니 세상 위에 판이 하나 얹힌
+            // 꼴이 됐다 — 「화면에 있는 느낌과 아예 고정된 느낌」이 그것이다.
+            // 오른쪽 벽에 세로로 붙이면 눈길이 지나는 길에서 비켜서고, 서양 게임의
+            // 하단 퀵슬롯이 아니라 <b>허리춤</b>에 매단 것으로 읽힌다.
+            float x = Screen.width - margin - size;
+            float y0 = Screen.height - margin - totalH;
 
             for (int i = 0; i < n; i++)
             {
-                Rect r = new Rect(x0 + i * (size + gap), y, size, size);
+                Rect r = new Rect(x, y0 + i * (size + gap), size, size);
                 GUI.DrawTexture(r, i == _index ? _slotOn : _slot);
 
                 // <b>그림쇠는 끄고 이름을 적는다.</b>
@@ -296,8 +304,12 @@ namespace IMUNROK.Common
             // 칸마다 이름이 적히므로 「손 : 돋보기」를 또 적지 않는다 — 같은 말을
             // 두 줄에 두면 둘 다 안 읽힌다. 남는 것은 <b>바꾸는 법</b> 한 번뿐이다.
             float line = Mathf.Round(size * 0.42f);
+            // 글은 <b>왼쪽으로</b> 흘린다 — 오른쪽 끝에 칸이 붙어 있으므로
+            float capW = Mathf.Min(Screen.width * 0.52f, 760f);
+            float capX = x - gap - capW;
+
             if (!_everSwitched)
-                GUI.Label(new Rect(x0, y - line - 4f, totalW, line), "휠을 굴려 바꾼다 (Q)", _label);
+                GUI.Label(new Rect(capX, y0 - line - 6f, capW + size, line), "휠을 굴려 바꾼다 (Q)", _label);
 
             // <b>쓰는 법을 그 자리에서 일러 준다.</b>
             //
@@ -308,10 +320,14 @@ namespace IMUNROK.Common
             //
             // 드는 동안 <b>내내</b> 둔다. 한 번 스치고 사라지면 마침 딴 데를 보던 사람은
             // 못 읽고, 그 뒤로 다시 볼 길이 없다. 맨손이면 적을 것이 없으니 안 적는다.
+            // 줄은 <b>지금 든 칸 옆</b>에 나란히 선다. 예전처럼 띠 위에 한 줄로 띄우면
+            // 그 말이 어느 칸을 두고 하는 말인지 눈으로 이어지지 않는다.
             string how = Controls.HowTo(CurrentId);
             if (!string.IsNullOrEmpty(how))
-                GUI.Label(new Rect(x0 - totalW * 0.5f, y - line * 2f - 8f, totalW * 2f, line),
-                          how, _howTo);
+            {
+                float ry = y0 + _index * (size + gap) + size * 0.5f - line;
+                GUI.Label(new Rect(capX, ry, capW, line * 2f), how, _howTo);
+            }
         }
 
         private int _styledFor;   // 어느 화면 높이에 맞춰 지은 글씨인가
@@ -326,10 +342,20 @@ namespace IMUNROK.Common
 
             if (_slot == null)   _slot   = Solid(UiLook.With(UiLook.Paper, 0.08f));
             if (_slotOn == null) _slotOn = Solid(UiLook.With(UiLook.Gold, 0.32f));
+
+            // <b>글씨를 조선궁서체로 맞춘다.</b>
+            //
+            // 이 띠만 <c>GUI.skin.label</c> 의 글씨를 그대로 썼다 — 유니티 기본 얼굴이라
+            // 자막·수첩·알림판(전부 <see cref="UiFont"/>)과 <b>필체가 달랐다</b>.
+            // 같은 화면에 두 필체가 있으면 그중 하나는 반드시 「게임이 아니라 프로그램이
+            // 적어 준 것」으로 읽힌다. 띠가 이질감의 절반을 그렇게 지고 있었다.
+            var face = UiFont.Resolve(_font);
+
             // 안 든 것은 묽게, 든 것은 낙관빛으로. 두 글자가 들어가야 하므로
             // 칸 높이의 3분의 1이 아니라 4분의 1쯤으로 잡는다.
             _iconText = new GUIStyle(GUI.skin.label)
             {
+                font = face,
                 fontSize = Mathf.RoundToInt(size * 0.26f),
                 alignment = TextAnchor.MiddleCenter, wordWrap = false,
                 normal = { textColor = UiLook.With(UiLook.Paper, 0.55f) }
@@ -341,15 +367,18 @@ namespace IMUNROK.Common
             };
             _label = new GUIStyle(GUI.skin.label)
             {
-                fontSize = Mathf.RoundToInt(size * 0.24f), alignment = TextAnchor.MiddleCenter,
+                font = face,
+                fontSize = Mathf.RoundToInt(size * 0.24f), alignment = TextAnchor.MiddleRight,
                 normal = { textColor = UiLook.With(UiLook.Lit(UiLook.Gold, 0.30f), 0.95f) }
             };
             // 쓰는 법은 이름줄보다 한 뼘 묽게 — 읽히되 이름을 덮지 않게.
             // 글쇠 이름에 낙관빛을 입히므로 richText 를 켠다(Controls.Key).
+            // 오른쪽 벽에 붙었으므로 글도 <b>오른쪽 끝을 맞춰</b> 흘린다.
             _howTo = new GUIStyle(_label)
             {
                 fontSize = Mathf.RoundToInt(size * 0.22f),
-                richText = true, wordWrap = false,
+                alignment = TextAnchor.MiddleRight,
+                richText = true, wordWrap = true,
                 normal = { textColor = UiLook.With(UiLook.Paper, 0.72f) }
             };
         }

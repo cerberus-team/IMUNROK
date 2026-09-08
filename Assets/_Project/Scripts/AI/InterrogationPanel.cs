@@ -371,6 +371,7 @@ namespace IMUNROK.Common
                 label.horizontalOverflow = HorizontalWrapMode.Wrap;
                 _orderChips.Add(rt.gameObject);
             }
+
         }
 
         /// <summary>

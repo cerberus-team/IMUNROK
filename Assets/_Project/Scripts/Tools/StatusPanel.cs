@@ -98,9 +98,11 @@ namespace IMUNROK.Common
             string joined = sb.ToString();
             if (joined == _shown) return;
             _shown = joined;
-            // 한지 한 장에 금물 글씨로. 어두운 네모는 아무리 흐려도 「창」으로 읽히고,
-            // 창은 닫아야 하는 것이다 — 이 판은 읽고 흘려보낼 한 마디다.
-            WorldNotice.Show(Key, joined, Height, WorldNotice.Look.Hanji);
+            // <b>바탕 없이 금물 글씨만.</b> 한지 종잇조각으로 두었더니 그것도 결국
+            // 네모라, 「마을 어귀에 닿았다」 한 줄에 판때기가 하나 붙어 나왔다.
+            // 창은 닫아야 하는 것이고, 이 판은 읽고 흘려보낼 한 마디다 —
+            // 글씨만 떴다 지면 그 말이 세상 위에 잠깐 얹힌 것으로 읽힌다.
+            WorldNotice.Show(Key, joined, Height, WorldNotice.Look.Gold);
         }
     }
 }

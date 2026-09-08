@@ -49,12 +49,18 @@ namespace IMUNROK.Common
         private float _rest;
         private bool _hasWalkBool;
 
+        /// <summary>이 사람 제 심문. 남의 심문에는 발이 안 묶인다.</summary>
+        private InterrogationController _talk;
+        private FaceThePlayer _face;
+
         private void Start()
         {
             _from = _a != null ? _a.position : new Vector3(_fromXZ.x, transform.position.y, _fromXZ.y);
             _to   = _b != null ? _b.position : new Vector3(_toXZ.x,   transform.position.y, _toXZ.y);
             if (_a == null && _fromXZ == Vector2.zero) _from = transform.position;
 
+            _talk = GetComponent<InterrogationController>();
+            _face = GetComponent<FaceThePlayer>();
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
             if (_animator != null && !string.IsNullOrEmpty(_walkBool))
                 foreach (var p in _animator.parameters)
@@ -68,10 +74,20 @@ namespace IMUNROK.Common
 
         private void Update()
         {
-            // 말을 거는 동안에는 걷지 않는다. 돌아보는 것은 FaceThePlayer 가 맡는다.
-            if (InterrogationController.AnyOpen) { Walking(false); return; }
+            // <b>말을 거는 동안에는 걷지 않는다 — 말을 걸린 사람만.</b>
+            //
+            // 여기가 <c>InterrogationController.AnyOpen</c> 을 보고 있었다. 그것은
+            // 「씬 어딘가에서 누군가 말을 하고 있다」는 뜻이라, 마당 저쪽에서 옹덕구를
+            // 붙들면 담 앞의 마을사람까지 그 자리에 얼어붙었다. 사람이 말을 나누는
+            // 동안 온 마을이 멈춰 서면 그것은 마을이 아니라 무대 장치다.
+            // 발이 묶여야 하는 것은 <b>마주 선 그 사람</b> 하나뿐이다.
+            if (_talk != null && _talk.IsOpen) { Walking(false); return; }
 
             if (_rest > 0f) { _rest -= Time.deltaTime; Walking(false); return; }
+
+            // 걸을 참이면 돌아보기에게서 몸을 돌려받는다. 안 그러면 이쪽이 튼 몸을
+            // 저쪽이 LateUpdate 에서 도로 돌려놓는다(FaceThePlayer.Release 참고).
+            if (_face != null) _face.Release();
 
             Vector3 to = Flat(_goal - transform.position);
             if (to.magnitude <= _reach)

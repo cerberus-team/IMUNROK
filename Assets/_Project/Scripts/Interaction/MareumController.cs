@@ -584,13 +584,28 @@ namespace IMUNROK.Common
         }
         private bool _groundInit;
 
-        // 이동 중 걷기 애니가 끊기지 않게 유지(클립이 Loop 아니어도 다시 재생).
+        /// <summary>
+        /// <b>걷기가 끊기지 않게 붙든다 — 다만 반복 클립은 건드리지 않는다.</b>
+        ///
+        /// 이 자리가 마름을 <b>제자리 걸음</b>으로 만들고 있었다.
+        ///
+        /// <c>normalizedTime</c> 은 <b>반복 클립에서도 계속 자란다</b>(1.0 에서 0 으로
+        /// 돌아가지 않는다 — 2.7 은 세 바퀴째 한복판이라는 뜻이다). 그래서 「1 을 넘었으면
+        /// 다시 틀어라」는 규칙은, 걷기 클립이 <b>Loop 로 들어온 순간</b> 한 바퀴째가
+        /// 끝난 뒤로 <b>매 프레임</b> 참이 된다. 매 프레임 첫 프레임으로 되감기니
+        /// 다리는 첫 자세에서 부들거리고 몸만 미끄러진다.
+        ///
+        /// 새 뼈대(Mareum_v2·Villager)를 들일 때 걷기 클립에 Loop 를 켠 것이 이것을
+        /// 깨웠다. Loop 가 켜진 클립은 애니메이터가 알아서 잇는다 — <b>붙들 까닭이 없다</b>.
+        /// 붙드는 것은 Loop 가 아닌 클립이 끝에서 멎어 버릴 때뿐이다.
+        /// </summary>
         private void KeepWalking()
         {
             if (_animator == null) return;
             if (_animator.IsInTransition(0)) return;   // 전환(블렌드) 중엔 안 건드림 → CrossFade 안 끊김
             var st = _animator.GetCurrentAnimatorStateInfo(0);
-            if (_animator.speed == 0f || !st.IsName(_walkState) || st.normalizedTime >= 1f)
+            bool ended = !st.loop && st.normalizedTime >= 1f;
+            if (_animator.speed == 0f || !st.IsName(_walkState) || ended)
                 Play(_walkState);
         }
 

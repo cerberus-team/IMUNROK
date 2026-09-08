@@ -25,14 +25,19 @@ namespace IMUNROK.Common
         private Image _bg;
 
         /// <summary>
-        /// <b>알림판의 두 결.</b>
+        /// <b>알림판의 세 결.</b>
         ///
         /// <c>Dark</c> — 어두운 판에 흰 글. 지도처럼 <b>들여다보는</b> 것에 쓴다.
         /// <c>Hanji</c> — 한지빛 종잇조각에 <b>금물 글씨</b>. 지나가는 한 마디에 쓴다.
         ///   어두운 네모는 아무리 흐려도 「창」으로 읽히는데, 이쪽은 종이 한 장이
         ///   떴다 지는 것이라 읽고 흘려보내게 된다. 조선의 방문(榜文)이 그러하다.
+        /// <c>Gold</c> — <b>바탕이 아예 없다.</b> 금물 글씨만 허공에 뜬다.
+        ///   한지 종잇조각도 결국 <b>네모</b>라, 「마을 어귀에 닿았다」 한 줄이 뜰 때마다
+        ///   화면 한복판에 판때기가 하나 생겼다 놓인다. 세상을 가리지 않고 지나가는
+        ///   말은 글씨만 있으면 된다 — 대신 밤하늘에도 읽히게 글씨 둘레에 먹빛
+        ///   그림자를 두른다.
         /// </summary>
-        public enum Look { Dark, Hanji }
+        public enum Look { Dark, Hanji, Gold }
 
         /// <summary>글을 띄운다. verticalOffset은 눈높이 기준 위아래(m).</summary>
         public static void Show(string key, string message, float verticalOffset,
@@ -134,6 +139,23 @@ namespace IMUNROK.Common
             if (_bg == null || _text == null) return;
             _look = look;
 
+            if (look == Look.Gold)
+            {
+                // 바탕은 <b>없다</b>. 끄지 않고 투명하게 두는 것은 판 크기를 재는 자리가
+                // 이 사각형이기 때문이다(FitPlate) — 껐다 켰다 하면 글이 뜰 때마다
+                // 한 프레임씩 자리를 못 잡는다.
+                _bg.color = new Color(0f, 0f, 0f, 0f);
+                // 금물 글씨. 한지 위가 아니라 <b>세상 위</b>에 얹히므로 밝은 금으로 둔다.
+                _text.color = new Color(0.98f, 0.84f, 0.46f);
+                // 둘레는 먹빛. 낮의 흰 담벽 위에서도 글자가 남게 하는 것은 이것뿐이다
+                // (낡은 UI.Text 에는 그림자 말고 다른 길이 없다).
+                if (_glow == null) _glow = _text.gameObject.AddComponent<Outline>();
+                _glow.enabled = true;
+                _glow.effectColor = new Color(0.06f, 0.04f, 0.02f, 0.92f);
+                _glow.effectDistance = new Vector2(2.4f, -2.4f);
+                return;
+            }
+
             if (look == Look.Hanji)
             {
                 // 한지 한 장. 어두운 판보다 <b>진하게</b> 깐다 — 종이는 비치는 것이
@@ -196,19 +218,24 @@ namespace IMUNROK.Common
         {
             if (_bg == null || _text == null) return;
             var plate = (RectTransform)_bg.transform;
-            if (_look != Look.Hanji) { plate.sizeDelta = new Vector2(1100f, 420f); return; }
+            if (_look == Look.Dark) { plate.sizeDelta = new Vector2(1100f, 420f); return; }
 
             // 넓이를 먼저 <b>가둔 뒤</b> 높이를 묻는다. <c>preferredWidth</c> 는 줄바꿈을
             // 모르는 값이라, 그것만 보고 판을 잡으면 한 줄짜리 긴 글이 화면을 가로지른다.
             // 반대로 <c>preferredHeight</c> 는 지금 칸 너비를 보고 답하므로, 너비를
             // 정해 놓고 물어야 접힌 줄 수가 나온다.
+            // 바탕이 없으면 여백이 곧 <b>허공</b>이라 넉넉히 둘 까닭이 없다.
+            // <c>inset</c> 을 0 으로 두지 않으면, 글칸이 종이보다 72 좁은 채로 남아
+            // 「마을 어귀에 닿았다」 한 줄이 <b>있지도 않은 종이 폭</b>에 걸려 두 줄로 접힌다.
+            float pad = _look == Look.Gold ? 24f : 96f;
+            float inset = _look == Look.Gold ? 0f : 72f;
             const float MaxW = 900f;
             var txt = (RectTransform)_text.transform;
-            txt.sizeDelta = new Vector2(MaxW - 72f, 400f);
-            float w = Mathf.Clamp(_text.preferredWidth + 96f, 340f, MaxW);
-            txt.sizeDelta = new Vector2(w - 72f, 400f);
-            float h = Mathf.Clamp(_text.preferredHeight + 56f, 92f, 400f);
-            txt.sizeDelta = new Vector2(w - 72f, h - 28f);
+            txt.sizeDelta = new Vector2(MaxW - inset, 400f);
+            float w = Mathf.Clamp(_text.preferredWidth + pad, 340f, MaxW);
+            txt.sizeDelta = new Vector2(w - inset, 400f);
+            float h = Mathf.Clamp(_text.preferredHeight + (_look == Look.Gold ? 16f : 56f), 92f, 400f);
+            txt.sizeDelta = new Vector2(w - inset, h - (_look == Look.Gold ? 0f : 28f));
             plate.sizeDelta = new Vector2(w, h);
         }
 

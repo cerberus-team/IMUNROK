@@ -61,6 +61,9 @@ namespace IMUNROK.Common
 
         private float _pauseTimer;
 
+        /// <summary>이 사람 제 심문. 남의 심문에는 발이 안 묶인다.</summary>
+        private IMUNROK.Common.InterrogationController _talk;
+
         private void Start()
         {
             _home = transform.position;
@@ -78,14 +81,17 @@ namespace IMUNROK.Common
             if (cam != null) _player = cam.transform;
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
             _hasWalkBool = HasParam(_walkBool);
+            _talk = GetComponent<IMUNROK.Common.InterrogationController>();
         }
 
         private void Update()
         {
             float dt = Time.deltaTime;
 
-            // 대화(심문) 중이면 멈추고 플레이어를 부드럽게 바라봄
-            if (InterrogationController.AnyOpen)
+            // 대화(심문) 중이면 멈추고 플레이어를 부드럽게 바라봄.
+            // <b>제 심문일 때만</b>이다 — 남이 말을 거는 동안 온 마을이 멈춰 설 까닭이 없다
+            // (<see cref="RoadWalker"/> 에 같은 고침이 있다).
+            if (_talk != null && _talk.IsOpen)
             {
                 SetWalking(false);
                 FacePlayer(dt);

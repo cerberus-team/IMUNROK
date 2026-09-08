@@ -278,10 +278,18 @@ namespace IMUNROK.Common
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb == null) return;
 
-            // <b>치는 동안에는 Backspace 를 먹지 않는다.</b> 여기가 자막을 닫는 자리인데,
-            // 글을 고치려고 한 글자 지운 순간 판이 통째로 닫히면 무슨 일인지 알 수가 없다.
-            if (kb.escapeKey.wasPressedThisFrame
-                || (kb.backspaceKey.wasPressedThisFrame && !Typing.Now))
+            // <b>닫을 수 있는 판일 때만 닫는다.</b>
+            //
+            // <see cref="Closable"/> 는 여태 <b>「✕」 딱지를 그릴지</b>만 정했다. 그래서
+            // 심문 중(닫을 수 없다고 해 둔 자리)에도 Esc 는 그대로 먹어서, 딱지도 없는
+            // 판이 글쇠로만 사라졌다 — 심문은 그대로인데 상대의 말만 없어진다.
+            // 닫을 수 없다고 했으면 <b>어느 길로도</b> 닫히지 않아야 한다.
+            //
+            // <b>치는 동안에는 Backspace 를 먹지 않는다.</b> 글을 고치려고 한 글자
+            // 지운 순간 판이 통째로 닫히면 무슨 일인지 알 수가 없다.
+            if (Closable
+                && (kb.escapeKey.wasPressedThisFrame
+                    || (kb.backspaceKey.wasPressedThisFrame && !Typing.Now)))
                 SetVisible(false, true);        // 이것도 사람이 닫은 것이다
 
             // ── Enter — 묻기 ──

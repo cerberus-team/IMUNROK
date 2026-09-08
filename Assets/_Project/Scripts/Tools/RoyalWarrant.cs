@@ -60,6 +60,44 @@ namespace IMUNROK.Common
         /// </summary>
         private static bool OnTheBelt { get { return ToolbeltHud.SelectedToolId == "mapae"; } }
 
+        /// <summary>씬에 하나뿐인 품속 마패. 도구띠가 이걸 보고 맨손 줄을 적는다.</summary>
+        private static RoyalWarrant Current;
+
+        /// <summary>
+        /// <b>도구띠의 맨손 칸에 적힐 한 줄.</b>
+        ///
+        /// ⚠️ 여기가 이 부품의 <b>유일한 안내</b>다. 예전 구조는 이랬다:
+        ///   ① 띠는 맨손일 때 늘 「[F] 를 꾹 누르면 품에서 마패를 꺼낸다」고 <b>권하고</b>,
+        ///   ② 그 말대로 F 를 누르면 마패가 「아직 이르다」고 <b>물린다</b>.
+        /// 권하는 입과 물리는 입이 따로 있으니, 누른 사람 눈에는 <b>고장</b>으로 보인다.
+        /// 게다가 물리는 말은 <b>누른 그 순간에만</b> 한 번 스쳐서, 무엇이 몇 가지 모자란지
+        /// 다시 보려면 또 눌러 봐야 했다 — 알려면 거절당해야 하는 안내였다.
+        ///
+        /// 그래서 <b>거절문을 없애고 초대문을 조건부로 바꾼다.</b> 낼 것이 모자라면 띠가
+        /// 처음부터 「아직 {n}가지 남았다」고 <b>가만히 적어 두고</b>, 다 채운 그 순간
+        /// 같은 자리의 글이 「[F] 를 꾹 누르면…」으로 갈린다. 안내문 자체가 자물쇠라
+        /// 누를 것을 권해 놓고 물릴 일이 없고, 남은 가짓수는 <b>내내</b> 보인다.
+        ///
+        /// 빈 문자열이면 띠는 맨손 줄을 안 적는다(출도한 뒤·2막).
+        /// </summary>
+        public static string BeltLine
+        {
+            get
+            {
+                var w = Current;
+                if (w == null || w._done || OnTheBelt) return "";
+                var gs = GameState.Instance;
+                if (gs != null && gs.IdentityRevealed) return "";
+
+                int miss = w.Missing();
+                if (miss > 0)
+                    return "품 속의 <b>마패</b> — <color=#B8452AFF><b>출도(出道)</b></color> 하려면 밝혀 둘 것이 "
+                         + miss + "가지 남았다";
+                return Controls.Key(w.KeyName()) + " 를 <b>꾹 누르면</b> 품에서 마패를 꺼낸다 — "
+                     + "<color=#B8452AFF><b>출도(出道)</b></color>";
+            }
+        }
+
         [Header("무엇을 꺼내나")]
         [Tooltip("품에서 꺼낼 패의 모형. 평소에는 꺼져 있다")]
         [SerializeField] private GameObject _model;
@@ -92,13 +130,9 @@ namespace IMUNROK.Common
 
         [Header("말")]
         [SerializeField] private string _speaker = "";
-        [TextArea(2, 3)]
-        [Tooltip("낼 것이 모자랄 때 눌렀을 때. {0} 자리에 몇 개 모자란지가 들어간다. " +
-                 "<b>무엇을 막는 말인지가 드러나야 한다</b> — 「품에 든 것을 꺼내기에는」이라고만 " +
-                 "적어 두었더니 도구를 못 쓴다는 말로 읽혔다. 도구는 언제든 쓸 수 있고, " +
-                 "막히는 것은 출도 하나뿐이다")]
-        [SerializeField] private string _notYetLine =
-            "품에 든 *마패*를 꺼내기엔 아직 이르다 — *출도(出道)*하려면 밝혀 둘 것이 *{0}가지* 남았다.";
+        // <b>「아직 이르다」는 걷었다.</b> 누른 사람에게 자막으로 물리는 대신, 도구띠의
+        // 맨손 줄이 처음부터 남은 가짓수를 적어 둔다(<see cref="BeltLine"/>).
+        // 거절문이 남아 있으면 다음에 고치는 사람이 반드시 그쪽도 손보게 된다.
         [TextArea(2, 3)]
         [Tooltip("다 채운 <b>그 순간</b> 한 번. 이것이 곧 '이제 나가도 된다'는 신호다")]
         [SerializeField] private string _readyLine = "품 속의 것이 *무거워진다*. ({0} 꾹 눌러 내보이기)";
@@ -147,7 +181,10 @@ namespace IMUNROK.Common
             _outPos = _model != null ? _model.transform.localPosition : Vector3.zero;
             Place(0f);
             if (_model != null) _model.SetActive(false);
+            Current = this;
         }
+
+        private void OnDestroy() { if (Current == this) Current = null; }
 
         private void Update()
         {
@@ -203,17 +240,17 @@ namespace IMUNROK.Common
 #if ENABLE_INPUT_SYSTEM
             var kb = UnityEngine.InputSystem.Keyboard.current;
             var key = emptyHanded && kb != null ? kb[_raiseKey] : null;
+            // 톡 누른 것은 이제 안 본다 — 낼 것이 모자랄 때 뱉던 거절문이 없어졌다.
             bool pressing = key != null && key.isPressed;
-            bool tapped = key != null && key.wasPressedThisFrame;
 #else
-            bool pressing = false, tapped = false;
+            bool pressing = false;
 #endif
 
             if (!ready)
             {
-                // <b>품에서 나오지도 않는다.</b> 다만 왜 안 나오는지는 말해 준다 —
-                // 아무 일도 안 일어나면 고장인지 아직인지 알 수가 없다.
-                if (tapped) Say(string.Format(_notYetLine, Missing()));
+                // <b>품에서 나오지도 않고, 아무 말도 안 한다.</b> 왜 안 나오는지는
+                // 도구띠의 맨손 줄이 <b>누르기 전부터</b> 적어 두고 있다(BeltLine).
+                // 여기서 또 한 마디를 뱉으면 「권했다가 물리는」 그 구조로 되돌아간다.
                 Move(false);
                 return;
             }

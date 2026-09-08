@@ -868,12 +868,15 @@ namespace IMUNROK.Common
         private void Update()
         {
             CheckWalkedAway();
-#if ENABLE_INPUT_SYSTEM
-            var kb = UnityEngine.InputSystem.Keyboard.current;
-            // ESC로 심문창 닫기(인물 큐브 방식일 때). I는 수첩(JournalView)이 처리
-            if (_active && kb != null && !_beginOnStart && kb.escapeKey.wasPressedThisFrame)
-                ClosePanel();
-#endif
+            // <b>Esc 로 자리를 파하던 길을 걷었다.</b>
+            //
+            // Esc 는 이 게임에서 <b>물러나는 글쇠</b>다 — 든 것을 내려놓고, 수첩을 접고,
+            // 판을 닫는다. 그 글쇠 하나에 「사람 앞에서 돌아서기」까지 얹어 두었더니,
+            // 손에 든 것을 내려놓으려고 누른 Esc 에 말하던 자리가 통째로 파했다.
+            // 되돌리는 길은 없다(첫 마디는 다시 안 나온다).
+            //
+            // 자리를 파하는 것은 <b>되돌릴 수 없는 일</b>이므로 손으로 골라야 한다 —
+            // 판의 「이만 마치겠소」 하나만 남긴다(<see cref="InterrogationPanel"/>).
 
             // 씬 전환은 UI 콜백 밖(안전)에서 처리
             if (_exitRequested)

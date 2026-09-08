@@ -684,9 +684,14 @@ namespace IMUNROK.Common
 
             if (_hand != null)
             {
-                _hand.localRotation = Quaternion.Euler(9f + breathe + _spin.y + _tilt.y,
+                // <b>펼친 종이는 똑바로 선다.</b> 여기 9도와 −2.5도가 못 박혀 있었다 —
+                // 손에 든 종이라 조금 비스듬한 편이 자연스럽다고 본 값인데, 실제로는
+                // 사목처럼 <b>글씨가 반듯한 문서</b>가 늘 삐뚜름하게 떠서 「기울어진 채로
+                // 시작한다」로 읽혔다. 종이를 읽는 사람은 종이를 똑바로 든다.
+                // 숨결(breathe)만 남긴다 — 그것은 흔들림이지 기울기가 아니다.
+                _hand.localRotation = Quaternion.Euler(breathe + _spin.y + _tilt.y,
                                                        _spin.x,
-                                                       -2.5f + breathe * 0.4f);
+                                                       breathe * 0.4f);
                 _hand.anchoredPosition = new Vector2(_tilt.x * 1.5f + _pan.x, breathe * 2.2f + _pan.y);
             }
 
