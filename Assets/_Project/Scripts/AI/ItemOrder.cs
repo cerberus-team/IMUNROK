@@ -83,11 +83,20 @@ namespace IMUNROK.Common
 
         public override string Label => _label;
 
-        public override bool Available
+        /// <summary>이 명령이 손에 쥐고 있기를 바라는 도구 id(없으면 빈 값). 벨트가 물어본다.</summary>
+        public string NeedsToolId => _needsToolId;
+
+        /// <summary>
+        /// <b>단추 말고 조건만</b> 본다 — 막·근거·도구·한 번만.
+        ///
+        /// <see cref="Available"/> 와 갈라 둔 까닭: 단추 없는 것(<see cref="_buttonless"/>)은
+        /// 줄에 안 서지만 <b>조건은 그대로 지켜야 한다</b>. 여태 <see cref="Trigger"/> 가
+        /// 이것을 통째로 건너뛰어, 막이 아니어도 근거가 없어도 이미 한 번 했어도 열렸다.
+        /// </summary>
+        private bool Allowed
         {
             get
             {
-                if (_buttonless) return false;   // 이건 고르는 것이 아니라 벌어지는 것이다
                 if (_done && _once) return false;
                 if (!FitsAct) return false;
                 if (!string.IsNullOrEmpty(_needsToolId)
@@ -104,6 +113,12 @@ namespace IMUNROK.Common
                 }
                 return true;
             }
+        }
+
+        public override bool Available
+        {
+            // 단추 없는 것은 고르는 일이 아니라 벌어지는 일이라 줄에 안 선다.
+            get { return !_buttonless && Allowed; }
         }
 
         public override void Run(InterrogationController who)
@@ -125,7 +140,7 @@ namespace IMUNROK.Common
         public void Trigger()
         {
             var who = GetComponent<InterrogationController>();
-            if (who == null || !who.IsOpen) return;
+            if (who == null || !who.IsOpen || !Allowed) return;
             Run(who);
             InterrogationPanel.Refresh();
         }

@@ -112,7 +112,7 @@ namespace IMUNROK.Common.EditorTools
                         new CaseReport.Choice { 말 = "甲의 왼팔에 파기와 같은 자국이 있음",
                                                 필요단서 = "G07", 맞음 = true, 쐐기 = true },
                         new CaseReport.Choice { 말 = "乙의 왼팔에는 그 자국이 없음", 필요단서 = "G08", 맞음 = true },
-                        new CaseReport.Choice { 말 = "입안대장을 긁어내고 고쳐 쓴 자리", 필요단서 = "G05", 맞음 = true },
+                        new CaseReport.Choice { 말 = "입안대장을 긁어내고 고쳐 쓴 자리", 필요단서 = "G11", 맞음 = true },
                         new CaseReport.Choice { 말 = "호구단자를 관리가 아니라 집사람이 씀", 필요단서 = "G02" },
                         new CaseReport.Choice { 말 = "소작료를 한 달 전에 내린 셈",       필요단서 = "G04" },
                         new CaseReport.Choice { 말 = "호적대장에 적힌 것",               필요단서 = "G01" },
@@ -125,7 +125,7 @@ namespace IMUNROK.Common.EditorTools
                     물음 = "장부가 고쳐져 신분을 잃은 자가 누구인가.",
                     보기 = new[]
                     {
-                        new CaseReport.Choice { 말 = "복동",     필요단서 = "G05", 맞음 = true },
+                        new CaseReport.Choice { 말 = "복동",     필요단서 = "G11", 맞음 = true },
                         new CaseReport.Choice { 말 = "늙은하인" },
                         new CaseReport.Choice { 말 = "마름" },
                     },

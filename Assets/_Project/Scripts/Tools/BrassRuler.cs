@@ -52,8 +52,14 @@ namespace IMUNROK.Common
                 hit = info.collider.GetComponentInParent<Measurable>();
 
             if (hit != _at) { _at = hit; _dwell = 0f; }
-            if (_at == null) { Say(_idleLine, false); return; }
-            if (_at.Measured) { Say(_at.ResultLine(), true); return; }
+
+            // <b>마주 선 사람의 말을 덮지 않는다.</b> 관아에서는 심문 중에도 유척이 손에
+            // 남는데(드러난 팔을 재야 하므로), 그동안 겨눈 것이 없으면 이 자가 매 프레임
+            // 「놋쇠 자다. 잴 것에 대어 본다」로 인물의 대사를 지웠다. 자막은 한 사람 몫이다.
+            bool talking = InterrogationController.AnyOpen;
+
+            if (_at == null) { if (!talking) Say(_idleLine, false); return; }
+            if (_at.Measured) { if (!talking) Say(_at.ResultLine(), true); return; }
 
             _dwell += Time.deltaTime;
             if (_dwell < _measureSeconds)
@@ -62,7 +68,11 @@ namespace IMUNROK.Common
                 return;
             }
             _at.Measure();
-            Say(_at.ResultLine(), true);
+            // 재는 동안은 눈금이 차오르는 것을 보여야 하지만, 잰 <b>결과</b>는 다르다.
+            // 마주 선 자리에서는 그 사람이 반응하는 것이 결과다(Measurable 의 잰 뒤 자리).
+            // 여기서 한 줄을 더 띄우면 그 반응을 덮는다.
+            if (!talking) Say(_at.ResultLine(), true);
+            else _last = null;
         }
 
         private string _last;

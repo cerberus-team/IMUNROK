@@ -11,16 +11,19 @@ namespace IMUNROK.Common
     /// OnGUI 는 세상 속 판과 켜가 어긋나므로, 이게 없으면 심문을 시작하거나
     /// 끝낼 방법이 없다.
     ///
-    /// <b>네 줄로 되어 있다</b>(위에서 아래로):
-    ///   ① 마이크 · 마치기 — 늘 있는 것
-    ///   ② <b>물음</b>   — 추천 질문. 한 번에 셋까지만(<see cref="InterrogationController.Topics"/>)
-    ///   ③ <b>명령</b>   — 묻는 것이 아니라 시키는 것(<see cref="InterrogationOrder"/>).
+    /// <b>세 줄로 되어 있다</b>(위에서 아래로):
+    ///   ① <b>물음</b>   — 추천 질문. 한 번에 셋까지만(<see cref="InterrogationController.Topics"/>)
+    ///   ② <b>명령</b>   — 묻는 것이 아니라 시키는 것(<see cref="InterrogationOrder"/>).
     ///                     근거가 없으면 줄 자체가 안 뜬다
-    ///   ④ <b>사람</b>   — 동헌의 부르기 판(<see cref="InterrogationBench"/>). 이름을 누르면
+    ///   ③ <b>사람</b>   — 동헌의 부르기 판(<see cref="InterrogationBench"/>). 이름을 누르면
     ///                     있던 이가 물러나고 그 사람이 선다
     ///
-    /// <b>아무도 안 불렀을 때</b>는 ④번 줄만 뜬다(<see cref="OpenRoster"/>). 마루에 앉아
-    /// 뜰을 내려다보는데 마이크며 마치기가 먼저 떠 있으면 누구에게 하는 말인지 알 수 없다.
+    /// <b>마이크도 마치기도 여기 없다.</b> 마이크는 걷어냈고(글쇠 칸이 그 자리를 받았다),
+    /// 마치기는 자막 바로 갔다(<see cref="Tools.SubtitleView"/>) — 묻는 자리를 하나로 두려던
+    /// 때 옮겼다. 이 파일에도 한 벌이 남아 있었는데 켜지는 길이 없어 함께 걷었다.
+    ///
+    /// <b>아무도 안 불렀을 때</b>는 사람 줄만 뜬다(<see cref="OpenRoster"/>). 마루에 앉아
+    /// 뜰을 내려다보는데 묻는 단추가 먼저 떠 있으면 누구에게 하는 말인지 알 수 없다.
     ///
     /// 씬에 미리 둘 필요 없다 — 심문이 시작될 때 스스로 만든다.
     /// </summary>
@@ -32,11 +35,6 @@ namespace IMUNROK.Common
         [Tooltip("켜면 색을 <b>꾸러미(IMUNROK.Ui)</b> 에서 받아 온다 — 자막 바·수첩과 한 결이 된다")]
         [SerializeField] private bool _useCommonLook = true;
         [SerializeField] private Color _chipColor = UiLook.With(UiLook.Slot, 0.85f);
-        [Tooltip("되돌릴 수 없는 '마치기' 버튼")]
-        [SerializeField] private Color _endColor = UiLook.With(UiLook.WoodLit, 0.95f);
-        [Tooltip("되물을 때의 색. 한 번 더 눌러야 끝난다는 것이 색으로도 보여야 한다")]
-        [SerializeField] private Color _confirmColor = UiLook.With(UiLook.Seal, 0.97f);
-
         [Tooltip("명령 단추. 묻는 것과 <b>색으로 갈라 둔다</b> — 이 줄을 누르면 대답이 아니라 일이 벌어진다")]
         [SerializeField] private Color _orderColor = UiLook.With(UiLook.Seal, 0.95f);
 
@@ -63,40 +61,14 @@ namespace IMUNROK.Common
         private RectTransform _chipRow;
         private RectTransform _orderRow;
         private RectTransform _seatRow;
-        private RectTransform _endRt;
-        private Image _endBg;
-        private Text _endLabel;
-        private float _confirmLeft;      // 되물은 뒤 남은 시간
 
         /// <summary>아무도 안 불렀을 때 — 이름표 줄만 뜬 상태.</summary>
         private bool _rosterOnly;
 
-        private const string EndWord = "이만 마치겠소";
-        private const string AskWord = "정말 마치겠소?";
+        // 「이만 마치겠소」와 3초 되묻기는 <see cref="Tools.SubtitleView"/> 로 갔다.
+        // 여기 남아 있던 한 벌은 켜는 길이 없어 걷었다 — 없는 단추의 색과 시계를
+        // 돌보고 있으면, 다음에 마치기를 고치는 사람이 안 쓰이는 쪽을 고친다.
 
-        /// <summary>되묻고 이만큼(초) 안에 다시 눌러야 끝난다. 지나면 원래대로 돌아간다.</summary>
-        private const float ConfirmSeconds = 3f;
-
-        /// <summary>
-        /// 한 번 누르면 되묻고, 그 사이에 다시 누르면 끝낸다.
-        ///
-        /// 버튼을 둘로 나누는 대신 이 버튼이 두 번 묻는다. 되돌릴 수 없는 일을 막는 데는
-        /// 이편이 낫다 — 곁에 둔 버튼은 무슨 일을 하는지 따로 배워야 하지만, 되묻는 말은
-        /// 그 자리에서 읽힌다.
-        /// </summary>
-        private void OnEndPressed()
-        {
-            if (_confirmLeft > 0f) { _confirmLeft = 0f; ResetEndLook(); _owner?.FinishFromUi(); return; }
-            _confirmLeft = ConfirmSeconds;
-            if (_endLabel != null) _endLabel.text = AskWord;
-            if (_endBg != null) _endBg.color = _confirmColor;
-        }
-
-        private void ResetEndLook()
-        {
-            if (_endLabel != null) _endLabel.text = EndWord;
-            if (_endBg != null) _endBg.color = _endColor;
-        }
         private RawImage _evidence;
         private float _evidenceTimer;
 
@@ -230,8 +202,6 @@ namespace IMUNROK.Common
             bool wasRoster = _rosterOnly || _group.alpha <= 0f;
             _owner = owner;
             _rosterOnly = false;
-            _confirmLeft = 0f;
-            ResetEndLook();
             ApplyPlacement();
             // <b>말하기와 마치기는 이제 자막 바에 있다</b> (2026-08-27).
             //
@@ -240,7 +210,6 @@ namespace IMUNROK.Common
             // <b>같은 일이 두 판에 나뉘어</b> 있었다 — 어느 쪽을 눌러야 하는지 알 수가 없다.
             // 그래서 둘을 바로 옮겼다. 이 판에는 <b>이 판에만 있는 것</b>만 남는다:
             // 추천 질문·명령·자리. 저쪽에 짝이 없는 것들이다.
-            _endRt.gameObject.SetActive(false);
             RebuildChips(owner != null ? owner.Topics : null);
             BuildOrders();
             BuildSeats();
@@ -253,10 +222,7 @@ namespace IMUNROK.Common
             bool wasHidden = _group.alpha <= 0f;
             _owner = null;
             _rosterOnly = true;
-            _confirmLeft = 0f;
-            ResetEndLook();
             ApplyPlacement();
-            _endRt.gameObject.SetActive(false);
             RebuildChips(null);
             BuildOrders();
             BuildSeats();
@@ -285,12 +251,6 @@ namespace IMUNROK.Common
 
         private void Update()
         {
-            if (_confirmLeft > 0f)
-            {
-                _confirmLeft -= Time.deltaTime;
-                if (_confirmLeft <= 0f) ResetEndLook();
-            }
-
             if (_evidence != null)
             {
                 bool show = _evidenceTimer > 0f;
@@ -308,11 +268,6 @@ namespace IMUNROK.Common
         /// 이 판은 뒤판 없이 단추만 떠 있어서 색이 열 자리로 흩어져 있다.
         /// 하나하나 꾸러미의 <b>뜻이 같은 색</b>에 붙인다 — 값이 아니라 뜻을 맞춘다.
         ///
-        /// <b>마이크의 초록만은 옮길 데가 없었다.</b> 꾸러미에 초록이 없다. 그래서
-        /// 뜻으로 옮겼다 — 평소에는 <c>slotBack</c>(「눌러도 되는 자리」를 알리는 색),
-        /// 녹음 중에는 <c>Vermilion</c>(주칠). 팀원 PC판에서도 마이크는 어두운 칸이고
-        /// 누르면 붉어진다.
-        ///
         /// 알파(비침)는 우리 값을 지킨다 — 저쪽은 낱색만 주고, 얼마나 비칠지는
         /// 판마다 다르다.
         /// </summary>
@@ -322,8 +277,6 @@ namespace IMUNROK.Common
             var pal = IMUNROK.Ui.DialogueUI.Palette();
 
             _chipColor      = Keep(pal.slotBack, _chipColor.a);      // 물음 칩 — 고를 수 있는 자리
-            _endColor       = Keep(UiLook.WoodLit, _endColor.a);     // 마치기 — 나뭇결
-            _confirmColor   = Keep(UiLook.Seal, _confirmColor.a);    // 다짐 — 주칠
             _orderColor     = Keep(UiLook.Seal, _orderColor.a);      // 명령 — 주칠
             _seatColor      = Keep(pal.slotBack, _seatColor.a);      // 사람 칸
             _seatUpColor    = Keep(UiLook.WoodLit, _seatUpColor.a);  // 부른 사람
@@ -344,20 +297,6 @@ namespace IMUNROK.Common
 
         private void BuildFixedParts()
         {
-            // 마치기 — 이건 되돌릴 수 없다. 상대가 자리를 뜬다.
-            //
-            // 한때 '잠시 멈추다' 를 곁에 두었다. 손이 미끄러진 한 번에 심문이 영영 끝나는
-            // 것을 막으려던 것인데, 마주 앉아 있는 자리에서 <b>대화를 잠시 치운다</b>는 것이
-            // 무슨 뜻인지 애매했다 — 치워 놓고 할 일이 없다. 안전은 버튼을 하나 더 두어
-            // 얻을 것이 아니라 <b>이 버튼 자신이</b> 두 번 물어 얻는 것이다.
-            _endRt = NewRect("마치기", new Vector2(0f, 88f), new Vector2(340f, 96f), transform);
-            _endBg = _endRt.gameObject.AddComponent<Image>();
-            Skin(_endBg, _skin.Wood_, _endColor);
-            var endBtn = _endRt.gameObject.AddComponent<Button>();
-            endBtn.targetGraphic = _endBg;
-            endBtn.onClick.AddListener(OnEndPressed);
-            _endLabel = NewText("라벨", EndWord, Vector2.zero, new Vector2(340f, 96f), _endRt, _fontSize - 4);
-
             // 물음 · 명령 · 사람 — 세 줄. 위에서 아래로 무거워진다:
             // 묻는 것보다 시키는 것이, 시키는 것보다 사람을 갈아 세우는 것이 큰일이다.
             _chipRow  = NewRect("물음줄", new Vector2(0f, -16f),  new Vector2(1200f, 90f), transform);

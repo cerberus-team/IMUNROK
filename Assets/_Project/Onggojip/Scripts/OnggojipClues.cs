@@ -63,7 +63,10 @@ namespace IMUNROK.Onggojip
             new ClueDef { key = "G03", text = "입안 대장 — 별급문기 사본, 수취인 \"종 복동\"", stealth = false },
             new ClueDef { key = "G04", text = "환곡·소작 대장 — 한 달간 소작료 인하", stealth = false },
             new ClueDef { key = "G05", text = "아내 증언 — \"서방님께 아우가 하나 있긴 했습니다\"", stealth = false },
-            new ClueDef { key = "G06", text = "마름 — 속량 관련해 무너짐", stealth = false },
+            // <b>주인을 바로잡았다.</b> 표에는 마름이라 적혀 있었으나 속량에 매수되어 입을
+            // 다문 사람은 늙은 하인이고, 마름의 2막은 「새로 알려 줄 것이 없다」로 적혀 있다.
+            // 그러면서 이 번호는 <b>아무도 주지 않는</b> 고아였다 — 이제 하인이 준다.
+            new ClueDef { key = "G06", text = "늙은 하인 — 속량을 약속받고 거짓을 말했다고 실토", stealth = false },
 
             // <b>유척이 짚는 마지막 한 치.</b> 사람의 말은 흔들려도 치수는 안 흔들린다 —
             // 대장에 적힌 "두 치 남짓"과 지금 저 팔의 흉터를 대어 보면 그것으로 끝난다.
@@ -78,6 +81,11 @@ namespace IMUNROK.Onggojip
             // 여섯 살에 체한 뒤로 비린 것을 입에 못 대는데, 안채의 아내가 그것을 안다.
             new ClueDef { key = "G09", text = "아내 — \"비린 것은 입에도 못 대시던 분인데, 요즘은 게장을 청하십니다\"", stealth = false },
             new ClueDef { key = "G10", text = "甲은 게장을 사들이고도 못 먹는 척한다 — 물목기와 아내의 말이 어긋난다", stealth = false },
+
+            // <b>등불을 댄 사람만 갖는다.</b> 입안대장 다섯째 줄을 긁어내고 덧쓴 자리 —
+            // 지운 밑글이 「복동 면천, 기묘년 시월」이다. 한동안 이것이 G05 를 쓰고 있어
+            // 아내의 증언과 한 칸을 다투었다(먼저 들어온 쪽만 남았다). 갈라 두었다.
+            new ClueDef { key = "G11", text = "입안대장이 고쳐졌다 — 지운 밑글은 「복동 면천, 기묘년 시월」", stealth = false },
         };
 
         /// <summary>

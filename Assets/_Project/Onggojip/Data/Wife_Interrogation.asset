@@ -110,11 +110,13 @@ MonoBehaviour:
     grantsClueText: 
     grantsClueImage: {fileID: 0}
   evidenceGates:
-  - act: 0
+  - act: 2
     clueKey: J06
     clueText: "\uC7A5\uBD80 \uD544\uC801\uC774 \uD55C \uB2EC \uC804\uD6C4\uB85C \uBC14\uB00C\uACE0,
       \uB9DE\uC740\uD3B8 \uBC31\uC9C0\uC5D0 \uADF8 \uB450 \uC904\uC744 \uBBF8\uB9AC
       \uC4F4 \uC790\uAD6D"
+    alsoNeedsClueKeys: 
+    stageAtLeast: 5
     revealsInfo: "\uC11C\uBC29\uB2D8\uAED8 \uC544\uC6B0\uAC00 \uD558\uB098 \uC788\uAE34
       \uD588\uC2B5\uB2C8\uB2E4 \u2014 \uD63C\uC778 \uC804\uC5D0 \uC774\uBBF8 \uC9D1\uC5D0
       \uC5C6\uC5C8\uACE0, \uADF8 \uB4A4\uB85C \uC544\uBB34\uB3C4 \uADF8 \uC774\uB984\uC744
@@ -123,14 +125,4 @@ MonoBehaviour:
       \uBC14\uB00C"
     grantsClueKey: G05
     deflectionOnly: 0
-    clueImage: {fileID: 0}
-  - act: 0
-    clueKey: 
-    clueText: 
-    revealsInfo: "\uBB3C\uC99D \uC5C6\uC774 \uB2E4\uADF8\uCE58\uBA74 \"\uC0AC\uB0B4\uAC00
-      \uB098\uC774 \uB4E4\uBA74 \uAE00\uC528\uB3C4 \uBCC0\uD558\uB294 \uBC95\uC774\uC9C0\uC694\"
-      \uB85C \uB418\uBC1B\uACE0 \uB354\uB294 \uB9D0\uD558\uC9C0 \uC54A\uB294\uB2E4."
-    keywords: 
-    grantsClueKey: 
-    deflectionOnly: 1
     clueImage: {fileID: 0}

@@ -338,11 +338,16 @@ namespace IMUNROK.Common.EditorTools
                 so.FindProperty("_chi").floatValue = hasScar ? 2.25f : 0f;
                 so.FindProperty("_expected").floatValue = hasScar ? 2.25f : 0f;
                 so.FindProperty("_tolerance").floatValue = 0.35f;
-                so.FindProperty("_needsClueKey").stringValue = hasScar ? "G01" : "";
-                so.FindProperty("_clueKey").stringValue = hasScar ? "G07" : "";
-                // ※ 이 글은 OnggojipClues.All 의 G07 과 한 벌이어야 한다.
+                // <b>흉터가 없는 쪽도 잰다.</b> 여태 이 도구가 乙 쪽 세 칸을 빈 값으로
+                // 덮어써, 관아 배선을 다시 누르는 순간 손으로 넣어 둔 G08 이 날아갔다 —
+                // 그러면 장계의 「乙의 왼팔에는 그 자국이 없음」 칸이 영영 안 뜬다.
+                // 없다는 것도 재어 봐야 아는 것이고, 그것이 이 사건의 절반이다.
+                so.FindProperty("_needsClueKey").stringValue = "G01";
+                so.FindProperty("_clueKey").stringValue = hasScar ? "G07" : "G08";
+                // ※ 이 글은 OnggojipClues.All 의 G07·G08 과 한 벌이어야 한다.
                 so.FindProperty("_clueText").stringValue = hasScar
-                    ? "유척으로 잰 왼팔 안쪽 흉터 — 두 치 남짓, 대장과 같다" : "";
+                    ? "유척으로 잰 왼팔 안쪽 흉터 — 두 치 남짓, 대장과 같다"
+                    : "乙의 왼팔 안쪽에는 흉터가 없다 — 대장과 어긋난다";
                 so.FindProperty("_nothingLine").stringValue = hasScar
                     ? "" : "왼팔 안쪽 — *아무것도 없다*. 데인 자국도, 아문 자리도.";
             });

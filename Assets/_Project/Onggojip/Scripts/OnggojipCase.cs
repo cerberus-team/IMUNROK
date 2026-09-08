@@ -74,14 +74,16 @@ namespace IMUNROK.Onggojip
             if (_phase != Phase.Revealed) return false;   // G는 출도 후에만
             switch (c.key)
             {
-                // 번호를 씬에 맞춰 고쳤다. 옛 번호(J09=필적, J15=별급문기)는 다른 뜻이 되었고,
-                // J15 는 아예 아무도 주지 않는 번호였다 — G06 이 영영 안 열렸다.
+                // <b>여기는 F2 판이 쓰는 표다.</b> 실제 잠금은 씬의 _needsClueKey 와 자료의
+                // alsoNeedsClueKeys 가 따로 건다(아래 CanDiscover 주석 참조). 그래도 두 벌이
+                // 어긋나면 F2 로 흐름을 짚어 보는 사람이 오진하므로 씬에 맞춰 적어 둔다.
                 case "G01": case "G02": case "G04": return Has("J06"); // 필적이 바뀐 것을 알아야 문서고에서 뭘 찾을지 안다
-                case "G05": return Has("J06");                          // 아내 추궁
-                case "G03": return Has("G05");                          // 아내 증언 → 입안 대장
-                case "G06": return Has("J11");                          // 별급문기 → 하인 추궁(속량)
+                case "G05": return Has("J06");                          // 아내 추궁 — 필적을 들이밀어야 연다
+                case "G11": return Has("G03");                          // 입안대장을 쥐고 등불을 대야 지운 밑글이 뜬다
+                case "G06": return Has("J11");                          // 별급문기 → 늙은 하인 추궁(속량)
                 case "G07": return Has("G01");                          // 대장을 봐야 유척으로 견줄 수가 있다
                 case "G08": return Has("G01");                          // 저쪽 팔도 같은 자로 잰다
+                case "G09": return true;                                // 아내에게 묻기만 하면 된다
                 case "G10": return Has("G09") && Has("J07");            // 아내의 말과 물목기를 겹쳐야 나오는 자리
                 default: return true;
             }
@@ -110,6 +112,12 @@ namespace IMUNROK.Onggojip
         {
             if (!CanReveal()) return;
             Debug.Log("[옹고집] 출도(出道) — 관아(2부)로 이동. 되돌릴 수 없음.");
+
+            // <b>막을 넘긴다.</b> 여태 이 자리가 씬만 갈아 끼우고 신분은 그대로 두어,
+            // F2 로 출도한 사람은 「2막 것」으로 적어 둔 물음·게이트·명령이 하나도 안 뜨는
+            // 관아에 들어섰다. 마패를 꺼내는 정규 길(RoyalWarrant)만 신분을 바꾸고 있었다.
+            var gs = GameState.Instance;
+            if (gs != null && !gs.IdentityRevealed) gs.RevealIdentity(true);
 
             // 되돌릴 수 없음: 2부 씬 로드(단서는 수첩에 그대로 유지됨).
             if (!string.IsNullOrEmpty(_act2SceneName) && Application.CanStreamedLevelBeLoaded(_act2SceneName))
@@ -157,7 +165,10 @@ namespace IMUNROK.Onggojip
 
             GUILayout.BeginArea(new Rect(12, 12, 560, Screen.height - 24), GUI.skin.box);
             GUILayout.Label("<b>[옹고집 사건 — 흐름 디버그]</b>  <size=11>(F2: 끄기/켜기)</size>", _rich);
-            GUILayout.Label($"단계: <b>{_phase}</b>    잠행단서 {CountDiscovered(true)}/15   공개단서 {CountDiscovered(false)}/6", _rich);
+            // 분모를 손으로 적어 두었더니 표가 늘어도 6 에 머물렀다. 표에서 센다.
+            int allJ = 0, allG = 0;
+            foreach (var c in OnggojipClues.All) { if (c.stealth) allJ++; else allG++; }
+            GUILayout.Label($"단계: <b>{_phase}</b>    잠행단서 {CountDiscovered(true)}/{allJ}   공개단서 {CountDiscovered(false)}/{allG}", _rich);
 
             _scroll = GUILayout.BeginScrollView(_scroll);
 

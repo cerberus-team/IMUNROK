@@ -145,10 +145,10 @@ namespace IMUNROK.Common
         /// <summary>
         /// 지금 대사가 <b>새로 알아낸 것</b>인가. 그러면 자막이 붉게 나온다.
         ///
-        /// 수첩에는 물증만 적힌다(<see cref="Journal.AddClue"/>). 추천 질문으로 캐낸 정황과
-        /// 증거를 들이밀어 받아낸 실토는 손에 쥐는 물건이 아니라 <b>그 자리에서 듣는 말</b>이라
-        /// 적히지 않는다. 그래서 들을 때 한 번은 티가 나야 한다 — 흰 글씨로 스쳐 가면
-        /// 방금 그 한 마디가 이 사건에서 무엇이었는지 알 수가 없다.
+        /// 캐낸 정황과 받아낸 실토는 이제 수첩에도 <b>정황</b>으로 남지만(<see cref="Record"/>),
+        /// 그것과 별개로 <b>들을 때 한 번은 티가 나야 한다</b> — 흰 글씨로 스쳐 가면 방금 그
+        /// 한 마디가 이 사건에서 무엇이었는지 그 자리에서 알 수가 없고, 수첩을 펴 보고서야
+        /// 안다면 그건 알아챈 것이 아니라 확인한 것이다.
         ///
         /// 물음을 새로 던지면 꺼진다. 같은 말을 두 번 물어 두 번 붉을 일은 없다.
         /// </summary>
@@ -414,6 +414,7 @@ namespace IMUNROK.Common
             _transcript.Add($"{PlayerTitle}: {say}");
 
             // 단추를 안 눌렀다고 빈손으로 돌려보내지 않는다 — 같은 곳을 짚었으면 같은 것을 준다.
+            _loosenedAnswer = null;
             string loosened = Loosen(say);
             _lineIsKey = loosened != null;
 
@@ -425,6 +426,7 @@ namespace IMUNROK.Common
                 playerInput = say,
                 isEvidence = false,
                 justRevealedInfo = loosened,
+                scriptedAnswer = _loosenedAnswer,
                 playerTitle = PlayerTitle,
                 playerIdentityBrief = GameState.Instance.PlayerIdentityBrief,
             };
@@ -452,7 +454,13 @@ namespace IMUNROK.Common
             var journal = Journal.Instance;
             req.identityRevealed = gs != null && gs.IdentityRevealed;
 
-            int gates = _character != null && _character.evidenceGates != null ? _character.evidenceGates.Count : 0;
+            // <b>분모는 열릴 수 있는 것만</b>. 발뺌 줄과 다른 막의 줄까지 세면, 甲처럼
+            // 셋 중 하나만 실토형인 인물은 그 하나를 열어도 단계가 3 에 그친다 —
+            // 정곡을 찔린 사람이 「셋 중 하나」라는 이유로 태연해진다.
+            int gates = 0;
+            if (_character != null && _character.evidenceGates != null)
+                foreach (var g in _character.evidenceGates)
+                    if (g != null && !g.deflectionOnly && ActGate.Fits(g.act)) gates++;
             req.stage = gates > 0
                       ? Mathf.Clamp(Mathf.RoundToInt(10f * _unlockedGateKeys.Count / gates), 0, 10)
                       : 0;
@@ -501,9 +509,9 @@ namespace IMUNROK.Common
             _asked.Add(t.question);
             InterrogationPanel.Refresh();
 
-            // 이 물음으로 무언가 캐냈나(한 번만). 수첩에 적지는 않는다 — 들은 말이다.
-            // 대신 대사를 붉게 내보내고, 인물이 이후에도 그 사실을 아는 채로 말하도록
-            // 밝혀진 것에 얹어 둔다.
+            // 이 물음으로 무언가 캐냈나(한 번만). 대사를 붉게 내보내고, 인물이 이후에도
+            // 그 사실을 아는 채로 말하도록 밝혀진 것에 얹고, 수첩에 정황으로 적는다.
+            // 적는 몫은 GrantTopic 이 진다.
             _lineIsKey = false;
             if (!string.IsNullOrEmpty(t.grantsClueKey) && !_grantedTopics.Contains(t.grantsClueKey))
             {
@@ -572,6 +580,8 @@ namespace IMUNROK.Common
             Stamp(req);
             _busy = true;
             RefreshSubtitle();
+            // 방금 열린 실토가 다른 명령의 근거가 될 수 있다.
+            InterrogationPanel.Refresh();
             _responder.GetResponse(this, req, OnReply, OnError);
         }
 
@@ -604,10 +614,16 @@ namespace IMUNROK.Common
         }
 
         /// <summary>게이트 하나를 연다. 이미 열렸으면 거짓.</summary>
+        /// <summary>
+        /// 열린 게이트를 세는 이름표. <b>막까지 넣는다</b> — 같은 단서에 1막 줄과 2막 줄을
+        /// 나란히 적어 두라고 해 놓고 key 로만 세면, 1막에서 연 순간 2막 줄이 잠긴다.
+        /// </summary>
+        private static string GateId(EvidenceGate g) => g.clueKey + "#" + (int)g.act;
+
         private bool OpenGate(EvidenceGate gate)
         {
-            if (_unlockedGateKeys.Contains(gate.clueKey)) return false;
-            _unlockedGateKeys.Add(gate.clueKey);
+            if (_unlockedGateKeys.Contains(GateId(gate))) return false;
+            _unlockedGateKeys.Add(GateId(gate));
             _unlockedFacts.Add(gate.revealsInfo);
             if (gate.stageAtLeast > _stageFloor) _stageFloor = gate.stageAtLeast;
             Record(gate.grantsClueKey, gate.revealsInfo, false);
@@ -633,6 +649,9 @@ namespace IMUNROK.Common
         /// 한 마디에 하나만 연다. 셋이 우수수 열리면 붉은 줄이 무엇을 가리키는지 알 수 없다.
         /// 발뺌 게이트는 여기서 건너뛴다 — 발뺌은 종이를 눈앞에 들이밀었을 때의 그림이다.
         /// </summary>
+        /// <summary>말로 연 자리가 딸려 보낸 사람 말(목업이 쓴다). 한 차례만 산다.</summary>
+        private string _loosenedAnswer;
+
         private string Loosen(string say)
         {
             if (_character == null || string.IsNullOrWhiteSpace(say)) return null;
@@ -649,6 +668,11 @@ namespace IMUNROK.Common
                     GrantTopic(t);
                     _asked.Add(t.question);
                     InterrogationPanel.Refresh();
+                    // 단추로 눌렀을 때 나오던 사람 말을 여기서도 챙긴다. 이것이 없으면
+                    // 열쇠가 없는 PC(목업)에서 같은 자리가 단추로는 사람 말을,
+                    // 손으로 치면 <b>수첩 문구</b>를 내놓는다 — 「같은 곳을 짚었으면 같은
+                    // 것을 준다」가 거기서만 깨진다.
+                    _loosenedAnswer = t.mockAnswer;
                     return string.IsNullOrEmpty(t.grantsClueText) ? t.question : t.grantsClueText;
                 }
             }
@@ -660,7 +684,7 @@ namespace IMUNROK.Common
                 {
                     if (g == null || g.deflectionOnly) continue;
                     if (string.IsNullOrEmpty(g.revealsInfo)) continue;
-                    if (_unlockedGateKeys.Contains(g.clueKey)) continue;
+                    if (_unlockedGateKeys.Contains(GateId(g))) continue;
                     if (!TalkKeywords.Hit(say, g.keywords)) continue;
                     if (!GateOpens(g, null)) continue;      // 묶음을 다 쥐었는가
 
@@ -752,14 +776,22 @@ namespace IMUNROK.Common
             Stamp(req);
             _busy = true;
             RefreshSubtitle();
+            // 방금 적힌 것이 명령의 근거가 될 수 있다 — 근거가 섰는데 단추가 안 뜨면
+            // 그 자리는 없는 것과 같다.
+            InterrogationPanel.Refresh();
             _responder.GetResponse(this, req, OnReply, OnError);
         }
 
         private void OnReply(string text)
         {
+            _busy = false;
+            // <b>돌아섰는데 뒤늦게 오는 대답이 있다.</b> 창을 닫아도 이 부품은 꺼지지
+            // 않으므로 오가던 부탁은 계속 살아 돌아온다. 그때 자막을 다시 그리면
+            // 마지막 한 마디나 다른 안내를 지운다 — 받아만 두고 그리지는 않는다.
+            if (_character == null) return;
             _npcLine = text;
             _transcript.Add($"{_character.characterName}: {text}");
-            _busy = false;
+            if (!_active) return;
             RefreshSubtitle();
         }
 
@@ -767,6 +799,8 @@ namespace IMUNROK.Common
         {
             _npcLine = $"(대답 오류: {err})";
             _busy = false;
+            _lineIsKey = false;   // 앞 차례가 붉었다고 오류 줄까지 붉으면 안 된다
+            if (!_active) return;
             RefreshSubtitle();
         }
 
@@ -864,6 +898,22 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
+        /// <b>이 사람과 마주 선 동안 손에 남겨야 하는 연장인가.</b> 도구띠가 물어본다.
+        ///
+        /// 마주 서면 벨트는 등불만 남기고 다 내려놓는다. 그런데 이 사람에게 내릴 명령이
+        /// 그 연장을 쥐고 있으라 하면, 명령이 뜨기 전에 손이 먼저 비어 영영 못 뜬다.
+        /// 씬마다 벨트 목록을 맞춰 적게 두면 한 군데만 빠뜨려도 그 자리가 통째로 죽으므로,
+        /// <b>쓸 사람에게 물어본다</b>.
+        /// </summary>
+        public bool WantsTool(string toolId)
+        {
+            if (!_active || string.IsNullOrEmpty(toolId)) return false;
+            foreach (var o in GetComponents<ItemOrder>())
+                if (o != null && o.NeedsToolId == toolId) return true;
+            return false;
+        }
+
+        /// <summary>
         /// 이 인물에게 내릴 수 있는 명령들(소매 걷기·물건 내밀기). 근거가 없으면 비어 있다.
         /// 막이 안 맞는 것은 여기서 이미 걸러진다 — 과객이 남의 팔을 잡을 수는 없다.
         /// </summary>
@@ -902,7 +952,11 @@ namespace IMUNROK.Common
             InterrogationPanel.Refresh();   // 걷었으면 그 단추는 사라져야 한다
         }
 
-        /// <summary>월드 패널의 '잠시 멈추다' 버튼이 호출. 다시 말을 걸면 이어진다.</summary>
+        /// <summary>
+        /// 마주 앉은 자리에서 물러난다. 다시 말을 걸면 이어진다.
+        /// 「잠시 멈추다」 단추는 없어졌고, 지금 이것을 부르는 것은 마루의 자리
+        /// (<see cref="InterrogationBench"/>)에서 일어설 때다.
+        /// </summary>
         public void CloseFromUi() => ClosePanel();
 
         /// <summary>

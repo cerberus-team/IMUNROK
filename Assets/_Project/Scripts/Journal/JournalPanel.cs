@@ -5,20 +5,20 @@ using UnityEngine.UI;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 수첩(手帖)의 월드 공간 화면 — 지금 사건에서 <b>주운 물증</b>을 카드로 깔고,
-    /// 심문 중이면 각 물증에 "들이밀기" 버튼을 붙인다.
+    /// 수첩(手帖)의 화면 — 지금 사건에서 <b>주운 물증과 들은 말</b>을 카드로 깔고,
+    /// 심문 중이면 들이밀 수 있는 것에 "들이밀기" 버튼을 붙인다.
     ///
     /// 상태(열림/닫힘)는 <see cref="JournalView"/>가 들고 있고, 여기는 그리기만 한다.
     /// 씬에 미리 둘 필요 없다 — 수첩을 처음 펼칠 때 스스로 만들어진다.
     ///
-    /// <b>정황 칸은 없앴다</b>. 예전에는 왼쪽에 물증, 오른쪽에 정황(증언·목격·실토)을
-    /// 나란히 깔았는데, 그러면 들이밀 수 있는 것과 그저 들은 것이 한 장에 섞여
-    /// 어느 쪽이 상대의 입을 여는 물건인지 알 수 없게 된다. 들은 말은 이제 심문
-    /// 자막에서 붉게 한 번 지나가고, 수첩에는 손에 쥔 것만 남는다.
+    /// <b>칸은 하나다.</b> 예전에는 왼쪽에 물증, 오른쪽에 정황을 나란히 깔았는데 그러면
+    /// 같은 사건이 두 장으로 쪼개져 어느 쪽을 보고 있었는지 잊는다. 지금은 한 판에
+    /// <b>주운 것이 앞, 들은 말이 뒤</b>로 눕고, 들은 말은 낯이 묽고 그림 자리에 言 이
+    /// 찍혀 갈린다 — 그리고 받아낸 실토에는 들이밀기 단추가 안 붙는다(presentable=false).
+    /// 한동안 들은 말을 아예 안 적어 보았는데, 그러니 출도에 필요한 J02 가 甲의 입에서만
+    /// 나오면서 수첩에는 영영 안 들어와 필수 넷 가운데 하나를 채울 길이 없었다.
     ///
-    /// 그래서 물증 카드가 한 장 넓이를 다 쓴다 — 한 줄에 넉 장씩 들어간다.
-    /// 카드가 많아지면 스크롤이 필요하지만, 사건당 물증이 열 남짓이라 한 화면에 담긴다
-    /// (긴 목록을 굴리는 것은 조작이 번거롭다).
+    /// 카드가 한 장 넓이를 다 쓴다 — 한 줄에 넉 장씩. 넘치면 쪽을 넘긴다.
     /// </summary>
     [RequireComponent(typeof(Canvas))]
     public class JournalPanel : MonoBehaviour
@@ -252,7 +252,7 @@ namespace IMUNROK.Common
                              page, _clueFontSize - 2, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.72f));
             _brief.horizontalOverflow = HorizontalWrapMode.Wrap;
 
-            _col = NewRect("물증", new Vector2(0f, -70f), new Vector2(PageW - 120f, PageH - 260f), page);
+            _col = NewRect("단서", new Vector2(0f, -70f), new Vector2(PageW - 120f, PageH - 260f), page);
         }
 
         // ── 내용(펼칠 때마다) ──
@@ -401,7 +401,9 @@ namespace IMUNROK.Common
                 });
 
                 // 심문 중이면 들이밀 수 있다
-                bool canPresent = talking && c.presentable && !c.key.EndsWith("_revealed");
+                // 들이밀 수 있는가는 <b>presentable</b> 하나가 정한다. 여태 key 가
+                // "_revealed" 로 끝나는지도 보았는데, 그런 key 를 만드는 곳이 없어진 지 오래다.
+                bool canPresent = talking && c.presentable;
                 if (!canPresent) continue;
                 var b = NewRect("들이밀기", new Vector2(0f, -ch * 0.5f + 26f), new Vector2(cw - 40f, 44f), card);
                 var pbg = b.gameObject.AddComponent<Image>();

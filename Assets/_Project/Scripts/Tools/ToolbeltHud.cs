@@ -89,13 +89,21 @@ namespace IMUNROK.Common
         /// <summary>한 번이라도 도구를 갈아 들었나. 그러면 「Q / 휠 전환」을 더는 안 적는다.</summary>
         private bool _everSwitched;
 
-        /// <summary>마주 선 동안에도 손에 남기는 도구인가.</summary>
+        /// <summary>
+        /// 마주 선 동안에도 손에 남기는 도구인가.
+        ///
+        /// 목록에 적어 둔 것 말고, <b>지금 마주 선 사람이 그 연장을 쓰라고 하는 경우</b>도
+        /// 남긴다. 소매를 걷으라 해 놓고 잴 것을 손에서 뺏으면 그 명령이 갈 데가 없다 —
+        /// 씬마다 목록을 맞춰 적게 두면 한 군데만 빠뜨려도 그 자리가 통째로 죽는다.
+        /// </summary>
         private bool KeptWhileTalking(string id)
         {
-            if (string.IsNullOrEmpty(_keepWhileTalking)) return false;
-            foreach (var raw in _keepWhileTalking.Split(','))
-                if (raw.Trim() == id) return true;
-            return false;
+            if (!string.IsNullOrEmpty(_keepWhileTalking))
+                foreach (var raw in _keepWhileTalking.Split(','))
+                    if (raw.Trim() == id) return true;
+
+            var who = InterrogationController.Active;
+            return who != null && who.WantsTool(id);
         }
 
         public void Next() => Select(_index + 1);

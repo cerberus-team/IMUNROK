@@ -52,25 +52,28 @@ MonoBehaviour:
     \uC5C6\uC73C\uBA74: \u300C\uC18C\uC778\uC740 \uC544\uBB34\uAC83\uB3C4 \uBAA8\uB985\uB2C8\uB2E4\uC694\u300D\uB85C
     \uBC84\uD168\uB77C. \uAC70\uB4ED \uBB3C\uC73C\uBA74 \uB354 \uAD34\uB85C\uC6CC\uD558\uB418
     \uBB34\uB108\uC9C0\uC9C0\uB294 \uC54A\uB294\uB2E4."
-  breakOnClues: J13
+  breakOnClues: J11
   openingLine: "\u2026\uB098\uADF8\uB124 \uC591\uBC18. \uC18C\uC778 \uAC19\uC740
     \uB299\uC740\uAC83\uC5D0\uAC8C \uBB34\uC2A8 \uBCFC\uC77C\uC774\u2026"
   recallLine: 
   closingLine: 
   topics:
-  - question: "\uC8FC\uC778\uC5B4\uB978\uC744 \uBB50\uB77C \uBD80\uB974\uC2DC\uC624?"
+  - act: 0
+    question: "\uC8FC\uC778\uC5B4\uB978\uC744 \uBB50\uB77C \uBD80\uB974\uC2DC\uC624?"
     keywords: "\uBB50\uB77C \uBD80\uB974,\uC5B4\uCC0C \uBD80\uB974,\uD638\uCE6D,\uB098\uB9AC,\uBD80\uB974\uC2DC\uC624"
     mockAnswer: "\uB098\u2026 \uB098\uB9AC\u2026 (\uB9D0\uB05D\uC744 \uD750\uB9B0\uB2E4)"
     grantsClueKey: J05
     grantsClueText: "\uD558\uC778\uB4E4\uC774 \uD638\uCE6D\uC5D0 \uBA38\uBB47\uAC70\uB9B0\uB2E4"
     grantsClueImage: {fileID: 0}
-  - question: "\uC774 \uC9D1\uC5D0 \uC624\uB798 \uACC4\uC168\uC18C?"
+  - act: 0
+    question: "\uC774 \uC9D1\uC5D0 \uC624\uB798 \uACC4\uC168\uC18C?"
     keywords: 
     mockAnswer: "\uD3C9\uC0DD\uC744\u2026 \uC774 \uC9D1\uC5D0\uC11C \uB299\uC5C8\uC2B5\uB2C8\uB2E4\uC694."
     grantsClueKey: 
     grantsClueText: 
     grantsClueImage: {fileID: 0}
-  - question: "\uBC16\uC5D0 \uC788\uB294 \uADF8 \uC0AC\uB0B4\uB97C \uC544\uC2DC\uC624?"
+  - act: 0
+    question: "\uBC16\uC5D0 \uC788\uB294 \uADF8 \uC0AC\uB0B4\uB97C \uC544\uC2DC\uC624?"
     keywords: 
     mockAnswer: "\uBCF5\uB3D9\uC774\u2026 \uC544\uB2C8, \uBCF5\uB3D9\uC774\uB294
       \uC8FD\uC5C8\uB2E4\uACE0 \uD588\uB294\uB370\u2026 \uC18C\uC778\uC740 \uC544\uBB34\uAC83\uB3C4
@@ -79,11 +82,29 @@ MonoBehaviour:
     grantsClueText: 
     grantsClueImage: {fileID: 0}
   evidenceGates:
-  - clueKey: J11
+  - act: 1
+    clueKey: J11
     clueText: "\uD589\uB791\uCC44 \uADA4 \u2014 \uC18D\uB7C9 \uBB38\uC11C"
+    alsoNeedsClueKeys: 
+    stageAtLeast: 0
     revealsInfo: "\uADF8\uAC74\u2026 \uC18C\uC778\uC740\u2026 \uBAA8\uB974\uB294
       \uC77C\uC785\uB2C8\uB2E4\u2026"
     keywords: 
     grantsClueKey: 
     deflectionOnly: 1
+    clueImage: {fileID: 0}
+  - act: 2
+    clueKey: J11
+    clueText: "\uBCF4\uB8CC \uBC11 \uBCC4\uAE09\uBB38\uAE30 \u2014 \uC218\uCDE8\uC778\uC774
+      \u300C\uC624\uB798 \uBD80\uB9B0 \uC885 \uBCF5\uB3D9\u300D"
+    alsoNeedsClueKeys: 
+    stageAtLeast: 10
+    revealsInfo: "\uBB34\uB98E\uC774 \uAEBE\uC778\uB2E4. \u300C\u2026\uC885\uC5D0\uC11C
+      \uD480\uC5B4 \uC900\uB2E4\uAE30\uC5D0\u2026 \uC18C\uC778\uC774 \uBB34\uC2A8
+      \uB0AF\uC73C\uB85C\u2026 \uB098\uB9AC\uB294\u2026 \uC9C4\uC9DC \uB098\uB9AC\uAC00
+      \uC544\uB2C8\uC2ED\uB2C8\uB2E4.\u300D"
+    keywords: "\uC18D\uB7C9,\uBA74\uCC9C,\uD480\uC5B4,\uB193\uC544,\uB9E4\uC218,\uC57D\uC18D,\uC885\uC5D0\uC11C,\uAC12\uC744
+      \uBC1B"
+    grantsClueKey: G06
+    deflectionOnly: 0
     clueImage: {fileID: 0}

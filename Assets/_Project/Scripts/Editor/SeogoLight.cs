@@ -233,7 +233,12 @@ namespace IMUNROK.Common.EditorTools
                 "관이 이미 놓아준 것을 누군가 도로 종으로 만들어 놓았다.";
             // 등불로 본 사람만 갖는 열쇠. 장계에서 "복동" 을 쓸 수 있는 자격이 이것이다 —
             // 그냥 읽기만 한 사람은 다섯째 줄이 고쳐진 줄을 모른다.
-            so.FindProperty("_litClueKey").stringValue = "G05";
+            //
+            // <b>여태 이 자리가 G05 였다.</b> 그런데 G05 는 표에도 甲의 성격에도 「아내 증언」
+            // 이다. 한 key 에 두 이야기가 얹히면 Journal 은 먼저 들어온 쪽만 남기므로,
+            // 아내를 먼저 추궁한 사람은 등불을 한 번도 안 대고 장계의 「복동」 칸을 쓰고,
+            // 등불을 먼저 댄 사람은 아내의 증언을 수첩에서 통째로 잃었다. 갈라 놓는다.
+            so.FindProperty("_litClueKey").stringValue = "G11";
             so.FindProperty("_litClueOwnText").stringValue =
                 "입안대장 다섯째 줄은 긁어내고 덧쓴 것이다. 지운 밑글은 「免賤 己卯十月」 — " +
                 "복동은 이미 놓여난 몸이었다.";
