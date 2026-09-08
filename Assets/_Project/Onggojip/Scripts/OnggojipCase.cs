@@ -169,6 +169,12 @@ namespace IMUNROK.Onggojip
             int allJ = 0, allG = 0;
             foreach (var c in OnggojipClues.All) { if (c.stealth) allJ++; else allG++; }
             GUILayout.Label($"단계: <b>{_phase}</b>    잠행단서 {CountDiscovered(true)}/{allJ}   공개단서 {CountDiscovered(false)}/{allG}", _rich);
+            // <b>저울을 보이게 둔다.</b> 물증 두 점, 들은 말 한 점(Journal.Score).
+            // 결말의 문턱을 여기 걸 생각이면 먼저 이 수가 어떻게 움직이는지 보여야 한다 —
+            // 안 보이는 수에 문턱을 걸면 얼마로 잡아야 할지 알 길이 없다.
+            GUILayout.Label($"<size=11>무게: <b>{_journal.Score(ThisCase)}</b>점  "
+                          + $"(물증 {_journal.ClueCount(ThisCase, ClueKind.물증)}×{Journal.WeightMuljeung} + "
+                          + $"들은 말 {_journal.ClueCount(ThisCase, ClueKind.정황)}×{Journal.WeightJeonghwang})</size>", _rich);
 
             _scroll = GUILayout.BeginScrollView(_scroll);
 

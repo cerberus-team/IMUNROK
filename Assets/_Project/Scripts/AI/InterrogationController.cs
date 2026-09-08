@@ -83,7 +83,29 @@ namespace IMUNROK.Common
         private bool _locked;
 
         /// <summary>인물들이 플레이어를 부르는 이름표. 1막은 과객이라 '나그네'(→ GameState가 정한다).</summary>
-        private static string PlayerTitle => GameState.Instance.PlayerTitle;
+        /// <summary>
+        /// 지금 묻는 이가 누구로 보이는가. GameState 는 씬을 닫는 동안 null 을 돌려주므로
+        /// (그때 새로 세우면 치울 사람이 없다) 여기서 받아 준다 — 늦게 도착한 대답이
+        /// 이 값을 물어보는 일이 있다.
+        /// </summary>
+        private static string PlayerTitle
+        {
+            get
+            {
+                var gs = GameState.Instance;
+                return gs != null ? gs.PlayerTitle : "나그네";
+            }
+        }
+
+        /// <summary>AI 에게 주는 한 줄 신분 설명. 위와 같은 까닭으로 받아 준다.</summary>
+        private static string PlayerBrief
+        {
+            get
+            {
+                var gs = GameState.Instance;
+                return gs != null ? gs.PlayerIdentityBrief : "";
+            }
+        }
 
         // 지금 심문창이 하나라도 열려 있나(다른 UI가 참고: 목표 HUD 숨김 등)
         private static int s_openCount;
@@ -428,7 +450,7 @@ namespace IMUNROK.Common
                 justRevealedInfo = loosened,
                 scriptedAnswer = _loosenedAnswer,
                 playerTitle = PlayerTitle,
-                playerIdentityBrief = GameState.Instance.PlayerIdentityBrief,
+                playerIdentityBrief = PlayerBrief,
             };
             Stamp(req);
             _busy = true;
@@ -529,7 +551,7 @@ namespace IMUNROK.Common
                 justRevealedInfo = null,
                 scriptedAnswer = t.mockAnswer,
                 playerTitle = PlayerTitle,
-                playerIdentityBrief = GameState.Instance.PlayerIdentityBrief,
+                playerIdentityBrief = PlayerBrief,
             };
             Stamp(req);
             _busy = true;
@@ -575,7 +597,7 @@ namespace IMUNROK.Common
                 isEvidence = true,
                 justRevealedInfo = revealed,
                 playerTitle = PlayerTitle,
-                playerIdentityBrief = GameState.Instance.PlayerIdentityBrief,
+                playerIdentityBrief = PlayerBrief,
             };
             Stamp(req);
             _busy = true;
@@ -771,7 +793,7 @@ namespace IMUNROK.Common
                 isDeed = true,
                 justRevealedInfo = revealed,
                 playerTitle = PlayerTitle,
-                playerIdentityBrief = GameState.Instance.PlayerIdentityBrief,
+                playerIdentityBrief = PlayerBrief,
             };
             Stamp(req);
             _busy = true;

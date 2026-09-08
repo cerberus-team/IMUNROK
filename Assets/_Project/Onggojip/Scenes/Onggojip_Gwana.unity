@@ -21184,7 +21184,6 @@ GameObject:
   m_Component:
   - component: {fileID: 741205401}
   - component: {fileID: 741205403}
-  - component: {fileID: 741205402}
   m_Layer: 0
   m_Name: "\uADA4\uB69C\uAED1_\uB20C\uB9B0\uC790\uAD6D"
   m_TagString: Untagged
@@ -21207,37 +21206,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1843654855}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &741205402
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 741205400}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cd111f2cec148944c86b0cefd72a84d5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.LightAngleReveal
-  _radius: 4.5
-  _wantElevation: 23
-  _tolerance: 4
-  _minIntensity: 0.3
-  _minDistance: 1.6
-  _reveal: {fileID: 0}
-  _keepOnceSeen: 1
-  _title: "\uADA4 \uB69C\uAED1"
-  _bodyDark: "\uC5B4\uB461\uB2E4. \uB69C\uAED1\uC5D0 \uBB34\uC5C7\uC774 \uC788\uB294\uC9C0
-    \uC54C \uC218 \uC5C6\uB2E4."
-  _bodyWrong: "\uBE5B\uC774 \uACE7\uAC8C \uB4E4\uC5B4 \uB69C\uAED1\uC774 \uACE0\uB974\uAC8C
-    \uBC1D\uB2E4 \u2014 \uBB34\uC5B8\uAC00 \uC5BC\uBE44\uCE60 \uB4EF \uB9D0 \uB4EF\uD558\uB2E4.
-    *\uBE5B\uC774 \uBE44\uC2A4\uB4EC\uD788 \uB4E4\uC5B4\uC57C \uD55C\uB2E4.*"
-  _bodyRight: "\uBE57\uACA8 \uB4E0 \uBE5B\uC5D0 \uB20C\uB9B0 \uC790\uAD6D\uC774 \uB5A0\uC624\uB978\uB2E4
-    \u2014 \uC774 \uB69C\uAED1\uC744 *\uBC1B\uCE68 \uC0BC\uC544* \uAE00\uC744 \uC4F4
-    \uC790\uAD6D\uC774\uB2E4."
-  _clueKey: 
-  _clueText: 
-  _case: 0
 --- !u!65 &741205403
 BoxCollider:
   m_ObjectHideFlags: 0

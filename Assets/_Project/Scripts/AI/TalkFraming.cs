@@ -92,8 +92,16 @@ namespace IMUNROK.Common
 
             // 상대가 도는 것은 <b>같이</b> 시작한다. 다 돌기를 기다렸다가 카메라를 옮기면
             // 그 사이가 빈 화면이 된다.
+            //
+            // 다만 <b>돌리는 자가 이미 있으면 손대지 않는다.</b> FaceThePlayer 는 심문이
+            // 열려 있는 동안 LateUpdate 에서 매 프레임 이쪽을 보게 돌리는데, 이 코루틴은
+            // Update 켜에서 돈다 — 나중에 도는 쪽이 이기므로 여기서 공들여 눕힌 0.55초가
+            // 그대로 덮인다. 게다가 그쪽은 「돌릴 몸」이 안 지정되면 <b>뿌리</b>를 돌리고
+            // 이쪽은 <b>Animator 가 붙은 자식</b>을 돌려, 둘이 겹치면 두 겹으로 돌아간다.
+            // 한 사람이 맡는 편이 낫고, 내내 마주 보아야 하니 그쪽이 맡는 것이 맞다.
             Transform body = FindMover(person);
-            StartCoroutine(FaceRoutine(body, cam.transform));
+            if (person.GetComponentInChildren<FaceThePlayer>(true) == null)
+                StartCoroutine(FaceRoutine(body, cam.transform));
 
             Quaternion fromRot = cam.transform.rotation;
             float fromFov = cam.fieldOfView;

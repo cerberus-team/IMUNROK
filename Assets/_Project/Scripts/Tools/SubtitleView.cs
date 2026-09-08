@@ -329,7 +329,12 @@ namespace IMUNROK.Common
 
             if (_heardHint != null)
             {
-                string want = Controls.AskPrompt;
+                // <b>칸이 비면 방금 던진 말이 묽게 남는다.</b> 이 자리의 머리말이 여태
+                // 그리 약속해 두고 정작 하지는 않았다 — 던지고 나면 칸이 비어, 무엇으로
+                // 전해졌는지 확인할 데가 없었다. 잘못 알아들은 채 답을 받으면 그 답이
+                // 이상한 것인지 내 물음이 이상했던 것인지 알 수가 없다.
+                string last = a != null ? a.LastPlayerLine : "";
+                string want = string.IsNullOrEmpty(last) ? Controls.AskPrompt : last;
                 if (_heardHint.text != want) _heardHint.text = want;
             }
 

@@ -37,10 +37,16 @@ namespace IMUNROK.Onggojip
 
             // 손의 자취
             new ClueDef { key = "J06", text = "장부 필적이 한 달 전후로 바뀌고, 맞은편 백지에 그 두 줄을 미리 쓴 자국", stealth = true, required = true },  // _책A · 눌린자국
-            new ClueDef { key = "J07", text = "물목 장부 — 스무 해엔 수결(押)이 없고 최근 한 달치에만 있다", stealth = true },             // 물목장부
+            // <b>둘 다 문갑 안에 있다.</b> 문갑은 부서진 자물쇠(J15)를 알아본 사람에게만
+            // 열린다(UnlockWhenClued). 그러니 J15 를 놓치고 출도하면 이 둘은 영영 못 얻는다 —
+            // J 는 잠행 중에만 얻히기 때문이다. 그 값에 걸린 것은 甲의 게장 자리(G10)와
+            // 乙의 갑리 인정뿐이고 출도·장계·판결은 아무것도 요구하지 않으므로, 이것은
+            // 막힌 길이 아니라 <b>꼼꼼히 뒤진 사람의 몫</b>으로 둔다. 여기 걸 것을 늘릴 때는
+            // 이 문장을 먼저 볼 것.
+            new ClueDef { key = "J07", text = "물목 장부 — 스무 해엔 수결(押)이 없고 최근 한 달치에만 있다", stealth = true },             // 물목장부(문갑)
 
             // 셈속
-            new ClueDef { key = "J08", text = "차용증 이자가 갑리(甲利) — 연 10할", stealth = true },                                      // 차용증
+            new ClueDef { key = "J08", text = "차용증 이자가 갑리(甲利) — 연 10할", stealth = true },   // 차용증(문갑 — J15 뒤)                                      // 차용증
             new ClueDef { key = "J09", text = "미회수 수표 — 무장현 박가에게 일백 냥, 삼 년째", stealth = true },                          // 수표_J09
 
             // <b>자물쇠</b> — 씬에 부서진 자물쇠를 세워 두고도 단서로 잡지 않고 있었다.
