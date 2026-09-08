@@ -27,6 +27,11 @@ namespace IMUNROK.Common
         [Tooltip("벨트 글씨에 쓸 한글 폰트. 비우면 씬의 다른 UI 가 올려 둔 공용 폰트를 쓴다")]
         [SerializeField] private Font _font;
 
+        [Tooltip("<b>그림쇠를 쓸까.</b> 끄면 이름만 적는다.\n" +
+                 "조선 후기 옹당촌에 렌즈·랜턴 픽토그램이 붙으면 그것만 딴 세상 물건이 된다 — " +
+                 "손에 든 것은 어차피 화면에 <b>실물로</b> 들려 있으므로, 띠는 이름만 짚어 주면 된다")]
+        [SerializeField] private bool _useIcons = false;
+
         [Tooltip("사람과 마주 선 동안에도 손에 남는 도구 id. 쉼표로 여럿. 나머지는 내려놓는다.\n" +
                  "등불은 밤에 얼굴을 보려고 남기고, 유척은 <b>드러난 팔을 재려고</b> 남긴다 — " +
                  "소매를 걷으라 해 놓고 정작 잴 것을 손에서 뺏으면 그 명령이 갈 데가 없다")]
@@ -235,7 +240,7 @@ namespace IMUNROK.Common
         //  벨트 뷰(OnGUI)
         // ─────────────────────────────────────────────
 
-        private GUIStyle _iconText, _label, _howTo;
+        private GUIStyle _iconText, _iconOn, _label, _howTo;
         private Texture2D _slot, _slotOn;
 
         private void OnGUI()
@@ -262,12 +267,19 @@ namespace IMUNROK.Common
                 Rect r = new Rect(x0 + i * (size + gap), y, size, size);
                 GUI.DrawTexture(r, i == _index ? _slotOn : _slot);
 
-                var icon = SlotIcon(i);
+                // <b>그림쇠는 끄고 이름을 적는다.</b>
+                //
+                // 조선 후기 옹당촌에 렌즈·랜턴 픽토그램이 붙으면 <b>그것만</b> 딴 세상
+                // 물건이 된다. 손에 든 것은 어차피 화면에 실물로 들려 있으므로 띠가
+                // 할 일은 「지금 무엇을 들었나」를 짚어 주는 것뿐이고, 그 일에는
+                // 이름 두 글자가 그림쇠보다 낫다 — 등불과 돋보기는 생김새가 비슷하지도
+                // 않은데 작은 칸에 넣으면 둘 다 까만 덩어리가 된다.
+                var icon = _useIcons ? SlotIcon(i) : null;
                 float pad = Mathf.Round(size * 0.13f);
                 if (icon != null)
                     GUI.DrawTexture(new Rect(r.x + pad, r.y + pad, size - pad * 2f, size - pad * 2f), icon, ScaleMode.ScaleToFit);
                 else
-                    GUI.Label(r, i == 0 ? "맨손" : First(SlotName(i)), _iconText);
+                    GUI.Label(r, SlotName(i), i == _index ? _iconOn : _iconText);
 
                 if (GUI.Button(r, GUIContent.none, GUIStyle.none)) Select(i);   // 클릭으로도 선택
             }
@@ -281,10 +293,11 @@ namespace IMUNROK.Common
             //
             // 그래서 <b>한 번이라도 갈아 들면</b> 그때부터 안 적는다. 갈아 들었다는 것이
             // 곧 익혔다는 뜻이다. 익히지 않은 사람에게는 그대로 남는다.
-            string hint = _everSwitched ? "" : "     (Q / 휠 전환)";
+            // 칸마다 이름이 적히므로 「손 : 돋보기」를 또 적지 않는다 — 같은 말을
+            // 두 줄에 두면 둘 다 안 읽힌다. 남는 것은 <b>바꾸는 법</b> 한 번뿐이다.
             float line = Mathf.Round(size * 0.42f);
-            GUI.Label(new Rect(x0, y - line - 4f, totalW, line),
-                      $"손 : {SlotName(_index)}{hint}", _label);
+            if (!_everSwitched)
+                GUI.Label(new Rect(x0, y - line - 4f, totalW, line), "휠을 굴려 바꾼다 (Q)", _label);
 
             // <b>쓰는 법을 그 자리에서 일러 준다.</b>
             //
@@ -301,8 +314,6 @@ namespace IMUNROK.Common
                           how, _howTo);
         }
 
-        private static string First(string s) => string.IsNullOrEmpty(s) ? "?" : s.Substring(0, 1);
-
         private int _styledFor;   // 어느 화면 높이에 맞춰 지은 글씨인가
 
         private void EnsureStyles()
@@ -315,11 +326,18 @@ namespace IMUNROK.Common
 
             if (_slot == null)   _slot   = Solid(UiLook.With(UiLook.Paper, 0.08f));
             if (_slotOn == null) _slotOn = Solid(UiLook.With(UiLook.Gold, 0.32f));
+            // 안 든 것은 묽게, 든 것은 낙관빛으로. 두 글자가 들어가야 하므로
+            // 칸 높이의 3분의 1이 아니라 4분의 1쯤으로 잡는다.
             _iconText = new GUIStyle(GUI.skin.label)
             {
-                fontSize = Mathf.RoundToInt(size * 0.34f), fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = Color.white }
+                fontSize = Mathf.RoundToInt(size * 0.26f),
+                alignment = TextAnchor.MiddleCenter, wordWrap = false,
+                normal = { textColor = UiLook.With(UiLook.Paper, 0.55f) }
+            };
+            _iconOn = new GUIStyle(_iconText)
+            {
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = UiLook.With(UiLook.Lit(UiLook.Gold, 0.45f), 1f) }
             };
             _label = new GUIStyle(GUI.skin.label)
             {

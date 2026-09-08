@@ -197,8 +197,8 @@ namespace IMUNROK.Onggojip
             // 결말의 문턱을 여기 걸 생각이면 먼저 이 수가 어떻게 움직이는지 보여야 한다 —
             // 안 보이는 수에 문턱을 걸면 얼마로 잡아야 할지 알 길이 없다.
             GUILayout.Label($"무게: <b>{_journal.Score(ThisCase)}</b>점  "
-                          + $"(물증 {_journal.ClueCount(ThisCase, ClueKind.물증)}×{Journal.WeightMuljeung} + "
-                          + $"들은 말 {_journal.ClueCount(ThisCase, ClueKind.정황)}×{Journal.WeightJeonghwang})", _rich);
+                          + $"(물증 {_journal.WeighedCount(ThisCase, ClueKind.물증)}×{Journal.WeightMuljeung} + "
+                          + $"들은 말 {_journal.WeighedCount(ThisCase, ClueKind.정황)}×{Journal.WeightJeonghwang})", _rich);
 
             _scroll = GUILayout.BeginScrollView(_scroll);
 

@@ -141,6 +141,12 @@ namespace IMUNROK.Common
         {
             switch (toolId)
             {
+                // <b>맨손도 한 줄이 필요하다.</b> 손이 비었을 때 F 는 품에서 마패를
+                // 꺼내는 손짓인데, 그것을 아무 데도 안 적어 두어 「F 를 눌렀더니
+                // 아직 이르다가 뜬다」가 되었다. 도구가 잠긴 것으로 읽힌다.
+                case "":
+                case null:
+                    return Key(ToolRaise.Key_.ToString()) + " 를 <b>꾹 누르면</b> 품에서 마패를 꺼낸다";
                 case "lantern":
                     return "종이를 편 뒤 불을 <b>종이 너머로</b> 대면 겹 사이가 비친다";
                 case "magnify":

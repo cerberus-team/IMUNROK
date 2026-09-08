@@ -97,7 +97,8 @@ namespace IMUNROK.Common
                  "<b>무엇을 막는 말인지가 드러나야 한다</b> — 「품에 든 것을 꺼내기에는」이라고만 " +
                  "적어 두었더니 도구를 못 쓴다는 말로 읽혔다. 도구는 언제든 쓸 수 있고, " +
                  "막히는 것은 출도 하나뿐이다")]
-        [SerializeField] private string _notYetLine = "아직 이르다 — *출도(出道)*하려면 밝혀 둘 것이 *{0}가지* 남았다.";
+        [SerializeField] private string _notYetLine =
+            "품에 든 *마패*를 꺼내기엔 아직 이르다 — *출도(出道)*하려면 밝혀 둘 것이 *{0}가지* 남았다.";
         [TextArea(2, 3)]
         [Tooltip("다 채운 <b>그 순간</b> 한 번. 이것이 곧 '이제 나가도 된다'는 신호다")]
         [SerializeField] private string _readyLine = "품 속의 것이 *무거워진다*. ({0} 꾹 눌러 내보이기)";
