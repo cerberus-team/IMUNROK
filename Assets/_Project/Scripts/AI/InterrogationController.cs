@@ -99,6 +99,15 @@ namespace IMUNROK.Common
         private readonly List<string> _transcript = new List<string>();
         private readonly List<string> _unlockedFacts = new List<string>();
         private readonly HashSet<string> _unlockedGateKeys = new HashSet<string>();
+
+        /// <summary>
+        /// <b>정곡을 찔린 자리가 끌어올려 둔 단계.</b>
+        ///
+        /// 단계를 열린 게이트 <b>개수</b>로만 세면, 게이트가 늘어날수록 한 자리의 무게가
+        /// 줄어든다 — 스무 해 못 먹던 것을 사들인 것이 들통난 사람이 「다섯 중 하나」라는
+        /// 이유로 태연할 수는 없다. 그런 한 방은 제 무게를 스스로 적어 둔다.
+        /// </summary>
+        private int _stageFloor;
         private readonly HashSet<string> _grantedTopics = new HashSet<string>();
 
         /// <summary>이미 물어본 추천 질문. 물은 것은 줄에서 내려가고 다음 것이 올라선다.</summary>
@@ -286,6 +295,7 @@ namespace IMUNROK.Common
                 _transcript.Clear();
                 _unlockedFacts.Clear();
                 _unlockedGateKeys.Clear();
+                _stageFloor = 0;
                 _grantedTopics.Clear();
                 _asked.Clear();
             }
@@ -446,6 +456,7 @@ namespace IMUNROK.Common
             req.stage = gates > 0
                       ? Mathf.Clamp(Mathf.RoundToInt(10f * _unlockedGateKeys.Count / gates), 0, 10)
                       : 0;
+            if (_stageFloor > req.stage) req.stage = _stageFloor;
 
             var keys = _character != null ? _character.BreakKeys() : System.Array.Empty<string>();
             bool all = keys.Length > 0 && journal != null;
@@ -533,24 +544,15 @@ namespace IMUNROK.Common
             string revealed = null;
             foreach (var gate in _character.evidenceGates)
             {
-                if (gate.clueKey != clue.key) continue;
-                // 막이 안 맞는 줄은 <b>없는 것</b>이다. 같은 단서에 1막 줄과 2막 줄을
-                // 나란히 적어 둘 수 있어야 어제와 오늘이 달라진다.
-                if (!ActGate.Fits(gate.act)) continue;
-
+                // 발뺌은 겹칠 것이 없다 — 그 종이 하나로 되받는 말이다.
                 if (gate.deflectionOnly)
                 {
-                    revealed = gate.revealsInfo;   // 발뺌 대사(반복 가능, 단서 기록 X)
+                    if (gate.clueKey != clue.key || !ActGate.Fits(gate.act)) continue;
+                    revealed = gate.revealsInfo;   // 반복 가능, 단서 기록 X
                     break;
                 }
-                if (!_unlockedGateKeys.Contains(gate.clueKey))
-                {
-                    _unlockedGateKeys.Add(gate.clueKey);
-                    _unlockedFacts.Add(gate.revealsInfo);
-                    revealed = gate.revealsInfo;
-                    // 받아낸 실토도 수첩에 남긴다 — 다만 <b>정황</b>이고, 다시 들이밀 수는 없다.
-                    Record(gate.grantsClueKey, gate.revealsInfo, false);
-                }
+                if (!GateOpens(gate, clue.key)) continue;
+                if (OpenGate(gate)) revealed = gate.revealsInfo;
                 break;
             }
 
@@ -571,6 +573,45 @@ namespace IMUNROK.Common
             _busy = true;
             RefreshSubtitle();
             _responder.GetResponse(this, req, OnReply, OnError);
+        }
+
+        /// <summary>
+        /// <b>이 게이트가 지금 열리는가.</b>
+        ///
+        /// 여태 조건은 「이 단서를 들이밀었나」 하나였다. 그런데 혼자서는 아무 말도 못 하는
+        /// 단서가 있다 — 아내의 한 마디도, 물목기의 한 줄도 저 혼자서는 장바구니 얘기다.
+        /// <b>둘을 겹쳐야</b> 사들여 놓고 못 먹는 척한다는 말이 선다.
+        ///
+        /// 그래서 요구하는 단서를 <b>묶음</b>으로 본다. 묶음이 다 손에 있어야 하고,
+        /// 지금 내민 것은 그 묶음 안에 있으면 된다 — <b>어느 쪽을 먼저 꺼내도</b> 같은 자리가 열린다.
+        /// 무엇을 먼저 주웠느냐로 길이 갈리면 그건 순서를 외우는 일이지 조사가 아니다.
+        ///
+        /// <paramref name="presented"/> 가 비면 들이민 것 없이 <b>말로</b> 찌른 경우다.
+        /// 그때는 묶음을 다 쥐고 있기만 하면 된다.
+        /// </summary>
+        private bool GateOpens(EvidenceGate gate, string presented)
+        {
+            if (gate == null || !ActGate.Fits(gate.act)) return false;
+            var need = gate.RequiredKeys();
+            if (need.Count == 0) return false;
+            if (!string.IsNullOrEmpty(presented) && !need.Contains(presented)) return false;
+
+            var journal = Journal.Instance;
+            if (journal == null) return false;
+            foreach (var k in need)
+                if (!journal.HasClue(_character.caseId, k)) return false;
+            return true;
+        }
+
+        /// <summary>게이트 하나를 연다. 이미 열렸으면 거짓.</summary>
+        private bool OpenGate(EvidenceGate gate)
+        {
+            if (_unlockedGateKeys.Contains(gate.clueKey)) return false;
+            _unlockedGateKeys.Add(gate.clueKey);
+            _unlockedFacts.Add(gate.revealsInfo);
+            if (gate.stageAtLeast > _stageFloor) _stageFloor = gate.stageAtLeast;
+            Record(gate.grantsClueKey, gate.revealsInfo, false);
+            return true;
         }
 
         // ── 말로 여는 길 ──
@@ -618,15 +659,12 @@ namespace IMUNROK.Common
                 foreach (var g in _character.evidenceGates)
                 {
                     if (g == null || g.deflectionOnly) continue;
-                    if (!ActGate.Fits(g.act)) continue;
                     if (string.IsNullOrEmpty(g.revealsInfo)) continue;
                     if (_unlockedGateKeys.Contains(g.clueKey)) continue;
                     if (!TalkKeywords.Hit(say, g.keywords)) continue;
-                    if (!journal.HasClue(_character.caseId, g.clueKey)) continue;
+                    if (!GateOpens(g, null)) continue;      // 묶음을 다 쥐었는가
 
-                    _unlockedGateKeys.Add(g.clueKey);
-                    _unlockedFacts.Add(g.revealsInfo);
-                    Record(g.grantsClueKey, g.revealsInfo, false);
+                    OpenGate(g);
                     return g.revealsInfo;
                 }
             }

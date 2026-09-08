@@ -20,6 +20,20 @@ namespace IMUNROK.Common
         [Tooltip("수첩/제시 목록에 보이는 단서 문구")]
         public string clueText = "";
 
+        [Tooltip("<b>같이 쥐고 있어야 열리는 것들.</b> 쉼표로 여럿. 위 clueKey 와 <b>모두</b> 있어야 한다.\n\n" +
+                 "혼자서는 아무것도 못 하는 단서가 있다. 아내가 「비린 것을 못 드시던 분인데 " +
+                 "요즘은 게장을 청하십니다」 한 것만으로는 안주인의 말일 뿐이고, 물목기에 " +
+                 "게장 두 항아리가 올라 있는 것만으로는 그저 장 본 기록이다. <b>둘을 겹쳐야</b> " +
+                 "사들여 놓고 못 먹는 척한다는 말이 선다.\n\n" +
+                 "둘 중 <b>어느 것을 들이밀어도</b> 열린다 — 나머지를 쥐고만 있으면 된다")]
+        public string alsoNeedsClueKeys = "";
+
+        [Tooltip("이 게이트가 열리면 <b>무너짐 단계</b>를 적어도 이만큼으로 올린다(0~10, 0이면 안 건드림).\n" +
+                 "게이트 개수로만 세면 게이트가 늘어날수록 한 자리의 무게가 줄어든다. " +
+                 "정곡을 찌른 한 방은 그것 하나로 사람을 흔들어야 한다")]
+        [Range(0, 10)]
+        public int stageAtLeast = 0;
+
         [Tooltip("이 증거를 제시하면 인물이 털어놓는 사실")]
         [TextArea(2, 4)]
         public string revealsInfo = "";
@@ -40,6 +54,20 @@ namespace IMUNROK.Common
 
         [Tooltip("이 증거를 제시할 때 뜨는 상황 그림(선택)")]
         public Texture2D clueImage;
+
+        /// <summary>이 게이트가 요구하는 단서 모두(첫째가 clueKey). 하나면 하나만 돌아온다.</summary>
+        public List<string> RequiredKeys()
+        {
+            var list = new List<string>();
+            if (!string.IsNullOrWhiteSpace(clueKey)) list.Add(clueKey.Trim());
+            if (!string.IsNullOrWhiteSpace(alsoNeedsClueKeys))
+                foreach (var raw in alsoNeedsClueKeys.Split(','))
+                {
+                    var k = raw.Trim();
+                    if (k.Length > 0 && !list.Contains(k)) list.Add(k);
+                }
+            return list;
+        }
     }
 
     /// <summary>

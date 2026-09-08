@@ -157,6 +157,8 @@ MonoBehaviour:
   - act: 0
     clueKey: J06
     clueText: "\uC7A5\uBD80 \uD544\uC801\uC774 \uD55C \uB2EC \uC804\uD6C4\uB85C \uBC14\uB01C"
+    alsoNeedsClueKeys: 
+    stageAtLeast: 0
     revealsInfo: "\uD544\uCCB4\uC57C \uC138\uC6D4 \uB530\uB77C \uBCC0\uD558\uB294
       \uBC95. \uADF8\uAC8C \uBB34\uC2A8 \uD760\uC774\uB77C\uB3C4 \uB418\uC624?"
     keywords: 
@@ -166,10 +168,29 @@ MonoBehaviour:
   - act: 0
     clueKey: J11
     clueText: "\uD589\uB791\uCC44 \uADA4 \u2014 \uC18D\uB7C9 \uBB38\uC11C"
+    alsoNeedsClueKeys: 
+    stageAtLeast: 0
     revealsInfo: "\uADF8\uAC74 \uC5B4\uB514\uC11C \uC8FC\uC6E0\uC18C? \u2026\uD5C8\uD2BC
       \uC885\uC774 \uCABC\uAC00\uB9AC\uC694. \uB098\uC640 \uBB34\uC2A8 \uC0C1\uAD00\uC774\uB780
       \uB9D0\uC774\uC624."
     keywords: 
     grantsClueKey: 
     deflectionOnly: 1
+    clueImage: {fileID: 0}
+  - act: 2
+    clueKey: G09
+    clueText: "\uC544\uB0B4 \u2014 \uBE44\uB9B0 \uAC83\uC744 \uBABB \uB4DC\uC2DC\uB358
+      \uBD84\uC774 \uC694\uC998\uC740 \uAC8C\uC7A5\uC744 \uCCAD\uD558\uC2ED\uB2C8\uB2E4"
+    alsoNeedsClueKeys: J07
+    stageAtLeast: 6
+    revealsInfo: "\uAC8C\uC7A5 \uC774\uC57C\uAE30\uAC00 \uB098\uC624\uC790 \uB9D0\uC774
+      \uB9C9\uD78C\uB2E4. \u300C\u2026\uBE44\uB9B0 \uAC83\uC744 \uC990\uAE30\uC9C0
+      \uC54A\uC18C\u300D \uD558\uBA74\uC11C\uB3C4, \uC9C0\uB09C\uB2EC \uBB3C\uBAA9\uC5D0
+      \uAC8C\uC7A5 \uB450 \uD56D\uC544\uB9AC\uAC00 \uC62C\uB77C \uC788\uB294 \uAC83\uC740
+      \uC5B4\uCC0C \uC124\uBA85\uD558\uC9C0 \uBABB\uD55C\uB2E4. \uC190\uB05D\uC774
+      \uB5A8\uB9B0\uB2E4."
+    keywords: "\uAC8C\uC7A5,\uAC8C,\uBE44\uB9B0,\uC813\uAC08,\uD574\uC7A5,\uBB3C\uBAA9,\uC0AC\uB4E4,\uC7A5\uC744
+      \uBCF4"
+    grantsClueKey: G10
+    deflectionOnly: 0
     clueImage: {fileID: 0}

@@ -82,7 +82,7 @@ namespace IMUNROK.Onggojip
                 case "G06": return Has("J11");                          // 별급문기 → 하인 추궁(속량)
                 case "G07": return Has("G01");                          // 대장을 봐야 유척으로 견줄 수가 있다
                 case "G08": return Has("G01");                          // 저쪽 팔도 같은 자로 잰다
-                case "G10": return Has("G09");                          // 못 먹는다는 말을 들어야 상을 밀어 볼 생각을 한다
+                case "G10": return Has("G09") && Has("J07");            // 아내의 말과 물목기를 겹쳐야 나오는 자리
                 default: return true;
             }
         }

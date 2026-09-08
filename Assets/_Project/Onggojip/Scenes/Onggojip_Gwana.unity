@@ -3345,7 +3345,6 @@ GameObject:
   - component: {fileID: 109433625}
   - component: {fileID: 109433624}
   - component: {fileID: 109433629}
-  - component: {fileID: 109433631}
   - component: {fileID: 109433630}
   m_Layer: 0
   m_Name: "\u7532"
@@ -3578,38 +3577,6 @@ MonoBehaviour:
       m_Calls: []
   _once: 1
   _buttonless: 1
---- !u!114 &109433631
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 109433622}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3fb3ba089a1e688498a08eaa8365769d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.ItemOrder
-  _act: 2
-  _label: "\uAC8C\uC7A5\uC744 \uAD8C\uD55C\uB2E4"
-  _case: 0
-  _needsClueKeys: G09
-  _needsToolId: 
-  _deedLine: "(\uC0C1 \uC704\uC758 \uAC8C\uC7A5\uC744 \uADF8 \uC55E\uC73C\uB85C \uBBFC\uB2E4)"
-  _revealsInfo: "\uC813\uAC00\uB77D\uC774 \uBB34\uC2EC\uCF54 \uAC8C\uC7A5\uC73C\uB85C
-    \uAC14\uB2E4. \uC9C0\uC801\uC744 \uBC1B\uACE0\uC11C\uC57C \uC190\uC744 \uAC70\uB450\uACE0
-    \uB2A6\uAC8C \uC5BC\uBC84\uBB34\uB9B0\uB2E4 \u2014 \u300C\uBE44\uB9B0 \uAC83\uC744
-    \uC990\uAE30\uC9C0 \uC54A\uC18C\u300D. \uADF8\uB7EC\uB098 \uC190\uC774 \uBA3C\uC800
-    \uAC14\uB2E4."
-  _grantsClueKey: G10
-  _grantsClueText: "[G10] \u7532\uC740 \uAC8C\uC5D0 \uC190\uC774 \uAC14\uB2E4 \u2014
-    \uBAB8\uC774 \uBA3C\uC800 \uB2F5\uD588\uB2E4"
-  _prop: {fileID: 0}
-  _onDone:
-    m_PersistentCalls:
-      m_Calls: []
-  _once: 1
-  _buttonless: 0
 --- !u!1 &112362368
 GameObject:
   m_ObjectHideFlags: 0

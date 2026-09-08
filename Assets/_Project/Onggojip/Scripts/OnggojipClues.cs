@@ -77,7 +77,7 @@ namespace IMUNROK.Onggojip
             // <b>게.</b> 몸에 밴 것은 스무 해를 외워도 못 따라 한다. 진짜 옹덕구는
             // 여섯 살에 체한 뒤로 비린 것을 입에 못 대는데, 안채의 아내가 그것을 안다.
             new ClueDef { key = "G09", text = "아내 — \"비린 것은 입에도 못 대시던 분인데, 요즘은 게장을 청하십니다\"", stealth = false },
-            new ClueDef { key = "G10", text = "甲은 게에 손이 갔다 — 몸이 먼저 답했다", stealth = false },
+            new ClueDef { key = "G10", text = "甲은 게장을 사들이고도 못 먹는 척한다 — 물목기와 아내의 말이 어긋난다", stealth = false },
         };
 
         /// <summary>
