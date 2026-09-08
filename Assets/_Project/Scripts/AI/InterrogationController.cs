@@ -714,10 +714,13 @@ namespace IMUNROK.Common
         /// 대답은 정해 두지 않는다. 무슨 일이 벌어졌는지만 건네고, 어떻게 반응하는지는
         /// 그 인물의 성격이 정한다 — <see cref="ItemOrder"/> 가 부른다.
         /// </summary>
-        public void Offer(string deed, string revealsInfo, string grantsClueKey, string grantsClueText)
+        public void Offer(string deed, string revealsInfo, string grantsClueKey, string grantsClueText,
+                          int stageAtLeast = 0)
         {
             if (!_active || _busy) return;
             if (string.IsNullOrWhiteSpace(deed)) deed = "(무언가를 내민다)";
+            // 물건이 하는 말은 사람의 말보다 무겁다 — 제 무게를 스스로 적어 온다.
+            if (stageAtLeast > _stageFloor) _stageFloor = stageAtLeast;
 
             _lastPlayerLine = deed;
             _transcript.Add($"{PlayerTitle}(행동): {deed}");

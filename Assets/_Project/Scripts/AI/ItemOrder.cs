@@ -58,6 +58,12 @@ namespace IMUNROK.Common
         [Tooltip("수첩에 적힐 문구. 비우면 위 '드러나는 사실'을 그대로 쓴다")]
         [TextArea(2, 4)] [SerializeField] private string _grantsClueText = "";
 
+        [Tooltip("이 일이 벌어지면 <b>무너짐 단계</b>를 적어도 이만큼으로 올린다(0~10, 0이면 안 건드림).\n" +
+                 "대장에 적힌 두 치와 제 팔의 자국이 눈앞에서 맞아떨어진 사람은 그 뒤로 " +
+                 "같은 얼굴일 수 없다. 물건이 하는 말은 사람의 말보다 무겁다")]
+        [Range(0, 10)]
+        [SerializeField] private int _stageAtLeast = 0;
+
         [Header("무대")]
         [Tooltip("이 일에 딸린 물건 — 누르면 켜진다(상 위의 게장 따위). 없어도 된다")]
         [SerializeField] private GameObject _prop;
@@ -105,7 +111,7 @@ namespace IMUNROK.Common
             if (who == null) return;
             _done = true;
             if (_prop != null) _prop.SetActive(true);
-            who.Offer(_deedLine, _revealsInfo, _grantsClueKey, _grantsClueText);
+            who.Offer(_deedLine, _revealsInfo, _grantsClueKey, _grantsClueText, _stageAtLeast);
             _onDone?.Invoke();
         }
 
