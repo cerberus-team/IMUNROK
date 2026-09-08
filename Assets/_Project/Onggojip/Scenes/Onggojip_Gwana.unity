@@ -5785,6 +5785,28 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1031002132, guid: abc00000000015190826339057496112, type: 3}
   m_PrefabInstance: {fileID: 178456411}
   m_PrefabAsset: {fileID: 0}
+--- !u!64 &183655922
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1797964362}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 4bd720973d1ced94a8c85f977df06c4f, type: 2}
 --- !u!1 &185416824
 GameObject:
   m_ObjectHideFlags: 0
@@ -38103,63 +38125,6 @@ Transform:
   - {fileID: 874680803}
   m_Father: {fileID: 1030295774}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1435503029
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1435503032}
-  - component: {fileID: 1435503031}
-  - component: {fileID: 1435503030}
-  m_Layer: 0
-  m_Name: "_\uB9D0\uD558\uAE30"
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1435503030
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1435503029}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 80c11ec2ef9398248af12d81457674ab, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.MicInput
---- !u!114 &1435503031
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1435503029}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f6da0ed72f4541d7b52607891bafa6f3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VoiceSDK.Dictation.Runtime::Oculus.Voice.Dictation.AppDictationExperience
---- !u!4 &1435503032
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1435503029}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1438683190
 GameObject:
   m_ObjectHideFlags: 0
@@ -49296,7 +49261,7 @@ PrefabInstance:
       addedObject: {fileID: 974252093}
     - targetCorrespondingSourceObject: {fileID: 8292900024077184127, guid: b97b904a46edbaa43aa47f1ae3d1cf70, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2109032130}
+      addedObject: {fileID: 183655922}
     - targetCorrespondingSourceObject: {fileID: 5259266216903489639, guid: b97b904a46edbaa43aa47f1ae3d1cf70, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2131824011}
@@ -58218,27 +58183,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!65 &2109032130
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1797964362}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.0150516, y: 0.0065293824, z: 0.019033503}
-  m_Center: {x: 0.000037840102, y: 0.000020619598, z: -0.000011240598}
 --- !u!1001 &2113137222
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -68794,7 +68738,6 @@ SceneRoots:
   - {fileID: 334965283}
   - {fileID: 1724923633}
   - {fileID: 953034175}
-  - {fileID: 1435503032}
   - {fileID: 1695543084}
   - {fileID: 1750749392}
   - {fileID: 1633897961}
