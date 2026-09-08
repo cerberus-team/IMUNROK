@@ -8,8 +8,8 @@ OcclusionCullingSettings:
     smallestOccluder: 2
     smallestHole: 0.25
     backfaceThreshold: 100
-  m_SceneGUID: 1ef7e4fdbb9d786419ab0e039d6b12e3
-  m_OcclusionCullingData: {fileID: 36300000, guid: f08d343c5d814d6458a4bda56c529f3a, type: 2}
+  m_SceneGUID: 00000000000000000000000000000000
+  m_OcclusionCullingData: {fileID: 0}
 --- !u!104 &2
 RenderSettings:
   m_ObjectHideFlags: 0
@@ -2373,7 +2373,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6311cdae2f93c06468f708a1821980ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.FaceThePlayer
-  _turn: {fileID: 0}
+  _turn: {fileID: 8337791899695175294}
   _turnSpeed: 160
   _holdSeconds: 8
   _returnAfter: 1
@@ -4448,7 +4448,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8510b609d1740a645a8067e4f9c7f801, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.043196082
+      value: -0.40322745
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8510b609d1740a645a8067e4f9c7f801, type: 3}
       propertyPath: m_LocalPosition.z
@@ -7823,7 +7823,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 3ff73f94b7fe8fc4b898461b9392220b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.010540843
+      value: -0.34949028
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 3ff73f94b7fe8fc4b898461b9392220b, type: 3}
       propertyPath: m_LocalPosition.z
@@ -9985,8 +9985,8 @@ MonoBehaviour:
   _maxTouchDistance: 3
   _locked: 1
   _noise: 0.55
-  _openSound: {fileID: 8300000, guid: 00cfb73ffefbc614f9efc02fb4cb7833, type: 3}
-  _closeSound: {fileID: 8300000, guid: 952891825eb4a454d87233965e79fcd6, type: 3}
+  _openSound: {fileID: 0}
+  _closeSound: {fileID: 0}
   _pitchJitter: 0.08
   _soundStartAt: 0
   _soundSeconds: 0
@@ -10007,7 +10007,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 8718433563307248838}
         m_TargetAssemblyTypeName: IMUNROK.Common.MareumController, IMUNROK.Common
         m_MethodName: OpenDoorThenStepAside
         m_Mode: 1
@@ -10069,9 +10069,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0c63f29657ea3243beec6246e0e1857, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.GateKnockSequence
-  _door: {fileID: 0}
-  _mareum: {fileID: 0}
-  _bokdong: {fileID: 0}
+  _door: {fileID: 995650159}
+  _mareum: {fileID: 8718433563307248838}
+  _bokdong: {fileID: 1688468740}
   _lines: []
   _askAtLine: 2
   _bokdongLeadAtLine: 4
@@ -11178,10 +11178,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.MagnifierLens
   _toolId: magnify
-  _zoom: 2.8
+  _zoom: 2.2
   _glassRadius: 0.07
   _texSize: 1024
-  _pageZoomBoost: 1.5
+  _pageZoomBoost: 1.3
   _useAuthoredPose: 1
   _readyPush: 0.06
   _eyeDistance: 0.25
@@ -11962,7 +11962,7 @@ Camera:
   m_AllowMSAA: 1
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
-  m_OcclusionCulling: 1
+  m_OcclusionCulling: 0
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
 --- !u!4 &1131798641
@@ -23266,10 +23266,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.GroundFeet
   _model: {fileID: 2591147536630962962}
   _footBones:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 6717722634223485665}
+  - {fileID: 1758855308943664031}
+  - {fileID: 8121083215730491333}
+  - {fileID: 1469226650609856128}
   _groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -23293,7 +23293,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6311cdae2f93c06468f708a1821980ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.FaceThePlayer
-  _turn: {fileID: 0}
+  _turn: {fileID: 2591147536630962962}
   _turnSpeed: 160
   _holdSeconds: 8
   _returnAfter: 1
@@ -41015,7 +41015,7 @@ Transform:
   m_GameObject: {fileID: 2935865750439854504}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.00051263464, y: 0.02344513, z: 0.0072689163}
+  m_LocalPosition: {x: -0.00051263464, y: -0.03029871, z: 0.0072689163}
   m_LocalScale: {x: 1.047219, y: 1.047219, z: 1.047219}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -43320,19 +43320,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39b967ea594015c4ab933a7b4585d67b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.BreathSway
-  _animator: {fileID: 0}
+  _animator: {fileID: 8718433563307248839}
   _bones:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 476998767718264224}
+  - {fileID: 7845581749322503697}
+  - {fileID: 2994564974290760378}
+  - {fileID: 3422042862119931768}
   _facing: {fileID: 0}
   _bowDegrees: 1
   _swayDegrees: 0.7
   _period: 4.6
   _swayPeriodScale: 1.6
   _phase: 0.37
-  _renderer: {fileID: 0}
+  _renderer: {fileID: 8647250207104909737}
 --- !u!114 &8718433563307248838
 MonoBehaviour:
   m_ObjectHideFlags: 0

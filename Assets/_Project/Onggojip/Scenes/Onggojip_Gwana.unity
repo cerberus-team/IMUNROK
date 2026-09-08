@@ -35911,7 +35911,7 @@ Camera:
   m_AllowMSAA: 1
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
-  m_OcclusionCulling: 1
+  m_OcclusionCulling: 0
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
 --- !u!4 &1351403331
@@ -52129,6 +52129,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d9003a3bd006a73429f412ed15a41eeb, type: 2}
   _leftHanded: 0
   _font: {fileID: 0}
+  _useIcons: 0
   _keepWhileTalking: lantern,yucheok
 --- !u!4 &1902719919
 Transform:
@@ -52340,10 +52341,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.MagnifierLens
   _toolId: magnify
-  _zoom: 2.8
+  _zoom: 2.2
   _glassRadius: 0.056706253
   _texSize: 1024
-  _pageZoomBoost: 1.5
+  _pageZoomBoost: 1.3
   _useAuthoredPose: 1
   _readyPush: 0.06
   _eyeDistance: 0.25

@@ -36,15 +36,16 @@ namespace IMUNROK.Common
         [SerializeField] private string _toolId = "magnify";
 
         [Header("유리")]
-        [Tooltip("배율. 2.5~3배가 종이의 잔글씨를 읽기에 알맞다")]
-        [Range(1.2f, 6f)] [SerializeField] private float _zoom = 2.8f;
+        [Tooltip("배율. 2.2배쯤이면 종이의 잔글씨가 읽히면서 종이 전체도 유리 안에 남는다 — " +
+                 "2.8 은 글자는 커지되 한 줄이 유리 밖으로 밀려나 읽으려면 종이를 자꾸 옮겨야 했다")]
+        [Range(1.2f, 6f)] [SerializeField] private float _zoom = 2.2f;
         [Tooltip("유리 반지름(m)")]
         [SerializeField] private float _glassRadius = 0.07f;
         [Tooltip("렌즈 그림의 해상도. 크면 또렷하나 비싸다")]
         [SerializeField] private int _texSize = 1024;
         [Tooltip("손에 쥔 종이를 짚고 있을 때 배율을 이만큼 더 준다. 종이의 잔글씨는 " +
                  "방 저쪽 물건보다 훨씬 잘아서, 같은 배율로는 유리를 대나 마나다")]
-        [Range(1f, 2.5f)] [SerializeField] private float _pageZoomBoost = 1.5f;
+        [Range(1f, 2.5f)] [SerializeField] private float _pageZoomBoost = 1.3f;
 
         [Header("드는 자세")]
         [Tooltip("<b>씬에서 맞춰 둔 소품 자세를 그대로 쓴다.</b> 소품을 매단 자리(HeldToolModel 이 붙은 " +

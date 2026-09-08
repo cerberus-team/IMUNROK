@@ -383,15 +383,21 @@ namespace IMUNROK.Common
         /// 높낮이를 세 번 다 흔든다 — 같은 파일을 세 번 그대로 틀면 소리가 아니라
         /// <b>기계</b>로 들린다. 문 여닫는 소리가 이미 같은 까닭으로 흔들고 있다.
         /// </summary>
+        /// <summary>
+        /// 한 번 두드리면 몇 번 울리나. <b>둘</b>이다 — 「쿵쿵」. 셋이면 「쿵쿵쿵」이 되어
+        /// 급한 사람이 문을 두들기는 소리가 된다. 하룻밤 청하러 온 과객은 그렇게 안 두드린다.
+        /// </summary>
+        private const int Knocks = 2;
+
         private System.Collections.IEnumerator KnockAloud()
         {
             if (_knockOnce == null || _noise <= 0f) yield break;
             Vector3 at = ModelBounds.TryGet(transform, out var b) ? b.center : transform.position;
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < Knocks; i++)
             {
                 float pitch = 1f + Random.Range(-_pitchJitter, _pitchJitter);
                 NoiseMeter.Play(at, _knockOnce, _noise, "문 두드리는 소리", pitch, _soundStartAt, _soundSeconds);
-                if (i < 2) yield return new WaitForSeconds(Mathf.Max(0.05f, _knockGap));
+                if (i < Knocks - 1) yield return new WaitForSeconds(Mathf.Max(0.05f, _knockGap));
             }
         }
 
