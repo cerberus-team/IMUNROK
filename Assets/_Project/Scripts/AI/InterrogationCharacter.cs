@@ -19,6 +19,17 @@ namespace IMUNROK.Common
         [TextArea(2, 4)]
         public string revealsInfo = "";
 
+        [Tooltip("<b>말로도 열리는 낱말.</b> 쉼표로 여럿(예: 아우,동생,형제). 한 낱말 안의 +는 둘 다 필요.\n" +
+                 "수첩에서 들이밀지 않고 손으로 쳐 넣어도, 이 낱말이 들었고 위 단서를 " +
+                 "<b>이미 쥐고 있으면</b> 열린다. 쥐지 않았으면 아무리 정확히 짚어도 안 열린다 — " +
+                 "넘겨짚기는 조사가 아니다.\n비우면 들이밀어야만 열린다")]
+        public string keywords = "";
+
+        [Tooltip("이 실토를 수첩에 <b>정황</b>으로 적을 때의 key(예: G05). " +
+                 "비우면 적히지 않고 그 자리에서 붉게 한 번 지나갈 뿐이다.\n" +
+                 "적어 두어야 다른 인물이 「어사가 아내의 증언을 쥐었는가」를 볼 수 있다")]
+        public string grantsClueKey = "";
+
         [Tooltip("체크하면: 위 대사는 '발뺌'일 뿐 — 단서로 기록되지 않고 여러 번 반복 가능(1막 甲처럼 안 무너짐)")]
         public bool deflectionOnly = false;
 
@@ -35,6 +46,13 @@ namespace IMUNROK.Common
     {
         [Tooltip("버튼에 뜨는 질문(어사의 대사)")]
         public string question = "";
+
+        [Tooltip("<b>단추를 안 눌러도 같은 곳에 닿는 낱말.</b> 쉼표로 여럿(예: 문서,장부,스무해). " +
+                 "한 낱말 안의 +는 둘 다 필요(예: 왼팔+자국).\n" +
+                 "손으로 쳐 넣은 말에 이 낱말이 들면 이 물음을 한 것으로 보고 같은 단서를 준다 — " +
+                 "제 손으로 정곡을 짚은 사람이 단추를 누른 사람보다 빈손이면 손으로 칠 까닭이 없다.\n" +
+                 "비우면 단추로만 열린다")]
+        public string keywords = "";
 
         [Tooltip("목업(키 없을 때)에서 인물이 하는 대답. Gemini면 AI가 생성")]
         [TextArea(2, 4)]

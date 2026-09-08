@@ -267,10 +267,19 @@ namespace IMUNROK.Common
 
             CaseId caseId = gs.CurrentCase.Value;
             var clues = Journal.Instance.GetClues(caseId);
+
+            // 물증이 앞, 들은 말이 뒤. 섞어 깔면 어느 것이 손에 쥔 것인지 흐려진다.
+            var laid = new List<ClueEntry>();
+            foreach (var c in clues) if (c.kind == ClueKind.물증) laid.Add(c);
+            int nMul = laid.Count;
+            foreach (var c in clues) if (c.kind != ClueKind.물증) laid.Add(c);
+            int nJeong = laid.Count - nMul;
+
+            string tally = nJeong > 0 ? $"물증 {nMul} · 들은 말 {nJeong}" : $"물증 {nMul}";
             string head = _owner != null ? _owner.CaseBrief : null;
             _title.text = string.IsNullOrWhiteSpace(head)
-                        ? $"수첩 — 물증 {clues.Count}"
-                        : $"{head}      (물증 {clues.Count})";
+                        ? $"수첩 — {tally}"
+                        : $"{head}      ({tally})";
 
             string brief = Journal.Instance.GetBrief(caseId);
             _brief.text = string.IsNullOrWhiteSpace(brief) ? "" : brief;
@@ -278,10 +287,7 @@ namespace IMUNROK.Common
             // 심문 중일 때만 들이밀 수 있다
             bool talking = InterrogationController.AnyOpen && InterrogationController.Active != null;
 
-            var muljeung = new List<ClueEntry>();
-            foreach (var c in clues) if (c.kind == ClueKind.물증) muljeung.Add(c);
-
-            FillEvidence(_col, muljeung, caseId, talking);
+            FillEvidence(_col, laid, caseId, talking);
         }
 
         /// <summary>
@@ -301,14 +307,14 @@ namespace IMUNROK.Common
             float w = col.sizeDelta.x;
             float y = col.sizeDelta.y * 0.5f - 40f;
 
-            var h = NewText("머리물증", "── 주운 물증 ──", new Vector2(0f, y), new Vector2(w, 44f),
+            var h = NewText("머리물증", "── 주운 것과 들은 말 ──", new Vector2(0f, y), new Vector2(w, 44f),
                             col, _clueFontSize + 4, _inkColor);
             _cards.Add(h.gameObject);
             y -= 64f;
 
             if (list.Count == 0)
             {
-                var e = NewText("없음", "(아직 주운 것이 없다. 들은 말은 여기 적히지 않는다)",
+                var e = NewText("없음", "(아직 주운 것도 들은 말도 없다)",
                                 new Vector2(0f, y), new Vector2(w, 40f),
                                 col, _clueFontSize, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.5f));
                 _cards.Add(e.gameObject);
@@ -349,7 +355,11 @@ namespace IMUNROK.Common
                                    new Vector2(x0 + k * (cw + gap), y - ch * 0.5f - r * (ch + gap)),
                                    new Vector2(cw, ch), col);
                 var bg = card.gameObject.AddComponent<Image>();
-                Skin(bg, _skin.Slot_, _cardColor);
+                // 들은 말은 종이가 아니다. 같은 낯으로 깔면 손에 쥔 것과 구별이 안 간다.
+                bool heard = c.kind != ClueKind.물증;
+                Skin(bg, _skin.Slot_, heard
+                     ? new Color(_cardColor.r, _cardColor.g, _cardColor.b, _cardColor.a * 0.7f)
+                     : _cardColor);
                 _cards.Add(card.gameObject);
 
                 var doc = Journal.Instance.GetDocument(caseId, c.key);
@@ -368,7 +378,8 @@ namespace IMUNROK.Common
                 }
                 else
                 {
-                    var mark = NewText("표", "?", Vector2.zero, new Vector2(cw - 40f, 108f), shotRt,
+                    // 들은 말에는 言, 아직 못 본 물건에는 ?
+                    var mark = NewText("표", heard ? "言" : "?", Vector2.zero, new Vector2(cw - 40f, 108f), shotRt,
                                        _clueFontSize + 20, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.35f));
                     mark.raycastTarget = false;
                 }

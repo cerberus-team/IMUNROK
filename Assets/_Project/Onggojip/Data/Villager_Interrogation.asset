@@ -13,15 +13,23 @@ MonoBehaviour:
   m_Name: Villager_Interrogation
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.InterrogationCharacter
   characterName: "\uB9C8\uC744 \uC0AC\uB78C"
+  spokenName: 
+  secretWords: 
   caseId: 0
   persona: "\uD3C9\uBC94\uD55C \uB9C8\uC744 \uC0AC\uB78C. \u7532\uC744 \uC9C4\uC9DC
     \uC639\uB355\uAD6C \uB098\uB9AC\uB85C \uC54C\uACE0, \u4E59\uC744 \uBBF8\uCE5C
     \uC0AC\uB78C\uC73C\uB85C \uC5EC\uAE34\uB2E4. \uBC24\uC911\uC5D0 \uB098\uD0C0\uB09C
     \uB0AF\uC120 \uC774\uB97C \uC870\uAE08 \uACBD\uACC4\uD55C\uB2E4."
+  personaAct1: 
+  personaAct2: 
+  breakOnClues: 
   openingLine: "\uB258\uC2E0\uC9C0\uC694\u2026 \uC774 \uB2A6\uC740 \uBC24\uC5D0?"
+  recallLine: 
   closingLine: 
   topics:
   - question: "\uC800 \uB301 \uC8FC\uC778\uC774 \uB204\uAD6C\uC694?"
+    keywords: "\uC8FC\uC778,\uC774 \uC9D1,\uC800 \uB301,\uB301 \uC8FC\uC778,\uB204\uAC00
+      \uC0AC,\uB204\uAD6C\uC694,\uC5B4\uB290 \uB301"
     mockAnswer: "\uC639\uB355\uAD6C \uB098\uB9AC\uC2DC\uC9C0\uC694. \uC628 \uB9C8\uC744\uC774
       \uB2E4 \uC544\uB294 \uC5B4\uB978\uC785\uB2C8\uB2E4."
     grantsClueKey: J01
@@ -31,6 +39,8 @@ MonoBehaviour:
       \uD55C\uB2E4."
     grantsClueImage: {fileID: 0}
   - question: "\uC800\uAE30 \uC800 \uC0AC\uB0B4\uB294?"
+    keywords: "\uC0AC\uB0B4,\uC800 \uC0AC\uB78C,\uC800\uC790,\uBBF8\uCE5C,\uB2F4
+      \uBC16,\uACE0\uD568,\uC18C\uB9AC\uCE58,\uC6B8\uBD80"
     mockAnswer: "\uC544\uC774\uACE0\u2026 \uC800\uAC74 \uBCF5\uB3D9\uC774\uC608\uC694.
       \uC774 \uB301 \uC885\uC774\uC5C8\uB294\uB370 \uC8FD\uC5C8\uB2E4\uB354\uB2C8\u2026
       \uC0C1\uB300 \uB9C8\uC2ED\uC2DC\uC624."

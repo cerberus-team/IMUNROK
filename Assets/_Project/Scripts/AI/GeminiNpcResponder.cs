@@ -203,7 +203,13 @@ namespace IMUNROK.Common
             if (!string.IsNullOrEmpty(req.justRevealedInfo))
             {
                 sb.AppendLine();
-                sb.AppendLine("[방금 결정적 증거가 제시됨] 다음 사실을 마지못해 인정하라: " + req.justRevealedInfo);
+                // 종이를 눈앞에 들이민 것과 말로 찔린 것은 결이 다르다. 하나로 뭉뚱그리면
+                // 아무것도 안 내밀었는데 「그 문서를 보니」라고 답한다.
+                sb.AppendLine(req.isEvidence
+                    ? "[방금 결정적 증거가 제시됨] 다음 사실을 마지못해 인정하라: " + req.justRevealedInfo
+                    : "[방금 말로 정곡을 찔렸다] 다음 사실이 네 입에서 새어 나가게 하라 — "
+                    + "종이를 본 것이 아니니 문서를 들먹이지 말고, 묻지 않은 것까지 늘어놓지 말고, "
+                    + "이 한 가지만 흘려라: " + req.justRevealedInfo);
             }
             return sb.ToString();
         }

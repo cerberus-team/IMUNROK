@@ -401,8 +401,11 @@ namespace IMUNROK.Common
             if (!_active || _busy || string.IsNullOrWhiteSpace(text)) return;
             string say = text.Trim();
             _lastPlayerLine = say;
-            _lineIsKey = false;
             _transcript.Add($"{PlayerTitle}: {say}");
+
+            // 단추를 안 눌렀다고 빈손으로 돌려보내지 않는다 — 같은 곳을 짚었으면 같은 것을 준다.
+            string loosened = Loosen(say);
+            _lineIsKey = loosened != null;
 
             var req = new NpcRequest
             {
@@ -411,7 +414,7 @@ namespace IMUNROK.Common
                 unlockedFacts = _unlockedFacts,
                 playerInput = say,
                 isEvidence = false,
-                justRevealedInfo = null,
+                justRevealedInfo = loosened,
                 playerTitle = PlayerTitle,
                 playerIdentityBrief = GameState.Instance.PlayerIdentityBrief,
             };
@@ -493,8 +496,7 @@ namespace IMUNROK.Common
             _lineIsKey = false;
             if (!string.IsNullOrEmpty(t.grantsClueKey) && !_grantedTopics.Contains(t.grantsClueKey))
             {
-                _grantedTopics.Add(t.grantsClueKey);
-                if (!string.IsNullOrEmpty(t.grantsClueText)) _unlockedFacts.Add(t.grantsClueText);
+                GrantTopic(t);
                 _lineIsKey = true;
             }
 
@@ -543,8 +545,8 @@ namespace IMUNROK.Common
                     _unlockedGateKeys.Add(gate.clueKey);
                     _unlockedFacts.Add(gate.revealsInfo);
                     revealed = gate.revealsInfo;
-                    // 실토는 수첩에 적지 않는다. 들이민 물증은 이미 수첩에 있고,
-                    // 그 물증이 무엇을 열었는지는 지금 눈앞에서 붉게 지나간다.
+                    // 받아낸 실토도 수첩에 남긴다 — 다만 <b>정황</b>이고, 다시 들이밀 수는 없다.
+                    Record(gate.grantsClueKey, gate.revealsInfo, false);
                 }
                 break;
             }
@@ -566,6 +568,94 @@ namespace IMUNROK.Common
             _busy = true;
             RefreshSubtitle();
             _responder.GetResponse(this, req, OnReply, OnError);
+        }
+
+        // ── 말로 여는 길 ──
+
+        /// <summary>
+        /// <b>친 말이 무언가를 열었는가.</b> 열었으면 그 사실을, 아니면 null.
+        ///
+        /// 여태 손으로 친 말은 아무리 정확해도 분위기였다. 「저 사내가 누구요」를 제 손으로
+        /// 친 사람과 단추를 누른 사람이 <b>같은 답을 듣고도</b> 한쪽만 빈손으로 돌아섰다.
+        /// 물어본 값을 주지 않으면 손으로 칠 까닭이 없어지고, 그러면 이 게임은 단추 셋을
+        /// 차례로 누르는 일이 된다.
+        ///
+        /// 두 갈래로 연다.
+        ///  · <b>추천 질문의 낱말</b> — 같은 곳을 짚었으면 같은 것을 준다. 그 질문은
+        ///    물은 것으로 쳐 줄에서 내려간다(안 그러면 같은 말을 두 번 묻게 된다).
+        ///  · <b>증거 게이트의 낱말</b> — 다만 그 물증을 <b>수첩에 쥐고 있어야</b> 열린다.
+        ///    쥐지 않은 채 정곡을 찌르는 것은 넘겨짚기지 조사가 아니다.
+        ///
+        /// 한 마디에 하나만 연다. 셋이 우수수 열리면 붉은 줄이 무엇을 가리키는지 알 수 없다.
+        /// 발뺌 게이트는 여기서 건너뛴다 — 발뺌은 종이를 눈앞에 들이밀었을 때의 그림이다.
+        /// </summary>
+        private string Loosen(string say)
+        {
+            if (_character == null || string.IsNullOrWhiteSpace(say)) return null;
+
+            if (_character.topics != null)
+            {
+                foreach (var t in _character.topics)
+                {
+                    if (t == null || string.IsNullOrEmpty(t.grantsClueKey)) continue;
+                    if (_grantedTopics.Contains(t.grantsClueKey)) continue;
+                    if (!TalkKeywords.Hit(say, t.keywords)) continue;
+
+                    GrantTopic(t);
+                    _asked.Add(t.question);
+                    InterrogationPanel.Refresh();
+                    return string.IsNullOrEmpty(t.grantsClueText) ? t.question : t.grantsClueText;
+                }
+            }
+
+            var journal = Journal.Instance;
+            if (_character.evidenceGates != null && journal != null)
+            {
+                foreach (var g in _character.evidenceGates)
+                {
+                    if (g == null || g.deflectionOnly) continue;
+                    if (string.IsNullOrEmpty(g.revealsInfo)) continue;
+                    if (_unlockedGateKeys.Contains(g.clueKey)) continue;
+                    if (!TalkKeywords.Hit(say, g.keywords)) continue;
+                    if (!journal.HasClue(_character.caseId, g.clueKey)) continue;
+
+                    _unlockedGateKeys.Add(g.clueKey);
+                    _unlockedFacts.Add(g.revealsInfo);
+                    Record(g.grantsClueKey, g.revealsInfo, false);
+                    return g.revealsInfo;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>추천 질문으로 캐낸 것을 쥐여 준다 — 밝혀진 사실에 얹고, 수첩에 적는다.</summary>
+        private void GrantTopic(TopicQuestion t)
+        {
+            _grantedTopics.Add(t.grantsClueKey);
+            if (!string.IsNullOrEmpty(t.grantsClueText)) _unlockedFacts.Add(t.grantsClueText);
+            Record(t.grantsClueKey, t.grantsClueText, true, t.grantsClueImage);
+        }
+
+        /// <summary>
+        /// <b>들은 말을 수첩에 적는다</b> — 정황으로.
+        ///
+        /// 여태 적지 않았다. 수첩은 주운 물건을 담는 그릇이라 보았기 때문인데, 그 규칙
+        /// 아래에서는 출도에 반드시 필요한 J02(「문서는 다 내 손을 거쳤소」)가 <b>甲의
+        /// 입에서만</b> 나오면서 수첩에는 영영 안 들어와, 필수 넷 가운데 하나를 채울 길이
+        /// 없었다. 아내의 G05 도 마름의 G06 도 마찬가지 처지였다.
+        ///
+        /// 붉게 지나가는 것은 그대로 두고, 지나간 뒤에 남게만 했다.
+        /// <paramref name="presentable"/> 가 false 면 남되 들이밀 수는 없다 —
+        /// 받아낸 실토를 그 사람에게 도로 내미는 일은 없다.
+        /// </summary>
+        private void Record(string key, string text, bool presentable, Texture2D image = null)
+        {
+            if (string.IsNullOrEmpty(key) || _character == null) return;
+            var journal = Journal.Instance;
+            if (journal == null) return;
+            journal.AddClue(_character.caseId, key,
+                            string.IsNullOrEmpty(text) ? key : text,
+                            image, ClueKind.정황, presentable);
         }
 
         private void OnReply(string text)

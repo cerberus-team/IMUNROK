@@ -5,10 +5,16 @@ using UnityEngine;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 단서 종류. <b>수첩에는 물증만 적힌다</b>(<see cref="Journal.AddClue"/> 참조).
+    /// 단서 종류.
     ///
-    /// 정황은 값이 남아 있을 뿐 더는 기록되지 않는다 — 예전에 저장한 파일을 읽을 때
-    /// 이 값이 나오므로 이름을 없애지 않는다.
+    /// <b>물증</b>은 주운 것 — 장부·문기·재·부서진 자물쇠. 손에 들고 돌려 볼 수 있고
+    /// 남에게 들이밀 수 있다.
+    /// <b>정황</b>은 들은 것 — 甲이 흘린 자랑, 아내가 인정한 한 줄, 마름의 취중 소리.
+    /// 손에 쥔 물건은 아니지만 <b>사건을 세우는 데는 함께 쓰인다</b>.
+    ///
+    /// 한동안 정황은 아예 적지 않았다. 그러자 출도에 반드시 필요한 J02(「문서는 다 내
+    /// 손을 거쳤소」)가 <b>甲의 입에서만</b> 나오는데 수첩에는 영영 안 들어와, 필수 넷
+    /// 가운데 하나를 채울 길이 없었다. 지금은 종류만 갈라 두고 둘 다 적는다.
     /// </summary>
     public enum ClueKind { 물증, 정황 }
 
@@ -115,21 +121,21 @@ namespace IMUNROK.Common
         /// <summary>
         /// 단서를 기록. 같은 (사건,key)는 한 번만. 새로 기록되면 true.
         ///
-        /// <b>물증만 적힌다</b>. 정황(<see cref="ClueKind.정황"/>)을 넘기면 조용히 흘린다.
+        /// <b>물증도 정황도 적는다.</b> 종류만 갈라 두고 섞지 않는다 — 수첩을 펴면 주운
+        /// 것이 앞에, 들은 말이 뒤에 눕는다.
         ///
-        /// 왜인가: 수첩은 <b>주운 것</b>을 담는 그릇이다. 증언·목격·실토는 손에 쥔 것이
-        /// 아니라 그 자리에서 <b>들은 말</b>이고, 그것까지 적어 두면 들이밀 것과 들은 것이
-        /// 한 장에 섞여 어느 쪽이 상대의 입을 여는 물건인지 알 수 없게 된다. 들은 말은
-        /// 심문 자막에서 <b>붉게</b> 한 번 지나가고 사라진다 — 받아 적는 것은 조사관의 몫이다.
+        /// 들은 말이 그 자리에서 <b>붉게</b> 지나가는 것은 그대로다. 다만 지나가고
+        /// <b>사라지지는</b> 않는다. 받아 적는 것을 사람의 기억에 맡겨 두었더니, 한 시간
+        /// 뒤에 판결을 세울 때 「그 사람이 뭐라고 했더라」를 되짚을 길이 없었다.
         ///
-        /// 흘리더라도 그림은 받아 둔다. 뒤에 같은 key 가 물증으로 들어올 수 있다.
+        /// <paramref name="presentable"/> 를 false 로 두면 수첩에 남되 들이밀 수는 없다 —
+        /// 남에게서 받아낸 실토를 그 사람에게 도로 내미는 일은 없다.
         /// </summary>
         public bool AddClue(CaseId caseId, string key, string text, Texture2D image = null,
                             ClueKind kind = ClueKind.물증, bool presentable = true)
         {
             if (string.IsNullOrEmpty(key)) key = text;
             if (image != null) _clueImages[ImgKey(caseId, key)] = image;
-            if (kind != ClueKind.물증) return false;
             if (HasClue(caseId, key)) return false;
 
             var entry = new ClueEntry { caseId = caseId, key = key, text = text, kind = kind, presentable = presentable };
@@ -302,6 +308,30 @@ namespace IMUNROK.Common
             foreach (var c in _clues) if (c.caseId == caseId) n++;
             return n;
         }
+
+        /// <summary>이 사건에서 이 종류만 몇이나 모았나.</summary>
+        public int ClueCount(CaseId caseId, ClueKind kind)
+        {
+            int n = 0;
+            foreach (var c in _clues) if (c.caseId == caseId && c.kind == kind) n++;
+            return n;
+        }
+
+        /// <summary>주운 물증 한 점의 무게.</summary>
+        public const int WeightMuljeung = 2;
+        /// <summary>들은 말 한 마디의 무게.</summary>
+        public const int WeightJeonghwang = 1;
+
+        /// <summary>
+        /// <b>이 사건을 얼마나 채웠는가</b> — 결말의 문턱을 재는 셈.
+        ///
+        /// 둘을 같은 한 점으로 세면 발품을 팔지 않고 말만 잘해도 판결이 서고, 들은 말을
+        /// 0점으로 두면 심문이 장식이 된다. 그래서 무게를 달리 둔다.
+        /// <b>문턱은 사건 쪽에서 정한다</b> — 여기 두는 것은 자[尺]뿐이다.
+        /// </summary>
+        public int Score(CaseId caseId)
+            => ClueCount(caseId, ClueKind.물증) * WeightMuljeung
+             + ClueCount(caseId, ClueKind.정황) * WeightJeonghwang;
 
         public int TotalClueCount => _clues.Count;
 
