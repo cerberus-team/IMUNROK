@@ -27,8 +27,10 @@ namespace IMUNROK.Common
         [Tooltip("벨트 글씨에 쓸 한글 폰트. 비우면 씬의 다른 UI 가 올려 둔 공용 폰트를 쓴다")]
         [SerializeField] private Font _font;
 
-        [Tooltip("사람과 마주 선 동안에도 손에 남는 도구 id. 나머지는 내려놓는다")]
-        [SerializeField] private string _keepWhileTalking = "lantern";
+        [Tooltip("사람과 마주 선 동안에도 손에 남는 도구 id. 쉼표로 여럿. 나머지는 내려놓는다.\n" +
+                 "등불은 밤에 얼굴을 보려고 남기고, 유척은 <b>드러난 팔을 재려고</b> 남긴다 — " +
+                 "소매를 걷으라 해 놓고 정작 잴 것을 손에서 뺏으면 그 명령이 갈 데가 없다")]
+        [SerializeField] private string _keepWhileTalking = "lantern,yucheok";
 
         /// <summary>
         /// 지금 손에 든 도구 id("" = 맨손).
@@ -86,6 +88,15 @@ namespace IMUNROK.Common
         /// <summary>다음 도구로(마지막 다음은 맨손으로 순환). UnityEvent 에 연결할 수 있다.</summary>
         /// <summary>한 번이라도 도구를 갈아 들었나. 그러면 「Q / 휠 전환」을 더는 안 적는다.</summary>
         private bool _everSwitched;
+
+        /// <summary>마주 선 동안에도 손에 남기는 도구인가.</summary>
+        private bool KeptWhileTalking(string id)
+        {
+            if (string.IsNullOrEmpty(_keepWhileTalking)) return false;
+            foreach (var raw in _keepWhileTalking.Split(','))
+                if (raw.Trim() == id) return true;
+            return false;
+        }
 
         public void Next() => Select(_index + 1);
 
@@ -193,7 +204,7 @@ namespace IMUNROK.Common
             if (InterrogationController.AnyOpen)
             {
                 string held = CurrentId;
-                if (!string.IsNullOrEmpty(held) && held != _keepWhileTalking) Select(0);
+                if (!string.IsNullOrEmpty(held) && !KeptWhileTalking(held)) Select(0);
                 return;
             }
 

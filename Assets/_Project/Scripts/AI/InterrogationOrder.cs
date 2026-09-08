@@ -20,6 +20,13 @@ namespace IMUNROK.Common
     /// </summary>
     public abstract class InterrogationOrder : MonoBehaviour
     {
+        [Tooltip("<b>어느 막의 명령인가.</b> 소매를 걷으라는 말은 어사라야 설 수 있는 말이다 — " +
+                 "하룻밤 청한 과객이 남의 팔을 잡을 수는 없다")]
+        [SerializeField] protected ActWhen _act = ActWhen.두막다;
+
+        /// <summary>지금 막에 설 수 있는 명령인가.</summary>
+        public bool FitsAct => ActGate.Fits(_act);
+
         /// <summary>단추에 뜨는 말.</summary>
         public abstract string Label { get; }
 

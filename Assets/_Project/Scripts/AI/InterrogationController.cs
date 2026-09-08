@@ -534,6 +534,9 @@ namespace IMUNROK.Common
             foreach (var gate in _character.evidenceGates)
             {
                 if (gate.clueKey != clue.key) continue;
+                // 막이 안 맞는 줄은 <b>없는 것</b>이다. 같은 단서에 1막 줄과 2막 줄을
+                // 나란히 적어 둘 수 있어야 어제와 오늘이 달라진다.
+                if (!ActGate.Fits(gate.act)) continue;
 
                 if (gate.deflectionOnly)
                 {
@@ -598,6 +601,7 @@ namespace IMUNROK.Common
                 foreach (var t in _character.topics)
                 {
                     if (t == null || string.IsNullOrEmpty(t.grantsClueKey)) continue;
+                    if (!ActGate.Fits(t.act)) continue;
                     if (_grantedTopics.Contains(t.grantsClueKey)) continue;
                     if (!TalkKeywords.Hit(say, t.keywords)) continue;
 
@@ -614,6 +618,7 @@ namespace IMUNROK.Common
                 foreach (var g in _character.evidenceGates)
                 {
                     if (g == null || g.deflectionOnly) continue;
+                    if (!ActGate.Fits(g.act)) continue;
                     if (string.IsNullOrEmpty(g.revealsInfo)) continue;
                     if (_unlockedGateKeys.Contains(g.clueKey)) continue;
                     if (!TalkKeywords.Hit(say, g.keywords)) continue;
@@ -656,6 +661,57 @@ namespace IMUNROK.Common
             journal.AddClue(_character.caseId, key,
                             string.IsNullOrEmpty(text) ? key : text,
                             image, ClueKind.정황, presentable);
+        }
+
+        // ── 행동 ④: 물건을 내밀거나 무엇을 하다 ──
+
+        /// <summary>
+        /// <b>묻지 않고 벌어진 일을 건넨다.</b> 상 위의 게장을 앞으로 밀거나,
+        /// 드러난 팔에 놋쇠 자를 대거나.
+        ///
+        /// 증거 제시와 갈라 둔 까닭: 들이미는 것은 <b>수첩 속의 종이</b>라 「(증거) …」로
+        /// 기록에 남는데, 게장은 종이가 아니다. 한 틀에 넣으면 「(증거) 게장」을
+        /// 들이미는 꼴이 되고 상대는 그 종이를 읽으려 든다.
+        ///
+        /// 대답은 정해 두지 않는다. 무슨 일이 벌어졌는지만 건네고, 어떻게 반응하는지는
+        /// 그 인물의 성격이 정한다 — <see cref="ItemOrder"/> 가 부른다.
+        /// </summary>
+        public void Offer(string deed, string revealsInfo, string grantsClueKey, string grantsClueText)
+        {
+            if (!_active || _busy) return;
+            if (string.IsNullOrWhiteSpace(deed)) deed = "(무언가를 내민다)";
+
+            _lastPlayerLine = deed;
+            _transcript.Add($"{PlayerTitle}(행동): {deed}");
+
+            string revealed = null;
+            if (!string.IsNullOrWhiteSpace(revealsInfo))
+            {
+                revealed = revealsInfo;
+                if (!_unlockedFacts.Contains(revealsInfo)) _unlockedFacts.Add(revealsInfo);
+                // 본 것은 남는다 — 다만 실토와 같아서 다시 들이밀 수는 없다.
+                Record(grantsClueKey,
+                       string.IsNullOrWhiteSpace(grantsClueText) ? revealsInfo : grantsClueText,
+                       false);
+            }
+            _lineIsKey = revealed != null;
+
+            var req = new NpcRequest
+            {
+                character = _character,
+                transcript = _transcript,
+                unlockedFacts = _unlockedFacts,
+                playerInput = deed,
+                isEvidence = false,
+                isDeed = true,
+                justRevealedInfo = revealed,
+                playerTitle = PlayerTitle,
+                playerIdentityBrief = GameState.Instance.PlayerIdentityBrief,
+            };
+            Stamp(req);
+            _busy = true;
+            RefreshSubtitle();
+            _responder.GetResponse(this, req, OnReply, OnError);
         }
 
         private void OnReply(string text)
@@ -757,6 +813,7 @@ namespace IMUNROK.Common
                 foreach (var t in _character.topics)
                 {
                     if (t == null || string.IsNullOrEmpty(t.question)) continue;
+                    if (!ActGate.Fits(t.act)) continue;
                     if (_asked.Contains(t.question)) continue;
                     _shown.Add(t);
                     if (_shown.Count >= cap) break;
@@ -765,8 +822,18 @@ namespace IMUNROK.Common
             }
         }
 
-        /// <summary>이 인물에게 내릴 수 있는 명령들(소매 걷기 따위). 근거가 없으면 비어 있다.</summary>
-        public IEnumerable<InterrogationOrder> Orders => GetComponents<InterrogationOrder>();
+        /// <summary>
+        /// 이 인물에게 내릴 수 있는 명령들(소매 걷기·물건 내밀기). 근거가 없으면 비어 있다.
+        /// 막이 안 맞는 것은 여기서 이미 걸러진다 — 과객이 남의 팔을 잡을 수는 없다.
+        /// </summary>
+        public IEnumerable<InterrogationOrder> Orders
+        {
+            get
+            {
+                foreach (var o in GetComponents<InterrogationOrder>())
+                    if (o != null && o.FitsAct) yield return o;
+            }
+        }
 
         /// <summary>지금 심문하는 인물의 데이터(이름·성격). 부르기 판이 이름표에 쓴다.</summary>
         public InterrogationCharacter Character => _character;

@@ -28,6 +28,11 @@ namespace IMUNROK.Common
         // 다른 말이 되어 답답해진다. 그래서 <b>열쇠를 쥐었는가</b>는 게임이 정해
         // 여기 실어 보내고, <b>정곡을 찔렀는가</b>는 AI가 뜻으로 읽는다.
 
+        // 종이를 들이민 것도 말로 찌른 것도 아닌 <b>벌어진 일</b>인가.
+        // 상 위의 게장이 앞으로 밀려 왔다거나, 팔에 놋쇠 자가 닿았다거나.
+        // 이것을 안 가르면 아무도 문서를 안 꺼냈는데 「그 종이를 보니」라고 답한다.
+        public bool isDeed;
+
         public bool identityRevealed;              // 2막인가(어사임을 아는가)
         public int stage;                          // 무너짐 단계 0~10
         public bool canBreak;                      // 마지막 열쇠를 다 쥐었는가

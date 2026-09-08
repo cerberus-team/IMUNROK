@@ -9,6 +9,11 @@ namespace IMUNROK.Common
     [System.Serializable]
     public class EvidenceGate
     {
+        [Tooltip("<b>어느 막의 것인가.</b> 같은 단서에 두 줄을 적어 두고 하나는 1막, 하나는 2막으로 " +
+                 "두면 같은 종이를 두 번 들이밀되 다른 대답을 듣는다 — 그것이 막이 넘어갔다는 뜻이다.\n" +
+                 "1막의 甲은 「허튼 종이 쪼가리요」로 넘기고, 2막의 甲은 같은 종이 앞에서 말을 잃어야 한다")]
+        public ActWhen act = ActWhen.두막다;
+
         [Tooltip("이 사실을 여는 수첩 단서의 key")]
         public string clueKey = "";
 
@@ -44,6 +49,11 @@ namespace IMUNROK.Common
     [System.Serializable]
     public class TopicQuestion
     {
+        [Tooltip("<b>어느 막의 물음인가.</b> 1막에만 통하는 물음이 있다 — 마음이 놓인 주인은 " +
+                 "묻지 않아도 자랑을 흘리지만, 어사 앞에 끌려 나온 뒤에는 같은 물음에 입을 다문다.\n" +
+                 "안 맞는 막에서는 이 물음이 줄에 아예 안 뜬다")]
+        public ActWhen act = ActWhen.두막다;
+
         [Tooltip("버튼에 뜨는 질문(어사의 대사)")]
         public string question = "";
 
