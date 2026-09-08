@@ -330,8 +330,21 @@ namespace IMUNROK.Common
         /// <b>문턱은 사건 쪽에서 정한다</b> — 여기 두는 것은 자[尺]뿐이다.
         /// </summary>
         public int Score(CaseId caseId)
-            => ClueCount(caseId, ClueKind.물증) * WeightMuljeung
-             + ClueCount(caseId, ClueKind.정황) * WeightJeonghwang;
+        {
+            int n = 0;
+            foreach (var c in _clues)
+            {
+                if (c.caseId != caseId) continue;
+                // <b>받아 온 봉서와 사목은 안 센다.</b> 그것은 사건에 들어설 때 이미
+                // 손에 쥐고 있는 <b>출발점</b>이지 뒤져서 얻은 것이 아니다. 세어 버리면
+                // 아무 데도 안 가 본 사람이 시작하자마자 넉 점을 들고 선다.
+                // (들이밀 수 없는 <b>물증</b>이 그것 하나뿐이라 이 하나로 갈린다 —
+                //  들이밀 수 없는 정황은 받아낸 실토이고, 그건 세는 것이 맞다.)
+                if (c.kind == ClueKind.물증 && !c.presentable) continue;
+                n += c.kind == ClueKind.물증 ? WeightMuljeung : WeightJeonghwang;
+            }
+            return n;
+        }
 
         public int TotalClueCount => _clues.Count;
 

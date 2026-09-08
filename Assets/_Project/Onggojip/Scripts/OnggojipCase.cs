@@ -36,7 +36,28 @@ namespace IMUNROK.Onggojip
 
         private System.Action _pending;   // OnGUI에서 클릭한 동작을 다음 Update에 실행(레이아웃 안전)
         private Vector2 _scroll;
-        private GUIStyle _rich;
+        private GUIStyle _rich, _btn, _head;
+        private int _styledFor;           // 어느 화면 높이에 맞춰 지은 글씨인가
+
+        /// <summary>
+        /// <b>판은 화면에 맞춰 큰다.</b>
+        ///
+        /// 560화소·13pt 로 못 박아 두었더니 1440줄짜리 화면에서는 글씨가 깨알만 해
+        /// 무엇이 적혔는지 읽으려면 화면에 얼굴을 붙여야 했다. 도구띠가 이미 같은 일을
+        /// 겪고 화면 세로의 몫으로 옮겨 갔다(ToolbeltHud) — 여기도 같게 둔다.
+        /// 1080줄에서 17pt, 1440줄에서 23pt.
+        /// </summary>
+        private void EnsureStyles()
+        {
+            if (_rich != null && _styledFor == Screen.height) return;
+            _styledFor = Screen.height;
+            int fs = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.016f), 13, 32);
+
+            _rich = new GUIStyle(GUI.skin.label) { richText = true, wordWrap = true, fontSize = fs };
+            _head = new GUIStyle(_rich) { fontSize = fs + 4 };
+            _btn  = new GUIStyle(GUI.skin.button) { richText = true, fontSize = fs, wordWrap = true };
+            _btn.padding = new RectOffset(fs / 2, fs / 2, fs / 3, fs / 3);
+        }
 
         private void Start()
         {
@@ -160,11 +181,14 @@ namespace IMUNROK.Onggojip
         private void OnGUI()
         {
             if (!_showDebugPanel) return;
-            if (_rich == null)
-                _rich = new GUIStyle(GUI.skin.label) { richText = true, wordWrap = true, fontSize = 13 };
+            EnsureStyles();
 
-            GUILayout.BeginArea(new Rect(12, 12, 560, Screen.height - 24), GUI.skin.box);
-            GUILayout.Label("<b>[옹고집 사건 — 흐름 디버그]</b>  <size=11>(F2: 끄기/켜기)</size>", _rich);
+            // 너비도 화면을 따른다. 좁은 화면에서는 화면의 절반, 넓은 화면에서는
+            // 아무리 넓어도 눈이 한 번에 훑을 수 있는 만큼까지만.
+            float w = Mathf.Clamp(Screen.width * 0.42f, 420f, 900f);
+            float m = Mathf.Round(Screen.height * 0.012f);
+            GUILayout.BeginArea(new Rect(m, m, w, Screen.height - m * 2f), GUI.skin.box);
+            GUILayout.Label("<b>[옹고집 사건 — 흐름 디버그]</b>  (F2: 끄기/켜기)", _head);
             // 분모를 손으로 적어 두었더니 표가 늘어도 6 에 머물렀다. 표에서 센다.
             int allJ = 0, allG = 0;
             foreach (var c in OnggojipClues.All) { if (c.stealth) allJ++; else allG++; }
@@ -172,9 +196,9 @@ namespace IMUNROK.Onggojip
             // <b>저울을 보이게 둔다.</b> 물증 두 점, 들은 말 한 점(Journal.Score).
             // 결말의 문턱을 여기 걸 생각이면 먼저 이 수가 어떻게 움직이는지 보여야 한다 —
             // 안 보이는 수에 문턱을 걸면 얼마로 잡아야 할지 알 길이 없다.
-            GUILayout.Label($"<size=11>무게: <b>{_journal.Score(ThisCase)}</b>점  "
+            GUILayout.Label($"무게: <b>{_journal.Score(ThisCase)}</b>점  "
                           + $"(물증 {_journal.ClueCount(ThisCase, ClueKind.물증)}×{Journal.WeightMuljeung} + "
-                          + $"들은 말 {_journal.ClueCount(ThisCase, ClueKind.정황)}×{Journal.WeightJeonghwang})</size>", _rich);
+                          + $"들은 말 {_journal.ClueCount(ThisCase, ClueKind.정황)}×{Journal.WeightJeonghwang})", _rich);
 
             _scroll = GUILayout.BeginScrollView(_scroll);
 
@@ -188,10 +212,10 @@ namespace IMUNROK.Onggojip
                 GUILayout.Space(8);
                 bool canReveal = CanReveal();
                 GUI.enabled = canReveal;
-                if (GUILayout.Button("▶ 출도(마패) — 관아로, 되돌릴 수 없음")) _pending = Reveal;
+                if (GUILayout.Button("▶ 출도(마패) — 관아로, 되돌릴 수 없음", _btn)) _pending = Reveal;
                 GUI.enabled = true;
                 if (!canReveal)
-                    GUILayout.Label($"<size=11>필수 단서 부족: {MissingRequired()}</size>", _rich);
+                    GUILayout.Label($"필수 단서 부족: {MissingRequired()}", _rich);
             }
 
             // 2부(공개조사)에서만: 공개 단서 + 판결
@@ -209,9 +233,9 @@ namespace IMUNROK.Onggojip
                 GUILayout.Label("── 판결 ──", _rich);
                 _gapri = GUILayout.Toggle(_gapri, " 갑리(고리대) 처결");
                 GUILayout.BeginHorizontal();
-                if (GUILayout.Button("진실대로")) _pending = () => Judge(Verdict.Truth);
-                if (GUILayout.Button("정상참작")) _pending = () => Judge(Verdict.Mercy);
-                if (GUILayout.Button("甲 인정")) _pending = () => Judge(Verdict.AcceptFake);
+                if (GUILayout.Button("진실대로", _btn)) _pending = () => Judge(Verdict.Truth);
+                if (GUILayout.Button("정상참작", _btn)) _pending = () => Judge(Verdict.Mercy);
+                if (GUILayout.Button("甲 인정", _btn)) _pending = () => Judge(Verdict.AcceptFake);
                 GUILayout.EndHorizontal();
             }
 
@@ -227,7 +251,7 @@ namespace IMUNROK.Onggojip
                 return;
             }
             GUI.enabled = CanDiscover(c);
-            if (GUILayout.Button($"발견 {c.key}: {c.text}"))
+            if (GUILayout.Button($"발견 {c.key}: {c.text}", _btn))
             {
                 var captured = c;
                 _pending = () => Discover(captured);

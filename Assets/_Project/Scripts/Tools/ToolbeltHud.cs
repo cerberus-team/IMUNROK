@@ -235,7 +235,7 @@ namespace IMUNROK.Common
         //  벨트 뷰(OnGUI)
         // ─────────────────────────────────────────────
 
-        private GUIStyle _iconText, _label;
+        private GUIStyle _iconText, _label, _howTo;
         private Texture2D _slot, _slotOn;
 
         private void OnGUI()
@@ -285,6 +285,20 @@ namespace IMUNROK.Common
             float line = Mathf.Round(size * 0.42f);
             GUI.Label(new Rect(x0, y - line - 4f, totalW, line),
                       $"손 : {SlotName(_index)}{hint}", _label);
+
+            // <b>쓰는 법을 그 자리에서 일러 준다.</b>
+            //
+            // Controls.HowTo 는 도구마다 한 줄씩 적어 두고도 <b>아무도 부르지 않아</b>
+            // 화면에 뜬 적이 없었다. 벨트는 무엇을 들었는지만 말하고 쓰는 법은 아무 데도
+            // 없어서, 돋보기를 손에 쥐고도 무엇을 눌러야 하는지 몰라 서 있게 된다
+            // (「우클릭인지 F인지 모르겠다」가 그 말이다).
+            //
+            // 드는 동안 <b>내내</b> 둔다. 한 번 스치고 사라지면 마침 딴 데를 보던 사람은
+            // 못 읽고, 그 뒤로 다시 볼 길이 없다. 맨손이면 적을 것이 없으니 안 적는다.
+            string how = Controls.HowTo(CurrentId);
+            if (!string.IsNullOrEmpty(how))
+                GUI.Label(new Rect(x0 - totalW * 0.5f, y - line * 2f - 8f, totalW * 2f, line),
+                          how, _howTo);
         }
 
         private static string First(string s) => string.IsNullOrEmpty(s) ? "?" : s.Substring(0, 1);
@@ -311,6 +325,14 @@ namespace IMUNROK.Common
             {
                 fontSize = Mathf.RoundToInt(size * 0.24f), alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = UiLook.With(UiLook.Lit(UiLook.Gold, 0.30f), 0.95f) }
+            };
+            // 쓰는 법은 이름줄보다 한 뼘 묽게 — 읽히되 이름을 덮지 않게.
+            // 글쇠 이름에 낙관빛을 입히므로 richText 를 켠다(Controls.Key).
+            _howTo = new GUIStyle(_label)
+            {
+                fontSize = Mathf.RoundToInt(size * 0.22f),
+                richText = true, wordWrap = false,
+                normal = { textColor = UiLook.With(UiLook.Paper, 0.72f) }
             };
         }
 

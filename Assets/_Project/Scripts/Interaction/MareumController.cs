@@ -479,16 +479,32 @@ namespace IMUNROK.Common
             return fallback;
         }
 
-        // 서있는 idle이 없어 어떤 클립의 첫 프레임에서 멈춰 세워 '서있기'로 쓴다.
-        // 문 여는 클립의 첫 프레임은 이미 문에 손을 뻗는 자세라 가만히 서 있는 것으로 안 읽힌다 —
-        // 걷기 클립의 첫 프레임이 훨씬 자연스럽다.
+        /// <summary>
+        /// 서서 기다리게 한다.
+        ///
+        /// <b>서 있는 idle 이 있으면 그냥 튼다.</b> 없을 때만 걷기 클립의 첫 프레임에
+        /// 멈춰 세워 서 있는 것처럼 쓴다 — 옛 뼈대에 idle 이 없어서 짜낸 수였다.
+        /// (문 여는 클립의 첫 프레임은 이미 문에 손을 뻗은 자세라 서 있는 것으로 안 읽힌다.)
+        ///
+        /// 새 뼈대에는 진짜 idle 이 들어와 <see cref="_standPoseState"/> 에 적어 두었는데,
+        /// 그것까지 첫 프레임에 얼려 버리는 바람에 마름이 <b>대문 앞에서 팔을 벌린 채</b>
+        /// 굳어 있었다. 얼어 있으니 다음 차례로 넘어가지도 못해, 손을 맞이하는 순서가
+        /// 통째로 멈추고 안에서 기다리던 복동까지 영영 안 움직였다.
+        /// </summary>
         private void HoldStand()
         {
             if (_animator == null) return;
-            string pose = string.IsNullOrEmpty(_standPoseState) ? _walkState : _standPoseState;
-            if (string.IsNullOrEmpty(pose)) return;
+
+            if (!string.IsNullOrEmpty(_standPoseState))
+            {
+                _animator.speed = 1f;
+                _animator.Play(_standPoseState, 0, 0f);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(_walkState)) return;
             _animator.speed = 1f;
-            _animator.Play(pose, 0, 0f);
+            _animator.Play(_walkState, 0, 0f);
             _animator.Update(0f);
             _animator.speed = 0f;
         }

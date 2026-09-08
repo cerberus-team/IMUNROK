@@ -132,6 +132,18 @@ namespace IMUNROK.Common
         /// <summary>이만큼(픽셀) 끌어야 돌리려는 손으로 친다. 겨누다 미끄러진 것과 가른다.</summary>
         private const float DragThreshold = 26f;
 
+        /// <summary>돋보기를 든 채 종이를 옮겨 둔 만큼(판 좌표). 렌즈를 내리면 되돌아온다.</summary>
+        private Vector2 _pan;
+
+        /// <summary>렌즈를 내렸을 때의 안내. 들면 「끌어서 옮긴다」로 바뀌었다가 되돌아온다.</summary>
+        private string _restHint = "";
+
+        /// <summary>렌즈를 든 동안의 안내 — 이 한 줄이 없어 「어떻게 움직여 보나」가 되었다.</summary>
+        private const string PeerHint = "끌어서 종이를 옮긴다 — 읽을 자리를 유리 밑으로 넣는다";
+
+        /// <summary>마우스 한 화소를 종이 몇 칸으로 옮길지. 판이 화면보다 크므로 1 보다 크다.</summary>
+        private const float PanSpeed = 2.2f;
+
         /// <summary>지금 문서를 쥐고 있나. 다른 UI가 참고한다(도구벨트 숨김 등).</summary>
         public static bool IsOpen { get; private set; }
 
@@ -484,6 +496,7 @@ namespace IMUNROK.Common
             _tilt = Vector2.zero;
             _spin = Vector2.zero;
             _dragging = false;
+            _pan = Vector2.zero;      // 새 종이는 눈앞 한가운데서 시작한다
             _spinArmed = false;   // 집은 그 누름이 그대로 돌리는 손이 되지 않게
             _dragRun = 0f;
 
@@ -505,12 +518,13 @@ namespace IMUNROK.Common
             // 지금 해야 하는 것처럼 읽혀, 아무것도 안 해도 되는 종이 앞에서도 헤맨다.
             // IsOpen 이 아직 false 라 HasBacklight 를 못 쓴다 — 방금 넣은 값으로 직접 본다.
             bool hasLit = litPage != null || !string.IsNullOrEmpty(litPrint);
-            _hint.text = hasFine
+            _restHint = hasFine
                 ? "끌어서 돌려 볼 수 있다 · 잔글씨는 " + Controls.Raise + " 종이를 들여다본다"
                 : hasLit
                 ? "끌어서 돌려 볼 수 있다 · 불빛 앞에 대면 겹 사이가 비친다"
                 : _canPutDown ? "끌어서 돌려 볼 수 있다 · " + Controls.PutDown
                 : "끌어서 돌려 볼 수 있다";
+            _hint.text = _restHint;
 
             if (_closeRt != null) _closeRt.gameObject.SetActive(_canPutDown);
 
@@ -591,6 +605,12 @@ namespace IMUNROK.Common
             // 고개를 돌리게 된다. 방에서 집은 종이는 늘 <b>눈앞</b>에 있어야 한다.
             // 내려놓을 수 없는 종이(익히는 동안 쥐여 준 것)만 못 박는다.
             bool peering = MagnifierLens.Peering;
+            if (_hint != null)
+            {
+                // 렌즈를 들면 할 일이 바뀐다 — 돌리는 것이 아니라 옮기는 것이다.
+                string line = peering ? PeerHint : _restHint;
+                if (_hint.text != line) _hint.text = line;
+            }
             bool pinNow = peering && !_canPutDown;
             if (_anchor != null && _anchor.Frozen != pinNow) _anchor.Frozen = pinNow;
 
@@ -630,9 +650,34 @@ namespace IMUNROK.Common
 #endif
             }
 
-            _spin.x -= drag.x;
-            _spin.y += drag.y;
-            _spin.y = Mathf.Clamp(_spin.y, -85f, 85f);
+            // <b>돋보기를 들었으면 끄는 손이 종이를 옮긴다.</b>
+            //
+            // 렌즈는 눈앞 한가운데 붙박이고 그 뒤의 종이도 눈앞에 붙박이라, 유리에 걸린
+            // 한 자리 말고는 볼 길이 없었다. 종이를 돌려 봐야 소용이 없다 — 돌리면
+            // 글이 기울 뿐 렌즈 밑으로 오지 않는다. 실제로 하는 짓은 <b>종이를 옮겨
+            // 유리 밑으로 넣는 것</b>이고, 그러니 끄는 손도 그 일을 해야 한다.
+            if (peering)
+            {
+                _pan += drag * PanSpeed;
+                if (_pageRt != null)
+                {
+                    // 종이를 화면 밖으로 끌고 나가지 못하게 — 절반쯤까지만.
+                    float mx = _pageRt.sizeDelta.x * 0.5f, my = _pageRt.sizeDelta.y * 0.5f;
+                    _pan.x = Mathf.Clamp(_pan.x, -mx, mx);
+                    _pan.y = Mathf.Clamp(_pan.y, -my, my);
+                }
+            }
+            else
+            {
+                // 렌즈를 내리면 종이는 제 눈앞으로 돌아온다. 옮겨 둔 자리에 그대로
+                // 두면 다음에 펼 때 종이가 한쪽으로 비켜 있다.
+                _pan = Vector2.Lerp(_pan, Vector2.zero, 6f * Time.deltaTime);
+                if (_pan.sqrMagnitude < 0.25f) _pan = Vector2.zero;
+
+                _spin.x -= drag.x;
+                _spin.y += drag.y;
+                _spin.y = Mathf.Clamp(_spin.y, -85f, 85f);
+            }
 
             // 끌지 않는 동안에는 손목이 저 혼자 조금 흔들린다
             _tilt = Vector2.Lerp(_tilt, Vector2.zero, 3f * Time.deltaTime);
@@ -642,7 +687,7 @@ namespace IMUNROK.Common
                 _hand.localRotation = Quaternion.Euler(9f + breathe + _spin.y + _tilt.y,
                                                        _spin.x,
                                                        -2.5f + breathe * 0.4f);
-                _hand.anchoredPosition = new Vector2(_tilt.x * 1.5f, breathe * 2.2f);
+                _hand.anchoredPosition = new Vector2(_tilt.x * 1.5f + _pan.x, breathe * 2.2f + _pan.y);
             }
 
             // 다 읽고 나면 종이가 그것을 알린다. 돋보기를 떼도 한동안 남는다.
