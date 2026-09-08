@@ -151,6 +151,14 @@ namespace IMUNROK.Common
 
         private void Update()
         {
+            // <b>한 번 출도했으면 다시 없다.</b> 관아 씬에도 이 부품이 남아 있어, 맨손으로
+            // F 를 꾹 누르면 「암행어사 출도야」가 다시 울리고 관아가 통째로 다시 열렸다 —
+            // 소매·유척·문서궤 진행이 그 자리에서 날아간다. 신분이 이미 드러났으면 품 속
+            // 마패는 할 일이 없다(내보이는 마패는 도구띠의 것이 따로 맡는다).
+            {
+                var gs0 = GameState.Instance;
+                if (gs0 != null && gs0.IdentityRevealed) return;
+            }
             if (_done) return;
 
             // 벨트가 들고 있으면 <b>다 꺼낸 자리에 그대로 둔다</b>.

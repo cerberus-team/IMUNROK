@@ -65,6 +65,12 @@ namespace IMUNROK.Onggojip
             _journal = Journal.Instance;
             _gs.EnterCase(ThisCase);   // 수첩이 이 사건 단서만 보이도록
             _phase = _startPhase;      // 씬이 곧 단계(1부=Stealth, 2부=Revealed)
+
+            // <b>관아를 바로 재생하면 신분이 아직 과객이었다.</b> 마패를 꺼내 출도한 길로만
+            // 신분이 바뀌므로, 편집기에서 2막 씬을 곧장 틀면 「2막 것」으로 적어 둔 물음·
+            // 게이트·명령이 하나도 안 뜨고 AI 도 1막인 줄 안다 — 「2막이 비었다」로 보인다.
+            // 2막에서 시작하는 씬이면 신분도 2막이어야 한다.
+            if (_startPhase == Phase.Revealed && !_gs.IdentityRevealed) _gs.RevealIdentity(true);
         }
 
         private void Update()

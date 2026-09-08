@@ -1439,21 +1439,6 @@ CapsuleCollider:
   m_Height: 1.8480226
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!115 &30777600
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: Measurable
-  m_Namespace: IMUNROK.Common
-  m_AssemblyName: IMUNROK.Common
 --- !u!64 &31602195
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -5804,7 +5789,7 @@ MeshCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 5
-  m_Convex: 1
+  m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: 4bd720973d1ced94a8c85f977df06c4f, type: 2}
 --- !u!1 &185416824
@@ -11099,7 +11084,7 @@ MonoBehaviour:
     \uB193\uC558\uB2E4."
   _clueNeedsLantern: 0
   _litGlyphs: "\u514D\u8CE4"
-  _litClueKey: G05
+  _litClueKey: G11
   _litClueOwnText: "\uC785\uC548\uB300\uC7A5 \uB2E4\uC12F\uC9F8 \uC904\uC740 \uAE01\uC5B4\uB0B4\uACE0
     \uB367\uC4F4 \uAC83\uC774\uB2E4. \uC9C0\uC6B4 \uBC11\uAE00\uC740 \u300C\u514D\u8CE4
     \u5DF1\u536F\u5341\u6708\u300D \u2014 \uBCF5\uB3D9\uC740 \uC774\uBBF8 \uB193\uC5EC\uB09C
@@ -25621,7 +25606,7 @@ GameObject:
   m_Component:
   - component: {fileID: 912944954}
   - component: {fileID: 912944953}
-  - component: {fileID: 912944952}
+  - component: {fileID: 912944955}
   m_Layer: 0
   m_Name: "\uC67C\uD314_\uC548\uCABD"
   m_TagString: Untagged
@@ -25629,33 +25614,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
---- !u!114 &912944952
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 912944951}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 30777600}
-  m_Name: 
-  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.Measurable
-  _what: "\uC67C\uD314 \uC548\uCABD"
-  _chi: 0
-  _expected: 2.25
-  _tolerance: 0.35
-  _nothingLine: "\uC67C\uD314 \uC548\uCABD\uC774 \uB9D0\uB054\uD558\uB2E4. \uD749\uD130\uB784
-    \uAC83\uC774 \uC5C6\uB2E4 \u2014 \uB300\uC7A5\uC5D0 \uC801\uD78C \uB450 \uCE58\uB294
-    \uC774 \uD314\uC758 \uAC83\uC774 \uC544\uB2C8\uB2E4."
-  _needsClueKey: G01
-  _case: 0
-  _clueKey: G08
-  _clueText: "\u4E59 \uC758 \uC67C\uD314 \uC548\uCABD\uC5D0\uB294 \uD749\uD130\uAC00
-    \uC5C6\uB2E4 \u2014 \uB300\uC7A5\uACFC \uC5B4\uAE0B\uB09C\uB2E4"
-  _onMatched:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!65 &912944953
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -25692,6 +25650,33 @@ Transform:
   m_Children: []
   m_Father: {fileID: 603477282}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &912944955
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 912944951}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b667a90c6929dde4aa849070dc24eede, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.Measurable
+  _what: "\uC67C\uD314 \uC548\uCABD"
+  _chi: 0
+  _expected: 2.25
+  _tolerance: 0.35
+  _nothingLine: "\uC67C\uD314 \uC548\uCABD\uC774 \uB9D0\uB054\uD558\uB2E4. \uD749\uD130\uB784
+    \uAC83\uC774 \uC5C6\uB2E4 \u2014 \uB300\uC7A5\uC5D0 \uC801\uD78C \uB450 \uCE58\uB294
+    \uC774 \uD314\uC758 \uAC83\uC774 \uC544\uB2C8\uB2E4."
+  _needsClueKey: G01
+  _case: 0
+  _clueKey: G08
+  _clueText: "\u4E59 \uC758 \uC67C\uD314 \uC548\uCABD\uC5D0\uB294 \uD749\uD130\uAC00
+    \uC5C6\uB2E4 \u2014 \uB300\uC7A5\uACFC \uC5B4\uAE0B\uB09C\uB2E4"
+  _onMatched:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1001 &913632837
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -30222,8 +30207,11 @@ MonoBehaviour:
   - "\uC774\uB984": "\uB299\uC740\uD558\uC778"
     "\uC0AC\uB78C": {fileID: 1672942573}
     "\uC544\uC9C1": "\uC544\uC9C1 \uC624\uC9C0 \uC54A\uC558\uB2E4."
+  - "\uC774\uB984": "\uB9C8\uB984"
+    "\uC0AC\uB78C": {fileID: 632893997}
+    "\uC544\uC9C1": "\uC544\uC9C1 \uC624\uC9C0 \uC54A\uC558\uB2E4."
   _from: {fileID: 1079013952}
-  _radius: 4
+  _radius: 7
   _enterLine: "\uB3D9\uD5CC \uB300\uCCAD\uC774\uB2E4. \uB730\uC5D0 \uB137\uC774 \uC11C
     \uC788\uB2E4 \u2014 *\uC774\uB984\uC744 \uBD80\uB974\uBA74* \uD558\uB098\uAC00
     \uC62C\uB77C\uC628\uB2E4."
@@ -30403,7 +30391,7 @@ MonoBehaviour:
   _tuckLine: "\uD328\uB97C \uB3C4\uB85C \uD488\uC5D0 \uB123\uB294\uB2E4."
   _cryLine: "\uC554\uD589\uC5B4\uC0AC \uCD9C\uB3C4(\u51FA\u9053)\uC57C!"
   _beforeLeave: 2.2
-  _nextScene: Onggojip_Gwana
+  _nextScene: 
   _onRevealed:
     m_PersistentCalls:
       m_Calls: []
@@ -38584,7 +38572,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1457913314}
   - component: {fileID: 1457913313}
-  - component: {fileID: 1457913312}
+  - component: {fileID: 1457913315}
   m_Layer: 0
   m_Name: "\uC67C\uD314_\uC548\uCABD"
   m_TagString: Untagged
@@ -38592,43 +38580,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
---- !u!114 &1457913312
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1457913311}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 30777600}
-  m_Name: 
-  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.Measurable
-  _what: "\uC67C\uD314 \uC548\uCABD \uD749\uD130"
-  _chi: 2.25
-  _expected: 2.25
-  _tolerance: 0.35
-  _nothingLine: 
-  _needsClueKey: G01
-  _case: 0
-  _clueKey: G07
-  _clueText: "\uC720\uCC99\uC73C\uB85C \uC7B0 \uC67C\uD314 \uC548\uCABD \uD749\uD130
-    \u2014 \uB450 \uCE58 \uB0A8\uC9D3, \uB300\uC7A5\uACFC \uAC19\uB2E4"
-  _onMatched:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 109433630}
-        m_TargetAssemblyTypeName: IMUNROK.Common.ItemOrder, IMUNROK.Common
-        m_MethodName: Trigger
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: 
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
 --- !u!65 &1457913313
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -38665,6 +38616,43 @@ Transform:
   m_Children: []
   m_Father: {fileID: 109433628}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1457913315
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1457913311}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b667a90c6929dde4aa849070dc24eede, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.Measurable
+  _what: "\uC67C\uD314 \uC548\uCABD \uD749\uD130"
+  _chi: 2.25
+  _expected: 2.25
+  _tolerance: 0.35
+  _nothingLine: 
+  _needsClueKey: G01
+  _case: 0
+  _clueKey: G07
+  _clueText: "\uC720\uCC99\uC73C\uB85C \uC7B0 \uC67C\uD314 \uC548\uCABD \uD749\uD130
+    \u2014 \uB450 \uCE58 \uB0A8\uC9D3, \uB300\uC7A5\uACFC \uAC19\uB2E4"
+  _onMatched:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 109433630}
+        m_TargetAssemblyTypeName: IMUNROK.Common.ItemOrder, IMUNROK.Common
+        m_MethodName: Trigger
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &1458442001
 GameObject:
   m_ObjectHideFlags: 0
@@ -39662,6 +39650,51 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1493038721}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1496830538
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1496830540}
+  - component: {fileID: 1496830539}
+  m_Layer: 0
+  m_Name: "\uD50C\uB808\uC774\uC5B4_\uC2DC\uC791(\uC5EC\uAE30\uC5D0 \uCE74\uBA54\uB77C)"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1496830539
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1496830538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04f74ca307dd4f14e856dd4bfc2f40ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.PlayerStart
+  _eyeHeightOffset: 0.7
+--- !u!4 &1496830540
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1496830538}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: -13.5, y: 0.9, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1501218791
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -68750,3 +68783,4 @@ SceneRoots:
   - {fileID: 496848656}
   - {fileID: 113361846}
   - {fileID: 1775178023}
+  - {fileID: 1496830540}
