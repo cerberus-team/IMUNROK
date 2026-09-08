@@ -1002,14 +1002,29 @@ namespace IMUNROK.Common
             if (_finished) return;
             _finished = true;
 
-            // 물러가는 사람을 붙잡고 다시 물을 수는 없으니 그동안만 잠근다.
-            // 다 물러간 뒤에 도로 열린다 — 마을 사람에게 몇 번이고 다시 말을 걸 수 있듯,
-            // 이 사람도 마당에서 다시 만난다.
-            _locked = true;
+            // <b>물러갈 사람만 잠근다.</b>
+            //
+            // 여태 무조건 잠갔다. 잠금을 푸는 것은 <see cref="_onFinished"/> 에 걸린
+            // 물러가기 연출이 끝나면서 <see cref="Unlock"/> 을 부르는 일인데, 그 자리가
+            // <b>비어 있는 사람</b>이 있다(마당의 마을사람이 그렇다). 그러면 잠그기만
+            // 하고 풀 사람이 없어 <b>영영</b> 말을 못 건다.
+            //
+            // 여태 안 드러난 까닭은 Esc 라는 곁길이 있어서였다 — Esc 는 그냥 창만
+            // 닫았으므로 다시 누르면 열렸다. 그 곁길을 걷고 나니 이 자리가 유일한
+            // 출구가 되면서 잠금이 그대로 드러났다.
+            //
+            // 물러가는 연출이 걸려 있으면 그동안만 잠그고, 없으면 자리를 파했을 뿐이니
+            // 다시 말을 걸 수 있어야 한다. 마을에서 스친 사람에게 두 번 말을 못 붙일
+            // 까닭이 없다.
+            bool walksOff = _onFinished != null && _onFinished.GetPersistentEventCount() > 0;
+            if (walksOff) _locked = true;
             _onFinished?.Invoke();
         }
 
-        /// <summary>이미 볼일이 끝났나. 끝난 뒤에는 다시 말을 걸 수 없다.</summary>
+        /// <summary>
+        /// 이미 한 번 자리를 파했나. <b>다시 못 건다는 뜻은 아니다</b> —
+        /// 그것은 <see cref="Locked"/> 가 정한다(물러가는 연출이 있는 사람만 잠긴다).
+        /// </summary>
         public bool Finished => _finished;
         private bool _finished;
 

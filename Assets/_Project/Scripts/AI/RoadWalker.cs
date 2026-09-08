@@ -31,8 +31,16 @@ namespace IMUNROK.Common
         [SerializeField] private Vector2 _fromXZ;
         [SerializeField] private Vector2 _toXZ;
 
+        [Tooltip("오갈 때마다 끝자리를 이만큼(m) 흩뜨린다. 0이면 늘 같은 두 점을 오간다.\n" +
+                 "두 점만 오가면 그 길이 <b>선로</b>로 읽힌다 — 사람이 아니라 궤도를 도는 것이 된다")]
+        [SerializeField] private float _scatter = 1.6f;
+
         [Header("걸음")]
         [SerializeField] private float _speed = 0.85f;
+        [Tooltip("걷기 클립이 한 바퀴에 <b>실제로 나아가는</b> 빠르기(m/초). " +
+                 "동작 속도를 이 값에 맞춰 늦추거나 재촉해 <b>발이 미끄러지지 않게</b> 한다.\n" +
+                 "믹사모 걷기는 1.03초에 1.92m — 곧 1.87 이다. 0 이면 안 맞춘다(옛 동작)")]
+        [SerializeField] private float _clipStride = 1.87f;
         [Tooltip("도는 빠르기(도/초)")]
         [SerializeField] private float _turnSpeed = 160f;
         [Tooltip("끝에 닿았다고 볼 거리(m)")]
@@ -66,11 +74,25 @@ namespace IMUNROK.Common
                 foreach (var p in _animator.parameters)
                     if (p.name == _walkBool && p.type == AnimatorControllerParameterType.Bool) _hasWalkBool = true;
 
+            // <b>걸음과 동작을 맞춘다.</b> 클립은 1.87m/초로 걷는 사람의 것인데 몸은
+            // 0.8m/초로 나아가고 있었다 — 그 차이가 고스란히 <b>미끄러지는 발</b>이 된다.
+            // 동작을 그 비만큼 늦추면 발이 땅을 짚는 자리와 몸이 나아가는 자리가 맞는다.
+            if (_animator != null && _clipStride > 0.01f)
+                _animator.speed = Mathf.Clamp(_speed / _clipStride, 0.2f, 2.5f);
+
             // 먼 쪽부터 간다 — 서 있던 자리에서 곧장 되돌아서지 않게
-            _goal = Flat(_from - transform.position).sqrMagnitude > Flat(_to - transform.position).sqrMagnitude ? _from : _to;
+            _goal = Scatter(Flat(_from - transform.position).sqrMagnitude > Flat(_to - transform.position).sqrMagnitude ? _from : _to);
         }
 
         private static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
+
+        /// <summary>끝자리를 조금 흩뜨린다 — 같은 두 점을 오가면 궤도가 된다.</summary>
+        private Vector3 Scatter(Vector3 p)
+        {
+            if (_scatter <= 0.01f) return p;
+            var d = Random.insideUnitCircle * _scatter;
+            return new Vector3(p.x + d.x, p.y, p.z + d.y);
+        }
 
         private void Update()
         {
@@ -92,7 +114,11 @@ namespace IMUNROK.Common
             Vector3 to = Flat(_goal - transform.position);
             if (to.magnitude <= _reach)
             {
-                _goal = (_goal == _to) ? _from : _to;
+                // 어느 쪽 끝에 닿았는지는 <b>어디에 더 가까운가</b>로 본다 —
+                // 흩뜨린 자리는 _from·_to 와 값이 같지 않으므로 그것과 견줄 수 없다.
+                bool atFrom = Flat(_from - transform.position).sqrMagnitude
+                            < Flat(_to - transform.position).sqrMagnitude;
+                _goal = Scatter(atFrom ? _to : _from);
                 _rest = Random.Range(_restMin, _restMax);
                 Walking(false);
                 return;

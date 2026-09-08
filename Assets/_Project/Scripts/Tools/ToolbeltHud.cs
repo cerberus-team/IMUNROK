@@ -176,6 +176,7 @@ namespace IMUNROK.Common
             if (next == _index) return;
             _index = next;
             _everSwitched = true;      // 한 번 갈아 들었으면 익힌 것이다 — 안내를 걷는다
+            _howToUntil = Time.unscaledTime + HowToSeconds;   // 바꾼 그 순간부터 잠깐
             Apply();
         }
 
@@ -242,6 +243,19 @@ namespace IMUNROK.Common
 
         private GUIStyle _iconText, _iconOn, _label, _howTo;
         private Texture2D _slot, _slotOn;
+
+        /// <summary>
+        /// 쓰는 법을 <b>얼마나</b> 띄울까(초).
+        ///
+        /// 여태 손에 든 <b>내내</b> 띄웠다. 한 번 익히면 다시 읽지 않는 말인데 화면
+        /// 오른쪽에 계속 붙어 있으니, 안 읽히면서 자리만 차지하고 무엇보다 조선 후기
+        /// 마당에 「[F] 를 눌러…」가 <b>매 순간</b> 떠 있으면 그 말이 세상 밖의 것임이
+        /// 내내 드러난다. 바꿔 든 그 자리에서 한 번 읽히면 그것으로 족하다.
+        /// </summary>
+        private const float HowToSeconds = 1.8f;
+
+        /// <summary>이 때까지만 쓰는 법을 적는다.</summary>
+        private float _howToUntil;
 
         private void OnGUI()
         {
@@ -322,7 +336,8 @@ namespace IMUNROK.Common
             // 못 읽고, 그 뒤로 다시 볼 길이 없다. 맨손이면 적을 것이 없으니 안 적는다.
             // 줄은 <b>지금 든 칸 옆</b>에 나란히 선다. 예전처럼 띠 위에 한 줄로 띄우면
             // 그 말이 어느 칸을 두고 하는 말인지 눈으로 이어지지 않는다.
-            string how = Controls.HowTo(CurrentId);
+            // 뜨는 것은 바꿔 든 뒤 <see cref="HowToSeconds"/> 동안뿐이다.
+            string how = Time.unscaledTime < _howToUntil ? Controls.HowTo(CurrentId) : "";
             if (!string.IsNullOrEmpty(how))
             {
                 float ry = y0 + _index * (size + gap) + size * 0.5f - line;

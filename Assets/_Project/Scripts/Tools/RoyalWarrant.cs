@@ -40,8 +40,8 @@ namespace IMUNROK.Common
     /// 도로 들어간다 — 그 되돌아가는 동작이 있어야 "아직 안 늦었다"가 몸으로 읽힌다.
     ///
     /// <b>낼 것이 없으면 안 나간다</b>: 증거 없이 출도한 어사는 무고한 이를 잡아들인
-    /// 것이 된다. 아직 못 챙긴 것이 있으면 패는 <b>품에서 나오지도 않고</b>, 무엇이
-    /// 모자란지만 말해 준다.
+    /// 것이 된다. 아직 못 챙긴 것이 있으면 패는 <b>품에서 나오지도 않고</b>, 화면에도
+    /// 아무 말이 없다 — 때가 되면 품이 무거워지는 것으로 알린다(아래 긴 주석 참고).
     ///
     /// 붙이는 곳: 카메라 밑의 마패 자리(<see cref="_model"/> 을 자식으로 둔 빈 오브젝트).
     /// </summary>
@@ -60,43 +60,27 @@ namespace IMUNROK.Common
         /// </summary>
         private static bool OnTheBelt { get { return ToolbeltHud.SelectedToolId == "mapae"; } }
 
-        /// <summary>씬에 하나뿐인 품속 마패. 도구띠가 이걸 보고 맨손 줄을 적는다.</summary>
-        private static RoyalWarrant Current;
+        /// <summary>상태 줄에 쓰는 이름표. 다른 안내와 안 겹치게 한 군데에 적어 둔다.</summary>
+        private const string HintKey = "마패";
 
-        /// <summary>
-        /// <b>도구띠의 맨손 칸에 적힐 한 줄.</b>
-        ///
-        /// ⚠️ 여기가 이 부품의 <b>유일한 안내</b>다. 예전 구조는 이랬다:
-        ///   ① 띠는 맨손일 때 늘 「[F] 를 꾹 누르면 품에서 마패를 꺼낸다」고 <b>권하고</b>,
-        ///   ② 그 말대로 F 를 누르면 마패가 「아직 이르다」고 <b>물린다</b>.
-        /// 권하는 입과 물리는 입이 따로 있으니, 누른 사람 눈에는 <b>고장</b>으로 보인다.
-        /// 게다가 물리는 말은 <b>누른 그 순간에만</b> 한 번 스쳐서, 무엇이 몇 가지 모자란지
-        /// 다시 보려면 또 눌러 봐야 했다 — 알려면 거절당해야 하는 안내였다.
-        ///
-        /// 그래서 <b>거절문을 없애고 초대문을 조건부로 바꾼다.</b> 낼 것이 모자라면 띠가
-        /// 처음부터 「아직 {n}가지 남았다」고 <b>가만히 적어 두고</b>, 다 채운 그 순간
-        /// 같은 자리의 글이 「[F] 를 꾹 누르면…」으로 갈린다. 안내문 자체가 자물쇠라
-        /// 누를 것을 권해 놓고 물릴 일이 없고, 남은 가짓수는 <b>내내</b> 보인다.
-        ///
-        /// 빈 문자열이면 띠는 맨손 줄을 안 적는다(출도한 뒤·2막).
-        /// </summary>
-        public static string BeltLine
-        {
-            get
-            {
-                var w = Current;
-                if (w == null || w._done || OnTheBelt) return "";
-                var gs = GameState.Instance;
-                if (gs != null && gs.IdentityRevealed) return "";
-
-                int miss = w.Missing();
-                if (miss > 0)
-                    return "품 속의 <b>마패</b> — <color=#B8452AFF><b>출도(出道)</b></color> 하려면 밝혀 둘 것이 "
-                         + miss + "가지 남았다";
-                return Controls.Key(w.KeyName()) + " 를 <b>꾹 누르면</b> 품에서 마패를 꺼낸다 — "
-                     + "<color=#B8452AFF><b>출도(出道)</b></color>";
-            }
-        }
+        // <b>언제 마패를 꺼내는지 어떻게 알리나.</b>
+        //
+        // 이 물음에 여태 세 가지 답을 냈고 앞의 둘은 다 물렸다.
+        //
+        //   ① <b>누르면 물린다</b> — 띠가 「[F] 를 꾹 누르면 꺼낸다」고 권하고, 누르면
+        //      마패가 「아직 이르다」고 막았다. 권한 입과 물린 입이 달라 고장으로 읽힌다.
+        //   ② <b>남은 수를 적어 둔다</b> — 띠에 「밝혀 둘 것이 4가지 남았다」를 내내
+        //      띄웠다. 물리지는 않지만 이번엔 사건이 <b>모으기 놀이</b>가 된다.
+        //      어사는 넷을 채우러 다니는 사람이 아니고, 무엇보다 그 넷이 무엇인지
+        //      모르는 채 숫자만 줄어드는 것은 안내가 아니라 <b>점수판</b>이다.
+        //
+        //   ③ <b>때가 되면 품이 무거워진다</b> — 지금 것. 낼 것이 모자란 동안에는
+        //      화면에 <b>아무 말도 없다</b>. 마지막 하나를 챙긴 그 순간 한 마디가 뜨고
+        //      (<see cref="_readyLine"/>), 그때부터 상태 줄에 꺼내는 법이 <b>머문다</b>
+        //      (<see cref="_readyHint"/>). 곧 <b>안내가 뜨는 것 자체가 신호</b>다 —
+        //      셀 것도 없고, 물릴 일도 없다.
+        //
+        // 어사가 품속 것의 무게로 때를 안다는 것은 이 놀이의 말투이기도 하다.
 
         [Header("무엇을 꺼내나")]
         [Tooltip("품에서 꺼낼 패의 모형. 평소에는 꺼져 있다")]
@@ -130,12 +114,16 @@ namespace IMUNROK.Common
 
         [Header("말")]
         [SerializeField] private string _speaker = "";
-        // <b>「아직 이르다」는 걷었다.</b> 누른 사람에게 자막으로 물리는 대신, 도구띠의
-        // 맨손 줄이 처음부터 남은 가짓수를 적어 둔다(<see cref="BeltLine"/>).
-        // 거절문이 남아 있으면 다음에 고치는 사람이 반드시 그쪽도 손보게 된다.
+        // <b>「아직 이르다」는 걷었다.</b> 거절문이 남아 있으면 다음에 고치는 사람이
+        // 반드시 그쪽도 손보게 된다.
         [TextArea(2, 3)]
         [Tooltip("다 채운 <b>그 순간</b> 한 번. 이것이 곧 '이제 나가도 된다'는 신호다")]
         [SerializeField] private string _readyLine = "품 속의 것이 *무거워진다*. ({0} 꾹 눌러 내보이기)";
+        [TextArea(2, 3)]
+        [Tooltip("다 채운 뒤 상태 줄에 <b>머무는</b> 한 줄. {0} 자리에 글쇠 이름이 들어간다.\n" +
+                 "한 번 스치고 마는 말로 두면 마침 딴 데를 보던 사람은 못 읽고, 그 뒤로 " +
+                 "다시 볼 길이 없다 — 출도는 이 놀이에서 되돌릴 수 없는 단 하나의 손짓이다")]
+        [SerializeField] private string _readyHint = "품 속의 *마패*가 무거워졌다 — *{0}* 를 꾹 누르면 *출도(出道)*";
         [TextArea(2, 3)]
         [Tooltip("꺼내다가 손을 뗐을 때 한 번. 되돌릴 수 있다는 것을 알려 준다")]
         [SerializeField] private string _tuckLine = "패를 도로 품에 넣는다.";
@@ -181,10 +169,7 @@ namespace IMUNROK.Common
             _outPos = _model != null ? _model.transform.localPosition : Vector3.zero;
             Place(0f);
             if (_model != null) _model.SetActive(false);
-            Current = this;
         }
-
-        private void OnDestroy() { if (Current == this) Current = null; }
 
         private void Update()
         {
@@ -194,15 +179,16 @@ namespace IMUNROK.Common
             // 마패는 할 일이 없다(내보이는 마패는 도구띠의 것이 따로 맡는다).
             {
                 var gs0 = GameState.Instance;
-                if (gs0 != null && gs0.IdentityRevealed) return;
+                if (gs0 != null && gs0.IdentityRevealed) { StatusPanel.Clear(HintKey); return; }
             }
-            if (_done) return;
+            if (_done) { StatusPanel.Clear(HintKey); return; }
 
             // 벨트가 들고 있으면 <b>다 꺼낸 자리에 그대로 둔다</b>.
             // 그냥 손만 떼면 모형이 품속 자리(-30cm)에 남아 눈 밑으로 내려가 버린다 —
             // 켜지긴 했는데 화면 밖에 있어, 골라도 안 보이는 것은 매한가지가 된다.
             if (OnTheBelt)
             {
+                StatusPanel.Clear(HintKey);
                 if (_model != null)
                 {
                     if (!_model.activeSelf) _model.SetActive(true);
@@ -220,6 +206,13 @@ namespace IMUNROK.Common
                 _toldReady = true;
                 Say(string.Format(_readyLine, KeyName()));
             }
+
+            // <b>안내가 뜨는 것 자체가 신호다.</b> 모자란 동안에는 아무 말도 없다가,
+            // 다 채운 그때부터 꺼내는 법이 상태 줄에 머문다. 몇 가지가 남았는지는
+            // 끝내 적지 않는다 — 세어 주는 순간 사건이 모으기 놀이가 된다.
+            if (ready && !string.IsNullOrEmpty(_readyHint))
+                StatusPanel.Set(HintKey, 4, string.Format(_readyHint, KeyName()));
+            else StatusPanel.Clear(HintKey);
 
             // <b>손이 비어 있어야 듣는다.</b>
             //
@@ -339,6 +332,10 @@ namespace IMUNROK.Common
 #endif
         }
 
-        private void OnDisable() { _lastSaid = null; }
+        private void OnDisable()
+        {
+            _lastSaid = null;
+            StatusPanel.Clear(HintKey);   // 꺼진 부품이 상태 줄을 붙들고 있으면 안 된다
+        }
     }
 }

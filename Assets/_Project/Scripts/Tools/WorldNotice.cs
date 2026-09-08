@@ -117,7 +117,11 @@ namespace IMUNROK.Common
             var txtRt = NewRect("글", Vector2.zero, new Vector2(1040f, 380f), panel);
             _text = txtRt.gameObject.AddComponent<Text>();
             _text.font = UiFont.Resolve(null);
-            _text.fontSize = 40;
+            // <b>40 은 컸다.</b> 한 줄짜리 안내는 멀쩡했는데 문장이 길어지면 판 밖으로
+            // 넘어갔다 — 넓이 상한(MaxW)에 먼저 걸려 접히고, 접힌 줄이 높이 상한에
+            // 또 걸려 잘렸다. 글씨를 줄이면 같은 넓이에 더 담기므로 접히는 자리부터
+            // 뒤로 밀린다.
+            _text.fontSize = 33;
             _text.color = UiLook.Text;
             _text.alignment = TextAnchor.MiddleCenter;
             _text.horizontalOverflow = HorizontalWrapMode.Wrap;
@@ -229,12 +233,13 @@ namespace IMUNROK.Common
             // 「마을 어귀에 닿았다」 한 줄이 <b>있지도 않은 종이 폭</b>에 걸려 두 줄로 접힌다.
             float pad = _look == Look.Gold ? 24f : 96f;
             float inset = _look == Look.Gold ? 0f : 72f;
-            const float MaxW = 900f;
+            // 바탕이 없는 결은 넓게 써도 판때기가 안 생긴다 — 접히는 자리를 늦춘다.
+            float MaxW = _look == Look.Gold ? 1240f : 900f;
             var txt = (RectTransform)_text.transform;
             txt.sizeDelta = new Vector2(MaxW - inset, 400f);
             float w = Mathf.Clamp(_text.preferredWidth + pad, 340f, MaxW);
             txt.sizeDelta = new Vector2(w - inset, 400f);
-            float h = Mathf.Clamp(_text.preferredHeight + (_look == Look.Gold ? 16f : 56f), 92f, 400f);
+            float h = Mathf.Clamp(_text.preferredHeight + (_look == Look.Gold ? 16f : 56f), 76f, 520f);
             txt.sizeDelta = new Vector2(w - inset, h - (_look == Look.Gold ? 0f : 28f));
             plate.sizeDelta = new Vector2(w, h);
         }

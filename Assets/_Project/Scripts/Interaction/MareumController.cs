@@ -30,6 +30,10 @@ namespace IMUNROK.Common
         [Tooltip("서 있을 때 멈춰 세울 클립. 그 클립의 첫 프레임이 '선 자세'가 된다. " +
                  "비우면 걷기 클립을 쓴다(문 여는 클립은 손을 뻗은 자세라 안 어울린다)")]
         [SerializeField] private string _standPoseState = "";
+        [Tooltip("걷기 클립이 한 바퀴에 <b>실제로 나아가는</b> 빠르기(m/초). " +
+                 "동작을 이 값에 맞춰 늦추거나 재촉해 <b>발이 미끄러지지 않게</b> 한다 — " +
+                 "믹사모 걷기는 1.03초에 1.92m 라 1.87 이다. 0 이면 안 맞춘다")]
+        [SerializeField] private float _walkStride = 1.87f;
 
         [Header("경로")]
         [Tooltip("문 열고 걸어가서 설/앉을 자리(이 오브젝트의 회전 = 도착 방향). 비우면 이동 없음.")]
@@ -612,15 +616,26 @@ namespace IMUNROK.Common
         private void Play(string state)
         {
             if (_animator == null || string.IsNullOrEmpty(state)) return;
-            _animator.speed = 1f;
+            _animator.speed = SpeedFor(state);
             _animator.Play(state, 0, 0f);
+        }
+
+        /// <summary>
+        /// <b>걸음과 동작을 맞춘다.</b> 걷기 클립은 1.87m/초로 걷는 사람의 것인데 몸은
+        /// <see cref="_moveSpeed"/> 로 나아간다 — 그 차이가 고스란히 <b>미끄러지는 발</b>이
+        /// 된다. 걷기 클립을 틀 때만 그 비만큼 늦춘다(다른 동작은 제 속도 그대로).
+        /// </summary>
+        private float SpeedFor(string state)
+        {
+            if (_walkStride <= 0.01f || state != _walkState) return 1f;
+            return Mathf.Clamp(_moveSpeed / _walkStride, 0.2f, 2.5f);
         }
 
         // 부드럽게 섞어 전환(끊김 방지). _blend=0이면 하드컷.
         private void CrossTo(string state)
         {
             if (_animator == null || string.IsNullOrEmpty(state)) return;
-            _animator.speed = 1f;
+            _animator.speed = SpeedFor(state);
             if (_blend <= 0f) _animator.Play(state, 0, 0f);
             else _animator.CrossFadeInFixedTime(state, _blend, 0);
         }
