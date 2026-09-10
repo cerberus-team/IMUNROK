@@ -87,6 +87,11 @@ namespace IMUNROK.Ui.EditorTools
         public static readonly string[] ScanRoots =
         {
             "Assets/_Project/Gyeonu",
+            // 우리 쪽 판도 이제 TMP 로 그린다. 여기 안 적으면 옹고집·공통 화면의 글자가
+            // 아틀라스에 없어, 처음 뜨는 한 프레임 동안 네모 덩어리로 번쩍인다.
+            "Assets/_Project/Scripts",
+            "Assets/_Project/Onggojip",
+            "Assets/_Project/Seocheon",
         };
 
         /// <summary><see cref="ScanRoots"/> 아래에서 <b>글이 든 ScriptableObject</b>가 사는 하위 폴더.

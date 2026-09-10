@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -23,7 +24,8 @@ namespace IMUNROK.Common
     public class SubtitleView : MonoBehaviour
     {
         [Header("모양")]
-        [SerializeField] private Font _font;
+        // 낡은 판 시절의 글꼴 칸을 걷었다 — 글씨는 이제 꾸러미의 TMP 에셋 하나뿐이다
+        // (UiText ▸ UiSkin.Font). 판마다 달리 꽂을 것이 없다.
         [SerializeField] private int _lineFontSize = 58;
         [SerializeField] private int _nameFontSize = 40;
         [SerializeField] private int _hintFontSize = 30;
@@ -57,7 +59,7 @@ namespace IMUNROK.Common
         private CanvasGroup _group;
         /// <summary>바탕 판. 화면 아래에 눕히는 자리를 여기에 준다.</summary>
         private RectTransform _panel;
-        private Text _nameText, _lineText, _hintText;
+        private TextMeshProUGUI _nameText, _lineText, _hintText;
         private RectTransform _nameplate;
         private GameObject _closeTab;
 
@@ -464,7 +466,6 @@ namespace IMUNROK.Common
 
         private void Build()
         {
-            _font = UiFont.Resolve(_font);
             _group = gameObject.GetComponent<CanvasGroup>();
             if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
 
@@ -532,9 +533,13 @@ namespace IMUNROK.Common
             _lineText = NewText("대사", "", new Vector2(0f, y - lineBoxH * 0.5f),
                                 new Vector2(w - st.padX * 2f, lineBoxH),
                                 panel, _lineFontSize, _textColor);
-            _lineText.alignment = TextAnchor.UpperLeft;
-            _lineText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _lineText.verticalOverflow = VerticalWrapMode.Truncate;
+            _lineText.alignment = TextAlignmentOptions.TopLeft;
+            UiText.Wrap(_lineText, true);
+            // ⚠️ 여기 <c>Truncate</c> 를 두면 안 된다. TMP 는 상자에 <b>온전히 안 들어가는
+            //    줄을 통째로 버린다</b> — 조선궁서체는 줄 높이가 글자의 1.25배라, 낡은 판
+            //    시절 숫자로 잡아 둔 대사 상자에서 마지막 줄이 통째로 사라진다.
+            //    넘치는 대사는 굴려 읽는 것이 이미 있다(Roll).
+            _lineText.overflowMode = TextOverflowModes.Overflow;
             y -= lineBoxH + st.lineToInput;
 
             BuildInputRow(panel, w, y, st);
@@ -543,7 +548,7 @@ namespace IMUNROK.Common
             _hintText = NewText("힌트", "", new Vector2(0f, y - st.footH * 0.5f),
                                 new Vector2(w - st.padX * 2f, st.footH),
                                 panel, _hintFontSize, _hintColor);
-            _hintText.alignment = TextAnchor.MiddleCenter;
+            _hintText.alignment = TextAlignmentOptions.Center;
 
             BuildCloseTab(panel, w, h, st);
             SitLikeTheBar(w, h);
@@ -630,8 +635,18 @@ namespace IMUNROK.Common
 
 
         private RectTransform _inputRow;
-        private Text _heardText, _heardHint;
-        private InputField _field;
+        private TextMeshProUGUI _heardText, _heardHint;
+
+        /// <summary>
+        /// 치는 칸. <b>낡은 <c>InputField</c> 에서 <c>TMP_InputField</c> 로 옮겼다.</b>
+        ///
+        /// 칸만 낡은 판으로 두면 <b>친 글씨만</b> 딴 글꼴로 나온다 — 바로 위 대사는
+        /// 조선궁서체인데 내가 치는 말은 맑은 고딕인 꼴이다. 저쪽(견우) 바도 TMP 칸이다.
+        ///
+        /// ⚠️ 한글 조합은 여전히 UGUI 가 대신 처리한다. 직접 글쇠를 읽는 방식으로
+        ///    바꾸면 한글을 못 치게 된다 — 칸을 쓰는 까닭이 그것이다.
+        /// </summary>
+        private TMP_InputField _field;
         private string _draftSeen = "";
 
         /// <summary>
@@ -684,17 +699,19 @@ namespace IMUNROK.Common
 
             _heardText = NewText("글", "", new Vector2(16f, 0f), new Vector2(slotW - 32f, h),
                                  slot, st.input, pal.slotText);
-            _heardText.alignment = TextAnchor.MiddleLeft;
-            _heardText.supportRichText = false;   // 조합 중인 한글에 태그가 새지 않게
+            _heardText.alignment = TextAlignmentOptions.Left;
+            _heardText.richText = false;   // 조합 중인 한글에 태그가 새지 않게
+            UiText.Wrap(_heardText, false);
 
             _heardHint = NewText("안내글", "", new Vector2(16f, 0f), new Vector2(slotW - 32f, h),
                                  slot, st.input, pal.slotHint);
-            _heardHint.alignment = TextAnchor.MiddleLeft;
+            _heardHint.alignment = TextAlignmentOptions.Left;
+            UiText.Wrap(_heardHint, false);
 
-            _field = slot.gameObject.AddComponent<InputField>();
+            _field = slot.gameObject.AddComponent<TMP_InputField>();
             _field.textComponent = _heardText;
             _field.placeholder = _heardHint;
-            _field.lineType = InputField.LineType.SingleLine;
+            _field.lineType = TMP_InputField.LineType.SingleLine;
             _field.characterLimit = 120;
             _field.customCaretColor = true;
             _field.caretColor = pal.slotText;     // 어두운 칸에서는 커서도 밝아야 보인다
@@ -815,7 +832,11 @@ namespace IMUNROK.Common
             // 이 딱지 색도 손으로 정하지 않는다. 꾸러미의 <b>글쇠 칸</b> 색을 쓴다 —
             // 저쪽에서 「눌러도 되는 자리」를 알리는 데 쓰는 색이라 뜻이 맞는다.
             Skin(rt.gameObject.AddComponent<Image>(), _skin.Slot_, UiLook.Slot);
-            NewText("글", "✕", Vector2.zero, size, rt, _hintFontSize, _hintColor);
+            // ⚠️ <b>「✕」(U+2715) 는 두 글꼴 어디에도 없다.</b> 낡은 판에서는 운영체제가
+            //    딴 글꼴에서 주워다 그려 주어 멀쩡해 보였는데, TMP 는 아틀라스에 없는 글자를
+            //    <b>네모 한 칸</b>으로 그린다. 견우 꾸러미 문서에도 없는 글자 목록에
+            //    이것이 적혀 있다 — 화면용은 곱셈표 「×」다.
+            NewText("글", "×", Vector2.zero, size, rt, _hintFontSize, _hintColor);
 
             // <b>UI 단추로 받는다.</b> 여태 이 딱지는 <see cref="NoticeCloseTab"/> 이었다 —
             // 콜라이더를 달고 세상의 광선(<see cref="MouseRaySelector"/>)에 짚히는 물건.
@@ -842,19 +863,15 @@ namespace IMUNROK.Common
             return rt;
         }
 
-        private Text NewText(string name, string content, Vector2 pos, Vector2 size,
-                             Transform parent, int fontSize, Color color)
+        /// <summary>
+        /// 글 한 줄. <b>낡은 판에서 TMP 로 옮겼다</b>(<see cref="UiText"/>).
+        /// 낡은 판은 안 접는 것이 기본이라 여기서도 안 접는다 — 접을 자리에서 다시 켠다.
+        /// </summary>
+        private TextMeshProUGUI NewText(string name, string content, Vector2 pos, Vector2 size,
+                                        Transform parent, float fontSize, Color color)
         {
-            var rt = NewRect(name, pos, size, parent);
-            var t = rt.gameObject.AddComponent<Text>();
-            t.font = _font;
-            t.fontSize = fontSize;
-            t.color = color;
-            t.alignment = TextAnchor.MiddleCenter;
-            t.horizontalOverflow = HorizontalWrapMode.Overflow;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
-            t.raycastTarget = false;
-            t.text = content;
+            var t = UiText.New(name, content, pos, size, parent, fontSize, TextAnchor.MiddleCenter, color);
+            UiText.Wrap(t, false);
             return t;
         }
     }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -30,7 +31,9 @@ namespace IMUNROK.Common
     [RequireComponent(typeof(Canvas))]
     public class InterrogationPanel : MonoBehaviour
     {
-        [SerializeField] private Font _font;
+        // 낡은 판 시절의 글꼴 칸을 걷었다 — 이제 글씨는 꾸러미의 TMP 에셋 하나뿐이고
+        // (UiText ▸ UiSkin.Font) 판마다 달리 꽂을 것이 없다. 씬에 남아 있던 값은
+        // 유니티가 조용히 버린다.
         [SerializeField] private int _fontSize = 30;
         [Tooltip("켜면 색을 <b>꾸러미(IMUNROK.Ui)</b> 에서 받아 온다 — 자막 바·수첩과 한 결이 된다")]
         [SerializeField] private bool _useCommonLook = true;
@@ -167,7 +170,6 @@ namespace IMUNROK.Common
             if (_anchor == null) _anchor = gameObject.AddComponent<WorldHudAnchor>();
             ApplyPlacement();
 
-            _font = UiFont.Resolve(_font);
             _group = gameObject.GetComponent<CanvasGroup>();
             if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
 
@@ -333,7 +335,7 @@ namespace IMUNROK.Common
                 var captured = t;
                 btn.onClick.AddListener(() => _owner?.AskTopicFromUi(captured));
                 var label = NewText("라벨", t.question, Vector2.zero, new Vector2(w - 24f, 84f), rt, _fontSize - 4);
-                label.horizontalOverflow = HorizontalWrapMode.Wrap;
+                UiText.Wrap(label, true);
                 _chips.Add(rt.gameObject);
             }
         }
@@ -368,7 +370,7 @@ namespace IMUNROK.Common
                 var captured = o;
                 btn.onClick.AddListener(() => _owner?.RunOrderFromUi(captured));
                 var label = NewText("라벨", o.Label, Vector2.zero, new Vector2(w - 24f, 66f), rt, _fontSize - 6);
-                label.horizontalOverflow = HorizontalWrapMode.Wrap;
+                UiText.Wrap(label, true);
                 _orderChips.Add(rt.gameObject);
             }
         }
@@ -431,7 +433,7 @@ namespace IMUNROK.Common
 
                 string label = !here ? s.이름 + " (아직)" : (up ? "▶ " + s.이름 : s.이름);
                 var lab = NewText("라벨", label, new Vector2(textX, 0f), new Vector2(textW, 96f), rt, _fontSize - 6);
-                if (here) lab.alignment = TextAnchor.MiddleLeft;
+                if (here) lab.alignment = TextAlignmentOptions.Left;   // 얼굴 옆이면 왼쪽 맞춤
                 _seatChips.Add(rt.gameObject);
             }
         }
@@ -465,18 +467,18 @@ namespace IMUNROK.Common
             return rt;
         }
 
-        private Text NewText(string name, string content, Vector2 pos, Vector2 size, Transform parent, int size2)
+        /// <summary>
+        /// 글 한 줄. <b>낡은 판에서 TMP 로 옮겼다</b>(<see cref="UiText"/>) —
+        /// 견우 판과 같은 붓으로 그려야 한 게임의 화면으로 읽힌다.
+        ///
+        /// 낡은 판은 <b>안 접는 것</b>이 기본이라 여기 <c>Overflow</c> 를 적어 두었는데,
+        /// TMP 는 접는 것이 기본이다. 부르는 자리마다 필요하면 다시 켠다.
+        /// </summary>
+        private TextMeshProUGUI NewText(string name, string content, Vector2 pos, Vector2 size,
+                                        Transform parent, int size2)
         {
-            var rt = NewRect(name, pos, size, parent);
-            var t = rt.gameObject.AddComponent<Text>();
-            t.font = _font;
-            t.fontSize = size2;
-            t.color = _textColor;
-            t.alignment = TextAnchor.MiddleCenter;
-            t.horizontalOverflow = HorizontalWrapMode.Overflow;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
-            t.raycastTarget = false;
-            t.text = content;
+            var t = UiText.New(name, content, pos, size, parent, size2, TextAnchor.MiddleCenter, _textColor);
+            UiText.Wrap(t, false);
             return t;
         }
     }

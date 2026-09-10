@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -23,9 +24,14 @@ namespace IMUNROK.Common
     [RequireComponent(typeof(Canvas))]
     public class JournalPanel : MonoBehaviour
     {
-        [SerializeField] private Font _font;
-        [SerializeField] private int _titleFontSize = 44;
-        [SerializeField] private int _clueFontSize = 34;
+        // 낡은 판 시절의 글꼴 칸을 걷었다 — 글씨는 꾸러미의 TMP 에셋 하나뿐이다
+        // (UiText ▸ UiSkin.Font).
+        //
+        // <b>크기도 저쪽 소지품 판의 것을 쓴다.</b> 좌표계를 통째로 받아 온 판이므로
+        // (PageW·PageH) 저쪽이 적어 둔 56 이 여기서도 같은 뜻이다. 칸 이름 30 은
+        // 우리 <c>_clueFontSize - 4</c> 와 이미 같은 수라 그대로 둔다.
+        private const int _titleFontSize = 56;
+        private const int _clueFontSize = 34;
         private Color _paperColor = UiLook.With(UiLook.Paper, 0.96f);
         private Color _inkColor = UiLook.Ink;
         private Color _cardColor = UiLook.With(UiLook.PaperDim, 0.45f);
@@ -41,7 +47,8 @@ namespace IMUNROK.Common
         private JournalView _owner;
         private CanvasGroup _group;
         private RectTransform _col;
-        private Text _title, _brief;
+        private RectTransform _page;                       // 판 전체 — 쪽·안내가 여기 붙는다
+        private TextMeshProUGUI _title, _brief, _foot;
         private readonly List<GameObject> _cards = new List<GameObject>();
 
         /// <summary>
@@ -139,7 +146,6 @@ namespace IMUNROK.Common
             _instance = this;
             SitOnScreen();
 
-            _font = UiFont.Resolve(_font);
             _group = gameObject.GetComponent<CanvasGroup>();
             if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
 
@@ -201,6 +207,32 @@ namespace IMUNROK.Common
             Skin(rt.gameObject.AddComponent<Image>(), _skin.Wood_, c);
         }
 
+        /// <summary>아래 안내 글씨 — 저쪽 판의 26 이다.</summary>
+        private const int HintSizeOf = 26;
+
+        /// <summary>빈 판에 뜨는 한 줄 — 저쪽 판의 36.</summary>
+        private const int EmptySizeOf = 36;
+
+        /// <summary>칸에 얹는 그림 자리 — 저쪽 칸의 196×196.</summary>
+        private const float Shot = 196f;
+
+        /// <summary>겹 하나. 무늬를 깐 네모를 어버이 위에 얹는다.</summary>
+        private RectTransform Plate(string name, Sprite sp, Color c, Transform parent)
+        {
+            var rt = NewRect(name, Vector2.zero, Vector2.zero, parent);
+            Skin(rt.gameObject.AddComponent<Image>(), sp, c);
+            return rt;
+        }
+
+        /// <summary>어버이를 꽉 채운다. inset 이 음수면 그만큼 안으로 물린다(테가 드러난다).</summary>
+        private static void Stretch(RectTransform rt, float inset)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(-inset, -inset);
+            rt.offsetMax = new Vector2(inset, inset);
+        }
+
         /// <summary>무늬를 깔고 그 위에 색을 얹는다 — 꾸러미가 판을 그리는 방식이다.</summary>
         private static void Skin(Image im, Sprite sp, Color c)
         {
@@ -226,33 +258,54 @@ namespace IMUNROK.Common
             // 있었다. 이제 칸에 적힌 것이 곧 꾸러미 색이고 인스펙터에 새지도 않으므로
             // 갈아 끼울 것이 없다 — 적힌 값과 보이는 값이 같아졌다.
 
-            var page = NewRect("한지", Vector2.zero, new Vector2(PageW, PageH), transform);
-            Skin(page.gameObject.AddComponent<Image>(), _skin.Hanji_, _paperColor);
+            // <b>틀을 저쪽 소지품 판과 같은 네 겹으로 짓는다.</b>
+            //
+            // 여태 한지 한 장에 테두리 띠 넷을 둘렀다(<c>Edge</c>). 저쪽은
+            //   목재 틀 ▸ 한지 ▸ 안쪽 테선 ▸ 속지
+            // 네 겹을 겹쳐, 바깥에 두꺼운 나무테가 서고 그 안에 가는 먹선이 한 번 더 돈다.
+            // 겹을 맞추지 않으면 <b>같은 색인데 다른 판</b>으로 보인다 — 색만 빌려 오고
+            // 짜임을 안 빌려 온 것이 이 판의 이질감이었다.
+            var page = NewRect("판", Vector2.zero, new Vector2(PageW, PageH), transform);
+            _page = page;
+            Stretch(Plate("틀", _skin.Wood_, Color.white, page), 40f);
+            var paper = Plate("바탕", _skin.Hanji_, _paperColor, page);
+            Stretch(paper, 0f);
+            Stretch(Plate("테선", _skin.Wood_, UiLook.Wood, page), -20f);
+            Stretch(Plate("속지", _skin.Hanji_, _paperColor, page), -26f);
 
-            // <b>나뭇결 테두리</b> — 꾸러미 판에 있고 우리에게 없던 것이다.
-            // 한지 판이 밝은 배경(낮 마당) 앞에 서면 종이의 가장자리가 녹아 사라진다.
-            Edge(page, PageW, PageH, UiLook.Wood);
+            // 제목 — 저쪽과 같은 자리·크기. 그 아래 판을 가로지르는 구분선 한 줄.
+            // <b>표제가 두 줄이다.</b> 저쪽 판은 제목 한 줄이면 끝인데(물건 이름은 칸에
+            // 적히므로) 우리 수첩에는 <b>사건 개요</b>가 한 줄 더 붙는다. 그래서 제목을
+            // 조금 올리고 그 밑에 개요를 눕힌 뒤, 구분선을 그만큼 내린다.
+            // 안 그러면 개요가 첫 줄 칸 위에 겹쳐 앉는다(칸 윗변이 382 다).
+            _title = NewText("제목", "수첩", new Vector2(0f, 494f), new Vector2(1400f, 64f),
+                             page, _titleFontSize, _inkColor);
+            var rule = NewRect("구분선", new Vector2(0f, 416f), new Vector2(1760f, 4f), page);
+            Skin(rule.gameObject.AddComponent<Image>(), _skin.Wood_, UiLook.Wood);
 
-            _title = NewText("제목", "수첩", new Vector2(0f, PageH * 0.5f - 60f),
-                             new Vector2(PageW - 80f, 60f), page, _titleFontSize, _inkColor);
-
-            var close = NewRect("닫기", new Vector2(PageW * 0.5f - 140f, PageH * 0.5f - 60f),
-                                new Vector2(200f, 66f), page);
+            // <b>닫기는 왼쪽 위 네모 하나다.</b> 저쪽이 그 자리에 92×92 짜리 「×」를 두었다.
+            // 우리는 오른쪽 위에 「✕ 덮기」라 적힌 긴 단추를 두었는데, 두 판을 나란히 놓으면
+            // 닫는 자리가 서로 반대쪽이라 손이 매번 헤맨다.
+            var close = NewRect("닫기", new Vector2(-836f, 470f), new Vector2(92f, 92f), page);
             var closeBg = close.gameObject.AddComponent<Image>();
-            Skin(closeBg, _skin.Wood_, new Color(UiLook.Wood.r, UiLook.Wood.g, UiLook.Wood.b, 0.85f));
+            Skin(closeBg, _skin.Wood_, UiLook.Wood);
             var closeBtn = close.gameObject.AddComponent<Button>();
             closeBtn.targetGraphic = closeBg;
             closeBtn.onClick.AddListener(() => _owner?.Close());
-            NewText("라벨", "✕ 덮기", Vector2.zero, new Vector2(200f, 66f), close, _clueFontSize,
-                    UiLook.SealText);
+            NewText("라벨", "×", Vector2.zero, new Vector2(92f, 92f), close, 44, UiLook.SealText);
 
-            // 사건 개요는 제목 바로 밑에 한 줄로 눕힌다 — 조사종이를 안 읽고 지나갔어도
+            // 사건 개요는 구분선 바로 밑에 한 줄로 눕힌다 — 조사종이를 안 읽고 지나갔어도
             // 첫 장에는 남아 있어야 한다.
-            _brief = NewText("개요", "", new Vector2(0f, PageH * 0.5f - 118f), new Vector2(PageW - 120f, 56f),
-                             page, _clueFontSize - 2, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.72f));
-            _brief.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _brief = NewText("개요", "", new Vector2(0f, 446f), new Vector2(1760f, 34f),
+                             page, HintSizeOf, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.72f));
 
-            _col = NewRect("단서", new Vector2(0f, -70f), new Vector2(PageW - 120f, PageH - 260f), page);
+            // <b>칸이 깔리는 자리.</b> 저쪽 셈으로 다섯 칸 × 세 줄이 꼭 들어가는 크기다:
+            // 가로 5×320 + 4×28 = 1712, 세로 3×272 + 2×28 = 872, 가운데는 −54.
+            _col = NewRect("단서", new Vector2(0f, -54f), new Vector2(1712f, 872f), page);
+
+            // 아래 안내 한 줄 — 저쪽 <c>hintText</c> 자리(−516).
+            _foot = NewText("안내", "", new Vector2(0f, -516f), new Vector2(1840f, 40f),
+                            page, HintSizeOf, UiLook.With(UiLook.InkSoft, 0.9f));
         }
 
         // ── 내용(펼칠 때마다) ──
@@ -287,6 +340,12 @@ namespace IMUNROK.Common
             // 심문 중일 때만 들이밀 수 있다
             bool talking = InterrogationController.AnyOpen && InterrogationController.Active != null;
 
+            // <b>조작은 판 아래 한 줄로.</b> 저쪽 소지품 판도 아래에 그 줄을 둔다.
+            // 여태 우리 판에는 없어서, 카드를 눌러 보기 전에는 눌러도 되는 것인 줄 몰랐다.
+            _foot.text = talking
+                       ? "칸을 누르면 손에 든다   ·   들이밀기 — 마주 선 이에게 내민다   ·   Esc — 덮기"
+                       : "칸을 누르면 손에 든다   ·   휠 — 쪽 넘기기   ·   Esc — 덮기";
+
             FillEvidence(_col, laid, caseId, talking);
         }
 
@@ -305,18 +364,18 @@ namespace IMUNROK.Common
             _shown = list;            // 손에 들었을 때 이웃으로 넘어갈 수 있게 들고 있는다
             _shownCase = caseId;
             float w = col.sizeDelta.x;
-            float y = col.sizeDelta.y * 0.5f - 40f;
 
-            var h = NewText("머리물증", "── 주운 것과 들은 말 ──", new Vector2(0f, y), new Vector2(w, 44f),
-                            col, _clueFontSize + 4, _inkColor);
-            _cards.Add(h.gameObject);
-            y -= 64f;
+            // <b>판 안의 머리글을 걷었다.</b> 「── 주운 것과 들은 말 ──」 한 줄이 칸 자리를
+            // 104화소 먹어, 세 줄이 들어갈 자리에 두 줄밖에 안 들어갔다. 무엇이 깔려 있는지는
+            // 판 제목이 이미 말하고 있다 — 같은 말을 두 군데 적으면 둘 다 안 읽힌다.
+            // (저쪽 소지품 판도 제목 아래는 곧바로 칸이다)
+            float y = col.sizeDelta.y * 0.5f;
 
             if (list.Count == 0)
             {
-                var e = NewText("없음", "(아직 주운 것도 들은 말도 없다)",
-                                new Vector2(0f, y), new Vector2(w, 40f),
-                                col, _clueFontSize, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.5f));
+                var e = NewText("없음", "아직 주운 것도 들은 말도 없다.",
+                                Vector2.zero, new Vector2(1200f, 80f),
+                                col, EmptySizeOf, UiLook.With(UiLook.InkSoft, 0.85f));
                 _cards.Add(e.gameObject);
                 return;
             }
@@ -337,7 +396,8 @@ namespace IMUNROK.Common
             //
             // 몇 장이 들어가는지는 <b>남은 자리가 정한다</b>. 칸 크기를 저쪽에서 받아 왔으니
             // 쪽당 장수도 저쪽 것을 베낄 것이 아니라 이 판에서 나와야 맞는다.
-            float roomY = y + col.sizeDelta.y * 0.5f - 56f;          // 아래에 쪽 넘기는 줄을 남긴다
+            // 쪽 넘기는 줄은 이제 판 아래(−452)에 따로 서므로, 칸 자리를 덜어 줄 것이 없다.
+            float roomY = col.sizeDelta.y;
             int rows = Mathf.Max(1, Mathf.FloorToInt((roomY + gap) / (ch + gap)));
             _perPage = Mathf.Max(1, perRow * rows);
             int pages = Mathf.Max(1, Mathf.CeilToInt(list.Count / (float)_perPage));
@@ -354,41 +414,45 @@ namespace IMUNROK.Common
                 var card = NewRect("증거카드",
                                    new Vector2(x0 + k * (cw + gap), y - ch * 0.5f - r * (ch + gap)),
                                    new Vector2(cw, ch), col);
+                // <b>칸도 저쪽처럼 두 겹이다</b> — 바깥이 나뭇결 테, 안이 한지 속살.
+                // 한 겹으로 깔면 칸이 판 위에 <b>얼룩</b>처럼 앉고, 눌리는 것으로 안 읽힌다.
                 var bg = card.gameObject.AddComponent<Image>();
-                // 들은 말은 종이가 아니다. 같은 낯으로 깔면 손에 쥔 것과 구별이 안 간다.
-                bool heard = c.kind != ClueKind.물증;
-                Skin(bg, _skin.Slot_, heard
-                     ? new Color(_cardColor.r, _cardColor.g, _cardColor.b, _cardColor.a * 0.7f)
-                     : _cardColor);
+                bool heard = c.kind != ClueKind.물증;   // 들은 말은 종이가 아니다
+                Skin(bg, _skin.Wood_, UiLook.Wood);
+                Stretch(Plate("속", _skin.Slot_, heard
+                              ? new Color(_cardColor.r, _cardColor.g, _cardColor.b, _cardColor.a * 0.7f)
+                              : _cardColor, card), -8f);
                 _cards.Add(card.gameObject);
 
                 var doc = Journal.Instance.GetDocument(caseId, c.key);
                 Texture2D shot = doc != null ? doc.page : Journal.Instance.GetClueImage(caseId, c.key);
 
-                // 생김새
-                var shotRt = NewRect("모양", new Vector2(0f, 22f), new Vector2(cw - 40f, 108f), card);
+                // 생김새 — 저쪽 칸의 그림 자리(196×196, 위로 40)와 같게.
+                var shotRt = NewRect("모양", new Vector2(0f, 40f), new Vector2(Shot, Shot), card);
                 if (shot != null)
                 {
                     var raw = shotRt.gameObject.AddComponent<RawImage>();
                     raw.texture = shot;
                     raw.raycastTarget = false;
                     float ar = (float)shot.width / Mathf.Max(1, shot.height);
-                    float hh = 108f, ww = Mathf.Min(cw - 40f, hh * ar);
+                    float hh = Shot, ww = hh * ar;
+                    if (ww > Shot) { ww = Shot; hh = ww / Mathf.Max(0.01f, ar); }
                     shotRt.sizeDelta = new Vector2(ww, hh);
                 }
                 else
                 {
                     // 들은 말에는 言, 아직 못 본 물건에는 ?
-                    var mark = NewText("표", heard ? "言" : "?", Vector2.zero, new Vector2(cw - 40f, 108f), shotRt,
-                                       _clueFontSize + 20, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.35f));
+                    var mark = NewText("표", heard ? "言" : "?", Vector2.zero, new Vector2(Shot, Shot), shotRt,
+                                       _clueFontSize + 26, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.35f));
                     mark.raycastTarget = false;
                 }
 
                 // 이름 — 단서 문구의 첫 토막만. 나머지는 손에 들면 아래에 나온다.
-                var name = NewText("이름", ShortName(doc, c), new Vector2(0f, -66f),
-                                   new Vector2(cw - 24f, 54f), card, _clueFontSize - 4, _inkColor);
-                name.horizontalOverflow = HorizontalWrapMode.Wrap;
-                name.raycastTarget = false;
+                // 자리·크기·맞춤 전부 저쪽 칸의 이름줄 그대로다(−96, 292×80, 30, 위쪽맞춤).
+                var name = NewText("이름", ShortName(doc, c), new Vector2(0f, -96f),
+                                   new Vector2(cw - 28f, 80f), card, _clueFontSize - 4, _inkColor);
+                name.alignment = TextAlignmentOptions.Top;
+                UiText.Wrap(name, true);
 
                 // 카드 전체가 단추다 — 누르면 손에 든다
                 var btn = card.gameObject.AddComponent<Button>();
@@ -405,7 +469,7 @@ namespace IMUNROK.Common
                 // "_revealed" 로 끝나는지도 보았는데, 그런 key 를 만드는 곳이 없어진 지 오래다.
                 bool canPresent = talking && c.presentable;
                 if (!canPresent) continue;
-                var b = NewRect("들이밀기", new Vector2(0f, -ch * 0.5f + 26f), new Vector2(cw - 40f, 44f), card);
+                var b = NewRect("들이밀기", new Vector2(0f, -ch * 0.5f + 24f), new Vector2(cw - 44f, 40f), card);
                 var pbg = b.gameObject.AddComponent<Image>();
                 pbg.color = _presentColor;
                 var pbtn = b.gameObject.AddComponent<Button>();
@@ -416,11 +480,11 @@ namespace IMUNROK.Common
                     InterrogationController.Active?.PresentFromJournal(captured);
                     _owner?.Close();
                 });
-                NewText("라벨", "들이밀기", Vector2.zero, new Vector2(cw - 40f, 44f), b, _clueFontSize - 6,
+                NewText("라벨", "들이밀기", Vector2.zero, new Vector2(cw - 44f, 40f), b, _clueFontSize - 8,
                         UiLook.SealText);
             }
 
-            PageRow(col, pages);
+            PageRow(pages);
         }
 
         /// <summary>카드에 적을 짧은 이름. 문서가 있으면 그 제목, 없으면 단서 문구의 앞 토막.</summary>
@@ -446,20 +510,15 @@ namespace IMUNROK.Common
             _pageCount = 1;
             _pageNo = 0;
             _shown = null;                  // 여기서는 이웃으로 넘길 물증 목록이 없다
+            _foot.text = sheets.Count == 0 ? "" : "봉서를 누르면 펴 본다   ·   Esc — 덮기";
 
-            float w = _col.sizeDelta.x;
-            float y = _col.sizeDelta.y * 0.5f - 40f;
-
-            var h = NewText("머리사건", "── 받아 온 봉서 ──", new Vector2(0f, y), new Vector2(w, 44f),
-                            _col, _clueFontSize + 4, _inkColor);
-            _cards.Add(h.gameObject);
-            y -= 64f;
+            float y = _col.sizeDelta.y * 0.5f;
 
             if (sheets.Count == 0)
             {
-                var e = NewText("없음", "(어전에서 봉서를 받으면 여기 남는다)",
-                                new Vector2(0f, y), new Vector2(w, 40f),
-                                _col, _clueFontSize, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.5f));
+                var e = NewText("없음", "어전에서 봉서를 받으면 여기 남는다.",
+                                Vector2.zero, new Vector2(1200f, 80f),
+                                _col, EmptySizeOf, UiLook.With(UiLook.InkSoft, 0.85f));
                 _cards.Add(e.gameObject);
                 return;
             }
@@ -474,26 +533,27 @@ namespace IMUNROK.Common
                 var card = NewRect("사건카드", new Vector2(x0 + i * (cw + gap), y - ch * 0.5f),
                                    new Vector2(cw, ch), _col);
                 var bg = card.gameObject.AddComponent<Image>();
-                Skin(bg, _skin.Slot_, _cardColor);
+                Skin(bg, _skin.Wood_, UiLook.Wood);
+                Stretch(Plate("속", _skin.Slot_, _cardColor, card), -8f);
                 _cards.Add(card.gameObject);
 
-                var shotRt = NewRect("모양", new Vector2(0f, 22f), new Vector2(cw - 40f, 108f), card);
+                var shotRt = NewRect("모양", new Vector2(0f, 40f), new Vector2(Shot, Shot), card);
                 if (d.page != null)
                 {
                     var img = shotRt.gameObject.AddComponent<RawImage>();
                     img.texture = d.page;
                     img.raycastTarget = false;
                     float ar = d.page.height > 0 ? (float)d.page.width / d.page.height : 1f;
-                    float hh = 108f, ww = hh * ar;
-                    if (ww > cw - 40f) { ww = cw - 40f; hh = ww / Mathf.Max(0.01f, ar); }
+                    float hh = Shot, ww = hh * ar;
+                    if (ww > Shot) { ww = Shot; hh = ww / Mathf.Max(0.01f, ar); }
                     shotRt.sizeDelta = new Vector2(ww, hh);
                 }
 
                 var name = NewText("이름", string.IsNullOrEmpty(d.title) ? d.caseId.ToString() : d.title,
-                                   new Vector2(0f, -66f), new Vector2(cw - 24f, 54f),
+                                   new Vector2(0f, -96f), new Vector2(cw - 28f, 80f),
                                    card, _clueFontSize - 4, _inkColor);
-                name.horizontalOverflow = HorizontalWrapMode.Wrap;
-                name.raycastTarget = false;
+                name.alignment = TextAlignmentOptions.Top;
+                UiText.Wrap(name, true);
 
                 var btn = card.gameObject.AddComponent<Button>();
                 btn.targetGraphic = bg;
@@ -546,18 +606,18 @@ namespace IMUNROK.Common
         /// 휠로도 넘어간다. 저쪽 꾸러미가 휠에 쪽 넘기기를 걸어 두었고(<c>UiWords.Wheel</c>),
         /// 같은 판을 보는 사람이 같은 손짓을 쓰는 것이 맞다.
         /// </summary>
-        private void PageRow(RectTransform col, int pages)
+        private void PageRow(int pages)
         {
-            if (pages <= 1) return;
-            float w = col.sizeDelta.x;
-            float y = -col.sizeDelta.y * 0.5f + 30f;
+            if (pages <= 1 || _page == null) return;
 
-            var row = NewRect("쪽", new Vector2(0f, y), new Vector2(w, 56f), col);
+            // 저쪽 판의 쪽 표시 자리(−452)다. 여태 칸 자리 안에 두어 마지막 줄을 밀어냈다.
+            var row = NewRect("쪽", new Vector2(0f, -452f), new Vector2(600f, 56f), _page);
             _cards.Add(row.gameObject);
 
             MakePageStep(row, -150f, "◀", -1);
-            var lab = NewText("쪽수", (_pageNo + 1) + " / " + pages, Vector2.zero, new Vector2(200f, 56f),
-                              row, _clueFontSize - 2, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.72f));
+            var lab = NewText("쪽수", (_pageNo + 1) + " / " + pages + " 쪽", Vector2.zero,
+                              new Vector2(240f, 56f), row, HintSizeOf,
+                              new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.72f));
             lab.raycastTarget = false;
             MakePageStep(row, 150f, "▶", 1);
         }
@@ -570,7 +630,7 @@ namespace IMUNROK.Common
             var b = rt.gameObject.AddComponent<Button>();
             b.targetGraphic = bg;
             b.onClick.AddListener(() => Turn(step));
-            NewText("글", glyph, Vector2.zero, new Vector2(72f, 56f), rt, _clueFontSize, UiLook.SealText);
+            NewText("글", glyph, Vector2.zero, new Vector2(72f, 56f), rt, HintSizeOf + 4, UiLook.SealText);
         }
 
         /// <summary>쪽을 넘긴다. 끝에서는 더 안 간다 — 도로 첫 쪽으로 돌면 어디까지 봤는지 잃는다.</summary>
@@ -611,19 +671,15 @@ namespace IMUNROK.Common
             return rt;
         }
 
-        private Text NewText(string name, string content, Vector2 pos, Vector2 size,
-                             Transform parent, int fontSize, Color color)
+        /// <summary>
+        /// 글 한 줄. <b>낡은 판에서 TMP 로 옮겼다</b>(<see cref="UiText"/>).
+        /// 낡은 판은 안 접는 것이 기본이라 여기서도 안 접는다 — 접을 자리에서 다시 켠다.
+        /// </summary>
+        private TextMeshProUGUI NewText(string name, string content, Vector2 pos, Vector2 size,
+                                        Transform parent, float fontSize, Color color)
         {
-            var rt = NewRect(name, pos, size, parent);
-            var t = rt.gameObject.AddComponent<Text>();
-            t.font = _font;
-            t.fontSize = fontSize;
-            t.color = color;
-            t.alignment = TextAnchor.MiddleCenter;
-            t.horizontalOverflow = HorizontalWrapMode.Overflow;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
-            t.raycastTarget = false;
-            t.text = content;
+            var t = UiText.New(name, content, pos, size, parent, fontSize, TextAnchor.MiddleCenter, color);
+            UiText.Wrap(t, false);
             return t;
         }
     }

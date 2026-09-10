@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -32,7 +33,7 @@ namespace IMUNROK.Common
         private const float UnitPerMetre = 937f;
 
         private CanvasGroup _group;
-        private Text _text;
+        private TextMeshProUGUI _text;
         private RawImage _image;
         private Image _bg;
 
@@ -134,26 +135,17 @@ namespace IMUNROK.Common
             _image.raycastTarget = false;
             imgRt.gameObject.SetActive(false);
 
-            var txtRt = NewRect("글", Vector2.zero, new Vector2(1040f, 380f), panel);
-            _text = txtRt.gameObject.AddComponent<Text>();
-            _text.font = UiFont.Resolve(null);
             // <b>40 은 컸다.</b> 한 줄짜리 안내는 멀쩡했는데 문장이 길어지면 판 밖으로
             // 넘어갔다 — 넓이 상한(MaxW)에 먼저 걸려 접히고, 접힌 줄이 높이 상한에
             // 또 걸려 잘렸다. 글씨를 줄이면 같은 넓이에 더 담기므로 접히는 자리부터
             // 뒤로 밀린다.
-            _text.fontSize = 33;
-            _text.color = UiLook.Text;
-            _text.alignment = TextAnchor.MiddleCenter;
-            _text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _text.verticalOverflow = VerticalWrapMode.Overflow;
-            _text.raycastTarget = false;
+            _text = UiText.New("글", "", Vector2.zero, new Vector2(1040f, 380f), panel,
+                               33f, TextAnchor.MiddleCenter, UiLook.Text);
 
             SetVisible(false);
         }
 
         private Look _look = Look.Dark;
-        private Outline _glow;      // 먹빛 그림자 — 어디에 얹혀도 글자가 남게
-        private Outline _halo;      // 금빛 무리 — 뜰 때 한 번 번졌다 가라앉는다
 
         /// <summary>
         /// <b>갓 떴는가.</b> 1 이면 방금, 0 이면 다 가라앉았다.
@@ -173,8 +165,7 @@ namespace IMUNROK.Common
         private static readonly Color GoldLit  = new Color(1f, 0.97f, 0.82f);
         // 무리는 <b>옅어야 한다</b>. 처음에 0.85·일곱 화소로 두었더니 글자 사이가
         // 통째로 메워져 금덩이 한 장이 떴다 — 빛나는 것이 아니라 <b>뭉개진 것</b>이다.
-        private static readonly Color HaloLit  = new Color(1f, 0.90f, 0.58f, 0.42f);
-        private static readonly Color HaloRest = new Color(1f, 0.88f, 0.50f, 0f);
+        private static readonly Color HaloLit  = new Color(1f, 0.90f, 0.58f, 1f);
 
         /// <summary>
         /// <b>결을 갈아입힌다.</b> 판 하나를 결마다 따로 만들 것 없다 — 알림판은
@@ -192,21 +183,12 @@ namespace IMUNROK.Common
                 // 한 프레임씩 자리를 못 잡는다.
                 _bg.color = new Color(0f, 0f, 0f, 0f);
                 _text.color = GoldRest;
-                // 둘레는 먹빛. 낮의 흰 담벽 위에서도 글자가 남게 하는 것은 이것뿐이다
-                // (낡은 UI.Text 에는 그림자 말고 다른 길이 없다).
-                if (_glow == null) _glow = _text.gameObject.AddComponent<Outline>();
-                _glow.enabled = true;
-                _glow.effectColor = new Color(0.06f, 0.04f, 0.02f, 0.92f);
-                _glow.effectDistance = new Vector2(2.2f, -2.2f);
-                // 그 바깥에 <b>한 겹 더</b> — 금빛 무리. 이것만 시간에 따라 옅어진다.
-                // 낡은 UI.Text 로 빛을 흉내 낼 길은 테두리를 겹치는 것뿐이다.
-                if (_halo == null) _halo = _text.gameObject.AddComponent<Outline>();
-                _halo.enabled = true;
-                _halo.effectColor = HaloRest;
-                _halo.effectDistance = new Vector2(2.6f, -2.6f);
+                // 둘레는 먹빛. 낮의 흰 담벽 위에서도 글자가 남게 하는 것은 이것이다.
+                // 낡은 판에서는 글자 꼴을 네 번 더 그리는 테두리였는데, 이제 셰이더의
+                // <b>밑칠</b>이 한 번에 한다 — 글자 사이가 메워지지 않는다.
+                UiText.Shadow(_text, new Color(0.06f, 0.04f, 0.02f, 0.92f), 0.7f, 0.25f);
                 return;
             }
-            if (_halo != null) _halo.enabled = false;
 
             if (look == Look.Hanji)
             {
@@ -219,18 +201,15 @@ namespace IMUNROK.Common
                 // 음수를 줘도 어두워지지 않는다 — 여기서 값을 직접 적는 까닭이다).
                 // 글자는 금물이 마른 <b>짙은 갈금</b>으로 두고,
                 _text.color = new Color(0.34f, 0.22f, 0.06f);
-                // 빛은 그 둘레에 두른 <b>밝은 금테</b>가 낸다. 낡은 UI.Text 에는
-                // 이것 말고 빛을 흉내 낼 길이 없고, 실제로 금박 글씨가 그렇게 보인다.
-                if (_glow == null) _glow = _text.gameObject.AddComponent<Outline>();
-                _glow.enabled = true;
-                _glow.effectColor = new Color(1f, 0.86f, 0.48f, 0.9f);
-                _glow.effectDistance = new Vector2(2.2f, -2.2f);
+                // 빛은 그 둘레에 두른 <b>밝은 금테</b>가 낸다 — 실제로 금박 글씨가 그렇다.
+                UiText.Glow(_text, new Color(1f, 0.86f, 0.48f, 0.9f), 0.55f);
             }
             else
             {
                 _bg.color = UiLook.With(UiLook.Panel, 0.28f);
                 _text.color = UiLook.Text;
-                if (_glow != null) _glow.enabled = false;
+                UiText.Glow(_text, Color.clear, 0f);
+                UiText.Shadow(_text, new Color(0f, 0f, 0f, 0f), 0f, 0f);
             }
         }
 
@@ -265,14 +244,15 @@ namespace IMUNROK.Common
         /// <summary>번진 금물이 제 빛으로 잦아든다.</summary>
         private void Settle()
         {
-            if (_look != Look.Gold || _text == null || _halo == null) return;
+            if (_look != Look.Gold || _text == null) return;
             if (_bloom <= 0f) return;
             _bloom = Mathf.MoveTowards(_bloom, 0f, Time.deltaTime / BloomSeconds);
             // 끝으로 갈수록 천천히 — 확 밝았다가 오래 잦아드는 것이 불빛의 결이다.
             float k = _bloom * _bloom;
             _text.color = Color.Lerp(GoldRest, GoldLit, k);
-            _halo.effectColor = Color.Lerp(HaloRest, HaloLit, k);
-            _halo.effectDistance = Vector2.Lerp(new Vector2(2.6f, -2.6f), new Vector2(4.2f, -4.2f), k);
+            // 번짐은 글자 <b>둘레로만</b> 퍼진다. 테두리를 겹치던 시절에는 세게 주면
+            // 글자 사이가 메워져 금덩이 한 장이 됐는데, 셰이더 번짐은 그 일이 없다.
+            UiText.Glow(_text, HaloLit, 0.85f * k);
         }
 
         /// <summary>
