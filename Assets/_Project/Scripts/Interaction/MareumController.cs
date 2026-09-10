@@ -126,6 +126,12 @@ namespace IMUNROK.Common
                  "여기에 마름의 InterrogationController.Unlock 을 걸면 '굳이 다시 찾아왔을 때만' 말을 걸 수 있게 된다")]
         [SerializeField] private UnityEvent _onSettled;
 
+        [Header("클립에 구워진 이동 걷어내기")]
+        [Tooltip("믹사모 걷기는 <b>제자리가 아니다</b> — 한 바퀴에 엉덩이뼈가 1.9m 앞으로 나갔다가 " +
+                 "되돌아온다. 켜 두면 매 칸 그만큼 뼈대를 되밀어 <b>보이는 몸을 제 발치에</b> 붙든다.\n" +
+                 "끄면 몸이 제 자리보다 1m 앞서 떠 다니고, 말 거는 판정도 몸과 어긋난다")]
+        [SerializeField] private bool _cancelBakedTravel = true;
+
         [Header("바닥 붙이기")]
         [Tooltip("켜면 매 프레임 바닥을 훑어 따라감(평지용). 돌담·계단은 끄고 경유점 높이를 쓰는 게 자연스러움")]
         [SerializeField] private bool _stickToGround = false;
@@ -162,9 +168,22 @@ namespace IMUNROK.Common
         private float _wait;
         private System.Action _then;
 
+        /// <summary>클립에 구워진 앞뒤 이동을 걷어내는 장치. 까닭은 <see cref="BakedTravel"/> 에.</summary>
+        private readonly BakedTravel _travel = new BakedTravel();
+
         private void Awake()
         {
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
+            _travel.Bind(transform, _animator);
+        }
+
+        /// <summary>
+        /// 애니메이터가 포즈를 다 쓴 뒤에 앞뒤로 새어 나간 만큼 되민다.
+        /// <b>Update 가 아니라 LateUpdate</b> 여야 한다 — 그 칸의 어긋남은 포즈가 쓰인 뒤에야 잴 수 있다.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (_cancelBakedTravel) _travel.Cancel();
         }
 
         private void Start()
@@ -252,29 +271,36 @@ namespace IMUNROK.Common
                 return;
             }
 
-            // <b>문 닫기.</b> 닫는 클립이 없으므로 여는 동작을 거꾸로 쓴다 — 다만
-            // 프레임을 손으로 되돌리지 않고 <b>애니메이터를 거꾸로 돌린다</b>(speed −1).
-            // 긁으면 애니메이터가 멈춰 있어 섞임이 안 먹고, 매 칸 Play 가 다시 걸려
-            // 자세가 잘게 떨린다. 거꾸로 돌리면 그냥 한 동작이 반대로 흐른다.
+            // <b>문 닫기.</b> 닫는 클립이 없으므로 여는 동작을 그대로 쓰되 <b>앞으로</b> 튼다.
+            // 여는 클립은 이미 <b>문에 손을 얹은 자세로 시작해</b> 팔을 내리며 끝난다 —
+            // 앞으로 틀면 그것이 곧 '밀어 닫고 손을 거두는' 모양이 된다.
+            // (거꾸로 돌리면 팔이 옆에서 문으로 올라가다 멎어, 문은 닫혔는데 손은
+            //  문에 붙은 채로 걸어가 버렸다.)
             if (_phase == Phase.Closing)
             {
                 if (_closeBlend > 0f) { _closeBlend -= Time.deltaTime; return; }
                 _closeTimer -= Time.deltaTime * Mathf.Max(0.01f, _openSpeed);
                 if (_closeTimer <= 0f)
                 {
-                    if (_animator != null) _animator.speed = 1f;   // 되돌려 놓는다
+                    if (_animator != null) _animator.speed = 1f;
                     if (_standSpot != null) DoWalk();
                     else OnArrived();
                 }
                 return;
             }
 
-            // <b>앉기.</b> 앉는 클립이 있으면 그냥 튼다 — 시계만 세어 끝을 기다린다.
-            // 없으면 예전처럼 일어서기 클립을 거꾸로 긁는다(아래 else).
+            // <b>앉기.</b> 앉는 클립을 틀면서, 몸을 앉을 자리로 <b>같은 시간에 걸쳐</b> 옮긴다.
+            // 클립이 몸을 뒤로 물려 주던 몫을 몸이 대신 지는 것이다.
             if (_phase == Phase.SittingDown)
             {
                 if (_sitBlend > 0f) { _sitBlend -= Time.deltaTime; return; }   // 블렌드 동안은 애니메이터가 섞음
                 _sitTimer -= Time.deltaTime;
+                if (_sitTarget != null)
+                {
+                    float k = Mathf.SmoothStep(0f, 1f, 1f - Mathf.Clamp01(_sitTimer / Mathf.Max(0.01f, _sitDownLen)));
+                    transform.position = Vector3.Lerp(_sitFromPos, _sitTarget.position, k);
+                    transform.rotation = Quaternion.Slerp(_sitFromRot, _sitTarget.rotation, k);
+                }
                 if (_animator != null && !_sitForward)
                 {
                     // ⚠️ <b>긁는 길</b>(옛 뼈대). 애니메이터를 세워 두고 프레임을 손으로
@@ -286,6 +312,8 @@ namespace IMUNROK.Common
                 }
                 if (_sitTimer <= 0f)
                 {
+                    if (_sitTarget != null)            // 끝은 어긋남 없이 딱 맞춘다
+                        transform.SetPositionAndRotation(_sitTarget.position, _sitTarget.rotation);
                     CrossTo(_sitIdleState);            // 앉기→졸기 부드럽게
                     if (_dozeSpot == null) { _phase = Phase.Sitting; Settle(); return; }
                     // 졸기 자리로 '순간이동' 시키면, 몸이 뒤로 훌쩍 갔다가 졸기 동작의
@@ -444,12 +472,8 @@ namespace IMUNROK.Common
             _closeLen = ClipLength(_openState, 1.5f);
             if (_animator != null)
             {
-                _animator.speed = 1f;
-                // 문을 연 '끝 자세'로 먼저 붙였다가, 다음 Update부터 t=1→0으로 긁는다.
-                // 여는 동작의 <b>끝</b>에 붙었다가 거꾸로 흐른다 — 문에 손이 닿아 있는
-                // 자세에서 시작해야 닫는 동작으로 읽힌다.
-                _animator.CrossFadeInFixedTime(_openState, _blend, 0, _closeLen);
-                _animator.speed = -Mathf.Max(0.01f, _openSpeed);
+                _animator.speed = Mathf.Max(0.01f, _openSpeed);
+                _animator.CrossFadeInFixedTime(_openState, _blend, 0, 0f);
             }
             _closeBlend = _blend;
             _closeTimer = _closeLen;
@@ -476,10 +500,20 @@ namespace IMUNROK.Common
         /// <summary>앉는 클립을 <b>앞으로</b> 트는가. 거꾸로 긁던 옛 길과 갈린다.</summary>
         private bool _sitForward;
 
+        /// <summary>앉는 동안 몸이 옮겨 갈 자리와, 떠나온 자리.</summary>
+        private Transform _sitTarget;
+        private Vector3 _sitFromPos;
+        private Quaternion _sitFromRot;
+
         private void DoSitDown()
         {
-            if (_sitDownSpot != null)   // 앉는 동작 자리로
-                transform.SetPositionAndRotation(_sitDownSpot.position, _sitDownSpot.rotation);
+            // 예전에는 여기서 앉을 자리로 <b>순간이동</b>시켰다. 앉는 클립이 몸을 저 혼자
+            // 0.49m 뒤로 물려 주던 시절의 잔재인데, 그 이동을 걷어낸 지금은 순간이동만
+            // 덩그러니 남아 <b>툭 하고 뒤로 밀리는</b> 것으로 보인다.
+            // 대신 앉는 <b>동안</b> 같은 거리를 흘려 보낸다(위 SittingDown 처리).
+            _sitTarget = _sitDownSpot != null ? _sitDownSpot : _standSpot;
+            _sitFromPos = transform.position;
+            _sitFromRot = transform.rotation;
 
             // <b>앉는 클립이 있으면 그냥 튼다.</b> 옛 뼈대에는 앉는 동작이 없어 일어서기를
             // 거꾸로 긁어 썼는데(발이 뒤로 미끄러지고 섞임도 안 먹는다), 새 뼈대에는

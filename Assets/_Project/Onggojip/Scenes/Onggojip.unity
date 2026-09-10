@@ -4817,7 +4817,7 @@ GameObject:
   m_Component:
   - component: {fileID: 467883253}
   m_Layer: 0
-  m_Name: "\uB9C8\uB984_\uC870\uB294\uC790\uB9AC"
+  m_Name: "\uB9C8\uB984_\uC549\uB294\uC790\uB9AC"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4831,8 +4831,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 467883252}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.1650476, z: -0, w: 0.9862856}
-  m_LocalPosition: {x: 0.11000013, y: -0.42000002, z: -0.86999893}
+  m_LocalRotation: {x: -0, y: 0.104528464, z: -0, w: 0.9945219}
+  m_LocalPosition: {x: 0.22500038, y: -0.40500003, z: -0.97800064}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -37703,7 +37703,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1923173201}
   m_Layer: 0
-  m_Name: "\uB9C8\uB984_\uB3C4\uCC29\uC790\uB9AC_\uC549\uB294\uC790\uB9AC"
+  m_Name: "\uB9C8\uB984_\uC11C\uB294\uC790\uB9AC"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -37717,8 +37717,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1923173200}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.1650476, z: -0, w: 0.9862856}
-  m_LocalPosition: {x: 0.11000013, y: -0.37999994, z: -0.6700001}
+  m_LocalRotation: {x: -0, y: 0.104528464, z: -0, w: 0.9945219}
+  m_LocalPosition: {x: 0.32800007, y: -0.36700004, z: -0.49900055}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -43566,10 +43566,11 @@ MonoBehaviour:
   _passSpot: {fileID: 484303594}
   _delayBeforeClose: 0.8
   _sitOnArrive: 1
+  _sitDownState: Stand_To_Sit
   _sitDownReverseState: Sit_To_Stand
   _sitIdleState: Sitting_Idle
-  _sitDownSpot: {fileID: 1923173201}
-  _dozeSpot: {fileID: 467883253}
+  _sitDownSpot: {fileID: 467883253}
+  _dozeSpot: {fileID: 0}
   _answerLine: 
   _answerSpeaker: "\uBB38 \uC548\uCABD"
   _delayBeforeAsk: 1.6
@@ -43583,7 +43584,7 @@ MonoBehaviour:
   _doorLead: 1
   _delayBeforeWalk: 1
   _openSpeed: 1
-  _blend: 0.2
+  _blend: 0.3
   _moveSpeed: 1.1
   _turnSpeed: 540
   _arriveDist: 0.12
@@ -43617,6 +43618,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  _cancelBakedTravel: 1
   _stickToGround: 0
   _groundOffset: 0
   _groundRayUp: 1.2

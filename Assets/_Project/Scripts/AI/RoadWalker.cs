@@ -61,6 +61,15 @@ namespace IMUNROK.Common
         private InterrogationController _talk;
         private FaceThePlayer _face;
 
+        /// <summary>
+        /// 클립에 구워진 앞뒤 이동을 걷어내는 장치. 까닭은 <see cref="BakedTravel"/> 에.
+        ///
+        /// 마을사람의 걷기도 마름과 같은 판에서 왔다 — 한 바퀴에 엉덩이뼈가 <b>1.91m</b>
+        /// 앞으로 나갔다가 되돌아온다. 그동안 '동작 속도를 걸음에 맞추는' 손질로 발
+        /// 미끄러짐만 달래 왔는데, 몸이 제 발치보다 앞서 떠 다니는 것은 그대로였다.
+        /// </summary>
+        private readonly BakedTravel _travel = new BakedTravel();
+
         private void Start()
         {
             _from = _a != null ? _a.position : new Vector3(_fromXZ.x, transform.position.y, _fromXZ.y);
@@ -70,6 +79,7 @@ namespace IMUNROK.Common
             _talk = GetComponent<InterrogationController>();
             _face = GetComponent<FaceThePlayer>();
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
+            _travel.Bind(transform, _animator);
             if (_animator != null && !string.IsNullOrEmpty(_walkBool))
                 foreach (var p in _animator.parameters)
                     if (p.name == _walkBool && p.type == AnimatorControllerParameterType.Bool) _hasWalkBool = true;
@@ -83,6 +93,13 @@ namespace IMUNROK.Common
             // 먼 쪽부터 간다 — 서 있던 자리에서 곧장 되돌아서지 않게
             _goal = Scatter(Flat(_from - transform.position).sqrMagnitude > Flat(_to - transform.position).sqrMagnitude ? _from : _to);
         }
+
+        /// <summary>
+        /// 애니메이터가 포즈를 다 쓴 뒤에, 앞뒤로 새어 나간 만큼 뼈대를 되민다.
+        /// 이 자리를 <see cref="FaceThePlayer"/> 도 같이 쓰지만 저쪽은 <b>돌리기</b>만
+        /// 하므로 서로 밟지 않는다.
+        /// </summary>
+        private void LateUpdate() { _travel.Cancel(); }
 
         private static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
 
