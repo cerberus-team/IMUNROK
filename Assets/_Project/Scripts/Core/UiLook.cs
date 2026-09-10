@@ -124,6 +124,12 @@ namespace IMUNROK.Common
         /// <summary>금박 — 표제·강조. 아껴 쓴다.</summary>
         public static Color Gold { get { return Ui.InventorySkin.Gold; } }
 
+        /// <summary>겨눈 것이 없을 때의 조준점. 저쪽 <c>UiSkin.AimIdle</c> 그대로.</summary>
+        public static Color AimIdle { get { return Ui.UiSkin.AimIdle; } }
+
+        /// <summary>겨눈 것이 있을 때의 조준점. 저쪽 <c>UiSkin.AimHot</c> 그대로.</summary>
+        public static Color AimHot { get { return Ui.UiSkin.AimHot; } }
+
         /// <summary>
         /// 글씨 밑에 까는 그림자. <b>이것만은 꾸러미에 없다</b> —
         /// 저쪽은 TMP 라 외곽선으로 하고, 우리 낡은 <c>UI.Text</c> 는 그림자로 한다.
