@@ -66,6 +66,7 @@ namespace IMUNROK.Common
         private RectTransform _detailButtons;   // 그 아래 단추 줄(볼 때마다 다시 짓는다)
         private RawImage _detailShot;
         private RectTransform _detailShotRt;
+        private DetailTurner _turner;
         private TextMeshProUGUI _detailName, _detailBody;
         private readonly List<GameObject> _detailChips = new List<GameObject>();
 
@@ -363,10 +364,25 @@ namespace IMUNROK.Common
             // 왼쪽 — 그림틀. 칸의 그림과 달리 여기서는 종이가 <b>읽히는 크기</b>로 뜬다.
             var frame = NewRect("그림틀", new Vector2(-470f, 14f), new Vector2(700f, 700f), _detail);
             Skin(frame.gameObject.AddComponent<Image>(), _skin.Wood_, UiLook.Wood);
-            Stretch(Plate("그림바탕", _skin.Slot_, _cardColor, frame), -10f);
-            _detailShotRt = NewRect("그림", Vector2.zero, new Vector2(660f, 660f), frame);
+            var inner = Plate("그림바탕", _skin.Slot_, _cardColor, frame);
+            Stretch(inner, -10f);
+            // <b>돌아간 종이는 틀 안에서 잘린다.</b> 안 자르면 비스듬히 돈 모서리가
+            // 나뭇결 틀 밖으로 삐져나와, 틀이 <b>테두리가 아니라 그림 한 장</b>이 된다.
+            inner.gameObject.AddComponent<RectMask2D>();
+            // 종이는 틀보다 한 뼘 작게 — 조금 돌려도 네 귀가 틀 안에 남는다.
+            _detailShotRt = NewRect("그림", Vector2.zero, new Vector2(600f, 600f), inner);
             _detailShot = _detailShotRt.gameObject.AddComponent<RawImage>();
-            _detailShot.raycastTarget = false;
+
+            // <b>끌어서 돌려 본다.</b> 저쪽 상세는 왼쪽 그림자리를 끌어 물건을 굴리는
+            // 자리인데, 우리 판에는 그림 한 장이 못 박혀 있었다 — 크게 보이기는 하되
+            // 만질 수가 없어서, 자세히 보려면 결국 판을 닫고 종이를 따로 펴야 했다.
+            // 우리 물건은 대개 종이이므로 굴리는 대신 <b>돌려 넘긴다</b>(DetailTurner).
+            //
+            // 끄는 손을 받으려면 광선에 걸려야 한다 — 그림 자체가 손잡이다.
+            _detailShot.raycastTarget = true;
+            _turner = _detailShotRt.gameObject.AddComponent<DetailTurner>();
+            _turner.Page = _detailShotRt;
+            _turner.Image = _detailShot;
 
             // 오른쪽 — 이름, 그 밑에 줄 하나, 그 밑에 읽을 것.
             const float TextX = 400f, TextW = 940f;
@@ -396,19 +412,25 @@ namespace IMUNROK.Common
         /// 비어 있으면 그 단추가 안 뜬다(들 것이 없는 것이다).
         /// </summary>
         private void ShowDetail(Texture2D shot, string name, string body,
-                                System.Action onHold, ClueEntry present)
+                                System.Action onHold, ClueEntry present, Texture2D back = null)
         {
             if (_detail == null) return;
 
             _detailShot.texture = shot;
             _detailShot.enabled = shot != null;
+            if (_turner != null)
+            {
+                _turner.Front = shot;
+                _turner.Back = back;
+                _turner.ResetView();   // 물건이 바뀌면 자세도 처음으로
+            }
             if (shot != null)
             {
                 // 틀 안에 <b>온전히</b> 들어가게 맞춘다 — 종이는 세로가 길어, 폭에 맞추면
                 // 위아래가 잘린다.
                 float ar = shot.height > 0 ? (float)shot.width / shot.height : 1f;
-                float hh = 660f, ww = hh * ar;
-                if (ww > 660f) { ww = 660f; hh = ww / Mathf.Max(0.01f, ar); }
+                float hh = 600f, ww = hh * ar;
+                if (ww > 600f) { ww = 600f; hh = ww / Mathf.Max(0.01f, ar); }
                 _detailShotRt.sizeDelta = new Vector2(ww, hh);
             }
 
@@ -453,7 +475,9 @@ namespace IMUNROK.Common
 
             _col.gameObject.SetActive(false);
             _detail.gameObject.SetActive(true);
-            _foot.text = "◀ 목록으로 — 돌아간다   ·   Esc — 덮기";
+            _foot.text = shot != null
+                       ? "끌어서 돌려 본다   ·   눌러서 뒤집는다   ·   ◀ 목록으로   ·   Esc — 덮기"
+                       : "◀ 목록으로 — 돌아간다   ·   Esc — 덮기";
         }
 
         /// <summary>상세에서 목록으로 되돌아간다.</summary>
@@ -625,7 +649,8 @@ namespace IMUNROK.Common
                                ShortName(doc2, captured2),
                                doc2 != null && !string.IsNullOrEmpty(doc2.body) ? doc2.body : captured2.text,
                                () => { OpenAt(at); _owner?.Close(); },   // 수첩을 덮어야 두 손이 빈다
-                               captured2);
+                               captured2,
+                               doc2 != null ? doc2.back : null);
                 });
 
                 // 심문 중이면 들이밀 수 있다
@@ -729,7 +754,7 @@ namespace IMUNROK.Common
                                           null, null, null, null, dd.back);
                         DocumentView.SetStageModel(dd.model, dd.modelEuler);
                         _owner?.Close();
-                    }, null);
+                    }, null, dd.back);
                 });
             }
         }

@@ -83,24 +83,44 @@ namespace IMUNROK.Common
         [Tooltip("끄면 수첩에만 넣고 펴지는 않는다")]
         [SerializeField] private bool _openOnArrive = true;
 
+        [Tooltip("<b>봉서를 사건 소지품에도 넣을까.</b> 기본은 끔.\n" +
+                 "봉서는 어전에서 받아 조사청에 두고 온 것이라 현장까지 지니고 다니지 않는다 — " +
+                 "현장에서 지닌 종이는 사목뿐이다. 조사청의 소지품에는 그대로 남는다(caseSheet)")]
+        [SerializeField] private bool _carrySealedLetter = false;
+
         private IEnumerator Start()
         {
             var journal = Journal.Instance;
             if (journal == null) yield break;
 
-            // 이미 아는 사람인가 — 수첩에 있으면 이어하기로 들어온 것이다.
-            bool knew = journal.HasClue(_caseId, _key);
+            // <b>이미 아는 사람인가.</b> 봉서는 이제 현장 소지품에 안 들어가므로
+            // 그것으로는 못 가린다 — 현장에서 받는 사목이 있으면 두 번째 걸음이다.
+            bool knew = journal.HasClue(_caseId, string.IsNullOrEmpty(_fieldKey) ? _key : _fieldKey);
 
             string body = string.IsNullOrEmpty(_body) ? journal.GetBrief(_caseId) : _body;
 
-            // presentable: false — 수첩에는 남되 심문에서 들이밀 수는 없다.
-            journal.AddClue(_caseId, _key, _clueLine, _page, ClueKind.물증, false);
+            // <b>봉서는 현장 소지품에 안 넣는다.</b>
+            //
+            // 어전에서 받아 조사청에 두고 온 종이다. 현장까지 품고 다니는 것은 사목뿐이라,
+            // 마당에서 소지품을 펴면 봉서가 첫 칸에 앉아 있는 것이 앞뒤가 안 맞았다.
+            // (조사청 소지품에는 그대로 남는다 — 아래 AttachDocument 의 caseSheet 가 그것이다.
+            //  거기서는 「무슨 사건을 맡았나」를 보는 것이 요점이다.)
+            if (_carrySealedLetter)
+            {
+                // presentable: false — 수첩에는 남되 심문에서 들이밀 수는 없다.
+                journal.AddClue(_caseId, _key, _clueLine, _page, ClueKind.물증, false);
 
-            // <b>이미 적혀 있던 것도 내린다.</b> AddClue 는 같은 key 가 있으면 그냥
-            // 돌아서므로, 이 고침 이전에 저장된 판으로 이어하면 옛 줄이 들이밀 수 있는
-            // 채로 남는다. 저장을 지우게 할 일이 아니라 여기서 한 번 내려 주면 된다.
-            foreach (var c in journal.GetClues(_caseId))
-                if (c != null && c.key == _key) c.presentable = false;
+                // <b>이미 적혀 있던 것도 내린다.</b> AddClue 는 같은 key 가 있으면 그냥
+                // 돌아서므로, 이 고침 이전에 저장된 판으로 이어하면 옛 줄이 들이밀 수 있는
+                // 채로 남는다. 저장을 지우게 할 일이 아니라 여기서 한 번 내려 주면 된다.
+                foreach (var c in journal.GetClues(_caseId))
+                    if (c != null && c.key == _key) c.presentable = false;
+            }
+            else
+            {
+                // 지난 판으로 이어하는 사람의 소지품에는 이미 들어 있다 — 그것도 걷는다.
+                journal.RemoveClue(_caseId, _key);
+            }
             if (_page != null)
                 journal.AttachDocument(_caseId, _key, _page, _title, body,
                                        string.IsNullOrEmpty(_fine) ? null : _fine,

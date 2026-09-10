@@ -293,6 +293,18 @@ namespace IMUNROK.Common
             return _clues.Exists(c => c.caseId == caseId && c.key == key);
         }
 
+        /// <summary>
+        /// 적어 둔 것을 <b>내린다</b>. 지난 판으로 이어하는 사람의 소지품에서
+        /// 규칙이 바뀐 줄을 걷을 때 쓴다 — 저장을 지우게 할 일이 아니다.
+        /// 딸린 종이(<see cref="ClueDocument"/>)는 건드리지 않는다:
+        /// 조사청 목록처럼 <b>단서와 따로</b> 그 종이를 쓰는 자리가 있다.
+        /// </summary>
+        public void RemoveClue(CaseId caseId, string key)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+            _clues.RemoveAll(c => c != null && c.caseId == caseId && c.key == key);
+        }
+
         /// <summary>해당 사건의 단서 목록.</summary>
         public IReadOnlyList<ClueEntry> GetClues(CaseId caseId)
         {

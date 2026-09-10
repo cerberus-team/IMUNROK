@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -187,19 +189,22 @@ namespace IMUNROK.Common
 
         // ─────────────────────────────────────────────
 
+        /// <summary>꾸러미의 결. 정적으로 들면 판을 넘겨 살아남되 내용이 죽는다 — 제 것으로 든다.</summary>
+        private readonly IMUNROK.Ui.InventorySkin _skin = new IMUNROK.Ui.InventorySkin();
+
         private void Awake()
         {
             Instance = this;
             HudSide.LeftHanded = _leftHanded;
             UiFont.Publish(_font);
+            BuildBelt();
             Apply();
         }
 
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
-            foreach (var t in new[] { _slot, _slotOn })
-                if (t != null) Destroy(t);
+            if (_root != null) Destroy(_root.gameObject);
         }
 
         private void Update()
@@ -266,164 +271,167 @@ namespace IMUNROK.Common
         /// <summary>이 때까지만 쓰는 법을 적는다.</summary>
         private float _howToUntil;
 
-        private void OnGUI()
+        private void LateUpdate()
         {
-            if (Hidden) return;
-            EnsureStyles();
+            if (_root == null) return;
+            bool show = !Hidden;
+            if (_root.gameObject.activeSelf != show) _root.gameObject.SetActive(show);
+            if (!show) return;
 
-            // <b>칸은 화면에 맞춰 큰다.</b>
-            //
-            // 54는 <b>화소</b>였다. 1440줄짜리 화면에서 54화소면 손톱만 하고, 창을
-            // 반으로 줄여 보면 도로 커진다 — 화면이 커질수록 벨트가 작아진다는 뜻이다.
-            // 화면 세로의 몫으로 잡으면 어느 화면에서나 같은 크기로 보인다.
-            // 6.2%는 1080줄에서 67, 1440줄에서 89화소다.
-            float size = Mathf.Round(Screen.height * 0.062f);
-            float gap = Mathf.Round(size * 0.16f);
-            float margin = Mathf.Round(size * 0.34f);
-            int n = SlotCount;
-            float totalH = n * size + (n - 1) * gap;
-
-            // <b>띠를 화면 아래에서 오른쪽 벽으로 옮겼다.</b>
-            //
-            // 하단 중앙은 <b>보는 자리</b>다. 걸어가면서 발밑과 앞을 보는 눈길이 그리로
-            // 지나는데, 거기에 네모 셋이 가로로 박혀 있으니 세상 위에 판이 하나 얹힌
-            // 꼴이 됐다 — 「화면에 있는 느낌과 아예 고정된 느낌」이 그것이다.
-            // 오른쪽 벽에 세로로 붙이면 눈길이 지나는 길에서 비켜서고, 서양 게임의
-            // 하단 퀵슬롯이 아니라 <b>허리춤</b>에 매단 것으로 읽힌다.
-            float x = Screen.width - margin - size;
-            float y0 = Screen.height - margin - totalH;
-
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < _cells.Count; i++)
             {
-                Rect r = new Rect(x, y0 + i * (size + gap), size, size);
-                GUI.DrawTexture(r, i == _index ? _slotOn : _slot);
-
-                // <b>그림쇠는 끄고 이름을 적는다.</b>
-                //
-                // 조선 후기 옹당촌에 렌즈·랜턴 픽토그램이 붙으면 <b>그것만</b> 딴 세상
-                // 물건이 된다. 손에 든 것은 어차피 화면에 실물로 들려 있으므로 띠가
-                // 할 일은 「지금 무엇을 들었나」를 짚어 주는 것뿐이고, 그 일에는
-                // 이름 두 글자가 그림쇠보다 낫다 — 등불과 돋보기는 생김새가 비슷하지도
-                // 않은데 작은 칸에 넣으면 둘 다 까만 덩어리가 된다.
-                var icon = _useIcons ? SlotIcon(i) : null;
-                float pad = Mathf.Round(size * 0.13f);
-                if (icon != null)
-                    GUI.DrawTexture(new Rect(r.x + pad, r.y + pad, size - pad * 2f, size - pad * 2f), icon, ScaleMode.ScaleToFit);
-                else
-                    GUI.Label(r, SlotName(i), i == _index ? _iconOn : _iconText);
-
-                if (GUI.Button(r, GUIContent.none, GUIStyle.none)) Select(i);   // 클릭으로도 선택
+                bool on = i == _index;
+                _cells[i].color = on ? SlotOn : SlotOff;
+                _names[i].color = on ? NameOn : NameOff;
+                _names[i].fontStyle = on ? FontStyles.Bold : FontStyles.Normal;
+                if (_icons.Count > i && _icons[i] != null)
+                {
+                    var tex = _useIcons ? SlotIcon(i) : null;
+                    _icons[i].texture = tex;
+                    _icons[i].enabled = tex != null;
+                    _names[i].enabled = tex == null;
+                }
             }
 
-            // <b>「Q / 휠 전환」은 처음 한 번만.</b>
-            //
-            // 한 번 익히면 다시 볼 일이 없는 말인데 화면 아래에 <b>내내</b> 붙어 있었다.
-            // 늘 있는 안내는 안 읽히면서 자리만 차지하고, 무엇보다 조선 후기 옹당촌에
-            // 「Q / 휠」이라 적힌 것이 계속 떠 있으면 그 말이 <b>세상 밖의 것</b>임이
-            // 매 순간 드러난다.
-            //
-            // 그래서 <b>한 번이라도 갈아 들면</b> 그때부터 안 적는다. 갈아 들었다는 것이
-            // 곧 익혔다는 뜻이다. 익히지 않은 사람에게는 그대로 남는다.
-            // 칸마다 이름이 적히므로 「손 : 돋보기」를 또 적지 않는다 — 같은 말을
-            // 두 줄에 두면 둘 다 안 읽힌다. 남는 것은 <b>바꾸는 법</b> 한 번뿐이다.
-            float line = Mathf.Round(size * 0.42f);
-            // 글은 <b>왼쪽으로</b> 흘린다 — 오른쪽 끝에 칸이 붙어 있으므로
-            float capW = Mathf.Min(Screen.width * 0.52f, 760f);
-            float capX = x - gap - capW;
+            // <b>「Q / 휠 전환」은 처음 한 번만.</b> 한 번 갈아 들면 익힌 것이다.
+            if (_wheelHint != null) _wheelHint.enabled = !_everSwitched;
 
-            if (!_everSwitched)
-                GUI.Label(new Rect(capX, y0 - line - 6f, capW + size, line), "휠을 굴려 바꾼다 (Q)", _label);
-
-            // <b>쓰는 법을 그 자리에서 일러 준다.</b>
-            //
-            // Controls.HowTo 는 도구마다 한 줄씩 적어 두고도 <b>아무도 부르지 않아</b>
-            // 화면에 뜬 적이 없었다. 벨트는 무엇을 들었는지만 말하고 쓰는 법은 아무 데도
-            // 없어서, 돋보기를 손에 쥐고도 무엇을 눌러야 하는지 몰라 서 있게 된다
-            // (「우클릭인지 F인지 모르겠다」가 그 말이다).
-            //
-            // 드는 동안 <b>내내</b> 둔다. 한 번 스치고 사라지면 마침 딴 데를 보던 사람은
-            // 못 읽고, 그 뒤로 다시 볼 길이 없다. 맨손이면 적을 것이 없으니 안 적는다.
-            // 줄은 <b>지금 든 칸 옆</b>에 나란히 선다. 예전처럼 띠 위에 한 줄로 띄우면
-            // 그 말이 어느 칸을 두고 하는 말인지 눈으로 이어지지 않는다.
-            // 뜨는 것은 바꿔 든 뒤 <see cref="HowToSeconds"/> 동안뿐이고,
-            // 마지막 <see cref="HowToFade"/> 는 스러지며 간다.
+            // <b>쓰는 법은 바꿔 든 뒤 잠깐만</b>, 그리고 스러지며 간다.
             float left = _howToUntil - Time.unscaledTime;
             string how = left > 0f ? Controls.HowTo(CurrentId) : "";
-            if (!string.IsNullOrEmpty(how))
+            if (_howToText != null)
             {
-                float ry = y0 + _index * (size + gap) + size * 0.5f - line;
-                var was = GUI.color;
-                GUI.color = new Color(was.r, was.g, was.b, was.a * Mathf.Clamp01(left / HowToFade));
-                GUI.Label(new Rect(capX, ry, capW, line * 2f), how, _howTo);
-                GUI.color = was;
+                bool lit = !string.IsNullOrEmpty(how);
+                if (_howToText.enabled != lit) _howToText.enabled = lit;
+                if (lit)
+                {
+                    _howToText.text = how;
+                    var c = HowToColor;
+                    c.a *= Mathf.Clamp01(left / HowToFade);
+                    _howToText.color = c;
+                    // 줄은 <b>지금 든 칸 옆</b>에 나란히 선다 — 어느 칸을 두고 하는 말인지
+                    // 눈으로 이어져야 한다.
+                    var rt = _howToText.rectTransform;
+                    rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, RowY(_index));
+                }
             }
         }
 
-        private int _styledFor;   // 어느 화면 높이에 맞춰 지은 글씨인가
+        // ── 판 짓기 ──────────────────────────────────────────────
+        //
+        // <b>IMGUI 에서 캔버스로 옮겼다.</b> 띠만 낡은 방식으로 남아 있었는데 그러면
+        // 둘이 어긋난다: IMGUI 는 TMP 를 못 써서 이 판만 글씨가 가늘었고, 헤드셋에서는
+        // 화면 버퍼에 곧장 그려져 <b>아예 안 보인다</b>(견우 꾸러미 문서의 첫 경고).
+        //
+        // <b>자리와 크기는 그대로 옮긴다.</b> 화면 세로의 6.2% 짜리 칸이 오른쪽 벽에
+        // 세로로 서던 그 모습이다 — 옮기는 김에 자리까지 바꾸면 무엇 때문에 달라
+        // 보이는지 가릴 수 없게 된다. 화소 대신 화면 1732단위로 적을 뿐이다.
+        private const float CellSize = ScreenPanel.RefHeight * 0.062f;
+        private static float Gap { get { return Mathf.Round(CellSize * 0.16f); } }
+        private static float Margin { get { return Mathf.Round(CellSize * 0.34f); } }
 
-        private void EnsureStyles()
+        private static Color SlotOff { get { return UiLook.With(UiLook.Paper, 0.08f); } }
+        private static Color SlotOn { get { return UiLook.With(UiLook.Gold, 0.32f); } }
+        private static Color NameOff { get { return UiLook.With(UiLook.Paper, 0.55f); } }
+        private static Color NameOn { get { return UiLook.With(UiLook.Lit(UiLook.Gold, 0.45f), 1f); } }
+        private static Color HowToColor { get { return UiLook.With(UiLook.Lit(UiLook.Gold, 0.42f), 0.92f); } }
+
+        private RectTransform _root;
+        private readonly List<Image> _cells = new List<Image>();
+        private readonly List<TextMeshProUGUI> _names = new List<TextMeshProUGUI>();
+        private readonly List<RawImage> _icons = new List<RawImage>();
+        private TextMeshProUGUI _wheelHint, _howToText;
+
+        /// <summary>칸 <paramref name="i"/> 의 한복판 높이(캔버스 단위, 아래가 0).</summary>
+        private float RowY(int i)
         {
-            // 글씨도 칸을 따라 큰다. 칸만 키우고 글씨를 두면 「맨손」이 칸 한복판에
-            // 깨알같이 앉는다.
-            if (_iconText != null && _styledFor == Screen.height) return;
-            _styledFor = Screen.height;
-            float size = Mathf.Round(Screen.height * 0.062f);
-
-            if (_slot == null)   _slot   = Solid(UiLook.With(UiLook.Paper, 0.08f));
-            if (_slotOn == null) _slotOn = Solid(UiLook.With(UiLook.Gold, 0.32f));
-
-            // <b>글씨를 조선궁서체로 맞춘다.</b>
-            //
-            // 이 띠만 <c>GUI.skin.label</c> 의 글씨를 그대로 썼다 — 유니티 기본 얼굴이라
-            // 자막·수첩·알림판(전부 <see cref="UiFont"/>)과 <b>필체가 달랐다</b>.
-            // 같은 화면에 두 필체가 있으면 그중 하나는 반드시 「게임이 아니라 프로그램이
-            // 적어 준 것」으로 읽힌다. 띠가 이질감의 절반을 그렇게 지고 있었다.
-            var face = UiFont.Resolve(_font);
-
-            // 안 든 것은 묽게, 든 것은 낙관빛으로. 두 글자가 들어가야 하므로
-            // 칸 높이의 3분의 1이 아니라 4분의 1쯤으로 잡는다.
-            _iconText = new GUIStyle(GUI.skin.label)
-            {
-                font = face,
-                fontSize = Mathf.RoundToInt(size * 0.26f),
-                alignment = TextAnchor.MiddleCenter, wordWrap = false,
-                normal = { textColor = UiLook.With(UiLook.Paper, 0.55f) }
-            };
-            _iconOn = new GUIStyle(_iconText)
-            {
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = UiLook.With(UiLook.Lit(UiLook.Gold, 0.45f), 1f) }
-            };
-            _label = new GUIStyle(GUI.skin.label)
-            {
-                font = face,
-                fontSize = Mathf.RoundToInt(size * 0.24f), alignment = TextAnchor.MiddleRight,
-                normal = { textColor = UiLook.With(UiLook.Lit(UiLook.Gold, 0.30f), 0.95f) }
-            };
-            // 쓰는 법은 이름줄보다 한 뼘 묽게 — 읽히되 이름을 덮지 않게.
-            // 글쇠 이름에 낙관빛을 입히므로 richText 를 켠다(Controls.Key).
-            // 오른쪽 벽에 붙었으므로 글도 <b>오른쪽 끝을 맞춰</b> 흘린다.
-            //
-            // <b>색은 금물 쪽이다.</b> 여태 한지빛(<c>Paper</c>)을 그대로 썼는데, 한지는
-            // <b>종이에 얹힐 때</b> 종이빛이지 밤하늘 위에 그냥 두면 그냥 <b>흰 글씨</b>다 —
-            // 이름줄은 낙관빛인데 그 밑줄만 하얘서 둘이 딴 판의 글로 보였다.
-            // 이름줄보다 한 켜 묽은 금으로 두면 같은 붓에서 나온 것이 된다.
-            _howTo = new GUIStyle(_label)
-            {
-                fontSize = Mathf.RoundToInt(size * 0.22f),
-                alignment = TextAnchor.MiddleRight,
-                richText = true, wordWrap = true,
-                normal = { textColor = UiLook.With(UiLook.Lit(UiLook.Gold, 0.42f), 0.92f) }
-            };
+            int n = SlotCount;
+            float totalH = n * CellSize + (n - 1) * Gap;
+            float bottom = Margin;                       // 맨 아래 칸의 밑변
+            // 위에서부터 맨손 · 등불 · 돋보기 차례로 내려간다(IMGUI 시절 그대로).
+            float topOfStack = bottom + totalH;
+            return topOfStack - CellSize * 0.5f - i * (CellSize + Gap);
         }
 
-        private static Texture2D Solid(Color c)
+        private void BuildBelt()
         {
-            var t = new Texture2D(1, 1);
-            t.SetPixel(0, 0, c);
-            t.Apply();
-            t.hideFlags = HideFlags.HideAndDontSave;
-            return t;
+            var go = new GameObject("도구띠", typeof(RectTransform));
+            ScreenPanel.Raise(go, ScreenPanel.LayerBar - 20);
+            _root = (RectTransform)go.transform;
+
+            float x = ScreenPanel.RefHeight * 16f / 9f - Margin - CellSize * 0.5f;
+            int n = SlotCount;
+            for (int i = 0; i < n; i++)
+            {
+                var cell = Corner("칸_" + i, new Vector2(x, RowY(i)), new Vector2(CellSize, CellSize));
+                var img = cell.gameObject.AddComponent<Image>();
+                img.sprite = _skin.Slot_;
+                img.color = SlotOff;
+                _cells.Add(img);
+
+                // 눌러서도 고른다. 광선이 아니라 화면 단추다 — 우리 놀이는 마우스로 짚는다.
+                var btn = cell.gameObject.AddComponent<Button>();
+                btn.targetGraphic = img;
+                int at = i;
+                btn.onClick.AddListener(() => Select(at));
+
+                float pad = Mathf.Round(CellSize * 0.13f);
+                var iconRt = Corner("그림쇠", Vector2.zero, new Vector2(CellSize - pad * 2f, CellSize - pad * 2f));
+                iconRt.SetParent(cell, false);
+                iconRt.anchorMin = iconRt.anchorMax = new Vector2(0.5f, 0.5f);
+                iconRt.anchoredPosition = Vector2.zero;
+                var raw = iconRt.gameObject.AddComponent<RawImage>();
+                raw.raycastTarget = false;
+                raw.enabled = false;
+                _icons.Add(raw);
+
+                // <b>그림쇠는 끄고 이름을 적는다.</b> 조선 후기 옹당촌에 렌즈·랜턴
+                // 픽토그램이 붙으면 그것만 딴 세상 물건이 된다.
+                var nameGo = new GameObject("이름", typeof(RectTransform), typeof(TextMeshProUGUI));
+                var nameRt = (RectTransform)nameGo.transform;
+                nameRt.SetParent(cell, false);
+                nameRt.anchorMin = nameRt.anchorMax = nameRt.pivot = new Vector2(0.5f, 0.5f);
+                nameRt.anchoredPosition = Vector2.zero;
+                nameRt.sizeDelta = new Vector2(CellSize, CellSize);
+                var name = UiText.Dress(nameGo.GetComponent<TextMeshProUGUI>(),
+                                        Mathf.Round(CellSize * 0.26f), TextAnchor.MiddleCenter, NameOff);
+                name.text = SlotName(i);
+                UiText.Wrap(name, false);
+                _names.Add(name);
+            }
+
+            // ⚠️ 글도 <b>왼쪽 아래 기준</b>으로 앉혀야 한다. UiText.New 는 가운데를 기준으로
+            //    잡으므로, 칸과 같은 좌표를 그대로 넘기면 글만 화면 밖으로 날아간다
+            //    (칸은 Corner 로 왼쪽 아래에 매달아 두었다).
+            float capW = 760f;
+            float capX = x - CellSize * 0.5f - Gap - capW * 0.5f;
+
+            var wheelRt = Corner("바꾸는법", new Vector2(capX, RowY(0) + CellSize * 0.5f + Gap + 22f),
+                                 new Vector2(capW, 44f));
+            _wheelHint = UiText.Dress(wheelRt.gameObject.AddComponent<TextMeshProUGUI>(),
+                                      Mathf.Round(CellSize * 0.24f), TextAnchor.MiddleRight,
+                                      UiLook.With(UiLook.Lit(UiLook.Gold, 0.30f), 0.95f));
+            _wheelHint.text = "휠을 굴려 바꾼다 (Q)";
+            UiText.Wrap(_wheelHint, false);
+
+            var howRt = Corner("쓰는법", new Vector2(capX, RowY(0)), new Vector2(capW, 88f));
+            _howToText = UiText.Dress(howRt.gameObject.AddComponent<TextMeshProUGUI>(),
+                                      Mathf.Round(CellSize * 0.22f), TextAnchor.MiddleRight, HowToColor);
+            UiText.Wrap(_howToText, true);
         }
+
+        /// <summary>오른쪽 아래를 기준점으로 잡은 네모 하나 — 띠는 오른쪽 벽에 붙는다.</summary>
+        private RectTransform Corner(string name, Vector2 pos, Vector2 size)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(_root, false);
+            rt.anchorMin = rt.anchorMax = new Vector2(0f, 0f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = pos;
+            rt.sizeDelta = size;
+            return rt;
+        }
+
     }
 }
