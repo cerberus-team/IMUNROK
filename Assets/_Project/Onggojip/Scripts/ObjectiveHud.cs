@@ -21,14 +21,18 @@ namespace IMUNROK.Onggojip
     /// </summary>
     public class ObjectiveHud : MonoBehaviour
     {
-        [Tooltip("한 번 뜨면 이만큼(초) 머물다 스르르 진다. 0 이면 안 사라진다")]
-        [SerializeField] private float _holdSeconds = 6f;
+        [Tooltip("한 번 뜨면 이만큼(초) 머물다 스르르 진다. 0 이면 안 사라진다.\n" +
+                 "여섯 초는 <b>읽다 만다</b> — 두 줄을 읽고 화면을 한 번 둘러볼 참에 사라졌다")]
+        [SerializeField] private float _holdSeconds = 9f;
         // 한 줄로 붙여 두면 방문 한 장이 화면을 가로지른다. 굵은 한 마디와
         // 곁말로 나눈다 — 눈에 먼저 드는 것은 「어디에 닿았는가」다.
         [TextArea] [SerializeField] private string _introLine = "마을 어귀에 닿았다";
         // ⚠️ 글쇠가 <b>거짓말</b>이었다. 판은 I 로 열리는데(JournalView) 여기는 J 라 적혀 있었다.
         //    그리고 판의 이름은 이제 「소지품」이다 — 화면에 적힌 이름과 부르는 이름이 달라선 안 된다.
-        [TextArea] [SerializeField] private string _introSub = "소지품(I)을 살피거나, 지나는 이에게 말을 걸어보자";
+        // <b>한 마디는 한 가지만 말한다.</b> 「살피거나, 말을 걸어보자」는 <b>두 가지</b>를
+        //    한 줄에 밀어 넣은 것이고, 그 곁에 사목 알림까지 겹치니 화면에 안내가 넉 줄이었다.
+        //    말 거는 것은 사람이 눈앞에 서 있으면 저절로 알게 된다 — 모르는 것은 소지품 쪽이다.
+        [TextArea] [SerializeField] private string _introSub = "소지품은 I 를 통해 볼 수 있다";
         [TextArea] [SerializeField] private string _investigateLine = "밤이다. 몰래 집 안을 조사하라";
         [TextArea] [SerializeField] private string _readyLine = "증거를 다 모았다 — 품속의 마패를 내보여라  (F 꾹 누르기)";
 

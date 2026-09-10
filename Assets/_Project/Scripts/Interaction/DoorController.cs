@@ -54,6 +54,10 @@ namespace IMUNROK.Common
         [Tooltip("여닫을 때 나는 소리 크기(0~1). 잠행 중에 누가 듣는다(NoiseMeter). " +
                  "0이면 소리 안 난 것으로 친다. 나무 문은 0.55 남짓")]
         [Range(0f, 1f)] [SerializeField] private float _noise = 0.55f;
+        [Tooltip("<b>여닫는 소리를 실제로 틀까.</b> 기본은 끔.\n" +
+                 "꽂아 둔 삐걱·미닫이 표본이 죄 어색해 걷었다 — 나무가 우는 것이 아니라 " +
+                 "무엇이 튕기는 소리로 들린다. 크기(기척)는 꺼도 그대로 잰다")]
+        [SerializeField] private bool _creakAloud = false;
         [Tooltip("여는 소리. 비우면 소리 없이 크기만 잰다")]
         [SerializeField] private AudioClip _openSound;
         [Tooltip("닫는 소리. 비우면 여는 소리를 그대로 쓴다 — 미닫이는 여닫는 소리가 거의 같다")]
@@ -263,11 +267,29 @@ namespace IMUNROK.Common
             Creak(open ? "문 여는 소리" : "문 닫는 소리", !open);
         }
 
-        /// <summary>여닫는 소리를 낸다 — 잠행 중이면 누가 듣는다.</summary>
+        /// <summary>
+        /// 여닫는 <b>기척</b>을 낸다 — 잠행 중이면 누가 듣는다.
+        ///
+        /// <b>소리 파일은 안 튼다.</b> 문마다 꽂아 둔 삐걱·미닫이 소리가 죄 어색했다 —
+        /// 짧은 표본 하나를 높낮이만 흔들어 트니 나무가 우는 것이 아니라 <b>무엇이
+        /// 튕기는</b> 소리로 들리고, 중문처럼 모형이 큰 문에서는 그 어긋남이 더 드러난다.
+        /// 없는 편이 낫다: 밤의 마당은 원래 조용하고, 문이 열리는 것은 <b>눈으로</b> 본다.
+        ///
+        /// 다만 <b>크기는 그대로 잰다</b>(<see cref="NoiseMeter.Report"/>). 잠행은 소리에
+        /// 얽혀 있어서, 여기서 기척까지 걷으면 문을 아무리 여닫아도 아무도 안 깬다 —
+        /// 들리지 않는 것과 <b>나지 않은 것</b>은 다르다.
+        ///
+        /// 쓸 만한 소리를 구하면 <see cref="_creakAloud"/> 를 켜면 된다. 칸은 남겨 둔다.
+        /// </summary>
         private void Creak(string what, bool closing = false)
         {
             if (_noise <= 0f) return;
             Vector3 at = ModelBounds.TryGet(transform, out var b) ? b.center : transform.position;
+            if (!_creakAloud)
+            {
+                NoiseMeter.Report(at, _noise, what);   // 기척만 — 소리는 안 낸다
+                return;
+            }
             var clip = closing ? (_closeSound != null ? _closeSound : _openSound) : _openSound;
             float pitch = 1f + Random.Range(-_pitchJitter, _pitchJitter);
             NoiseMeter.Play(at, clip, _noise, what, pitch, _soundStartAt, _soundSeconds);
@@ -389,9 +411,22 @@ namespace IMUNROK.Common
         /// </summary>
         private const int Knocks = 2;
 
+        /// <summary>
+        /// 이미 한 번 두드렸나. <b>두 번째부터는 소리가 안 난다.</b>
+        ///
+        /// 두드리는 것은 「안에 사람이 있소」를 알리는 짓이다. 한 번 알렸으면 그것으로
+        /// 끝이고, 그 뒤로는 안에서 대꾸가 오기를 <b>기다리는</b> 대목이다.
+        /// 그런데 문이 안 열리니 다들 두 번 세 번 더 눌렀고, 그때마다 쿵쿵이 다시 울려
+        /// 「쿵쿵 쿵쿵 쿵쿵」이 되었다 — 급한 사람이 문을 두들기는 소리다.
+        /// 하룻밤 청하러 온 과객은 그렇게 안 두드린다.
+        /// (두드림 <b>신호</b>는 그대로 간다 — 시퀀스가 제 안에서 한 번만 받는다.)
+        /// </summary>
+        private bool _knocked;
+
         private System.Collections.IEnumerator KnockAloud()
         {
-            if (_knockOnce == null || _noise <= 0f) yield break;
+            if (_knockOnce == null || _noise <= 0f || _knocked) yield break;
+            _knocked = true;
             Vector3 at = ModelBounds.TryGet(transform, out var b) ? b.center : transform.position;
             for (int i = 0; i < Knocks; i++)
             {

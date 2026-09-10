@@ -135,12 +135,12 @@ namespace IMUNROK.Common
             _image.raycastTarget = false;
             imgRt.gameObject.SetActive(false);
 
-            // <b>40 은 컸다.</b> 한 줄짜리 안내는 멀쩡했는데 문장이 길어지면 판 밖으로
-            // 넘어갔다 — 넓이 상한(MaxW)에 먼저 걸려 접히고, 접힌 줄이 높이 상한에
-            // 또 걸려 잘렸다. 글씨를 줄이면 같은 넓이에 더 담기므로 접히는 자리부터
-            // 뒤로 밀린다.
+            // <b>글씨 크기를 두 번 고쳤다.</b> 40 이던 것을 33 으로 줄인 적이 있다 —
+            // 문장이 길어지면 판 밖으로 넘치기에 글씨로 눌렀다. 그런데 그러고 나니
+            // 지나가는 한 마디가 <b>읽히기도 전에</b> 눈에서 미끄러졌다.
+            // 넘치는 것은 넓이로 받고(MaxW 1240) 글씨는 읽히는 크기로 되돌린다.
             _text = UiText.New("글", "", Vector2.zero, new Vector2(1040f, 380f), panel,
-                               33f, TextAnchor.MiddleCenter, UiLook.Text);
+                               42f, TextAnchor.MiddleCenter, UiLook.Text);
 
             SetVisible(false);
         }
@@ -237,7 +237,10 @@ namespace IMUNROK.Common
             Settle();
             if (_group == null) return;
             if (Mathf.Approximately(_group.alpha, _want)) return;
-            float speed = _want > _group.alpha ? 4.5f : 2.2f;      // 지는 것이 더 느리다
+            // <b>지는 것은 더 느리다.</b> 뜨는 것은 눈이 좇을 것도 없이 그냥 있으면
+            // 되지만, 지는 것은 <b>지는 줄 알아야</b> 지나간 말로 읽힌다.
+            // 1.1 이면 한 번 다 지는 데 0.9초쯤 — 눈이 좇을 만하다.
+            float speed = _want > _group.alpha ? 4.5f : 1.1f;
             _group.alpha = Mathf.MoveTowards(_group.alpha, _want, speed * Time.deltaTime);
         }
 

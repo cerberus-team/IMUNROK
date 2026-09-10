@@ -811,6 +811,10 @@ namespace IMUNROK.Common
             // 않으므로 오가던 부탁은 계속 살아 돌아온다. 그때 자막을 다시 그리면
             // 마지막 한 마디나 다른 안내를 지운다 — 받아만 두고 그리지는 않는다.
             if (_character == null) return;
+            // <b>남이 지은 글은 씻어서 받는다.</b> 인물의 대답에는 우리가 모르는 표시가
+            // 섞여 온다(마크다운·제가 지어낸 꼬리표). 화면에 그대로 올리면 대사 한복판에
+            // 태그가 글자로 찍혀, 그 순간 사람의 말이 아니라 기계의 출력이 된다.
+            text = Emphasis.Clean(text);
             _npcLine = text;
             _transcript.Add($"{_character.characterName}: {text}");
             if (!_active) return;

@@ -342,14 +342,24 @@ namespace IMUNROK.Common
         private readonly List<RawImage> _icons = new List<RawImage>();
         private TextMeshProUGUI _wheelHint, _howToText;
 
+        /// <summary>
+        /// <b>띠가 앉는 높이</b> — 화면 세로의 이 몫에 띠의 <b>한가운데</b>가 온다.
+        ///
+        /// 여태 화면 <b>맨 아래</b>에 붙어 있었다. 그 자리는 자막 바가 쓰는 자리이기도 해서,
+        /// 사람 앞에 서면 띠와 말판이 겹쳤다 — 띠는 심문 중에 스스로 물러나지만,
+        /// 물러나기 전 한 칸이나 상태 줄이 겹쳐 뜰 때가 있었다.
+        /// 오른쪽 <b>가운데보다 살짝 위</b>로 올리면 아래쪽은 통째로 말판의 자리가 된다.
+        /// </summary>
+        private const float BeltCenterShare = 0.56f;
+
         /// <summary>칸 <paramref name="i"/> 의 한복판 높이(캔버스 단위, 아래가 0).</summary>
         private float RowY(int i)
         {
             int n = SlotCount;
             float totalH = n * CellSize + (n - 1) * Gap;
-            float bottom = Margin;                       // 맨 아래 칸의 밑변
+            float center = ScreenPanel.RefHeight * BeltCenterShare;
             // 위에서부터 맨손 · 등불 · 돋보기 차례로 내려간다(IMGUI 시절 그대로).
-            float topOfStack = bottom + totalH;
+            float topOfStack = center + totalH * 0.5f;
             return topOfStack - CellSize * 0.5f - i * (CellSize + Gap);
         }
 

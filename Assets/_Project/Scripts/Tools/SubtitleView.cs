@@ -301,7 +301,18 @@ namespace IMUNROK.Common
             // ⚠️ <c>InputField.onSubmit</c> 을 쓰지 않는다. 칸이 선택을 잃을 때도 함께
             //    울리는 자리라, 늘 잡아 두는 규칙과 부딪힌다. 글쇠를 바로 보면 규칙이
             //    하나로 단순해진다 (저쪽이 같은 까닭으로 같은 선택을 했다).
-            if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) AskNow();
+            // <b>한 칸 늦게 던진다 — 한글 때문이다.</b>
+            //
+            // 한글은 글쇠를 눌러도 곧바로 글자가 되지 않는다. 「안녕」을 치는 동안 마지막
+            // 「녕」은 아직 <b>조합 중</b>이라 칸의 글(<c>text</c>)에 안 들어가 있고,
+            // 운영체제의 입력기가 들고 있다. 그 상태에서 Enter 를 누르면 입력기가 그
+            // Enter 로 <b>조합을 끝맺는데</b>, 우리는 같은 프레임에 칸을 읽으므로
+            // <b>끝맺기 전</b>의 글을 가져간다 — 마지막 글자가 빠진 채로 날아간다.
+            //
+            // 한 칸을 기다렸다 읽으면 그때는 조합이 끝나 칸에 들어와 있다.
+            // 사람 눈에는 한 프레임이므로 늦었다는 느낌이 없다.
+            if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) _askNextFrame = true;
+            else if (_askNextFrame) { _askNextFrame = false; AskNow(); }
 #endif
         }
 
@@ -367,6 +378,9 @@ namespace IMUNROK.Common
         /// 칸에 있는 글을 던진다. <b>칸이 임자다</b> — 받아 적힌 말이든 손으로 친 말이든
         /// 지금 칸에 보이는 그것이 전해진다. 눈에 보이는 것과 전해지는 것이 달라서는 안 된다.
         /// </summary>
+        /// <summary>Enter 를 받았고, 다음 칸에 던진다(위 주석 참고).</summary>
+        private bool _askNextFrame;
+
         private void AskNow()
         {
             var a = InterrogationController.Active;

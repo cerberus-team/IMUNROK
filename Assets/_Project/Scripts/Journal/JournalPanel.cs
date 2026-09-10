@@ -441,6 +441,14 @@ namespace IMUNROK.Common
             _detailChips.Clear();
 
             bool talking = InterrogationController.AnyOpen && InterrogationController.Active != null;
+
+            // <b>못 내미는 까닭을 적는다.</b> 단추가 그냥 없으면 「왜 없지」로 남는다.
+            if (talking && present != null && !present.presentable)
+                _detailBody.text = Emphasis.Rich(
+                    (string.IsNullOrEmpty(body) ? "" : body + "\n\n")
+                    + "*이것은 내밀 것이 못 된다* — 처음부터 지니고 있던 것이거나, 받아낸 말이다. "
+                    + "들이밀 수 있는 것은 <b>뒤져서 찾아낸 종이</b>다.", Emphasis.OnPaper);
+
             var row = new List<KeyValuePair<string, System.Action>>();
             if (onHold != null) row.Add(new KeyValuePair<string, System.Action>("손에 들고 본다", onHold));
             if (talking && present != null && present.presentable)
@@ -525,8 +533,8 @@ namespace IMUNROK.Common
             // <b>조작은 판 아래 한 줄로.</b> 저쪽 소지품 판도 아래에 그 줄을 둔다.
             // 여태 우리 판에는 없어서, 카드를 눌러 보기 전에는 눌러도 되는 것인 줄 몰랐다.
             _foot.text = talking
-                       ? "칸을 누르면 손에 든다   ·   들이밀기 — 마주 선 이에게 내민다   ·   Esc — 덮기"
-                       : "칸을 누르면 손에 든다   ·   휠 — 쪽 넘기기   ·   Esc — 덮기";
+                       ? "묽은 칸은 내밀 수 없다   ·   칸을 누르면 자세히 본다   ·   Esc — 덮기"
+                       : "칸을 누르면 자세히 본다   ·   휠 — 쪽 넘기기   ·   Esc — 덮기";
 
             FillEvidence(_col, laid, caseId, talking);
         }
@@ -600,10 +608,21 @@ namespace IMUNROK.Common
                 // 한 겹으로 깔면 칸이 판 위에 <b>얼룩</b>처럼 앉고, 눌리는 것으로 안 읽힌다.
                 var bg = card.gameObject.AddComponent<Image>();
                 bool heard = c.kind != ClueKind.물증;   // 들은 말은 종이가 아니다
-                Skin(bg, _skin.Wood_, UiLook.Wood);
-                Stretch(Plate("속", _skin.Slot_, heard
+
+                // <b>내밀 수 없는 것은 미리 갈라 둔다.</b>
+                //
+                // 여태 심문 중에도 칸이 다 똑같이 보였다. 눌러서 상세까지 들어가야
+                // 「들이밀기」가 없는 것을 알았고, 없는 까닭은 아무 데도 안 적혀 있었다 —
+                // 눌러 봐야 아는 것은 <b>막은 것</b>이 아니라 <b>고장난 것</b>으로 읽힌다.
+                // 내밀 자리(심문)에서는 못 내미는 칸을 <b>한 켜 묽게</b> 깔아,
+                // 손이 그리로 가기 전에 눈이 먼저 가린다.
+                bool blocked = talking && !c.presentable;
+                Skin(bg, _skin.Wood_, blocked ? UiLook.With(UiLook.Wood, 0.45f) : UiLook.Wood);
+                var faceColor = heard
                               ? new Color(_cardColor.r, _cardColor.g, _cardColor.b, _cardColor.a * 0.7f)
-                              : _cardColor, card), -8f);
+                              : _cardColor;
+                if (blocked) faceColor.a *= 0.45f;
+                Stretch(Plate("속", _skin.Slot_, faceColor, card), -8f);
                 _cards.Add(card.gameObject);
 
                 var doc = Journal.Instance.GetDocument(caseId, c.key);
@@ -632,7 +651,8 @@ namespace IMUNROK.Common
                 // 이름 — 단서 문구의 첫 토막만. 나머지는 손에 들면 아래에 나온다.
                 // 자리·크기·맞춤 전부 저쪽 칸의 이름줄 그대로다(−96, 292×80, 30, 위쪽맞춤).
                 var name = NewText("이름", ShortName(doc, c), new Vector2(0f, -92f),
-                                   new Vector2(cw - 28f, 72f), card, _clueFontSize - 4, _inkColor);
+                                   new Vector2(cw - 28f, 72f), card, _clueFontSize - 4,
+                                   blocked ? UiLook.With(_inkColor, 0.45f) : _inkColor);
                 name.alignment = TextAlignmentOptions.Top;
                 UiText.Wrap(name, true);
 

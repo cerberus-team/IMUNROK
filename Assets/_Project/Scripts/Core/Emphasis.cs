@@ -87,5 +87,62 @@ namespace IMUNROK.Common
 
         /// <summary>도드라지게 할 낱말을 감싸는 표시.</summary>
         private const char Mark = '*';
+
+        /// <summary>
+        /// <b>남이 지은 글을 화면에 올리기 전에 씻는다.</b>
+        ///
+        /// 인물의 대답은 <b>우리가 안 쓴 글</b>이다(LLM). 거기에는 우리가 모르는 표시가
+        /// 섞여 온다 — <c>**굵게**</c> 같은 마크다운, <c>&lt;thinking&gt;</c>·<c>&lt;답&gt;</c> 처럼
+        /// 제가 지어낸 꼬리표, 닫히지 않은 태그.
+        ///
+        /// 낡은 <c>UI.Text</c> 는 모르는 태그를 <b>글자로</b> 그렸고 TMP 도 그렇게 한다.
+        /// 그래서 대사 한복판에 <c>&lt;/b&gt;</c> 같은 것이 그대로 찍혔다 — 사람이 그렇게 말할 리 없으니
+        /// 그 순간 화면이 <b>사람의 말이 아니라 기계의 출력</b>이 된다.
+        ///
+        /// 그래서 <b>아는 태그만 남긴다</b>. 목록에 없는 것은 통째로 걷고, 마크다운의
+        /// 별표·밑줄 겹침도 함께 없앤다(우리 별표 표시 <see cref="Mark"/> 하나는 남긴다 —
+        /// 그것은 <see cref="Rich"/> 가 곧 먹는다).
+        ///
+        /// ⚠️ 대답을 <b>수첩에 적기 전에</b>도 이걸 거쳐야 한다. 화면만 씻으면
+        ///    수첩 카드에 태그가 그대로 남는다.
+        /// </summary>
+        public static string Clean(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+
+            // ① 마크다운 겹침을 먼저 없앤다. 우리 표시는 별표 <b>하나</b>이므로,
+            //    두 개짜리를 그냥 두면 Rich 가 여는 짝·닫는 짝을 잘못 맞춘다.
+            text = text.Replace("**", "").Replace("__", "");
+
+            // ② 아는 태그만 남긴다.
+            var sb = new System.Text.StringBuilder(text.Length);
+            for (int i = 0; i < text.Length; i++)
+            {
+                if (text[i] != '<') { sb.Append(text[i]); continue; }
+                int close = text.IndexOf('>', i + 1);
+                if (close < 0) { sb.Append(text[i]); continue; }        // 짝이 없으면 그냥 글자다
+                string inside = text.Substring(i + 1, close - i - 1);
+                if (Known(inside)) sb.Append(text, i, close - i + 1);   // 아는 것은 그대로
+                i = close;                                              // 모르는 것은 통째로 걷는다
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>우리가 그릴 줄 아는 태그인가. 이름만 본다(값은 안 따진다).</summary>
+        private static bool Known(string inside)
+        {
+            if (string.IsNullOrEmpty(inside)) return false;
+            if (inside[0] == '/') inside = inside.Substring(1);
+            int cut = inside.IndexOfAny(new[] { '=', ' ' });
+            if (cut > 0) inside = inside.Substring(0, cut);
+            switch (inside.ToLowerInvariant())
+            {
+                case "b": case "i": case "u": case "s":
+                case "color": case "size": case "br":
+                case "sup": case "sub": case "mark": case "align":
+                    return true;
+            }
+            return false;
+        }
     }
 }
