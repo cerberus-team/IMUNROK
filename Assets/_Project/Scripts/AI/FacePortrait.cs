@@ -79,13 +79,55 @@ namespace IMUNROK.Common
             var l = lightGo.AddComponent<Light>();
             l.type = LightType.Point;
             l.color = new Color(1f, 0.94f, 0.84f);
-            l.intensity = 3.2f;
+            // 3.2 는 <b>탔다</b>. 동헌 뜰(밤)에 맞춰 잡은 값인데, 이제 이 얼굴은 수첩
+            // 카드에도 얹히므로 밝은 데서 찍힐 때가 있다 — 그러면 낯이 통째로 하얗게 날아가
+            // 눈코가 사라진다. 어두운 데서 겨우 보이고 밝은 데서 안 타는 자리로 내린다.
+            l.intensity = 1.9f;
             l.range = 1.2f;
             l.shadows = LightShadows.None;
 
             Shots[head] = s;
             Place(s, head, body);
             return s.rt;
+        }
+
+        /// <summary>
+        /// <b>얼굴 한 장을 떠서 남긴다.</b> <see cref="Of"/> 가 주는 것은 <b>살아 있는</b>
+        /// 그림이라(카메라가 매 칸 다시 찍는다) 수첩에 넣어 둘 수가 없다 — 사람이 걸어
+        /// 나가면 그림도 따라 비고, 씬이 바뀌면 통째로 죽는다.
+        ///
+        /// 그래서 그 순간을 한 장으로 <b>굳혀서</b> 돌려준다. 증언을 수첩에 적을 때
+        /// 딱 한 번 부른다 — 그 말을 한 그 얼굴이 그대로 남는다.
+        /// 머리뼈를 못 찾으면 <c>null</c> 이다(그러면 예전처럼 「言」자가 찍힌다).
+        /// </summary>
+        public static Texture2D Snapshot(Transform who)
+        {
+            if (who == null) return null;
+            Transform head = null;
+            foreach (var t in who.GetComponentsInChildren<Transform>(true))
+            {
+                string n = t.name.ToLower();
+                if (n == "head" || n.EndsWith(":head")) { head = t; break; }
+            }
+            if (head == null) return null;
+
+            var rt = Of(head, who);
+            if (rt == null) return null;
+
+            Shot s;
+            if (!Shots.TryGetValue(head, out s) || s.cam == null) return null;
+            bool was = s.cam.enabled;
+            s.cam.enabled = true;
+            s.cam.Render();                       // 이 한 칸만 찍는다
+            s.cam.enabled = was;
+
+            var prev = RenderTexture.active;
+            RenderTexture.active = rt;
+            var tex = new Texture2D(Size, Size, TextureFormat.RGB24, false) { name = "얼굴_" + who.name };
+            tex.ReadPixels(new Rect(0, 0, Size, Size), 0, 0);
+            tex.Apply();
+            RenderTexture.active = prev;
+            return tex;
         }
 
         /// <summary>얼굴 앞에 선다. 사람이 걸어 나가면 따라가야 하므로 볼 때마다 다시 잡는다.</summary>

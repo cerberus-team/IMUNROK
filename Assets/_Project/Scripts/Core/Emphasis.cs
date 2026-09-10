@@ -128,6 +128,35 @@ namespace IMUNROK.Common
             return sb.ToString();
         }
 
+        /// <summary>
+        /// <b>한 덩어리 말로 만든다.</b> 줄바꿈을 없애고, 너무 길면 문장 끝에서 자른다.
+        ///
+        /// 말 길이는 <b>부탁해 두었다</b>(프롬프트). 그런데 부탁은 지켜질 때도 있고 아닐 때도
+        /// 있어서, 어쩌다 한 번 열 줄짜리 답이 오면 자막 상자가 통째로 무너진다.
+        /// 화면이 감당할 수 있는 길이는 <b>화면이 정해야</b> 한다.
+        ///
+        /// 자를 때는 <b>문장 끝</b>에서 자른다 — 글자 수로 뚝 자르면 말이 끊긴 것이 아니라
+        /// <b>먹통이 된 것</b>으로 읽힌다. 문장 끝을 못 찾으면 그때만 말줄임으로 맺는다.
+        /// </summary>
+        public static string OneBreath(string text, int maxChars = 140)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+
+            // ① 줄바꿈은 통째로 한 칸으로. 문단을 나눠 온 답도 한 덩어리가 된다.
+            text = text.Replace("\r", " ").Replace("\n", " ");
+            while (text.Contains("  ")) text = text.Replace("  ", " ");
+            text = text.Trim();
+            if (text.Length <= maxChars) return text;
+
+            // ② 넘치면 <b>마지막 온전한 문장</b>까지만 남긴다.
+            int cut = -1;
+            for (int i = 0; i < text.Length && i < maxChars; i++)
+                if (text[i] == '.' || text[i] == '!' || text[i] == '?' || text[i] == '…') cut = i;
+            if (cut >= 20) return text.Substring(0, cut + 1).Trim();
+
+            return text.Substring(0, maxChars).TrimEnd() + "…";
+        }
+
         /// <summary>우리가 그릴 줄 아는 태그인가. 이름만 본다(값은 안 따진다).</summary>
         private static bool Known(string inside)
         {

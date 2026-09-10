@@ -113,11 +113,11 @@ namespace IMUNROK.Onggojip
             // 아무에게도 안 묻고 담을 넘어 들어와 버렸다면 단서 수는 0이어도 이미 도입이 아니다.
             bool intro = found == 0 && !_inside;
             string main = ready ? _readyLine : (intro ? _introLine : _investigateLine);
-            string sub = ready
-                ? "필수 단서 완료"
-                : (intro
-                    ? _introSub
-                    : $"필수 단서 {have}/{req}  ·  발견 {found}/{total}");
+            // <b>수를 안 적는다.</b> 「필수 단서 2/4 · 발견 5/12」는 참인 말이지만,
+            // 그 순간 조사가 <b>모으기 놀이</b>가 된다 — 어사는 몇 개를 채우러 다니는
+            // 사람이 아니고, 무엇이 남았는지 모르는 채 숫자만 오르는 것은 안내가 아니라
+            // <b>점수판</b>이다. 마당에 들어선 뒤로는 곁말 없이 한 마디만 남긴다.
+            string sub = intro ? _introSub : "";
 
             if (main == _lastMain && sub == _lastSub) return;
             _lastMain = main; _lastSub = sub;

@@ -140,7 +140,7 @@ namespace IMUNROK.Common
             // 지나가는 한 마디가 <b>읽히기도 전에</b> 눈에서 미끄러졌다.
             // 넘치는 것은 넓이로 받고(MaxW 1240) 글씨는 읽히는 크기로 되돌린다.
             _text = UiText.New("글", "", Vector2.zero, new Vector2(1040f, 380f), panel,
-                               42f, TextAnchor.MiddleCenter, UiLook.Text);
+                               50f, TextAnchor.MiddleCenter, UiLook.Text);
 
             SetVisible(false);
         }
@@ -161,11 +161,14 @@ namespace IMUNROK.Common
         private const float BloomSeconds = 1.3f;
 
         // 가라앉은 금물과 갓 번진 금물. 뜰 때는 흰빛에 가깝게 밝았다가 제 색을 찾는다.
-        private static readonly Color GoldRest = new Color(0.98f, 0.84f, 0.46f);
-        private static readonly Color GoldLit  = new Color(1f, 0.97f, 0.82f);
+        // <b>노란빛을 덜어 낸다.</b> 0.46 은 <b>금</b>이라기보다 <b>노랑</b>이었다 —
+        // 경고문에 쓰는 색이라, 지나가는 한 마디에 얹으면 읽기 전에 「무슨 일이 났나」가 된다.
+        // 푸른 쪽을 올려 한지에 금물이 마른 <b>바랜 금</b>으로 둔다.
+        private static readonly Color GoldRest = new Color(0.97f, 0.91f, 0.76f);
+        private static readonly Color GoldLit  = new Color(1f, 0.99f, 0.94f);
         // 무리는 <b>옅어야 한다</b>. 처음에 0.85·일곱 화소로 두었더니 글자 사이가
         // 통째로 메워져 금덩이 한 장이 떴다 — 빛나는 것이 아니라 <b>뭉개진 것</b>이다.
-        private static readonly Color HaloLit  = new Color(1f, 0.90f, 0.58f, 1f);
+        private static readonly Color HaloLit  = new Color(1f, 0.94f, 0.74f, 1f);
 
         /// <summary>
         /// <b>결을 갈아입힌다.</b> 판 하나를 결마다 따로 만들 것 없다 — 알림판은

@@ -41,7 +41,13 @@ namespace IMUNROK.Common
         [SerializeField] private bool _beginOnStart = true;
 
         [Tooltip("추천 질문(대사 위 제안)을 띄운다")]
-        [SerializeField] private bool _showTopics = true;
+        // <b>추천 질문을 걷었다.</b> 마주 선 사람의 발치에 물음 셋이 늘 떠 있어,
+        // 눈을 맞추는 자리가 <b>고르는 자리</b>가 되었다. 게다가 그 판만 아직 월드에
+        // 서 있어서 몸에 묻히거나 발밑에 깔렸다.
+        //
+        // 물음은 이제 <b>쳐서</b> 한다. 없어지는 것은 「목록에서 고르기」뿐이고,
+        // 저 물음들이 여는 것은 그대로 열린다 — 낱말만 스치면 열리게 되어 있다(Loosen).
+        [SerializeField] private bool _showTopics = false;
 
         [Tooltip("한 번에 보여 줄 추천 질문 수. 넷 다 늘어놓으면 고르는 것이 아니라 훑는 것이 된다 — " +
                  "셋이면 한눈에 들어오고, 하나를 물으면 그 자리에 다음 것이 올라선다")]
@@ -742,9 +748,16 @@ namespace IMUNROK.Common
             if (string.IsNullOrEmpty(key) || _character == null) return;
             var journal = Journal.Instance;
             if (journal == null) return;
+
+            // <b>증언에는 그린 그림이 없다.</b> 물증은 종이라 찍어 둔 면이 있지만
+            // 들은 말에는 볼 것이 없어서, 수첩에 「言」자만 찍힌 카드가 줄줄이 깔렸다.
+            // 그런데 증언에서 볼 것은 <b>누가 했는가</b>이고, 그 얼굴은 지금 눈앞에 있다.
+            if (image == null) image = FacePortrait.Snapshot(transform);
+
             journal.AddClue(_character.caseId, key,
                             string.IsNullOrEmpty(text) ? key : text,
                             image, ClueKind.정황, presentable);
+            journal.SetSpeaker(_character.caseId, key, _character.characterName);
         }
 
         // ── 행동 ④: 물건을 내밀거나 무엇을 하다 ──
@@ -814,7 +827,7 @@ namespace IMUNROK.Common
             // <b>남이 지은 글은 씻어서 받는다.</b> 인물의 대답에는 우리가 모르는 표시가
             // 섞여 온다(마크다운·제가 지어낸 꼬리표). 화면에 그대로 올리면 대사 한복판에
             // 태그가 글자로 찍혀, 그 순간 사람의 말이 아니라 기계의 출력이 된다.
-            text = Emphasis.Clean(text);
+            text = Emphasis.OneBreath(Emphasis.Clean(text));
             _npcLine = text;
             _transcript.Add($"{_character.characterName}: {text}");
             if (!_active) return;

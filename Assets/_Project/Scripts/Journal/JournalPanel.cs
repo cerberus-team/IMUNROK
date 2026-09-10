@@ -253,10 +253,20 @@ namespace IMUNROK.Common
         /// (196 을 +40 에 두면 윗변이 138 인데 칸 윗변이 136 이고, 속지는 128 이다).
         /// 속지 안(±128)에 들어가고 아래 이름줄과도 안 겹치게 줄여 잡는다.
         /// </summary>
-        private const float Shot = 172f;
+        private const float Shot = 150f;
 
-        /// <summary>그림이 앉는 높이. 위로 124, 아래로 −48 — 속지 안이다.</summary>
-        private const float ShotY = 38f;
+        /// <summary>그림이 앉는 높이. 속지 안(±128)에 들어가고 이름줄과도 안 겹친다.</summary>
+        private const float ShotY = 50f;
+
+        /// <summary>
+        /// 이름줄이 앉는 자리와 높이.
+        ///
+        /// <b>석 줄이 필요해졌다.</b> 증언 카드는 「[마을 사람의 증언] …」처럼 말한 이가
+        /// 앞에 서는데, 그 이름만으로 한 줄이 찬다. 두 줄짜리 칸에 두면 <b>이름만 뜨고
+        /// 정작 무슨 말인지는 말줄임으로 잘렸다</b>. 그림을 한 뼘 줄여 그 자리를 준다.
+        /// </summary>
+        private const float NameY = -78f;
+        private const float NameH = 100f;
 
         /// <summary>겹 하나. 무늬를 깐 네모를 어버이 위에 얹는다.</summary>
         private RectTransform Plate(string name, Sprite sp, Color c, Transform parent)
@@ -650,11 +660,15 @@ namespace IMUNROK.Common
 
                 // 이름 — 단서 문구의 첫 토막만. 나머지는 손에 들면 아래에 나온다.
                 // 자리·크기·맞춤 전부 저쪽 칸의 이름줄 그대로다(−96, 292×80, 30, 위쪽맞춤).
-                var name = NewText("이름", ShortName(doc, c), new Vector2(0f, -92f),
-                                   new Vector2(cw - 28f, 72f), card, _clueFontSize - 4,
+                var name = NewText("이름", ShortName(doc, c), new Vector2(0f, NameY),
+                                   new Vector2(cw - 28f, NameH), card, _clueFontSize - 8,
                                    blocked ? UiLook.With(_inkColor, 0.45f) : _inkColor);
                 name.alignment = TextAlignmentOptions.Top;
                 UiText.Wrap(name, true);
+                // <b>칸 밖으로 흐르지 않게 맺는다.</b> Overflow 로 두면 넘친 줄이 칸 아래로
+                // 새어 나와, 다음 줄 칸 위에 글자가 겹쳐 앉는다(들이밀기 단추 위에도 앉았다).
+                // Ellipsis 는 <c>Truncate</c> 와 달리 줄을 통째로 버리지 않고 말줄임으로 맺는다.
+                name.overflowMode = TextOverflowModes.Ellipsis;
 
                 // 카드 전체가 단추다 — 누르면 손에 든다
                 var btn = card.gameObject.AddComponent<Button>();
@@ -667,7 +681,7 @@ namespace IMUNROK.Common
                     // <b>판 안에서 먼저 크게 본다.</b> 손에 드는 것은 그다음이다.
                     ShowDetail(shot,
                                ShortName(doc2, captured2),
-                               doc2 != null && !string.IsNullOrEmpty(doc2.body) ? doc2.body : captured2.text,
+                               doc2 != null && !string.IsNullOrEmpty(doc2.body) ? doc2.body : Body(captured2),
                                () => { OpenAt(at); _owner?.Close(); },   // 수첩을 덮어야 두 손이 빈다
                                captured2,
                                doc2 != null ? doc2.back : null);
@@ -678,7 +692,7 @@ namespace IMUNROK.Common
                 // "_revealed" 로 끝나는지도 보았는데, 그런 key 를 만드는 곳이 없어진 지 오래다.
                 bool canPresent = talking && c.presentable;
                 if (!canPresent) continue;
-                var b = NewRect("들이밀기", new Vector2(0f, -ch * 0.5f + 24f), new Vector2(cw - 44f, 40f), card);
+                var b = NewRect("들이밀기", new Vector2(0f, -ch * 0.5f + 22f), new Vector2(cw - 44f, 36f), card);
                 var pbg = b.gameObject.AddComponent<Image>();
                 pbg.color = _presentColor;
                 var pbtn = b.gameObject.AddComponent<Button>();
@@ -689,7 +703,7 @@ namespace IMUNROK.Common
                     InterrogationController.Active?.PresentFromJournal(captured);
                     _owner?.Close();
                 });
-                NewText("라벨", "들이밀기", Vector2.zero, new Vector2(cw - 44f, 40f), b, _clueFontSize - 8,
+                NewText("라벨", "들이밀기", Vector2.zero, new Vector2(cw - 44f, 36f), b, _clueFontSize - 10,
                         UiLook.SealText);
             }
 
@@ -758,10 +772,11 @@ namespace IMUNROK.Common
                 }
 
                 var name = NewText("이름", string.IsNullOrEmpty(d.title) ? d.caseId.ToString() : d.title,
-                                   new Vector2(0f, -92f), new Vector2(cw - 28f, 72f),
-                                   card, _clueFontSize - 4, _inkColor);
+                                   new Vector2(0f, NameY), new Vector2(cw - 28f, NameH),
+                                   card, _clueFontSize - 8, _inkColor);
                 name.alignment = TextAlignmentOptions.Top;
                 UiText.Wrap(name, true);
+                name.overflowMode = TextOverflowModes.Ellipsis;
 
                 var btn = card.gameObject.AddComponent<Button>();
                 btn.targetGraphic = bg;
@@ -858,14 +873,41 @@ namespace IMUNROK.Common
         private int _pageCount = 1;
         private int _perPage = 15;
 
+        /// <summary>
+        /// <b>[J01] 같은 것은 사람에게 안 보인다.</b>
+        ///
+        /// 그 대괄호는 <b>우리끼리 쓰는 이름표</b>다 — 어느 단서인지 코드가 짚으려고 붙인
+        /// 것이지, 어사가 수첩에 「제이공일」이라 적어 두지는 않는다. 그것이 카드에 그대로
+        /// 찍히니 수첩이 <b>자료표</b>처럼 보였다.
+        ///
+        /// 그리고 <b>들은 말에는 말한 이를 앞세운다</b>. 증언은 누가 했는지가 곧 그 무게라,
+        /// 「[마을 사람의 증언] 미친 사내」처럼 임자를 앞에 두면 열 장이 깔려도 갈린다.
+        /// </summary>
         private static string ShortName(Journal.ClueDocument doc, ClueEntry c)
         {
             if (doc != null && !string.IsNullOrEmpty(doc.title)) return Emphasis.Plain(doc.title);
-            // 카드 이름은 토막이라 강조 표시를 그대로 두면 별표가 글자로 남는다 — 걷어낸다
-            string t = Emphasis.Plain(c.text ?? "");
-            int close = t.IndexOf(']');
-            if (close >= 0 && close + 1 < t.Length) t = t.Substring(close + 1).Trim();
-            if (t.Length > 22) t = t.Substring(0, 22) + "…";
+
+            string t = Body(c);
+            // 칸은 두 줄이다. 열대여섯 자를 넘기면 셋째 줄이 나서 칸 밖으로 흐른다.
+            int room = string.IsNullOrEmpty(c.speaker) ? 26 : 18;
+            if (t.Length > room) t = t.Substring(0, room).TrimEnd() + "…";
+            return string.IsNullOrEmpty(c.speaker) ? t : "[" + c.speaker + "의 증언] " + t;
+        }
+
+        /// <summary>
+        /// 사람이 읽을 본문 — <b>우리끼리 쓰는 이름표를 걷은</b> 것.
+        /// 강조 별표도 함께 걷는다(카드 이름은 토막이라 별표가 글자로 남는다).
+        /// </summary>
+        private static string Body(ClueEntry c)
+        {
+            string t = Emphasis.Plain(c != null ? (c.text ?? "") : "");
+            if (t.StartsWith("["))
+            {
+                int close = t.IndexOf(']');
+                // 「[J01]」처럼 <b>짧은</b> 대괄호만 걷는다 — 「[마을 사람의 증언]」처럼
+                // 사람에게 보여 줄 셈으로 적어 둔 것까지 걷으면 안 된다.
+                if (close > 0 && close <= 6 && close + 1 < t.Length) t = t.Substring(close + 1).Trim();
+            }
             return t;
         }
 

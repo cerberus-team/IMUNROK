@@ -33,6 +33,16 @@ namespace IMUNROK.Common
         /// 예전에 저장한 파일에는 이 값이 없는데, 그때는 이 초기값(true)이 그대로 남는다.
         /// </summary>
         public bool presentable = true;
+
+        /// <summary>
+        /// <b>누구에게서 들은 말인가.</b> 비어 있으면 주워 온 것(물증)이다.
+        ///
+        /// 증언은 <b>누가 했는지가 곧 그 무게</b>다 — 같은 말도 아내가 하면 집안의 일이고
+        /// 지나는 마을 사람이 하면 소문이다. 여태 수첩에는 말만 남고 말한 이가 없어서,
+        /// 카드 열 장이 다 「누가 한 말인지 모르는 한 줄」로 보였다.
+        /// (예전에 저장한 파일에는 이 값이 없다 — 그때는 빈 채로 온다.)
+        /// </summary>
+        public string speaker;
     }
 
     /// <summary>
@@ -287,6 +297,14 @@ namespace IMUNROK.Common
         }
 
         // ── 읽기 API ──
+
+        /// <summary>말한 이를 적어 둔다(이미 적혀 있으면 안 덮는다).</summary>
+        public void SetSpeaker(CaseId caseId, string key, string who)
+        {
+            if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(who)) return;
+            var e = _clues.Find(c => c != null && c.caseId == caseId && c.key == key);
+            if (e != null && string.IsNullOrEmpty(e.speaker)) e.speaker = who;
+        }
 
         public bool HasClue(CaseId caseId, string key)
         {

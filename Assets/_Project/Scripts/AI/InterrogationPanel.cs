@@ -57,7 +57,6 @@ namespace IMUNROK.Common
 
         private InterrogationController _owner;
         private CanvasGroup _group;
-        private WorldHudAnchor _anchor;
         private readonly List<GameObject> _chips = new List<GameObject>();
         private readonly List<GameObject> _orderChips = new List<GameObject>();
         private readonly List<GameObject> _seatChips = new List<GameObject>();
@@ -118,10 +117,12 @@ namespace IMUNROK.Common
             if (_instance != null) return;
             _instance = FindFirstObjectByType<InterrogationPanel>();
             if (_instance != null) return;
-            var go = new GameObject("심문_조작판", typeof(Canvas));
-            // 자막(-0.28)보다 아래 — 대사를 가리지 않게
-            go.AddComponent<WorldHudAnchor>().Configure(WorldHudAnchor.Placement.Front);
+            // <b>이 판만 월드에 서 있었다.</b> 자막·수첩·알림·도구띠가 차례로 화면으로
+            // 옮겨 가는 동안 여기만 남아, 마주 선 사람의 <b>발치</b>에 단추가 깔렸다 —
+            // 깊이 검사를 받으므로 몸에 묻히기도 했다. 함께 화면으로 옮긴다.
+            var go = new GameObject("심문_조작판", typeof(RectTransform));
             _instance = go.AddComponent<InterrogationPanel>();
+            ScreenPanel.Raise(go, ScreenPanel.LayerBar - 1);
         }
 
         /// <summary>제시한 증거 그림을 잠깐 띄운다("탁" 들이미는 연출).</summary>
@@ -136,7 +137,7 @@ namespace IMUNROK.Common
         public static void KeepInFrontOf(Transform target)
         {
             var p = _instance;
-            if (p != null && p._anchor != null) p._anchor.KeepInFrontOf(target);
+            // 화면에 붙은 판은 사람 앞으로 당길 것이 없다 — 늘 화면 위다.
         }
 
         /// <summary>심문이 끝날 때 호출.</summary>
@@ -166,8 +167,6 @@ namespace IMUNROK.Common
         {
             if (_instance != null && _instance != this) { Destroy(gameObject); return; }
             _instance = this;
-            _anchor = GetComponent<WorldHudAnchor>();
-            if (_anchor == null) _anchor = gameObject.AddComponent<WorldHudAnchor>();
             ApplyPlacement();
 
             _group = gameObject.GetComponent<CanvasGroup>();
@@ -195,8 +194,14 @@ namespace IMUNROK.Common
         private void ApplyPlacement()
         {
             bool tall = InterrogationBench.Instance != null;     // 사람 줄이 붙는 씬인가
-            _anchor.SetDistance(1.3f, tall ? -0.42f : -0.55f);
+            // 화면에 붙은 판이라 거리는 없다. 자막 바가 앉는 높이만 저쪽 셈으로 넘긴다.
             SubtitleView.SetReadingDistance(1.3f, tall ? -0.13f : -0.28f);
+
+            // <b>판은 자막 바 위에 앉는다.</b> 명령·사람 줄이 두어 줄이므로,
+            // 자막 바가 차지하는 아래쪽을 비켜 그 위에 얹는다.
+            var rt = (RectTransform)transform;
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(0f, tall ? -180f : -120f);
         }
 
         private void OpenInternal(InterrogationController owner)
@@ -216,7 +221,7 @@ namespace IMUNROK.Common
             BuildOrders();
             BuildSeats();
             SetVisible(true);
-            if (wasRoster && _anchor != null) _anchor.Recenter();
+
         }
 
         private void OpenRosterInternal()
@@ -229,7 +234,7 @@ namespace IMUNROK.Common
             BuildOrders();
             BuildSeats();
             SetVisible(true);
-            if (wasHidden && _anchor != null) { _anchor.KeepInFrontOf(null); _anchor.Recenter(); }
+
         }
 
         private void SetVisible(bool on)

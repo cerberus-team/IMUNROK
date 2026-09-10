@@ -56,7 +56,11 @@ namespace IMUNROK.Common
         [Header("도착 후 앉기(앉아 졸기)")]
         [Tooltip("도착하면 앉을지. 끄면 그냥 서있음")]
         [SerializeField] private bool _sitOnArrive = true;
-        [Tooltip("이 상태를 '거꾸로' 재생해 앉는 동작으로 씀(일어서기 애니 역재생)")]
+        [Tooltip("<b>앉는 동작</b> 클립. 새 뼈대에는 이것이 있다(Stand_To_Sit).\n" +
+                 "비워 두면 예전처럼 아래 <b>일어서기</b> 클립을 거꾸로 긁어 쓴다 — " +
+                 "그쪽은 발이 뒤로 미끄러지고 섞임도 안 먹는다")]
+        [SerializeField] private string _sitDownState = "Stand_To_Sit";
+        [Tooltip("앉는 클립이 없을 때만 쓴다 — 이 상태를 '거꾸로' 긁어 앉는 동작으로 삼는다")]
         [SerializeField] private string _sitDownReverseState = "Sit_to_Stand_Transition_M";
         [Tooltip("앉은 뒤 반복할 상태(앉아 졸기)")]
         [SerializeField] private string _sitIdleState = "Sit_and_Doze_Off";
@@ -104,8 +108,10 @@ namespace IMUNROK.Common
         [Header("속도")]
         [Tooltip("문 여는 동작 재생 속도(1=정상, 낮을수록 느림). 문짝 속도는 대문 DoorController의 _openDuration에서.")]
         [SerializeField] private float _openSpeed = 1f;
-        [Tooltip("동작 전환 섞기 시간(초). 클수록 부드럽게 이어짐(끊김 감소). 0이면 하드컷")]
-        [SerializeField] private float _blend = 0.2f;
+        [Tooltip("동작 전환 섞기 시간(초). 클수록 부드럽게 이어짐(끊김 감소). 0이면 하드컷.\n" +
+                 "0.2 는 <b>짧았다</b> — 걷다 서고 서다 앉는 대목마다 자세가 툭 갈아 끼워졌다. " +
+                 "0.3 쯤이면 한 걸음이 다음 걸음으로 넘어가는 만큼은 된다")]
+        [SerializeField] private float _blend = 0.3f;
         [SerializeField] private float _moveSpeed = 1.1f;
         [SerializeField] private float _turnSpeed = 540f;
         [SerializeField] private float _arriveDist = 0.12f;
@@ -246,31 +252,38 @@ namespace IMUNROK.Common
                 return;
             }
 
-            // 문 닫기: 문 여는 클립을 t=1→0으로 긁어 거꾸로 재생한다(= 닫는 동작).
-            // 앉기와 같은 수법 — 전용 클립이 없어 여는 동작을 뒤집어 쓴다.
+            // <b>문 닫기.</b> 닫는 클립이 없으므로 여는 동작을 거꾸로 쓴다 — 다만
+            // 프레임을 손으로 되돌리지 않고 <b>애니메이터를 거꾸로 돌린다</b>(speed −1).
+            // 긁으면 애니메이터가 멈춰 있어 섞임이 안 먹고, 매 칸 Play 가 다시 걸려
+            // 자세가 잘게 떨린다. 거꾸로 돌리면 그냥 한 동작이 반대로 흐른다.
             if (_phase == Phase.Closing)
             {
                 if (_closeBlend > 0f) { _closeBlend -= Time.deltaTime; return; }
-                if (_animator != null) _animator.speed = 0f;
                 _closeTimer -= Time.deltaTime * Mathf.Max(0.01f, _openSpeed);
-                float ct = Mathf.Clamp01(_closeTimer / _closeLen);
-                if (_animator != null) { _animator.Play(_openState, 0, ct); _animator.Update(0f); }
                 if (_closeTimer <= 0f)
                 {
+                    if (_animator != null) _animator.speed = 1f;   // 되돌려 놓는다
                     if (_standSpot != null) DoWalk();
                     else OnArrived();
                 }
                 return;
             }
 
-            // 앉기: ①걷기→선 자세로 블렌드(_sitBlend) → ②일어서기 클립을 t=1→0으로 긁어 거꾸로(=앉기)
+            // <b>앉기.</b> 앉는 클립이 있으면 그냥 튼다 — 시계만 세어 끝을 기다린다.
+            // 없으면 예전처럼 일어서기 클립을 거꾸로 긁는다(아래 else).
             if (_phase == Phase.SittingDown)
             {
                 if (_sitBlend > 0f) { _sitBlend -= Time.deltaTime; return; }   // 블렌드 동안은 애니메이터가 섞음
-                if (_animator != null) _animator.speed = 0f;                   // 스크럽 모드
                 _sitTimer -= Time.deltaTime;
-                float t = Mathf.Clamp01(_sitTimer / _sitDownLen);             // 1 → 0
-                if (_animator != null) { _animator.Play(_sitDownReverseState, 0, t); _animator.Update(0f); }
+                if (_animator != null && !_sitForward)
+                {
+                    // ⚠️ <b>긁는 길</b>(옛 뼈대). 애니메이터를 세워 두고 프레임을 손으로
+                    //    되돌리므로 섞임이 아예 안 먹는다 — 들어올 때도 나갈 때도 툭 끊긴다.
+                    _animator.speed = 0f;
+                    float t = Mathf.Clamp01(_sitTimer / _sitDownLen);          // 1 → 0
+                    _animator.Play(_sitDownReverseState, 0, t);
+                    _animator.Update(0f);
+                }
                 if (_sitTimer <= 0f)
                 {
                     CrossTo(_sitIdleState);            // 앉기→졸기 부드럽게
@@ -433,7 +446,10 @@ namespace IMUNROK.Common
             {
                 _animator.speed = 1f;
                 // 문을 연 '끝 자세'로 먼저 붙였다가, 다음 Update부터 t=1→0으로 긁는다.
+                // 여는 동작의 <b>끝</b>에 붙었다가 거꾸로 흐른다 — 문에 손이 닿아 있는
+                // 자세에서 시작해야 닫는 동작으로 읽힌다.
                 _animator.CrossFadeInFixedTime(_openState, _blend, 0, _closeLen);
+                _animator.speed = -Mathf.Max(0.01f, _openSpeed);
             }
             _closeBlend = _blend;
             _closeTimer = _closeLen;
@@ -457,17 +473,27 @@ namespace IMUNROK.Common
         }
 
         // 일어서기 클립을 프레임 직접 스크럽으로 거꾸로 재생 → 앉는 동작(클립 원래 속도).
+        /// <summary>앉는 클립을 <b>앞으로</b> 트는가. 거꾸로 긁던 옛 길과 갈린다.</summary>
+        private bool _sitForward;
+
         private void DoSitDown()
         {
             if (_sitDownSpot != null)   // 앉는 동작 자리로
                 transform.SetPositionAndRotation(_sitDownSpot.position, _sitDownSpot.rotation);
 
-            _sitDownLen = ClipLength(_sitDownReverseState, 1.2f);   // 재생 안 하고 길이만 조회(블렌드 유지)
+            // <b>앉는 클립이 있으면 그냥 튼다.</b> 옛 뼈대에는 앉는 동작이 없어 일어서기를
+            // 거꾸로 긁어 썼는데(발이 뒤로 미끄러지고 섞임도 안 먹는다), 새 뼈대에는
+            // Stand_To_Sit 이 들어 있다. 있는 것을 두고 뒤집어 쓸 까닭이 없다.
+            _sitForward = !string.IsNullOrEmpty(_sitDownState) && HasState(_sitDownState);
+            string use = _sitForward ? _sitDownState : _sitDownReverseState;
+
+            _sitDownLen = ClipLength(use, 1.2f);   // 재생 안 하고 길이만 조회(블렌드 유지)
             if (_animator != null)
             {
                 _animator.speed = 1f;
-                // 걷기 → 일어서기의 '끝(선 자세)'으로 부드럽게 블렌드. 그다음 Update에서 거꾸로 스크럽.
-                _animator.CrossFadeInFixedTime(_sitDownReverseState, _blend, 0, _sitDownLen);
+                if (_sitForward) _animator.CrossFadeInFixedTime(use, _blend, 0, 0f);
+                // 거꾸로 긁는 길은 <b>끝(선 자세)</b>으로 붙였다가 Update 에서 되돌린다.
+                else _animator.CrossFadeInFixedTime(use, _blend, 0, _sitDownLen);
             }
             _sitBlend = _blend;
             _sitTimer = _sitDownLen;
@@ -638,6 +664,13 @@ namespace IMUNROK.Common
             _animator.speed = SpeedFor(state);
             if (_blend <= 0f) _animator.Play(state, 0, 0f);
             else _animator.CrossFadeInFixedTime(state, _blend, 0);
+        }
+
+        /// <summary>조종틀에 이 상태가 있는가. 없는 이름을 틀면 아무 일도 안 난다.</summary>
+        private bool HasState(string state)
+        {
+            if (_animator == null || string.IsNullOrEmpty(state)) return false;
+            return _animator.HasState(0, Animator.StringToHash(state));
         }
 
         private bool StateDone(string state)

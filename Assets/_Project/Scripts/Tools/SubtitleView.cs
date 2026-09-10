@@ -714,7 +714,13 @@ namespace IMUNROK.Common
             _heardText = NewText("글", "", new Vector2(16f, 0f), new Vector2(slotW - 32f, h),
                                  slot, st.input, pal.slotText);
             _heardText.alignment = TextAlignmentOptions.Left;
-            _heardText.richText = false;   // 조합 중인 한글에 태그가 새지 않게
+            // ⚠️ <b>여기를 끄면 한글 조합 밑줄이 글자로 찍힌다.</b>
+            //    TMP 의 칸은 <b>조합 중</b>인 글자에 <c>&lt;u&gt;</c> 를 둘러 밑줄을 긋는다.
+            //    richText 를 끄면 그 태그가 그려지는 대신 <b>글자로</b> 나와,
+            //    「안녀&lt;u&gt;ㅇ&lt;/u&gt;」처럼 치는 족족 태그가 섞였다.
+            //    켜 두면 밑줄로 제대로 그려진다. 사람이 태그를 쳐 넣어도 대답은
+            //    <see cref="Emphasis.Clean"/> 을 거치므로 새 나갈 자리가 없다.
+            _heardText.richText = true;
             UiText.Wrap(_heardText, false);
 
             _heardHint = NewText("안내글", "", new Vector2(16f, 0f), new Vector2(slotW - 32f, h),
