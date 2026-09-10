@@ -162,7 +162,7 @@ namespace IMUNROK.Common
         /// <param name="litPrint">등불에 비춰야 드러나는 것. 다 드러나면 종이 아래에 뜬다</param>
         /// <param name="onLit">다 드러났을 때 한 번</param>
         public static void Show(Texture page, string title, string body,
-                                string finePrint = null, System.Action onRead = null, bool dim = false,
+                                string finePrint = null, System.Action onRead = null, bool dim = true,
                                 Texture litPage = null, string litPrint = null, System.Action onLit = null,
                                 string litGlyphs = null, Texture backPage = null)
         {
@@ -721,7 +721,7 @@ namespace IMUNROK.Common
             }
             // 종이는 집을 때 이미 수첩에 적힌다. 유리로 읽어 낸 것은 <b>그 위에 더해진
             // 것</b>이라, 「수첩에 적어 두었다」고 하면 유리를 안 댄 종이는 안 적힌 줄 안다.
-            if (_readDone) _hint.text = "잔글씨를 읽어 냈다 — 알아낸 것이 소지품에 더해졌다";
+            if (_readDone) _hint.text = FoundFine;
             else if (_sinceRead < 0.25f && _readProgress > 0.05f)
                 _hint.text = "읽는 중… " + Mathf.RoundToInt(Mathf.Clamp01(_readProgress) * 100f) + "%";
 
@@ -739,10 +739,12 @@ namespace IMUNROK.Common
             if (_pageLit != null && _pageLit.enabled)
                 _pageLit.color = new Color(1f, 1f, 1f, _lit01);
 
-            if (_litDone) _hint.text = "빛에 다 배어 나왔다";
+            if (_litDone) _hint.text = FoundLit;
             else if (lighting && _litProgress > 0.03f)
                 _hint.text = "불빛에 비추는 중… " + Mathf.RoundToInt(Mathf.Clamp01(_litProgress) * 100f)
                            + "%  (똑바로 마주 댈수록 빠르다)";
+
+            TickHint();
 
             DropIfWalkedAway();
 
@@ -765,6 +767,39 @@ namespace IMUNROK.Common
         /// 단서는 그대로다 — 본 것이 없던 일이 되지는 않는다.
         /// 내려놓을 수 없는 종이(익히는 동안 쥐여 준 것)는 건드리지 않는다.
         /// </summary>
+        /// <summary>
+        /// <b>알아낸 것을 이르는 줄은 스러진다.</b>
+        ///
+        /// 「잔글씨를 읽어 냈다」는 <b>그 순간에만</b> 뜻이 있는 말이다. 그런데 여태
+        /// 다 읽고 나면 종이를 내려놓을 때까지 그 줄이 <b>그대로 박혀</b> 있었다.
+        /// 한 번 읽은 사람에게 같은 말을 계속 보여 주면 그것은 알림이 아니라 <b>딱지</b>다.
+        ///
+        /// 뜬 채로 잠깐 두었다가(<see cref="_foundHold"/>) 천천히 지운다. 글은 사라져도
+        /// 알아낸 바는 종이 밖에 적힌 채 남고(<c>_fine</c>·<c>_lit</c>) 수첩에도 들어 있다.
+        /// 늘 떠 있어야 하는 안내(내려놓기 따위)는 이 갈래를 안 탄다.
+        /// </summary>
+        private void TickHint()
+        {
+            if (_hint == null) return;
+            if (_hint.text != _hintWas) { _hintWas = _hint.text; _hintAge = 0f; }
+            _hintAge += Time.deltaTime;
+
+            bool transient = _hintWas == FoundFine || _hintWas == FoundLit;
+            float a = 1f;
+            if (transient && _hintAge > _foundHold)
+                a = 1f - Mathf.Clamp01((_hintAge - _foundHold) / Mathf.Max(0.05f, _foundFade));
+            _hint.color = new Color(_textColor.r, _textColor.g, _textColor.b, 0.7f * a);
+        }
+
+        private const string FoundFine = "잔글씨를 읽어 냈다 — 알아낸 것이 소지품에 더해졌다";
+        private const string FoundLit  = "빛에 다 배어 나왔다";
+        private string _hintWas;
+        private float _hintAge;
+        [Tooltip("알아냈다는 줄이 그대로 떠 있는 시간(초). 이 뒤로 스러진다")]
+        [SerializeField] private float _foundHold = 2.2f;
+        [Tooltip("스러지는 데 걸리는 시간(초)")]
+        [SerializeField] private float _foundFade = 0.9f;
+
         private void DropIfWalkedAway()
         {
             if (!_canPutDown || _dropDistance <= 0f) return;
@@ -807,7 +842,13 @@ namespace IMUNROK.Common
             // 남아 어디서 읽고 있는지조차 사라지니, 읽는 것이 아니라 화면이 갈린 것이
             // 된다. 0.82 면 뒤의 방이 <b>어렴풋이</b> 남아 「그 자리에서 종이를 든 것」
             // 으로 읽히면서도 눈은 종이로 간다.
-            _backdrop.color = UiLook.With(UiLook.Panel, 0.82f);
+            // <b>고른 잿빛</b>으로 덮는다.
+            //
+            // 판 빛깔(UiLook.Panel)은 먹빛이라, 그것을 0.82 로 깔면 뒤가 <b>까맣게</b>
+            // 죽는다 — 종이만 남고 방이 사라져, 어디서 이 종이를 들고 있는지가 안 보인다.
+            // 덮는 것은 <b>눈을 종이로 모으려는</b> 것이지 방을 지우려는 것이 아니다.
+            // 빛깔을 중립 잿빛으로 두고 짙기도 덜어, 뒤가 <b>가라앉되 남아 있게</b> 한다.
+            _backdrop.color = new Color(0.17f, 0.17f, 0.18f, 0.72f);
             _backdrop.raycastTarget = false;
             _backdrop.enabled = false;
 

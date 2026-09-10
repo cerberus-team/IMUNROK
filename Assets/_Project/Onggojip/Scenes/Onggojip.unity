@@ -12377,6 +12377,8 @@ GameObject:
   - component: {fileID: 1131798642}
   - component: {fileID: 1131798643}
   - component: {fileID: 1131798644}
+  - component: {fileID: 1131798646}
+  - component: {fileID: 1131798645}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -12690,6 +12692,61 @@ MonoBehaviour:
     m_Bits: 4294967295
   _hideSystemCursor: 1
   _size: 40
+--- !u!114 &1131798645
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1131798635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a736bb6a430f7e547a6c6d29d16d93d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.NoiseWarning
+  _speaker: 
+  _noticedLine: "\uBC16\uC5D0\uC11C *\uBC1C\uC18C\uB9AC\uAC00 \uBA4E\uC5C8\uB2E4*."
+  _alarmedLine: "\uB9C8\uB8E8\uAC00 \uC090\uAC71\uC778\uB2E4 \u2014 *\uB204\uAC00
+    \uC774\uCABD\uC73C\uB85C \uC628\uB2E4*."
+  _quiet: 8
+  _caughtAt: 3
+  _onCaught:
+    m_PersistentCalls:
+      m_Calls: []
+  _summonServant: 1
+  _useSustained: 1
+  _warnAt: 0.55
+--- !u!114 &1131798646
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1131798635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5134c5114014cb74bb28136656371e03, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.NoiseListener
+  _hearRadius: 10
+  _notice: 0.25
+  _alarm: 0.6
+  _throughWalls: 0.35
+  _wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  _cooldown: 2.5
+  _turnToward: 1
+  _turnSpeed: 160
+  _turn: {fileID: 0}
+  _turnHold: 2
+  _onNoticed:
+    m_PersistentCalls:
+      m_Calls: []
+  _onAlarmed:
+    m_PersistentCalls:
+      m_Calls: []
+  _log: 0
 --- !u!1 &1137636878
 GameObject:
   m_ObjectHideFlags: 0
