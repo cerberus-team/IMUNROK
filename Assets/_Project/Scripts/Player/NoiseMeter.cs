@@ -109,8 +109,6 @@ namespace IMUNROK.Common
         [SerializeField] private float _fullRange = 20f;
 
         [Header("눈금 보여주기")]
-        [Tooltip("화면 구석에 눈금을 그린다. 맞춰 볼 때만 켠다")]
-        [SerializeField] private bool _showGauge = true;
 
         /// <summary>
         /// <b>지금 조심해야 하는 때인가.</b>
@@ -505,46 +503,12 @@ namespace IMUNROK.Common
                 "하인 오기  " + heat + tail);
         }
 
-        private void OnGUI()
-        {
-            if (!_showGauge) return;
-
-            // <b>조심할 것이 없으면 아무것도 안 그린다.</b>
-            //
-            // 여태 무게가 실리기 전에도 눈금을 흐리게나마 그렸다. "아직 아무도 안
-            // 듣는다"고 적어 두면 친절하리라 여긴 것인데, 실제로는 표제에도 어전에도
-            // 조사청에도 화면 왼쪽 아래에 막대 두 줄이 <b>늘</b> 박혀 있었다.
-            // 영상을 찍으면 그것부터 눈에 든다.
-            //
-            // 잠행이 아닌 데서는 소리가 아무 뜻이 없다. 뜻이 생길 때(Arm) 나타나면 된다.
-            if (!_armed) return;
-            const float w = 220f, h = 14f;
-            float x = 16f, y = Screen.height - 76f;
-
-            // 무게가 실리기 전에는 눈금이 <b>흐리게</b> 뜬다 — 움직이기는 하되 아직
-            // 아무 일도 아니라는 것이 한눈에 보여야 한다.
-            var was = GUI.color;
-            if (!_armed) GUI.color = new Color(1f, 1f, 1f, 0.45f);
-
-            GUI.Label(new Rect(x, y - 20f, 340f, 20f),
-                      (_armed ? "소리 " : "소리(아직 아무도 안 듣는다) ") + $"{_level * 100f:F0}%"
-                      + (string.IsNullOrEmpty(_actWhat) ? "" : "  ← " + _actWhat));
-            GUI.color = was;
-            Bar(new Rect(x, y, w, h), _mic, new Color(0.45f, 0.75f, 1f), "마이크");
-            Bar(new Rect(x, y + h + 4f, w, h), _act, new Color(1f, 0.72f, 0.35f), "짓");
-        }
-
-        private static Texture2D _px;
-        private static void Bar(Rect r, float v, Color c, string tag)
-        {
-            if (_px == null) { _px = new Texture2D(1, 1); _px.SetPixel(0, 0, Color.white); _px.Apply(); }
-            var old = GUI.color;
-            GUI.color = new Color(0f, 0f, 0f, 0.55f);
-            GUI.DrawTexture(r, _px);
-            GUI.color = c;
-            GUI.DrawTexture(new Rect(r.x, r.y, r.width * Mathf.Clamp01(v), r.height), _px);
-            GUI.color = old;
-            GUI.Label(new Rect(r.x + r.width + 8f, r.y - 2f, 80f, 20f), tag);
-        }
+        // 화면 구석에 OnGUI 로 그리던 눈금은 걷었다.
+        //
+        // 그 막대 두 줄은 <b>화면에 박혀</b> 있었다 — OnGUI 는 세상 속 판과 켜가
+        // 어긋나므로 수첩을 펴도 심문창을 열어도 그 위에 그대로 떠 있고, 영상을
+        // 찍으면 그것부터 눈에 든다. 같은 값을 <see cref="WorldGauge"/> 가
+        // 목표 알림판 아래에 「지금 소리 / 하인 오기」로 이미 적고 있으니
+        // 두 벌을 그릴 까닭이 없다.
     }
 }
