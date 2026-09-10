@@ -26,6 +26,13 @@ namespace IMUNROK.Common
         [Header("애니메이터 / 상태 이름")]
         [SerializeField] private Animator _animator;
         [SerializeField] private string _openState = "opening_door";
+        [Tooltip("<b>문 닫는 동작</b>. 전용 클립이 없으므로, 조종틀에 여는 클립을 얹고 " +
+                 "<b>상태 속도를 −1</b> 로 준 상태를 하나 두고 그 이름을 적는다.\n\n" +
+                 "왜 이렇게 하나: 유니티 6 은 <b>Animator.speed 의 음수를 0 으로 깎는다</b>. " +
+                 "그래서 코드에서 거꾸로 돌리려 하면 동작이 <b>얼어붙는다</b>. " +
+                 "상태 자체의 속도는 음수가 먹는다.\n" +
+                 "비워 두거나 조종틀에 없으면 여는 동작을 그냥 앞으로 튼다")]
+        [SerializeField] private string _closeState = "OpenDoor_거꾸로";
         [SerializeField] private string _walkState = "Walking";
         [Tooltip("서 있을 때 멈춰 세울 클립. 그 클립의 첫 프레임이 '선 자세'가 된다. " +
                  "비우면 걷기 클립을 쓴다(문 여는 클립은 손을 뻗은 자세라 안 어울린다)")]
@@ -271,18 +278,19 @@ namespace IMUNROK.Common
                 return;
             }
 
-            // <b>문 닫기.</b> 닫는 클립이 없으므로 여는 동작을 그대로 쓰되 <b>앞으로</b> 튼다.
-            // 여는 클립은 이미 <b>문에 손을 얹은 자세로 시작해</b> 팔을 내리며 끝난다 —
-            // 앞으로 틀면 그것이 곧 '밀어 닫고 손을 거두는' 모양이 된다.
-            // (거꾸로 돌리면 팔이 옆에서 문으로 올라가다 멎어, 문은 닫혔는데 손은
-            //  문에 붙은 채로 걸어가 버렸다.)
+            // <b>문 닫기.</b> 닫는 클립이 없으므로 여는 동작을 <b>거꾸로</b> 돌린다.
+            // 앞으로 틀면 닫으면서 여는 시늉을 하게 된다 — 손이 문에서 <b>떨어져</b>
+            // 나가는데 문짝은 닫히니, 미는 것도 당기는 것도 아닌 꼴이 된다.
+            // 거꾸로 돌리면 손이 문을 <b>따라 들어오며</b> 닫는다.
+            // 거꾸로 도는 일은 조종틀의 상태가 맡는다(<see cref="_closeState"/>) —
+            // 여기서는 시계만 센다.
             if (_phase == Phase.Closing)
             {
                 if (_closeBlend > 0f) { _closeBlend -= Time.deltaTime; return; }
                 _closeTimer -= Time.deltaTime * Mathf.Max(0.01f, _openSpeed);
                 if (_closeTimer <= 0f)
                 {
-                    if (_animator != null) _animator.speed = 1f;
+                    if (_animator != null) _animator.speed = 1f;   // 되돌려 놓는다
                     if (_standSpot != null) DoWalk();
                     else OnArrived();
                 }
@@ -473,7 +481,15 @@ namespace IMUNROK.Common
             if (_animator != null)
             {
                 _animator.speed = Mathf.Max(0.01f, _openSpeed);
-                _animator.CrossFadeInFixedTime(_openState, _blend, 0, 0f);
+                bool back = !string.IsNullOrEmpty(_closeState) && HasState(_closeState);
+                if (back)
+                    // 거꾸로 도는 상태는 <b>0 에서 시작한다</b>. 속도가 음수인 상태에서는
+                    // 유니티가 0~1 을 <b>끝에서 처음으로</b> 세기 때문이다 — 여기에
+                    // 클립 길이를 넣으면 이미 다 지난 자리라 <b>얼어붙는다</b>(그렇게 얼렸다).
+                    _animator.CrossFadeInFixedTime(_closeState, _blend, 0, 0f);
+                else
+                    // 거꾸로 도는 상태를 안 만들어 두었으면 어쩔 수 없이 앞으로 튼다.
+                    _animator.CrossFadeInFixedTime(_openState, _blend, 0, 0f);
             }
             _closeBlend = _blend;
             _closeTimer = _closeLen;

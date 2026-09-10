@@ -41339,7 +41339,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2591147536630962962}
   - component: {fileID: 2935865750439854506}
-  - component: {fileID: 2935865750439854505}
   m_Layer: 0
   m_Name: "\uB9C8\uC744\uC0AC\uB78C"
   m_TagString: Untagged
@@ -41347,37 +41346,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2935865750439854505
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2935865750439854504}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5134c5114014cb74bb28136656371e03, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.NoiseListener
-  _hearRadius: 9
-  _notice: 0.28
-  _alarm: 0.6
-  _throughWalls: 0.45
-  _wallMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  _cooldown: 2.5
-  _turnToward: 1
-  _turnSpeed: 160
-  _turn: {fileID: 0}
-  _turnHold: 2
-  _onNoticed:
-    m_PersistentCalls:
-      m_Calls: []
-  _onAlarmed:
-    m_PersistentCalls:
-      m_Calls: []
-  _log: 0
 --- !u!95 &2935865750439854506
 Animator:
   serializedVersion: 7

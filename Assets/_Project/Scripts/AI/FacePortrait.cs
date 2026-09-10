@@ -34,6 +34,16 @@ namespace IMUNROK.Common
             public Camera cam;
             public RenderTexture rt;
             public GameObject go;
+
+            /// <summary>
+            /// 얼굴을 비추는 작은 불. <b>찍는 동안에만</b> 켠다.
+            ///
+            /// 켜 둔 채로 두면 이 불이 <b>세계에도 샌다</b> — 사람 얼굴 앞 반 뼘에
+            /// 매달린 점광이라, 밤 마당에서 그 사람 둘레만 환해진다. 증언을 수첩에
+            /// 적는 순간 찍개가 처음 만들어지므로, 「정황을 하나 얻으면 어디선가
+            /// 빛이 난다」로 보였다.
+            /// </summary>
+            public Light lamp;
         }
 
         private static readonly Dictionary<Transform, Shot> Shots = new Dictionary<Transform, Shot>();
@@ -85,6 +95,8 @@ namespace IMUNROK.Common
             l.intensity = 1.9f;
             l.range = 1.2f;
             l.shadows = LightShadows.None;
+            l.enabled = false;          // 찍을 때만 켠다 — 세계로 새지 않게
+            s.lamp = l;
 
             Shots[head] = s;
             Place(s, head, body);
@@ -116,10 +128,21 @@ namespace IMUNROK.Common
 
             Shot s;
             if (!Shots.TryGetValue(head, out s) || s.cam == null) return null;
-            bool was = s.cam.enabled;
+
+            // <b>찍는 그 한 칸만 켠다.</b> 켜 둔 채 두면 찍개가 통째로 살아 남아
+            // (여기서 처음 만들어진 것이라 아무도 다시 끄지 않는다) 그 사람 얼굴
+            // 앞에 불이 매달린 채 밤 내내 마당을 비춘다.
+            bool wasGo   = s.go.activeSelf;
+            bool wasCam  = s.cam.enabled;
+            bool wasLamp = s.lamp != null && s.lamp.enabled;
+
+            s.go.SetActive(true);
+            if (s.lamp != null) s.lamp.enabled = true;
             s.cam.enabled = true;
             s.cam.Render();                       // 이 한 칸만 찍는다
-            s.cam.enabled = was;
+            s.cam.enabled = wasCam;
+            if (s.lamp != null) s.lamp.enabled = wasLamp;
+            s.go.SetActive(wasGo);
 
             var prev = RenderTexture.active;
             RenderTexture.active = rt;
@@ -157,6 +180,7 @@ namespace IMUNROK.Common
                 if (on && kv.Key != null) Place(s, kv.Key, kv.Key.root);
                 s.go.SetActive(on);
                 if (s.cam != null) s.cam.enabled = on;
+                if (s.lamp != null) s.lamp.enabled = on;   // 명단이 떠 있는 동안만
             }
         }
 
