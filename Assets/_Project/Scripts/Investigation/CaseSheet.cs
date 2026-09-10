@@ -71,6 +71,12 @@ namespace IMUNROK.Common
         [Tooltip("수첩에 적힐 한 줄")]
         [SerializeField] private string _fieldLine = "조사 문서 — 무엇을 밝혀야 하는가";
 
+        [TextArea(2, 5)]
+        [Tooltip("현장에 닿았을 때 <b>펴는 대신 알리는</b> 한 마디. 별표로 감싼 낱말이 도드라진다.\n" +
+                 "여기에 <b>그 종이에 담긴 것</b>을 함께 적을 것 — 「무엇이 들었다」만 알리면 " +
+                 "펴 볼 까닭이 안 생긴다. 비우면 아무 말도 안 한다")]
+        [SerializeField] private string _fieldNotice = "";
+
         [Tooltip("화면이 밝아질 틈(초). 암전 중에 펴면 아무도 못 본다")]
         [SerializeField] private float _delay = 1.1f;
 
@@ -118,25 +124,58 @@ namespace IMUNROK.Common
 
             yield return new WaitForSeconds(Mathf.Max(0f, _delay));
 
-            // <b>들어서며 펴는 것은 조사 문서다.</b> 봉서는 어전에서 이미 읽었고
-            // 조사청 수첩에도 남아 있다 — 현장에 닿아 다시 그것을 펴면, 알던 것을
-            // 한 번 더 읽히고 정작 여기서 무엇을 해야 하는지는 안 적혀 있다.
-            // 아직 그 한 장이 없으면 예전처럼 봉서를 편다.
-            // <b>뒤를 어둡게 덮는다</b>(dim). 문서보기는 두 결로 쓰인다 —
-            // 방에서 곧바로 짚은 종이는 방을 보며 읽는 것이라 둘레를 안 덮고,
-            // <b>앉아서 하나만 뜯어보는</b> 것은 덮는다. 사건표는 뒤엣것이다:
-            // 현장에 막 들어서서 「무엇을 밝혀야 하는가」를 읽는 참이라, 이때
-            // 마당이며 지나가는 사람이며가 종이 뒤에서 어른거리면 그 한 장에 눈이 안 간다.
-            // (기본값이 false 라 여태 안 덮이고 있었다 — 안 넘긴 것이 곧 안 덮는 것이었다.)
+            // <b>사목은 펴지 않는다 — 알리기만 한다.</b>
+            //
+            // 여태 현장에 닿자마자 사목을 눈앞에 펴 주었다. 그런데 <b>받은 것은
+            // 봉서지 사목이 아니다</b> — 어전에서 봉서를 받아 조사청을 거쳐 왔고,
+            // 사목은 현감이 못 가려 상부에 올린 관아의 종이다. 그것이 손에 쥐여진 듯
+            // 첫 화면에 펼쳐지면 받은 것과 주운 것이 한데 섞인다.
+            //
+            // 게다가 걸음을 떼기도 전에 종이 한 장이 시야를 덮는 것은, 읽으라는
+            // 것이 아니라 <b>치우라는</b> 것이 된다 — 실제로 거의 다 곧바로 내려놓았다.
+            //
+            // 그래서 담긴 것을 <b>알림 한 마디에 같이 실어</b> 보내고, 펴 보는 것은
+            // 소지품에 맡긴다. 알림은 소지품을 한 번 펴면 스스로 물러난다.
             if (_fieldPage != null)
-                DocumentView.Show(_fieldPage,
-                                  string.IsNullOrEmpty(_fieldTitle) ? _title : _fieldTitle,
-                                  _fieldBody,
-                                  string.IsNullOrEmpty(_fieldFine) ? null : _fieldFine,
-                                  null, true);
+            {
+                if (!string.IsNullOrWhiteSpace(_fieldNotice))
+                {
+                    StatusPanel.Set(NoticeOwner, 2, _fieldNotice);
+                    _noticeUp = true;
+                }
+            }
             else
+            {
+                // 사목이 아직 없는 사건이면 예전처럼 봉서를 편다.
+                // <b>뒤를 어둡게 덮는다</b>(dim) — 앉아서 하나만 뜯어보는 자리다.
                 DocumentView.Show(_page, _title, body, string.IsNullOrEmpty(_fine) ? null : _fine,
                                   null, true);
+            }
+        }
+
+        /// <summary>상태 줄에서 쓰는 이름표. 다른 안내와 안 겹치게 한 군데에 적어 둔다.</summary>
+        private const string NoticeOwner = "사목";
+        private bool _noticeUp;
+
+        /// <summary>
+        /// <b>한 번 펴 보면 알림은 물러난다.</b>
+        ///
+        /// 안내는 <b>아직 안 한 일</b>을 가리킬 때만 안내다. 소지품을 펴 본 사람에게
+        /// 「소지품을 펴 보라」가 계속 붙어 있으면 그때부터는 잔소리이고, 잔소리는
+        /// 안 읽히면서 자리만 차지한다.
+        /// </summary>
+        private void Update()
+        {
+            if (!_noticeUp || !JournalView.AnyOpen) return;
+            _noticeUp = false;
+            StatusPanel.Clear(NoticeOwner);
+        }
+
+        private void OnDisable()
+        {
+            if (!_noticeUp) return;
+            _noticeUp = false;
+            StatusPanel.Clear(NoticeOwner);
         }
     }
 }

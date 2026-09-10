@@ -49,6 +49,29 @@ namespace IMUNROK.Common
         private RectTransform _col;
         private RectTransform _page;                       // 판 전체 — 쪽·안내가 여기 붙는다
         private TextMeshProUGUI _title, _brief, _foot;
+
+        // ── 상세 ────────────────────────────────────────────────
+        //
+        // <b>칸을 누르면 그 자리에서 자세히 본다.</b>
+        //
+        // 여태 칸을 누르면 <b>판이 통째로 닫히고</b> 물건이 손에 들렸다. 그것은 그것대로
+        // 좋은 손짓이지만(끌어 돌려 보고 돋보기를 댄다), 그 앞에 <b>한 뼘이 비어</b> 있었다 —
+        // 「이게 뭐였더라」를 알려면 판을 닫고 종이를 펴고 다시 판을 여는 수밖에 없었다.
+        // 저쪽 소지품 판은 목록 ▸ 상세 두 켜로 되어 있고, 상세에서 크게 보고 읽은 뒤
+        // 거기서 「쓰기」로 넘어간다. 같은 판이라면 같은 켜를 가져야 한다.
+        //
+        // 그래서 한 켜를 넣는다: 칸을 누르면 <b>판 안에서</b> 크게 뜨고, 거기서
+        // 「손에 들고 본다」로 넘어가거나 「들이밀기」로 내민다.
+        private RectTransform _detail;          // 상세 켜 — 목록과 번갈아 뜬다
+        private RectTransform _detailButtons;   // 그 아래 단추 줄(볼 때마다 다시 짓는다)
+        private RawImage _detailShot;
+        private RectTransform _detailShotRt;
+        private TextMeshProUGUI _detailName, _detailBody;
+        private readonly List<GameObject> _detailChips = new List<GameObject>();
+
+        /// <summary>지금 상세를 보고 있나. 그동안에는 휠도 쪽을 안 넘긴다.</summary>
+        private bool InDetail { get { return _detail != null && _detail.gameObject.activeSelf; } }
+
         private readonly List<GameObject> _cards = new List<GameObject>();
 
         /// <summary>
@@ -114,12 +137,19 @@ namespace IMUNROK.Common
         {
 #if ENABLE_INPUT_SYSTEM
             var kb = UnityEngine.InputSystem.Keyboard.current;
-            if (kb != null && kb.escapeKey.wasPressedThisFrame) Close();
+            if (kb != null && kb.escapeKey.wasPressedThisFrame)
+            {
+                // 상세를 보는 중이면 <b>한 켜만</b> 물러난다. 자세히 보다 Esc 를 눌렀는데
+                // 판이 통째로 덮이면, 목록으로 돌아가려던 손이 세상으로 튕겨 나간다.
+                if (InDetail) BackToList();
+                else Close();
+                return;
+            }
 
             // 휠로도 쪽을 넘긴다. 저쪽 꾸러미가 휠에 쪽 넘기기를 걸어 두었으니
             // 같은 판을 보는 사람이 같은 손짓을 쓰는 것이 맞다.
             var m = UnityEngine.InputSystem.Mouse.current;
-            if (m != null && _pageCount > 1)
+            if (m != null && _pageCount > 1 && !InDetail)
             {
                 float dy = m.scroll.ReadValue().y;
                 if (dy > 0.01f) Turn(-1);
@@ -159,7 +189,7 @@ namespace IMUNROK.Common
         {
             _owner = owner;
             _pageNo = 0;              // 펼 때마다 첫 쪽부터
-            Rebuild();
+            BackToList();             // 상세를 보다 덮었어도 다시 펴면 목록부터
             SetVisible(true);
         }
 
@@ -213,8 +243,19 @@ namespace IMUNROK.Common
         /// <summary>빈 판에 뜨는 한 줄 — 저쪽 판의 36.</summary>
         private const int EmptySizeOf = 36;
 
-        /// <summary>칸에 얹는 그림 자리 — 저쪽 칸의 196×196.</summary>
-        private const float Shot = 196f;
+        /// <summary>
+        /// 칸에 얹는 그림 자리.
+        ///
+        /// 저쪽 칸은 196×196 을 +40 에 얹는데, 그 그림은 <b>3D 물건을 찍은 것</b>이라
+        /// 둘레에 빈 여백이 넉넉하다. 우리 그림은 <b>종이를 통째로 찍은 것</b>이라
+        /// 네 변이 꽉 차 있어, 같은 수를 쓰면 칸 위로 비어져 나온다
+        /// (196 을 +40 에 두면 윗변이 138 인데 칸 윗변이 136 이고, 속지는 128 이다).
+        /// 속지 안(±128)에 들어가고 아래 이름줄과도 안 겹치게 줄여 잡는다.
+        /// </summary>
+        private const float Shot = 172f;
+
+        /// <summary>그림이 앉는 높이. 위로 124, 아래로 −48 — 속지 안이다.</summary>
+        private const float ShotY = 38f;
 
         /// <summary>겹 하나. 무늬를 깐 네모를 어버이 위에 얹는다.</summary>
         private RectTransform Plate(string name, Sprite sp, Color c, Transform parent)
@@ -306,6 +347,121 @@ namespace IMUNROK.Common
             // 아래 안내 한 줄 — 저쪽 <c>hintText</c> 자리(−516).
             _foot = NewText("안내", "", new Vector2(0f, -516f), new Vector2(1840f, 40f),
                             page, HintSizeOf, UiLook.With(UiLook.InkSoft, 0.9f));
+
+            BuildDetail(page);
+        }
+
+
+        /// <summary>
+        /// 상세 켜를 짓는다(한 번만). 자리는 저쪽 소지품 판의 상세와 같다 —
+        /// 왼쪽에 큰 그림 한 장, 오른쪽에 이름과 읽을 것.
+        /// </summary>
+        private void BuildDetail(RectTransform page)
+        {
+            _detail = NewRect("상세", Vector2.zero, new Vector2(PageW, PageH), page);
+
+            // 왼쪽 — 그림틀. 칸의 그림과 달리 여기서는 종이가 <b>읽히는 크기</b>로 뜬다.
+            var frame = NewRect("그림틀", new Vector2(-470f, 14f), new Vector2(700f, 700f), _detail);
+            Skin(frame.gameObject.AddComponent<Image>(), _skin.Wood_, UiLook.Wood);
+            Stretch(Plate("그림바탕", _skin.Slot_, _cardColor, frame), -10f);
+            _detailShotRt = NewRect("그림", Vector2.zero, new Vector2(660f, 660f), frame);
+            _detailShot = _detailShotRt.gameObject.AddComponent<RawImage>();
+            _detailShot.raycastTarget = false;
+
+            // 오른쪽 — 이름, 그 밑에 줄 하나, 그 밑에 읽을 것.
+            const float TextX = 400f, TextW = 940f;
+            _detailName = NewText("이름", "", new Vector2(TextX, 296f), new Vector2(TextW, 72f),
+                                  _detail, 46, _inkColor);
+            _detailName.alignment = TextAlignmentOptions.Left;
+            _detailName.fontStyle = FontStyles.Bold;
+            UiText.Wrap(_detailName, true);
+
+            var nameRule = NewRect("이름줄", new Vector2(TextX, 252f), new Vector2(TextW, 4f), _detail);
+            Skin(nameRule.gameObject.AddComponent<Image>(), _skin.Wood_, UiLook.Wood);
+
+            var box = NewRect("글틀", new Vector2(TextX, 20f), new Vector2(TextW, 420f), _detail);
+            box.gameObject.AddComponent<RectMask2D>();
+            _detailBody = NewText("글", "", Vector2.zero, new Vector2(TextW - 20f, 420f), box,
+                                  _clueFontSize, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.92f));
+            _detailBody.alignment = TextAlignmentOptions.TopLeft;
+            UiText.Wrap(_detailBody, true);
+
+            _detailButtons = NewRect("단추줄", new Vector2(0f, -420f), new Vector2(1712f, 80f), _detail);
+
+            _detail.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// 상세를 띄운다. <paramref name="onHold"/> 가 「손에 들고 본다」에 걸린다 —
+        /// 비어 있으면 그 단추가 안 뜬다(들 것이 없는 것이다).
+        /// </summary>
+        private void ShowDetail(Texture2D shot, string name, string body,
+                                System.Action onHold, ClueEntry present)
+        {
+            if (_detail == null) return;
+
+            _detailShot.texture = shot;
+            _detailShot.enabled = shot != null;
+            if (shot != null)
+            {
+                // 틀 안에 <b>온전히</b> 들어가게 맞춘다 — 종이는 세로가 길어, 폭에 맞추면
+                // 위아래가 잘린다.
+                float ar = shot.height > 0 ? (float)shot.width / shot.height : 1f;
+                float hh = 660f, ww = hh * ar;
+                if (ww > 660f) { ww = 660f; hh = ww / Mathf.Max(0.01f, ar); }
+                _detailShotRt.sizeDelta = new Vector2(ww, hh);
+            }
+
+            _detailName.text = string.IsNullOrEmpty(name) ? "(이름 없는 것)" : name;
+            _detailBody.text = Emphasis.Rich(body ?? "", Emphasis.OnPaper);
+
+            foreach (var c in _detailChips) if (c != null) Destroy(c);
+            _detailChips.Clear();
+
+            bool talking = InterrogationController.AnyOpen && InterrogationController.Active != null;
+            var row = new List<KeyValuePair<string, System.Action>>();
+            if (onHold != null) row.Add(new KeyValuePair<string, System.Action>("손에 들고 본다", onHold));
+            if (talking && present != null && present.presentable)
+            {
+                var captured = present;
+                row.Add(new KeyValuePair<string, System.Action>("들이밀기", () =>
+                {
+                    InterrogationController.Active?.PresentFromJournal(captured);
+                    _owner?.Close();
+                }));
+            }
+            row.Add(new KeyValuePair<string, System.Action>("◀ 목록으로", BackToList));
+
+            const float bw = 320f, bgap = 24f;
+            float x0 = -(row.Count * bw + (row.Count - 1) * bgap) * 0.5f + bw * 0.5f;
+            for (int i = 0; i < row.Count; i++)
+            {
+                bool last = i == row.Count - 1;
+                var rt = NewRect(row[i].Key, new Vector2(x0 + i * (bw + bgap), 0f),
+                                 new Vector2(bw, 72f), _detailButtons);
+                var bg = rt.gameObject.AddComponent<Image>();
+                // 물러나는 단추는 <b>묽게</b> — 시키는 것과 되돌아가는 것은 무게가 다르다.
+                Skin(bg, _skin.Wood_, last ? UiLook.With(UiLook.InkSoft, 0.75f) : _presentColor);
+                var b = rt.gameObject.AddComponent<Button>();
+                b.targetGraphic = bg;
+                var act = row[i].Value;
+                b.onClick.AddListener(() => act());
+                NewText("라벨", row[i].Key, Vector2.zero, new Vector2(bw - 24f, 72f), rt,
+                        _clueFontSize - 4, UiLook.SealText);
+                _detailChips.Add(rt.gameObject);
+            }
+
+            _col.gameObject.SetActive(false);
+            _detail.gameObject.SetActive(true);
+            _foot.text = "◀ 목록으로 — 돌아간다   ·   Esc — 덮기";
+        }
+
+        /// <summary>상세에서 목록으로 되돌아간다.</summary>
+        private void BackToList()
+        {
+            if (_detail != null) _detail.gameObject.SetActive(false);
+            if (_col != null) _col.gameObject.SetActive(true);
+            Rebuild();
         }
 
         // ── 내용(펼칠 때마다) ──
@@ -328,14 +484,16 @@ namespace IMUNROK.Common
             foreach (var c in clues) if (c.kind != ClueKind.물증) laid.Add(c);
             int nJeong = laid.Count - nMul;
 
-            string tally = nJeong > 0 ? $"물증 {nMul} · 들은 말 {nJeong}" : $"물증 {nMul}";
-            string head = _owner != null ? _owner.CaseBrief : null;
-            _title.text = string.IsNullOrWhiteSpace(head)
-                        ? $"수첩 — {tally}"
-                        : $"{head}      ({tally})";
+            // <b>판 이름은 「소지품」 하나다.</b> 여태 제목 줄에 사건 이름·물증 수를
+            // 함께 밀어 넣어 「수첩 — 물증 9 · 들은 말 2」가 되어 있었다. 저쪽 판의
+            // 제목은 <b>이 판이 무엇인가</b> 한마디뿐이고, 그것이 맞다 — 무엇이 들었는지는
+            // 칸이 이미 보여 준다. 세는 수는 개요 줄로 내린다.
+            _title.text = "소지품";
 
+            string tally = nJeong > 0 ? $"물증 {nMul} · 들은 말 {nJeong}" : $"물증 {nMul}";
             string brief = Journal.Instance.GetBrief(caseId);
-            _brief.text = string.IsNullOrWhiteSpace(brief) ? "" : brief;
+            if (string.IsNullOrWhiteSpace(brief)) brief = _owner != null ? _owner.CaseBrief : null;
+            _brief.text = string.IsNullOrWhiteSpace(brief) ? tally : brief + "      (" + tally + ")";
 
             // 심문 중일 때만 들이밀 수 있다
             bool talking = InterrogationController.AnyOpen && InterrogationController.Active != null;
@@ -427,8 +585,8 @@ namespace IMUNROK.Common
                 var doc = Journal.Instance.GetDocument(caseId, c.key);
                 Texture2D shot = doc != null ? doc.page : Journal.Instance.GetClueImage(caseId, c.key);
 
-                // 생김새 — 저쪽 칸의 그림 자리(196×196, 위로 40)와 같게.
-                var shotRt = NewRect("모양", new Vector2(0f, 40f), new Vector2(Shot, Shot), card);
+                // 생김새 — 속지 안에 들어가는 크기로.
+                var shotRt = NewRect("모양", new Vector2(0f, ShotY), new Vector2(Shot, Shot), card);
                 if (shot != null)
                 {
                     var raw = shotRt.gameObject.AddComponent<RawImage>();
@@ -449,8 +607,8 @@ namespace IMUNROK.Common
 
                 // 이름 — 단서 문구의 첫 토막만. 나머지는 손에 들면 아래에 나온다.
                 // 자리·크기·맞춤 전부 저쪽 칸의 이름줄 그대로다(−96, 292×80, 30, 위쪽맞춤).
-                var name = NewText("이름", ShortName(doc, c), new Vector2(0f, -96f),
-                                   new Vector2(cw - 28f, 80f), card, _clueFontSize - 4, _inkColor);
+                var name = NewText("이름", ShortName(doc, c), new Vector2(0f, -92f),
+                                   new Vector2(cw - 28f, 72f), card, _clueFontSize - 4, _inkColor);
                 name.alignment = TextAlignmentOptions.Top;
                 UiText.Wrap(name, true);
 
@@ -458,10 +616,16 @@ namespace IMUNROK.Common
                 var btn = card.gameObject.AddComponent<Button>();
                 btn.targetGraphic = bg;
                 int at = i;
+                var captured2 = c;
+                var doc2 = doc;
                 btn.onClick.AddListener(() =>
                 {
-                    OpenAt(at);
-                    _owner?.Close();   // 수첩을 덮어야 두 손이 빈다
+                    // <b>판 안에서 먼저 크게 본다.</b> 손에 드는 것은 그다음이다.
+                    ShowDetail(shot,
+                               ShortName(doc2, captured2),
+                               doc2 != null && !string.IsNullOrEmpty(doc2.body) ? doc2.body : captured2.text,
+                               () => { OpenAt(at); _owner?.Close(); },   // 수첩을 덮어야 두 손이 빈다
+                               captured2);
                 });
 
                 // 심문 중이면 들이밀 수 있다
@@ -503,10 +667,9 @@ namespace IMUNROK.Common
         private void FillCaseSheets()
         {
             var sheets = Journal.Instance.CaseSheets();
-            _title.text = sheets.Count == 0
-                        ? "수첩 — 아직 맡은 사건이 없다"
-                        : "수첩 — 맡은 사건 " + sheets.Count;
-            _brief.text = "";
+            _title.text = "소지품";
+            _brief.text = sheets.Count == 0 ? "아직 맡은 사건이 없다"
+                                            : "받아 온 봉서 " + sheets.Count;
             _pageCount = 1;
             _pageNo = 0;
             _shown = null;                  // 여기서는 이웃으로 넘길 물증 목록이 없다
@@ -537,7 +700,7 @@ namespace IMUNROK.Common
                 Stretch(Plate("속", _skin.Slot_, _cardColor, card), -8f);
                 _cards.Add(card.gameObject);
 
-                var shotRt = NewRect("모양", new Vector2(0f, 40f), new Vector2(Shot, Shot), card);
+                var shotRt = NewRect("모양", new Vector2(0f, ShotY), new Vector2(Shot, Shot), card);
                 if (d.page != null)
                 {
                     var img = shotRt.gameObject.AddComponent<RawImage>();
@@ -550,7 +713,7 @@ namespace IMUNROK.Common
                 }
 
                 var name = NewText("이름", string.IsNullOrEmpty(d.title) ? d.caseId.ToString() : d.title,
-                                   new Vector2(0f, -96f), new Vector2(cw - 28f, 80f),
+                                   new Vector2(0f, -92f), new Vector2(cw - 28f, 72f),
                                    card, _clueFontSize - 4, _inkColor);
                 name.alignment = TextAlignmentOptions.Top;
                 UiText.Wrap(name, true);
@@ -560,10 +723,13 @@ namespace IMUNROK.Common
                 var dd = d;
                 btn.onClick.AddListener(() =>
                 {
-                    DocumentView.Show(dd.page, dd.title, dd.body, dd.fine, null, true,
-                                      null, null, null, null, dd.back);
-                    DocumentView.SetStageModel(dd.model, dd.modelEuler);
-                    _owner?.Close();
+                    ShowDetail(dd.page, dd.title, dd.body, () =>
+                    {
+                        DocumentView.Show(dd.page, dd.title, dd.body, dd.fine, null, true,
+                                          null, null, null, null, dd.back);
+                        DocumentView.SetStageModel(dd.model, dd.modelEuler);
+                        _owner?.Close();
+                    }, null);
                 });
             }
         }

@@ -94,7 +94,7 @@ namespace IMUNROK.Common
         {
             new ToolWord { toolId = "journal", lines = new[]
             {
-                "수첩이오. 주운 물증이 저절로 적히오. I 를 누르면 펴지고, 첫 장에 사건 개요가 있소. " +
+                "소지품이오. 주운 물증이 저절로 적히오. I 를 누르면 펴지고, 첫 줄에 사건 개요가 있소. " +
                 "귀로 들은 말은 여기 안 적히니, 붉게 지나가는 말은 그 자리에서 새겨 두시오.",
             }},
             new ToolWord { toolId = "map",     lines = new[]

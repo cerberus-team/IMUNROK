@@ -26,7 +26,9 @@ namespace IMUNROK.Onggojip
         // 한 줄로 붙여 두면 방문 한 장이 화면을 가로지른다. 굵은 한 마디와
         // 곁말로 나눈다 — 눈에 먼저 드는 것은 「어디에 닿았는가」다.
         [TextArea] [SerializeField] private string _introLine = "마을 어귀에 닿았다";
-        [TextArea] [SerializeField] private string _introSub = "수첩(J)을 살피거나, 지나는 이에게 말을 걸어보자";
+        // ⚠️ 글쇠가 <b>거짓말</b>이었다. 판은 I 로 열리는데(JournalView) 여기는 J 라 적혀 있었다.
+        //    그리고 판의 이름은 이제 「소지품」이다 — 화면에 적힌 이름과 부르는 이름이 달라선 안 된다.
+        [TextArea] [SerializeField] private string _introSub = "소지품(I)을 살피거나, 지나는 이에게 말을 걸어보자";
         [TextArea] [SerializeField] private string _investigateLine = "밤이다. 몰래 집 안을 조사하라";
         [TextArea] [SerializeField] private string _readyLine = "증거를 다 모았다 — 품속의 마패를 내보여라  (F 꾹 누르기)";
 

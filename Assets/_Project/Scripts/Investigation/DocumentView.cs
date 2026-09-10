@@ -721,7 +721,7 @@ namespace IMUNROK.Common
             }
             // 종이는 집을 때 이미 수첩에 적힌다. 유리로 읽어 낸 것은 <b>그 위에 더해진
             // 것</b>이라, 「수첩에 적어 두었다」고 하면 유리를 안 댄 종이는 안 적힌 줄 안다.
-            if (_readDone) _hint.text = "잔글씨를 읽어 냈다 — 알아낸 것이 수첩에 더해졌다";
+            if (_readDone) _hint.text = "잔글씨를 읽어 냈다 — 알아낸 것이 소지품에 더해졌다";
             else if (_sinceRead < 0.25f && _readProgress > 0.05f)
                 _hint.text = "읽는 중… " + Mathf.RoundToInt(Mathf.Clamp01(_readProgress) * 100f) + "%";
 

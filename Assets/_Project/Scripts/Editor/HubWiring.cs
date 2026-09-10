@@ -289,7 +289,7 @@ namespace IMUNROK.Common.EditorTools
             (string tool, string model, float size, string[] steps)[] set =
             {
                 ("Tool_journal.asset", "서책", 0.20f, new[]{
-                    "수첩이다. 찾은 단서가 여기에 저절로 적힌다.",
+                    "소지품이다. 찾은 단서가 여기에 저절로 적힌다.",
                     "손에 들고 누르면 펼쳐진다. 심문 중에는 적힌 단서를 골라 들이밀 수도 있다.",
                 }),
                 ("Tool_map.asset", "두루마리", 0.30f, new[]{
