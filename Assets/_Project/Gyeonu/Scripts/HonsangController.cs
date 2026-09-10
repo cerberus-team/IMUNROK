@@ -43,6 +43,11 @@ namespace IMUNROK.Gyeonu
         [Tooltip("별밤 카메라 시야각 — 돔 전체가 한눈에 들어오게 넓힌다 (데스크톱 한정, 소등 때 복원)")]
         public float gazeFov = 74f;
 
+        [Header("점등 뒤 안내 (2026-09-09)")]
+        [Tooltip("점등 연출이 끝나고 조작이 돌아올 때 하단에 고정으로 띄우는 문구. " +
+                 "비밀지도(A1)를 지녔고 아직 길을 밝히지 않았을 때만 뜬다. 비우면 안 띄운다")]
+        public string afterIgniteHint = "별이 자리를 잡았다. 지도를 펼쳐볼 때다.";
+
         [Header("관측실 연동 (이름으로 탐색)")]
         public string roomRootName = "관측실";
         public string lightGroupName = "조명";
@@ -92,6 +97,7 @@ namespace IMUNROK.Gyeonu
         public void StarNight(bool on)
         {
             SetLit(on);
+            StarNightChanged?.Invoke(this, on);
             var root = GameObject.Find(roomRootName);
             if (root == null) return;
             var lights = root.transform.Find(lightGroupName);
@@ -133,6 +139,13 @@ namespace IMUNROK.Gyeonu
         // 시퀀스 시작 시 포커스 중이면 자동 해제(③), 진행 중 이동 잠금.
 
         public bool SequenceRunning { get; private set; }
+
+        /// <summary>
+        /// 별밤이 켜지거나 꺼졌다 — (혼상, 켜짐). 점등 시퀀스가 <b>시작되는 순간</b> 참으로,
+        /// 소등 시퀀스가 시작되는 순간 거짓으로 난다 (즉시 토글 StarNight 도 같다).
+        /// 음악(<see cref="MusicDirector"/>)이 여기에 붙어 E01 밤하늘 재현을 튼다 (2026-09-09).
+        /// </summary>
+        public static event System.Action<HonsangController, bool> StarNightChanged;
 
         /// <summary>점등 연출 — 퍼즐 로직은 이것 하나만 부르면 된다.</summary>
         public void PlayIgnite()
@@ -179,6 +192,7 @@ namespace IMUNROK.Gyeonu
         {
             SequenceRunning = true;
             IsLit = true;
+            StarNightChanged?.Invoke(this, true);
             var rig = FindFirstObjectByType<DebugFocusRig>();
             if (rig != null) rig.ExitFocus();                        // ③ 포커스 중이었다면 자동 해제
             var walk = FindFirstObjectByType<DebugWalkController>();
@@ -252,12 +266,19 @@ namespace IMUNROK.Gyeonu
             if (cam != null) cam.fieldOfView = gazeFov;
             if (walk != null) walk.enabled = true;                              // ⑥ 조작 복귀
             SequenceRunning = false;
+
+            // ⑦ 다음 할 일 — 지도를 펼쳐 별과 맞춰 볼 차례다 (E01 밤하늘 재현은 그때까지 이어진다)
+            if (!string.IsNullOrEmpty(afterIgniteHint)
+                && Inventory.Has(SecretMapUse.ItemId)
+                && !GyeonuWorld.Has(GyeonuWorld.F_타공지도_길밝힘))
+                DebugToast.ShowPinned(afterIgniteHint);
         }
 
         IEnumerator ExtinguishSeq()
         {
             SequenceRunning = true;
             IsLit = false;
+            StarNightChanged?.Invoke(this, false);
             var rig = FindFirstObjectByType<DebugFocusRig>();
             if (rig != null) rig.ExitFocus();
             var walk = FindFirstObjectByType<DebugWalkController>();

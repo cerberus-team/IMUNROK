@@ -64,6 +64,9 @@ namespace IMUNROK.Gyeonu
         /// <summary>고마움을 표했다 — 어머니·최초의 직녀의 Thank 모션이 여기에 붙는다.</summary>
         public event Action Thanked;
 
+        /// <summary>노래를 청해 아이가 응했다 — <see cref="ChildrenSong"/> 이 여기에 붙는다 (2026-09-09).</summary>
+        public event Action SongRequested;
+
         public DialogueSession(NpcProfile profile, MonoBehaviour host)
         {
             Profile = profile;
@@ -114,19 +117,8 @@ namespace IMUNROK.Gyeonu
             // grantOnFirstTalk는 하위 에셋 호환을 위해 필드는 남기되 런타임에서는 사용하지 않는다.
         }
 
-        /// <summary>공통 연동과 <b>같은 자리</b>의 키 파일을 본다 (프로젝트 루트, .gitignore 등재).</summary>
-        public static bool HasApiKey
-        {
-            get
-            {
-                try
-                {
-                    string path = Path.Combine(Application.dataPath, "..", "gemini_api_key.txt");
-                    return File.Exists(path) && File.ReadAllText(path).Trim().Length > 0;
-                }
-                catch { return false; }
-            }
-        }
+        /// <summary>키 파일이 있는가 — StreamingAssets/gemini_key.txt 또는 루트 gemini_api_key.txt (<see cref="GeminiKeyFile"/>).</summary>
+        public static bool HasApiKey => GeminiKeyFile.Exists();
 
         // ─────────────────────────────────────────────────────────
         //  ① 말하기
@@ -289,6 +281,15 @@ namespace IMUNROK.Gyeonu
                 {
                     Debug.Log("[대화] " + Profile.displayName + " → 단서 " + ClueTable.Label(id));
                     GyeonuCase.CheckContradictionsFromClues();
+
+                    // C3 선아의 풀이표는 정보이자 <b>쪽지</b>다 (2026-09-10). 대화로 얻는 순간 실물도 소지품에
+                    // 넣어 서고에서 다시 펴 볼 수 있게 한다 — 장부 1단계는 플래그만 보지만, 기준을 한 번 들은
+                    // 말로만 기억하게 두면 서고 앞에서 막힌다. 이미 지녔으면 Add가 그냥 false를 돌려준다.
+                    if (id == ClueId.C3)
+                    {
+                        var sheet = Inventory.Find("C3");
+                        if (sheet != null && Inventory.Add(sheet)) Debug.Log("[대화] 선아가 풀이표 쪽지를 건넸다 — 소지품 C3");
+                    }
                 }
                 foreach (var f in Profile.grantableFlags) GyeonuCase.SetFlag(f);
             }
@@ -335,14 +336,23 @@ namespace IMUNROK.Gyeonu
                 Thanked?.Invoke();
             }
 
+            // ── 노래 청하기 ─────────────────────────────────────
+            //    아이들이 [노래] 를 적으면 실제 노래(V01)가 아이들 자리에서 난다. 플레이어가 정말
+            //    노래를 청했을 때만 통과시킨다 — AI가 제멋대로 부르기 시작하면 안 된다.
+            if (DialogueGrantValidator.CanSing(Profile, playerMessage, answerWithMarkers))
+            {
+                Debug.Log("[대화] " + Profile.displayName + " → 노래를 청함");
+                SongRequested?.Invoke();
+            }
+
             // 떼어 낸다 — 플레이어에게는 대사만 보여야 한다.
             text = System.Text.RegularExpressions.Regex.Replace(
-                text, @"[\[\(【]\s*(단서|화제|모순|신분|비밀|고마움)\s*[:：]?\s*[^\]\)】]*[\]\)】]", "").Trim();
+                text, @"[\[\(【]\s*(단서|화제|모순|신분|비밀|고마움|노래)\s*[:：]?\s*[^\]\)】]*[\]\)】]", "").Trim();
             // 닫히지 않은 내부 표식도 줄 끝까지만 보수적으로 제거한다.
             text = System.Text.RegularExpressions.Regex.Replace(
-                text, @"(?im)^\s*[\[【(]?\s*(단서|화제|모순|신분|비밀|고마움)\s*[:：][^\r\n\]】)]*[\]】)]?\s*$", "").Trim();
+                text, @"(?im)^\s*[\[【(]?\s*(단서|화제|모순|신분|비밀|고마움|노래)\s*[:：][^\r\n\]】)]*[\]】)]?\s*$", "").Trim();
             text = System.Text.RegularExpressions.Regex.Replace(
-                text, @"(?im)^\s*[\[【(]\s*(단서|화제|모순|신분|비밀|고마움)\s*$", "").Trim();
+                text, @"(?im)^\s*[\[【(]\s*(단서|화제|모순|신분|비밀|고마움|노래)\s*$", "").Trim();
         }
 
         static IEnumerable<string> Matches(string text, string pattern)
@@ -437,6 +447,17 @@ namespace IMUNROK.Gyeonu
             facts.Add(GyeonuCase.Night ? "[지금] 밤이다. 마을은 어둡다." : "[지금] 낮이다.");
             if (GyeonuCase.Rain) facts.Add("[지금] 비가 내린다.");
 
+            // 아이들 — 노래를 실제로 불렀는지, 지금 부르는 중인지 (2026-09-09). 페르소나의 「노래를 청하면」과 짝이다.
+            if (!hostile && (Profile.npcId == NpcId.Child01 || Profile.npcId == NpcId.Child02 || Profile.npcId == NpcId.Child03))
+            {
+                if (ChildrenSong.Singing)
+                    facts.Add("[노래] 지금 너희가 그 노래를 부르고 있다. 다시 불러 달라 하면 지금 부르는 중이라고만 답하고 [노래] 는 쓰지 마라.");
+                else if (ChildrenSong.Sung)
+                    facts.Add("[노래] 아까 너희가 그 노래를 한 번 불렀다. 불러 달라고 청했을 때만 응하고 마지막 줄에 [노래] 를 적어라. 노래에 대해 묻기만 하면 말로만 답하고 [노래] 를 쓰지 마라.");
+                else
+                    facts.Add("[노래] 아직 이 사람 앞에서 노래를 부르지 않았다. 불러 달라고 청했을 때만 응하고 마지막 줄에 [노래] 를 적어라. 노래에 대해 묻기만 하면 말로만 답하고 [노래] 를 쓰지 마라.");
+            }
+
             if (!string.IsNullOrEmpty(presentedLabel))
                 facts.Add("[방금 상대가 내민 것] " + presentedLabel + " — 이에 대해 아는 만큼만 반응하라.");
 
@@ -530,6 +551,7 @@ namespace IMUNROK.Gyeonu
             Changed = null;
             SecretTold = null;
             Thanked = null;
+            SongRequested = null;
             if (_character != null) UnityEngine.Object.Destroy(_character);
             foreach (var s in _standIns) if (s != null) UnityEngine.Object.Destroy(s);
             _standIns.Clear();

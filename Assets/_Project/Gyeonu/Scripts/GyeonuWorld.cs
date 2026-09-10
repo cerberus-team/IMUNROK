@@ -89,6 +89,10 @@ namespace IMUNROK.Gyeonu
         public const string F_선아협력요청 = "seona_identity_or_help_offered";
         public const string F_아이노래들음 = "village_children_song_heard";
 
+        /// <summary>견우에게서 선아 집 열쇠를 받았다 (신뢰도 40, 2026-09-10). 선아 집 문(<see cref="SeonaHouseGate"/>)이
+        /// 이 플래그 또는 <see cref="GyeonuCase.HasSeonaHouseKey"/> 를 본다. 소지품 SEONA_HOUSE_KEY의 worldFlag이기도 하다.</summary>
+        public const string F_선아집열쇠 = "seona_house_key_held";
+
         /// <summary>마을 아이들에게 관아 담장 개구멍 이야기를 들었다 — 밤에만, 이 단서가 있어야
         /// 개구멍이 그냥 담장이 아니라 밀어서 여는 자리라는 걸 알아본다 (2026-08-21).
         /// 조건 미달이면 커서를 올려도 아무 반응이 없다 — 문인 줄도 모르는 상태다.</summary>
@@ -102,6 +106,10 @@ namespace IMUNROK.Gyeonu
         /// (2026-08-25). 단서 번호가 붙지 않은 정보라 플래그로만 남는다 (문서 「30」).
         /// ⚠️ 상대가 <b>관측실 아래를 봤다고 말해야만</b> 열린다 (B2 보유 + 실제 발화).</summary>
         public const string F_관아통로 = "gwana_passage_known";
+
+        /// <summary>견우마을에서 최초의 두 사람을 처음 마주쳐 주제곡(E02)을 들었다 (2026-09-09).
+        /// 그 뒤로는 견우마을에 기본 배경음(S11)만 흐른다. <see cref="MusicDirector"/> 가 세운다.</summary>
+        public const string F_최초두사람_주제곡 = "first_two_theme_played";
 
         /// <summary>
         /// 알려진 플래그 전부 — (키, 한글 이름). 디버그 창이 이 순서로 그린다.
@@ -125,8 +133,10 @@ namespace IMUNROK.Gyeonu
             (F_비밀문_안내함,   "비밀문 안내 봄"),
             (F_병풍_치움,      "병풍 치움"),
             (F_개구멍이야기,    "개구멍 이야기 들음"),
+            (F_선아집열쇠,      "선아 집 열쇠 받음"),
             (F_최초직녀만남,    "최초의 직녀를 만남"),
             (F_관아통로,       "관아 쪽 통로를 들음"),
+            (F_최초두사람_주제곡, "최초의 두 사람 주제곡 들음"),
             (F_아버지검수기록,  "아버지 검수 기록 (C1)"),
             (F_선아풀이표,     "선아의 풀이표 (C3)"),
             (F_장부복원,       "서고 ① 장부 복원"),

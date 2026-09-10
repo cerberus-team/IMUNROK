@@ -47,7 +47,7 @@ namespace IMUNROK.Gyeonu.EditorTools
             walk.Pitch = 0f;
 
             // 정보 단서 여럿 + 물건 단서 하나(C4 서책) — 제시 판에 두 갈래가 다 보이게
-            foreach (var code in new[] { "A3", "A5", "A6", "A7", "B3", "B4", "B6", "B7", "C6", "C7" })
+            foreach (var code in new[] { "A3", "A6", "A7", "B3", "B4", "B6", "B7", "C6", "C7" })
                 if (ClueTable.TryParse(code, out var id)) GyeonuCase.AddClue(id);
             var book = Inventory.Find("C4");
             if (book != null && Inventory.Add(book))

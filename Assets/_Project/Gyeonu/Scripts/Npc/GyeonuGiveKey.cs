@@ -33,6 +33,9 @@ namespace IMUNROK.Gyeonu
         [Tooltip("밤에만 건넨다. 낮의 견우(집 마당)에서는 꺼 둔다")]
         public bool keyNeedsNight = true;
 
+        [Tooltip("소지품에서 찾을 열쇠 물건 id. 선아 집 열쇠는 SEONA_HOUSE_KEY다 (2026-09-10)")]
+        public string keyItemId = "SEONA_HOUSE_KEY";
+
         [Header("② 타공 비밀지도 — 신뢰도 70")]
         public bool givesMap = true;
 
@@ -83,6 +86,10 @@ namespace IMUNROK.Gyeonu
 
             if (kind == Kind.Key)
             {
+                // 실물 열쇠가 소지품에 들어가고(worldFlag = F_선아집열쇠), 상태 쪽 표시도 함께 선다.
+                var key = Inventory.Find(keyItemId);
+                if (key != null) Inventory.Add(key);
+                else Debug.LogWarning("[견우] 열쇠 물건(" + keyItemId + ")을 못 찾아 상태 표시만 세웠다.");
                 GyeonuCase.HasSeonaHouseKey = true;
                 DebugToast.Show("견우에게서 선아 집 열쇠를 받았다.", 4f);
                 Debug.Log("[견우] 선아 집 열쇠 지급 (신뢰도 " + GyeonuCase.Trust + ")");

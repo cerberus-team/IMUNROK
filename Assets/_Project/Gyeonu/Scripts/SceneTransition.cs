@@ -58,6 +58,13 @@ namespace IMUNROK.Gyeonu
         public static event System.Action PlayerPlaced;
 
         /// <summary>
+        /// 전환을 시작하는 순간 발생 (암전보다 먼저). 인자는 목적지 씬 이름.
+        /// 음악(<see cref="MusicDirector"/>)이 여기서 앞 곡을 미리 잦아들게 한다 — 로드가 끝난 뒤에
+        /// 시작하면 앞 곡이 로드 내내 흐르다 뚝 끊긴다 (2026-09-10).
+        /// </summary>
+        public static event System.Action<string> Departing;
+
+        /// <summary>
         /// 씬을 전환한다. 이미 전환 중이면 무시한다.
         /// </summary>
         /// <param name="sceneName">목적지 씬 이름(Build Settings에 등록돼 있어야 한다)</param>
@@ -97,6 +104,7 @@ namespace IMUNROK.Gyeonu
         IEnumerator Run(string sceneName, string spawnName, float fadeOut, float fadeIn)
         {
             IsTransitioning = true;
+            Departing?.Invoke(sceneName);
 
             yield return Fade(0f, 1f, fadeOut);
 

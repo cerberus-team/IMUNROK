@@ -64,7 +64,7 @@ namespace IMUNROK.Gyeonu
                     break;
 
                 case NpcId.Seona:
-                    if (!CanRevealC3() && RevealsConcreteC3(a))
+                    if (!CanRevealC3(q) && RevealsConcreteC3(a))
                     {
                         correction = "아직 C3 협력 조건이 성립하지 않았다. 풀이표·비교 기준이나 검수 기록과 은닉 기록을 맞대는 구체적 방법을 말하지 말고, 현재 질문에 일반적으로만 답하라.";
                         return true;
@@ -104,7 +104,15 @@ namespace IMUNROK.Gyeonu
         static bool RevealsChildRoute(string a) =>
             (HasAny(a, "관아") && HasAny(a, "담장", "틈", "구멍", "개구멍")) ||
             (HasAny(a, "관아 뒤편") && HasAny(a, "들어가", "드나들", "기어"));
-        static bool CanRevealC3() => GyeonuCase.SeonaRescued && GyeonuCase.HasFlag(GyeonuWorld.F_선아협력요청);
+        /// <summary>
+        /// 구출 뒤 협력 요청이 <b>이미 기록돼 있거나, 지금 이 질문이 곧 협력 요청</b>이면 풀이표를 말해도 된다 (2026-09-10).
+        /// 플래그는 대답이 돌아온 뒤 <see cref="DialogueGrantValidator.ObserveFacts"/> 가 세우므로, 플래그만 보면
+        /// 첫 협력 질문은 언제나 가드에 막혀 안전 대사로 바뀌었다 — 두 번 물어야 C3가 나오던 원인이다.
+        /// 질문 판정 낱말은 ObserveFacts와 같은 목록을 쓴다.
+        /// </summary>
+        static bool CanRevealC3(string q) =>
+            GyeonuCase.SeonaRescued &&
+            (GyeonuCase.HasFlag(GyeonuWorld.F_선아협력요청) || DialogueGrantValidator.IsHelpOffer(q));
         static bool RevealsConcreteC3(string a) =>
             HasAny(a, "풀이표", "비교표") ||
             (HasAny(a, "비교 기준", "비교하는 기준", "대조 기준", "맞대어 보는 기준") && HasAny(a, "아버지", "검수", "관아", "은닉", "기록")) ||

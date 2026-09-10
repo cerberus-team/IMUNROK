@@ -98,19 +98,8 @@ namespace IMUNROK.Seocheon.AI
                 return;
             }
 
-            try
-            {
-                string path = Path.Combine(Application.dataPath, "..", config.apiKeyFileName);
-                if (File.Exists(path))
-                {
-                    string raw = File.ReadAllText(path).Trim();
-                    if (raw.Length > 0) apiKey = raw;
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError("[서천AI] 키 파일을 읽지 못했습니다: " + e.Message);
-            }
+            // StreamingAssets/gemini_key.txt(빌드에 실림) → 루트의 config.apiKeyFileName 순으로 본다 (2026-09-10)
+            apiKey = IMUNROK.Common.GeminiKeyFile.Load(config.apiKeyFileName);
 
             if (!HasApiKey)
             {

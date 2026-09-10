@@ -245,13 +245,9 @@ namespace IMUNROK.Gyeonu.EditorTools
                 // ⚠️ 문서 「28. 그룹 연출」 — 시작을 4초·6초씩 어긋낸다
                 new Slot { id = NpcId.Child01, name = "VillageChild_01",
                            pos = new Vector3(67.26f, 0f, 9.25f), yaw = 0f, at = 낮, startDelay = 0f,
-                           extra = go =>
-                           {
-                               var song = Add<ChildSongTrigger>(go);
-                               var trigger = go.AddComponent<SphereCollider>();
-                               trigger.isTrigger = true;
-                               trigger.radius = 7f;
-                           } },
+                           // 아이들 노래(V01)는 아이01에 붙은 ChildrenSong 이 세 아이 한가운데서 3D로 튼다 (2026-09-09).
+                           // 씬이 열릴 때 스스로 붙기도 하지만, 설치 때 붙여 두면 인스펙터에서 간격·거리를 만질 수 있다.
+                           extra = go => { Add<ChildrenSong>(go); } },
                 new Slot { id = NpcId.Child03, name = "VillageChild_03",
                            pos = new Vector3(66.58f, 0f, 12.81f), yaw = 128f, at = 낮, startDelay = 4f },
                 new Slot { id = NpcId.Child02, name = "VillageChild_02",

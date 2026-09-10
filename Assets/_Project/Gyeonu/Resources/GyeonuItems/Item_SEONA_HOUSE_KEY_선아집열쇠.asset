@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 194906f6a2bfdf04ea57ad6baefede6d, type: 3}
+  m_Name: "Item_SEONA_HOUSE_KEY_\uC120\uC544\uC9D1\uC5F4\uC1E0"
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.InventoryItem
+  itemId: SEONA_HOUSE_KEY
+  displayName: "\uC120\uC544 \uC9D1 \uC5F4\uC1E0"
+  pickupVerb: "\uBC1B\uAE30"
+  description: "\uACAC\uC6B0\uAC00 \uD488\uC5D0\uC11C \uAEBC\uB0B4 \uAC74\uB128 \uB098\uBB34
+    \uC5F4\uC1E0\uB2E4. \uC190\uB54C\uAC00 \uBC30\uC5B4 \uACB0\uC774 \uB9E4\uB048\uD558\uB2E4.\n\n\uC120\uC544\uAC00
+    \uBC24\uC5D0 \uB4DC\uB098\uB4E4 \uB54C \uC4F0\uB358 \uAC83\uC774\uB77C \uD588\uB2E4.
+    \uBB38\uC758 \uBE57\uC7A5\uC744 \uC548\uC5D0\uC11C \uAC78\uC5B4 \uB450\uACE0\uB3C4
+    \uC774 \uC5F4\uC1E0\uB85C \uBC16\uC5D0\uC11C \uC816\uD790 \uC218 \uC788\uAC8C
+    \uB418\uC5B4 \uC788\uB2E4.\n\n\uC774\uC81C \uC120\uC544 \uC9D1\uC5D0 \uB4E4\uC5B4\uAC08
+    \uC218 \uC788\uB2E4."
+  modelPrefab: {fileID: 9089159918916711690, guid: 1e6ab5627a7b2fc49bec5ca8a217ff44, type: 3}
+  previewEuler: {x: -78, y: 0, z: 10}
+  previewZoom: 1.05
+  usable: 0
+  useLabel: "\uC0AC\uC6A9\uD558\uAE30"
+  useNotReadyHint: "\uC544\uC9C1 \uC5EC\uAE30\uC11C \uC4F8 \uC218 \uC5C6\uB2E4."
+  autoShowOnPickup: 1
+  journalKey: seona_house_key
+  journalText: "\uACAC\uC6B0\uC5D0\uAC8C\uC11C \uBC1B\uC740 \uC120\uC544 \uC9D1 \uC5F4\uC1E0.
+    \uB098\uBB34\uB85C \uAE4E\uC740 \uAC83\uC774\uB2E4."
+  worldFlag: seona_house_key_held

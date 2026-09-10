@@ -351,9 +351,7 @@ namespace IMUNROK.Gyeonu.Editor
             dn.door = dd;
             dn.openByDay = true;
             dn.openByNight = false;
-            // ★밤 통제는 아직 끈다 — 개구멍 경로가 없어 지금 켜면 밤에 관아를 못 들어간다.
-            //   경로가 생기면 이 한 줄만 true 로.
-            dn.lockAtNight = false;
+            // 2026-09-10 — 밤 잠금은 GateDayNight 가 늘 켠다 (개구멍이 정규 경로). 스위치는 없앴다.
 
             // ★컴포넌트를 붙이는 순간 에디터가 Awake/OnEnable 을 돌려 문짝을 '열린 자세'로 밀어 놓는다
             //   (실제로 문짝이 처마 밖 1.5m 로 날아갔다). 씬에는 반드시 닫힌 자세가 저장돼야 하므로
@@ -362,7 +360,7 @@ namespace IMUNROK.Gyeonu.Editor
             r.localPosition = dd.rightPivot; r.localRotation = Quaternion.identity;
 
             EditorUtility.SetDirty(gate.gameObject);
-            Debug.Log("[관아] 외삼문 쌍여닫이 리깅 — 낮 열림 / 밤 닫힘, 클릭 토글 (밤 잠금 " + dn.lockAtNight + ")");
+            Debug.Log("[관아] 외삼문 쌍여닫이 리깅 — 낮 열림 / 밤 닫힘, 클릭 토글 (밤 잠금 항상)");
         }
 
         static bool In(Vector3 p) =>

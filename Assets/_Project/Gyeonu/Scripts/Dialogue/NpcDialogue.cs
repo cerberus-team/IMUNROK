@@ -154,6 +154,7 @@ namespace IMUNROK.Gyeonu
             session = new DialogueSession(profile, this);
             session.SecretTold += OnSecretTold;
             session.Thanked += OnThanked;
+            session.SongRequested += OnSongRequested;
             DialogueUI.Ensure().Open(this, session);
 
             BeginTalkMotion();
@@ -242,6 +243,13 @@ namespace IMUNROK.Gyeonu
         {
             var a = Actor;
             if (a != null && a.Has("Thank")) a.Play("Thank", NpcActor.Pri.Story);
+        }
+
+        /// <summary>노래를 청했다 — 아이들의 노래(V01)가 아이들 자리에서 난다 (2026-09-09).</summary>
+        void OnSongRequested()
+        {
+            if (ChildrenSong.Instance != null) ChildrenSong.Instance.RequestSing();
+            else Debug.LogWarning("[대화] 노래를 청했지만 ChildrenSong 이 씬에 없다.", this);
         }
 
         // ── 조준 몸통 (2026-08-27) ───────────────────────────────

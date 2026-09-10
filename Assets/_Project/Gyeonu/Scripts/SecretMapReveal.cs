@@ -106,6 +106,7 @@ namespace IMUNROK.Gyeonu
             }
 
             closeBoard?.Invoke();   // 화면을 차지하는 연출이다 — 판은 물러난다
+            DebugToast.HidePinned(); // "지도를 펼쳐 볼 때다" 안내(HonsangController)는 할 일을 다했다 (2026-09-09)
 
             var go = new GameObject("비밀지도_연출");
             go.AddComponent<SecretMapReveal>().Begin(item, hon);

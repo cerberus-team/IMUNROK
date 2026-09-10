@@ -29,10 +29,27 @@ namespace IMUNROK.Gyeonu
         static readonly string[] InsultWords = { "범인", "죽였", "해쳤", "거짓말", "너 때문", "네가 그랬", "살인", "끌고 갔" };
         static readonly string[] PressureWords = { "왜 말", "어디 있었", "숨기", "그날 밤", "말해", "대답해", "안 하", "못 하" };
         static readonly string[] FavorWords = { "믿", "걱정", "돕", "도와", "괜찮", "미안", "고맙", "찾아 드리", "찾아드리" };
+        static readonly string[] SongWords = { "노래", "불러", "부르", "들려" };
+
+        static bool IsChild(NpcProfile p) =>
+            p != null && (p.npcId == NpcId.Child01 || p.npcId == NpcId.Child02 || p.npcId == NpcId.Child03);
 
         public void GetResponse(MonoBehaviour host, NpcRequest req, Action<string> onReply, Action<string> onError)
         {
             string input = req.playerInput ?? "";
+
+            // 아이들과 노래 — 키 없이도 노래 배선을 시험할 수 있게 (2026-09-09, 09-10 좁힘).
+            // 불러 달라고 청했을 때만 [노래]. 노래에 대해 묻기만 하면 말로만 답한다 (진짜 판정은 DialogueGrantValidator).
+            if (!req.isEvidence && IsChild(_profile) && Contains(input, SongWords))
+            {
+                if (!DialogueGrantValidator.IsSongRequest(input))
+                    onReply?.Invoke("[등급:중립] 은하수 건너 오작교 노래예요. 어른들한테 들어서 다 알아요.");
+                else
+                    onReply?.Invoke(ChildrenSong.Singing
+                        ? "[등급:호의] 지금 부르고 있잖아요, 들어 보세요."
+                        : "[등급:호의] 좋아요, 들어 보세요.\n[노래]");
+                return;
+            }
             string tone = Grade(input);
 
             string body;

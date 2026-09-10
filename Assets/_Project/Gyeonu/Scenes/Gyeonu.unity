@@ -266,7 +266,6 @@ MonoBehaviour:
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &2294089
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -407,6 +406,7 @@ MonoBehaviour:
   duration: 0.8
   locked: 0
   lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  lockedMessage: 
   playerOperable: 1
 --- !u!1001 &5919759
 PrefabInstance:
@@ -3259,7 +3259,6 @@ MonoBehaviour:
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &23518118
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4349,7 +4348,6 @@ MonoBehaviour:
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &73849601
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4845,6 +4843,7 @@ MonoBehaviour:
   duration: 0.8
   locked: 0
   lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  lockedMessage: 
   playerOperable: 1
 --- !u!1001 &87267066
 PrefabInstance:
@@ -7688,6 +7687,7 @@ MonoBehaviour:
   duration: 0.8
   locked: 0
   lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  lockedMessage: 
   playerOperable: 1
 --- !u!1001 &212645991
 PrefabInstance:
@@ -9549,6 +9549,7 @@ MonoBehaviour:
   duration: 0.8
   locked: 0
   lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  lockedMessage: 
   playerOperable: 1
 --- !u!1001 &302117903
 PrefabInstance:
@@ -10338,6 +10339,7 @@ MonoBehaviour:
   duration: 0.8
   locked: 0
   lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  lockedMessage: 
   playerOperable: 1
 --- !u!1001 &312002230
 PrefabInstance:
@@ -11789,7 +11791,6 @@ MonoBehaviour:
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &344874212
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14194,6 +14195,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.GyeonuGiveKey
   givesKey: 0
   keyNeedsNight: 1
+  keyItemId: SEONA_HOUSE_KEY
   givesMap: 1
   mapItemId: A1
   giveState: GiveKey
@@ -14218,7 +14220,6 @@ MonoBehaviour:
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &426858237
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14339,31 +14340,31 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.5
+      value: -0.18
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.61
+      value: -0.050000012
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -18.6
+      value: -19.03
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7071068
+      value: 0.40609384
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.7071068
+      value: 0.9138314
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -14371,7 +14372,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
+      value: 132.081
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -14427,7 +14428,6 @@ MonoBehaviour:
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &431611430
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14574,6 +14574,7 @@ MonoBehaviour:
   duration: 0.8
   locked: 0
   lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  lockedMessage: 
   playerOperable: 1
 --- !u!1 &435454365
 GameObject:
@@ -17316,6 +17317,7 @@ MonoBehaviour:
   duration: 0.8
   locked: 0
   lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  lockedMessage: 
   playerOperable: 1
 --- !u!1 &545933595
 GameObject:
@@ -18419,6 +18421,7 @@ MonoBehaviour:
   duration: 0.8
   locked: 0
   lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  lockedMessage: 
   playerOperable: 1
 --- !u!1001 &584089586
 PrefabInstance:
@@ -18678,6 +18681,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.GyeonuGiveKey
   givesKey: 1
   keyNeedsNight: 1
+  keyItemId: SEONA_HOUSE_KEY
   givesMap: 1
   mapItemId: A1
   giveState: GiveKey
@@ -18702,7 +18706,6 @@ MonoBehaviour:
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &591604303
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -29023,7 +29026,6 @@ MonoBehaviour:
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &889489288
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37240,6 +37242,9 @@ PrefabInstance:
     m_RemovedGameObjects:
     - {fileID: 8000606541599310365, guid: ee464985327a1734d84dd7c6100aee8d, type: 3}
     m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 1138378468609407262, guid: ee464985327a1734d84dd7c6100aee8d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1753600438}
     - targetCorrespondingSourceObject: {fileID: 3709312869068518871, guid: ee464985327a1734d84dd7c6100aee8d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1269692180}
@@ -41474,6 +41479,7 @@ MonoBehaviour:
   duration: 0.8
   locked: 0
   lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  lockedMessage: 
   playerOperable: 1
 --- !u!1001 &1225731481
 PrefabInstance:
@@ -45808,6 +45814,7 @@ MonoBehaviour:
   duration: 0.8
   locked: 0
   lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  lockedMessage: 
   playerOperable: 1
 --- !u!1 &1387419953 stripped
 GameObject:
@@ -52053,6 +52060,7 @@ MonoBehaviour:
   duration: 0.8
   locked: 0
   lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  lockedMessage: 
   playerOperable: 1
 --- !u!1001 &1517778156
 PrefabInstance:
@@ -52243,7 +52251,6 @@ MonoBehaviour:
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &1518804765
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -60252,6 +60259,92 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.7, y: 3.9003282, z: 3.0000017}
   m_Center: {x: -0.00000014901161, y: 1.9501641, z: 1.5000006}
+--- !u!1 &1753600437
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1753600438}
+  - component: {fileID: 1753600440}
+  - component: {fileID: 1753600439}
+  m_Layer: 0
+  m_Name: "\uC8FC\uB9C9_\uC26C\uB294\uC790\uB9AC"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1753600438
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1753600437}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0.7071068, z: -0, w: -0.7071068}
+  m_LocalPosition: {x: 477.00012, y: 0.62, z: 709.10004}
+  m_LocalScale: {x: 0.99999976, y: 1, z: 0.99999976}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1155540573}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1753600439
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1753600437}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f9ec504d2940de43977f609f87300ac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.InnRest
+  displayName: "\uC8FC\uB9C9 \uD3C9\uC0C1"
+  confirmDay: "\uD3C9\uC0C1\uC5D0 \uAC78\uD130\uC549\uC558\uB2E4. \uC5EC\uAE30\uC11C
+    \uC26C\uBA74 \uB0A0\uC774 \uC800\uBB3C \uAC83\uC774\uB2E4.\n\uD55C \uBC88 \uB354
+    \uB204\uB974\uBA74 \uD574\uAC00 \uC9C8 \uB54C\uAE4C\uC9C0 \uC270\uB2E4."
+  confirmEvening: "\uD3C9\uC0C1\uC5D0 \uAC78\uD130\uC549\uC558\uB2E4. \uC5EC\uAE30\uC11C
+    \uC26C\uBA74 \uBC24\uC774 \uAE4A\uC5B4\uC9C8 \uAC83\uC774\uB2E4. \uC8FC\uB9C9\uB3C4
+    \uBB38\uC744 \uB2EB\uC744 \uC2DC\uAC01\uC774\uB2E4.\n\uD55C \uBC88 \uB354 \uB204\uB974\uBA74
+    \uBC24\uC774 \uAE4A\uC744 \uB54C\uAE4C\uC9C0 \uC270\uB2E4."
+  tooLate: "\uBC24\uC774 \uB108\uBB34 \uAE4A\uC5C8\uB2E4. \uC9C0\uAE08 \uC274 \uB54C\uAC00
+    \uC544\uB2C8\uB2E4. \uB0A0\uC774 \uBC1D\uAE30 \uC804\uC5D0 \uB05D\uB0B4\uC57C
+    \uD55C\uB2E4."
+  afterDay: "\uD574\uAC00 \uC800\uBB3C\uC5C8\uB2E4. \uC8FC\uB9C9\uC5D0 \uB4F1\uBD88\uC774
+    \uAC78\uB9AC\uACE0 \uB9C8\uC744\uC774 \uC5B4\uC2A4\uB984\uC5D0 \uC7A0\uAE34\uB2E4."
+  afterEvening: "\uBC24\uC774 \uAE4A\uC5C8\uB2E4. \uB9C8\uC744 \uC0AC\uB78C\uB4E4\uC740
+    \uC7A0\uB4E4\uC5C8\uACE0 \uAD00\uC544\uB97C \uC9C0\uD0A4\uB294 \uB208\uB3C4 \uB4DC\uBB3C\uC5B4\uC84C\uB2E4.
+    \uC624\uB298 \uBC24 \uC548\uC5D0 \uB05D\uB0B4\uC57C \uD55C\uB2E4."
+  confirmWindow: 8
+  fadeOut: 0.7
+  hold: 1
+  fadeIn: 0.9
+--- !u!65 &1753600440
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1753600437}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.2, y: 0.5, z: 1.2}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &1759126580
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -62810,6 +62903,7 @@ MonoBehaviour:
   duration: 0.8
   locked: 0
   lockedPrompt: "\uC7A0\uACA8 \uC788\uB2E4"
+  lockedMessage: 
   playerOperable: 1
 --- !u!1001 &1812989442
 PrefabInstance:
@@ -65319,6 +65413,7 @@ GameObject:
   - component: {fileID: 1863493067}
   - component: {fileID: 1863493069}
   - component: {fileID: 1863493068}
+  - component: {fileID: 1863493070}
   m_Layer: 0
   m_Name: "\uCD9C\uAD6C_\uC120\uC544\uC9D1"
   m_TagString: Untagged
@@ -65389,6 +65484,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.8, y: 2, z: 0.6}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1863493070
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1863493066}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2863db03393dbe44192bf1f16f8feeaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.SeonaHouseGate
+  lockedMessage: "\uBB38\uC5D0 \uBE57\uC7A5\uC774 \uB2E8\uB2E8\uD788 \uAC78\uB824
+    \uC788\uB2E4. \uBC00\uC5B4\uB3C4 \uAFC8\uCA4D\uD558\uC9C0 \uC54A\uB294\uB2E4.\n\uC774
+    \uC9D1 \uC5F4\uC1E0\uB97C \uC9C0\uB2CC \uC0AC\uB78C\uC774 \uB9C8\uC744 \uC5B4\uB518\uAC00\uC5D0
+    \uC788\uC744 \uAC83\uC774\uB2E4."
+  openPrompt: "\uB4E4\uC5B4\uAC00\uAE30"
 --- !u!1001 &1865298013
 PrefabInstance:
   m_ObjectHideFlags: 0

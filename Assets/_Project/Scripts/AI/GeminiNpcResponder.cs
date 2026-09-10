@@ -12,8 +12,9 @@ namespace IMUNROK.Common
     /// 실제 AI(Google Gemini)로 NPC 대답을 생성하는 대답기.
     /// INpcResponder를 구현하므로 심문 무대는 그대로, 이 클래스만 꽂으면 됨.
     ///
-    /// API 키: 프로젝트 루트(Assets 상위 폴더)의 "gemini_api_key.txt" 파일에서 읽는다.
-    ///   → 이 파일은 .gitignore에 등록되어 커밋되지 않음(키 유출 방지).
+    /// API 키: <see cref="GeminiKeyFile"/> — StreamingAssets/gemini_key.txt(빌드에 실림) 또는
+    ///   프로젝트 루트의 gemini_api_key.txt 에서 읽는다 (2026-09-10).
+    ///   → 두 파일 모두 .gitignore에 등록되어 커밋되지 않음(키 유출 방지).
     ///   → 키가 없으면 자동으로 목업(MockNpcResponder)으로 대체되어 게임은 계속 돌아감.
     ///
     /// ※ 빌드(APK) 배포용으로는 키를 클라이언트에 넣으면 안 됨(중계 서버 필요). 지금은 에디터 개발용.
@@ -38,23 +39,14 @@ namespace IMUNROK.Common
             if (!string.IsNullOrEmpty(model)) _model = model;
         }
 
-        private static string LoadApiKey()
-        {
-            try
-            {
-                string path = Path.Combine(Application.dataPath, "..", "gemini_api_key.txt");
-                if (File.Exists(path)) return File.ReadAllText(path).Trim();
-            }
-            catch (Exception e) { Debug.LogWarning($"[Gemini] 키 읽기 실패: {e.Message}"); }
-            return "";
-        }
+        private static string LoadApiKey() => GeminiKeyFile.Load();
 
         public void GetResponse(MonoBehaviour host, NpcRequest req, Action<string> onReply, Action<string> onError)
         {
             if (string.IsNullOrEmpty(_apiKey))
             {
                 Debug.LogWarning("[Gemini] API 키가 없어 목업으로 대체합니다. " +
-                                 "(프로젝트 루트에 gemini_api_key.txt 파일을 만들고 키를 넣으세요)");
+                                 "(Assets/StreamingAssets/gemini_key.txt 또는 프로젝트 루트 gemini_api_key.txt 에 키를 넣으세요)");
                 _fallback.GetResponse(host, req, onReply, onError);
                 return;
             }

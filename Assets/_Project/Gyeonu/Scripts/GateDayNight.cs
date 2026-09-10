@@ -3,21 +3,15 @@ using UnityEngine;
 namespace IMUNROK.Gyeonu
 {
     /// <summary>
-    /// 관아 외삼문의 시간대별 기본 상태 — 낮에는 열려 있고 밤에는 닫혀 있다.
+    /// 관아 외삼문의 낮·밤 (2026-08-21).
+    ///   낮 — 열려 있다. 플레이어는 관여하지 못한다(연출만 여닫는다).
+    ///   밤 — 닫혀 있다. 2026-09-10부터는 <b>잠긴 채 조준은 된다</b>: 눌러도 열리지 않고 안내만 뜬다.
     ///
-    /// ■ 왜 별도 컴포넌트인가
-    ///   여닫이 자체(DoubleHingeDoor)는 마을 사립문·김명관 일각문이 함께 쓰는 공용 부품이라
-    ///   시간대를 알아서는 안 된다. "언제 어떤 자세로 있어야 하는가"는 이 씬의 연출이므로 분리한다.
-    ///   <see cref="WorldTimeSync"/> 가 하늘을 바꾸는 것과 같은 결(<see cref="GyeonuWorld.Changed"/> 구독)이다.
-    ///
-    /// ■ 플레이어 조작과의 관계
-    ///   시간대가 바뀌는 순간에만 기본 자세로 되돌린다. 그 뒤 플레이어가 클릭해 연/닫은 상태는
-    ///   다음 시간대 변화까지 유지된다 — 문을 열어 두고 들어갔는데 매 프레임 도로 닫히면 곤란하다.
-    ///
-    /// ■ 밤 통제 (아직 끄고 둔다)
-    ///   <see cref="lockAtNight"/> 를 켜면 밤에는 클릭해도 열리지 않는다. 기획상 밤의 관아는
-    ///   정문으로 못 들어가고 다른 경로(개구멍)로 들어가게 되어 있으나, 그 경로가 아직 없으므로
-    ///   지금은 꺼 둔다. 개구멍이 생기면 이 체크 하나만 켜면 된다.
+    /// ■ 밤 안내 (2026-09-10)
+    ///   개구멍 이야기를 아직 못 들은 플레이어는 밤의 관아 앞에서 왜 못 들어가는지 알 길이 없었다(통과 시험 실측).
+    ///   그래서 닫힌 문을 누르면 "정문으로는 안 되겠다 — 마을 사람 가운데 다른 길을 아는 이가 있을지도"를 띄운다.
+    ///   ⚠️ 아이들이라고 알려 주지 않는다. 이미 개구멍을 알면 그 줄은 빠지고 문이 닫혔다는 말만 남는다.
+    ///   낮의 같은 안내는 집무실 문(<see cref="OfficeDayGate"/>)이 띄운다.
     /// </summary>
     [AddComponentMenu("이문록/외삼문 낮밤 (GateDayNight)")]
     [DisallowMultipleComponent]
@@ -30,8 +24,14 @@ namespace IMUNROK.Gyeonu
         [Tooltip("밤의 기본 상태 — 닫힘")]
         public bool openByNight = false;
 
-        [Tooltip("★밤에는 클릭해도 열리지 않게 한다. 개구멍 경로가 생기면 켤 것 (지금은 꺼 둠)")]
-        public bool lockAtNight = false;
+        // 2026-09-10 — 예전의 lockAtNight 스위치는 뺐다. 씬에 false 로 저장돼 있어 코드 기본값을 바꿔도
+        //   그대로 꺼진 채였고, 개구멍이 정규 경로인 이상 밤의 정문은 언제나 잠겨야 한다.
+
+        [TextArea(2, 4)]
+        public string nightClosedMessage = "외삼문이 굳게 닫혀 있다. 밤에는 아무도 들이지 않는 모양이다.";
+
+        [Tooltip("잠긴 밤 문의 조준 문구")]
+        public string nightPrompt = "살펴보기";
 
         bool _seeded;
 
@@ -60,8 +60,17 @@ namespace IMUNROK.Gyeonu
         {
             if (door == null) return;
             bool night = GyeonuWorld.Night;
-            door.locked = night && lockAtNight;
+            door.locked = night;
+            door.lockedPrompt = nightPrompt;
+            door.lockedMessage = door.locked ? NightMessage() : "";
             door.SetOpen(night ? openByNight : openByDay, instant);
+        }
+
+        string NightMessage()
+        {
+            string msg = nightClosedMessage;
+            if (!GyeonuWorld.Has(GyeonuWorld.F_개구멍이야기)) msg += "\n" + OfficeDayGate.EntryHint;
+            return msg;
         }
     }
 }

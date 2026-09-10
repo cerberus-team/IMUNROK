@@ -542,30 +542,57 @@ namespace IMUNROK.Gyeonu
             }
         }
 
-        /// <summary>밤에 씬을 몇 번 옮겼는가 — 늦은 밤 전환 조건 ②.</summary>
+        /// <summary>밤에 씬을 몇 번 옮겼는가 — 세이브 호환용으로만 남긴 값. 더는 시간대를 움직이지 않는다.</summary>
         public static int NightSceneTransitions => _nightSceneTransitions;
 
         /// <summary>
         /// 씬을 옮겼다고 알린다 (<see cref="SceneTransition"/>이 부른다).
-        /// 초밤에 3번 이상 옮기면 늦은 밤으로 넘어간다 — 정규 경로는 견우마을(B5)이다.
+        /// ⚠️ 2026-09-10 — 예전의 "초밤에 씬 3번 이동 → 늦은 밤" 보조 조건은 <b>없앴다</b>.
+        ///    선아 집을 들락거리는 것만으로 2회가 차서 은하담에 가는 순간 늦은 밤이 되어 버렸다(통과 시험 실측).
+        ///    실내·실외 이동은 어떤 경우에도 시각을 바꾸지 않는다. 늦은 밤이 되는 길은
+        ///    주막에서 쉬기(<see cref="RestAtInn"/>)와 견우마을 귀환(B5) 둘뿐이고, 먼저 일어난 쪽으로 넘어간다.
         /// </summary>
         public static void NotifySceneTransition()
         {
             if (_time != TimeOfDay.EarlyNight) return;
-            _nightSceneTransitions++;
-            TryAdvanceToLateNight();
-            AfterChange();
+            _nightSceneTransitions++;   // 통계로만 센다
+        }
+
+        /// <summary>
+        /// 주막 평상에서 쉰다 (2026-09-10). 하루가 <b>순환</b>한다 — 낮 → 초밤 → 늦은 밤 → 낮 → …
+        /// 침대에서 자는 것과 같다. 낮에 놓친 것(아이들 이야기·수령 대화)은 다음 날 낮에 다시 얻는다.
+        /// ⚠️ 날씨는 순환하지 않는다. 비는 신뢰도 70에서 한 번 오고 엔딩까지 그대로다 — 여기서는 손대지 않는다.
+        /// 늦은 밤 → 낮은 밤을 하나 넘긴 것이므로 경계도 70의 "남은 밤"도 하나 깎는다(<see cref="ConsumeNight"/>).
+        /// </summary>
+        /// <returns>넘어간 뒤의 시간대.</returns>
+        public static TimeOfDay RestAtInn()
+        {
+            switch (_time)
+            {
+                case TimeOfDay.Day:
+                    Time = TimeOfDay.EarlyNight;
+                    Debug.Log("[제3사건] 주막에서 쉬어 해가 저물었다 — 초밤");
+                    break;
+                case TimeOfDay.EarlyNight:
+                    Time = TimeOfDay.LateNight;
+                    Debug.Log("[제3사건] 주막에서 쉬어 밤이 깊었다 — 늦은 밤. 관아 잠입이 가능해졌다");
+                    break;
+                default:
+                    Time = TimeOfDay.Day;
+                    ConsumeNight();
+                    Debug.Log("[제3사건] 주막에서 밤을 지새워 날이 밝았다 — 낮. 날씨는 " + (Rain ? "비" : "맑음") + " 그대로");
+                    break;
+            }
+            return _time;
         }
 
         static void TryAdvanceToLateNight()
         {
             if (_time != TimeOfDay.EarlyNight) return;
-            bool byB5 = HasClue(ClueId.B5);                 // ① 견우마을을 다녀왔다 (정규)
-            bool byWalk = _nightSceneTransitions >= 3;      // ② 밤이 된 뒤 씬을 3번 이상 옮겼다
-            if (!byB5 && !byWalk) return;
+            if (!HasClue(ClueId.B5)) return;                // 견우마을을 다녀왔다 (정규 경로)
 
             Time = TimeOfDay.LateNight;
-            Debug.Log("[제3사건] 늦은 밤 — 관아 잠입이 가능해졌다 (" + (byB5 ? "견우마을 귀환" : "씬 이동 3회") + ")");
+            Debug.Log("[제3사건] 늦은 밤 — 관아 잠입이 가능해졌다 (견우마을 귀환)");
         }
 
         // ─────────────────────────────────────────────────────────
@@ -578,11 +605,17 @@ namespace IMUNROK.Gyeonu
             set { if (_act == value) return; _act = value; AfterChange(); }
         }
 
-        /// <summary>선아 집 열쇠를 받았는가 (신뢰도 40 임계).</summary>
+        /// <summary>선아 집 열쇠를 받았는가 (신뢰도 40 임계). 켜면 문이 보는 플래그(<see cref="GyeonuWorld.F_선아집열쇠"/>)도 함께 선다.</summary>
         public static bool HasSeonaHouseKey
         {
-            get => _hasSeonaHouseKey;
-            set { if (_hasSeonaHouseKey == value) return; _hasSeonaHouseKey = value; AfterChange(); }
+            get => _hasSeonaHouseKey || _flags.Contains(GyeonuWorld.F_선아집열쇠);
+            set
+            {
+                if (_hasSeonaHouseKey == value) return;
+                _hasSeonaHouseKey = value;
+                if (value) _flags.Add(GyeonuWorld.F_선아집열쇠); else _flags.Remove(GyeonuWorld.F_선아집열쇠);
+                AfterChange();
+            }
         }
 
         /// <summary>선아를 구출했는가. 엔딩 판정의 절반.</summary>

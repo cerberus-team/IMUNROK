@@ -29,8 +29,9 @@ namespace IMUNROK.Gyeonu
     ///   조선 말투·등급 표식을 지켰고, 3.5-lite가 어투 변화가 가장 넉넉했다.
     ///
     /// ■ 키
-    ///   공통과 <b>같은 자리</b>의 <c>gemini_api_key.txt</c>(프로젝트 루트)에서 읽는다.
-    ///   .gitignore 의 <c>*_api_key.txt</c> 로 이미 막혀 있다 — 코드·씬에 키를 넣지 않는다.
+    ///   공통과 <b>같은 곳</b>(<see cref="GeminiKeyFile"/>)에서 읽는다 — StreamingAssets/gemini_key.txt
+    ///   (빌드에 실린다) 또는 프로젝트 루트의 gemini_api_key.txt. 둘 다 .gitignore 로 막혀 있다 —
+    ///   코드·씬에 키를 넣지 않는다.
     /// </summary>
     public class GyeonuGeminiResponder : INpcResponder
     {
@@ -46,20 +47,14 @@ namespace IMUNROK.Gyeonu
         static string _key;
         static bool _keyRead;
 
-        /// <summary>프로젝트 루트의 키 파일. 없으면 빈 문자열.</summary>
+        /// <summary>키 파일(<see cref="GeminiKeyFile"/>). 없으면 빈 문자열. 한 번 읽으면 세션 동안 기억한다.</summary>
         public static string ApiKey
         {
             get
             {
                 if (_keyRead) return _key;
                 _keyRead = true;
-                _key = "";
-                try
-                {
-                    string path = Path.Combine(Application.dataPath, "..", "gemini_api_key.txt");
-                    if (File.Exists(path)) _key = File.ReadAllText(path).Trim();
-                }
-                catch (Exception e) { Debug.LogWarning("[Gemini] 키 읽기 실패: " + e.Message); }
+                _key = GeminiKeyFile.Load();
                 return _key;
             }
         }

@@ -16,34 +16,52 @@ namespace IMUNROK.Gyeonu
     /// ■ 밤에는 열린다
     ///   수령은 밤이면 거처로 돌아가 관아에서 사라진다(문서 「25. 위치」). 잠입이 가능해지는
     ///   그 시각이 곧 이 문이 열리는 시각이다.
+    ///
+    /// ■ 다른 길이 있다는 안내 (2026-09-10)
+    ///   쫓겨난 뒤에 <see cref="EntryHint"/> 를 덧붙인다 — 개구멍 이야기를 아직 못 들었을 때만.
+    ///   아이들이라고는 말하지 않는다. 밤의 외삼문(<see cref="GateDayNight"/>)도 같은 줄을 쓴다.
     /// </summary>
     [RequireComponent(typeof(SceneExit))]
     public class OfficeDayGate : MonoBehaviour
     {
+        /// <summary>정문이 막혔을 때 붙는 한 줄. 개구멍을 이미 알면 붙지 않는다.</summary>
+        public const string EntryHint =
+            "정문으로는 안 되겠다. 마을 사람 가운데 다른 길을 아는 이가 있을지도 모른다.";
+
         [TextArea(2, 5)]
         public string dayMessage =
-            "관노가 앞을 막아선다. 「수령 어른의 집무실이오. 나그네가 들 곳이 아니외다.」\n" +
-            "떠밀리듯 마당으로 물러났다.";
+            "관노가 앞을 막아선다. 「수령 어른의 집무실이오. 나그네가 들 곳이 아니외다.」 떠밀리듯 물러났다.";
 
-        [Tooltip("원래 문구 — 밤에 되돌려 놓는다")]
+        // 2026-09-10 — 초밤에는 잠입이 아직 이르다. 수령은 거처로 갔지만 관노들이 아직 오간다.
+        [TextArea(2, 5)]
+        public string eveningMessage =
+            "집무실에 아직 불이 밝고 관노들이 마루를 오간다. 관아가 잠들려면 밤이 더 깊어야 한다.";
+
+        [Tooltip("원래 문구 — 늦은 밤에 되돌려 놓는다")]
         public string nightPrompt = "들어가기";
 
         SceneExit exit;
-        bool _appliedDay;
+        TimeOfDay _appliedTime;
+        bool _appliedHint;
         bool _first = true;
 
         void Awake() { exit = GetComponent<SceneExit>(); }
 
         void Update()
         {
-            bool day = !GyeonuCase.Night;
-            if (!_first && day == _appliedDay) return;
+            // 늦은 밤에만 열린다 (2026-09-10). 초밤에는 수령만 없을 뿐 관아가 아직 깨어 있다.
+            var time = GyeonuCase.Time;
+            bool hint = !GyeonuWorld.Has(GyeonuWorld.F_개구멍이야기);
+            if (!_first && time == _appliedTime && hint == _appliedHint) return;
             _first = false;
-            _appliedDay = day;
+            _appliedTime = time;
+            _appliedHint = hint;
 
-            exit.locked = day;
-            if (day) exit.lockedMessage = dayMessage;
-            else exit.promptText = nightPrompt;
+            bool open = time == TimeOfDay.LateNight;
+            exit.locked = !open;
+            if (open) exit.promptText = nightPrompt;
+            else if (time == TimeOfDay.Day) exit.lockedMessage = hint ? dayMessage + "\n" + EntryHint : dayMessage;
+            else exit.lockedMessage = eveningMessage;
         }
     }
 }

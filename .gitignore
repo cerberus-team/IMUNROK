@@ -565,8 +565,8 @@ Assets/Unity_Final_Characters_Textured/**/*.jpg
 # ─────────────────────────────────────────────
 # 사각지대 메우기 (2026-08-26)
 # ─────────────────────────────────────────────
-# ★ Gemini API 키 사본. 기존 규칙(gemini_api_key.txt · *_api_key.txt)이 이 이름을 못 잡는다.
-#   코드가 읽는 건 프로젝트 루트의 gemini_api_key.txt 뿐이라 이 파일은 쓰이지도 않는다.
+# ★ Gemini API 키 — 빌드에 실려 나가는 정식 자리 (2026-09-10, GeminiKeyFile 이 여기서 먼저 읽는다).
+#   기존 규칙(gemini_api_key.txt · *_api_key.txt)이 이 이름을 못 잡아 따로 적는다. 저장소에는 절대 올리지 않는다.
 Assets/StreamingAssets/gemini_key.txt
 Assets/StreamingAssets/gemini_key.txt.meta
 
@@ -772,3 +772,10 @@ Assets/Models/**/*.asset
 /oisamun_del.txt
 /unused.txt
 
+
+# Meta XR��VS �� ����� ���� ���� (2026-09-10)
+.vsconfig
+Assets/Resources/MetaXRAcousticSettings.asset
+Assets/Resources/MetaXRAcousticSettings.asset.meta
+Assets/Resources/MetaXRAudioSettings.asset
+Assets/Resources/MetaXRAudioSettings.asset.meta

@@ -26,6 +26,10 @@ namespace IMUNROK.Gyeonu
         public bool locked;
         [Tooltip("잠겨 있을 때 보여줄 문구")]
         public string lockedPrompt = "잠겨 있다";
+        [Tooltip("잠긴 채로 눌렀을 때 하단에 띄울 안내. 비우면 잠긴 문은 조준조차 되지 않는다(예전 그대로). " +
+                 "채우면 조준·클릭은 되고 문은 안 열리며 이 문구가 뜬다 — 관아 외삼문의 밤 안내(GateDayNight)가 쓴다 (2026-09-10)")]
+        [TextArea(2, 4)]
+        public string lockedMessage = "";
         [Tooltip("플레이어가 만질 수 있는 문인가.\n" +
                  "끄면 조준해도 조준점·이름이 뜨지 않고 클릭해도 아무 일도 없다 — 연출(시간대)만 여닫는다.\n" +
                  "관아 외삼문이 이 경우다: 낮엔 열려 있고 밤엔 닫혀 있으며 플레이어는 관여하지 못한다.")]
@@ -43,7 +47,8 @@ namespace IMUNROK.Gyeonu
 
         // DebugInteractor 는 CanInteract 가 false 면 target 자체를 잡지 않는다
         // → 조준점 강조도, 이름·행동 표시도, 클릭도 전부 일어나지 않는다.
-        public override bool CanInteract(GameObject actor) => playerOperable && !locked;
+        public override bool CanInteract(GameObject actor) =>
+            (playerOperable && !locked) || (locked && !string.IsNullOrEmpty(lockedMessage));
 
         /// <summary>
         /// 바깥에서 여닫이 상태를 지시한다 (시간대 기본값 등).
@@ -81,7 +86,12 @@ namespace IMUNROK.Gyeonu
 
         public override void Interact(GameObject actor)
         {
-            if (!playerOperable || locked) return;
+            if (locked)
+            {
+                if (!string.IsNullOrEmpty(lockedMessage)) DebugToast.ShowPinned(lockedMessage);
+                return;
+            }
+            if (!playerOperable) return;
             open = !open;
         }
 
