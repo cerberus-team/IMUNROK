@@ -10,7 +10,7 @@ namespace IMUNROK.Common
     ///  · 대화가 끝나면 둘 다 부드럽게 원래대로 복귀.
     ///
     /// 붙이는 곳: 아무 상시 오브젝트(예: _연출_Volume). 볼륨을 _volume에 연결하면 됨.
-    /// ※ VR 빌드에서는 FOV를 바꾸면 멀미가 나므로 _zoomCamera를 꺼두기.
+    /// ※ 화각을 갑자기 바꾸면 어지러우므로 _zoomCamera 는 천천히 움직인다.
     /// </summary>
     [DisallowMultipleComponent]
     public class ConversationView : MonoBehaviour
@@ -21,7 +21,7 @@ namespace IMUNROK.Common
         [Tooltip("대화 시 좁힐 FOV(작을수록 인물 크게·배경 적게)")]
         [SerializeField] private float _talkFov = 42f;
         [SerializeField] private float _fovEase = 4f;
-        [Tooltip("VR에서는 끄기(FOV 변경은 멀미 유발)")]
+        [Tooltip("말할 때 화각을 좁혀 상대에게 다가간 느낌을 준다")]
         [SerializeField] private bool _zoomCamera = true;
 
         [Header("분위기 볼륨(비네트·DOF)")]

@@ -157,7 +157,7 @@ namespace IMUNROK.Common
         {
             if (_canvas == null)
             {
-                var go = new GameObject("VR_오갈데", typeof(Canvas));
+                var go = new GameObject("오갈데_판", typeof(Canvas));
                 _anchor = go.AddComponent<WorldHudAnchor>();
                 _anchor.Configure(WorldHudAnchor.Placement.Front);
                 _anchor.SetDistance(1.3f, -0.10f);
@@ -166,7 +166,7 @@ namespace IMUNROK.Common
                 _font = UiFont.Resolve(_font);
                 _row = NewRect("줄", new Vector2(0f, -40f), new Vector2(1200f, 110f), go.transform);
                 var t = NewText("제목", _title, new Vector2(0f, 70f), new Vector2(1200f, 70f), go.transform, 34);
-                t.color = new Color(0.98f, 0.96f, 0.92f);
+                t.color = UiLook.Text;
             }
 
             foreach (var c in _chips) if (c != null) Destroy(c);
@@ -186,7 +186,8 @@ namespace IMUNROK.Common
 
                 var rt = NewRect("갈곳" + i, new Vector2(x0 + i * (w + gap), 0f), new Vector2(w, 100f), _row);
                 var bg = rt.gameObject.AddComponent<Image>();
-                bg.color = here ? new Color(0.09f, 0.09f, 0.09f, 0.5f) : new Color(0.16f, 0.13f, 0.10f, 0.93f);
+                bg.color = here ? UiLook.With(UiLook.Panel, 0.50f)
+                                : UiLook.With(UiLook.Deep(UiLook.Wood, 0.35f), 0.93f);
                 var btn = rt.gameObject.AddComponent<Button>();
                 btn.targetGraphic = bg;
                 var captured = s;
@@ -213,7 +214,7 @@ namespace IMUNROK.Common
             var t = rt.gameObject.AddComponent<Text>();
             t.font = _font;
             t.fontSize = fs;
-            t.color = new Color(0.98f, 0.96f, 0.92f);
+            t.color = UiLook.Text;
             t.alignment = TextAnchor.MiddleCenter;
             t.horizontalOverflow = HorizontalWrapMode.Overflow;
             t.verticalOverflow = VerticalWrapMode.Overflow;

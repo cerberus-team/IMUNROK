@@ -84,7 +84,7 @@ namespace IMUNROK.Common
             prt.SetParent(rt, false);
             prt.sizeDelta = rt.sizeDelta;
             // 고르는 창의 단추와 같은 낙관빛. 안내가 저마다 다른 색이면 안내로 안 읽힌다.
-            plate.GetComponent<Image>().color = new Color(0.58f, 0.10f, 0.09f, 0.92f);
+            plate.GetComponent<Image>().color = UiLook.With(UiLook.Seal, 0.92f);
             plate.GetComponent<Image>().raycastTarget = false;   // 가리키는 것이지 누르는 것이 아니다
 
             var txtGo = new GameObject("글", typeof(Text));
@@ -95,7 +95,7 @@ namespace IMUNROK.Common
             _text.font = UiFont.Resolve(null);
             _text.fontSize = 32;
             _text.alignment = TextAnchor.MiddleCenter;
-            _text.color = new Color(0.98f, 0.94f, 0.86f);
+            _text.color = UiLook.Text;
             _text.raycastTarget = false;
             _text.horizontalOverflow = HorizontalWrapMode.Overflow;
             _text.verticalOverflow = VerticalWrapMode.Overflow;

@@ -219,7 +219,7 @@ namespace IMUNROK.Common
             var rec = GetRecord(id);
             rec.verdict = verdict;
             rec.status = CaseStatus.Completed;
-            Debug.Log($"[GameState] {id} 판결 기록: {verdict} → Completed");
+            DevLog.Note($"[GameState] {id} 판결 기록: {verdict} → Completed");
 
             RaiseChanged(id);
             CheckAllCompleted();
@@ -241,7 +241,7 @@ namespace IMUNROK.Common
             rec.verdict = Verdict.None;
             if (_currentCase.HasValue && _currentCase.Value == id) _currentCase = null;
             _allCompletedFired = false;
-            Debug.Log($"[GameState] {id} 를 처음으로 되돌림");
+            DevLog.Note($"[GameState] {id} 를 처음으로 되돌림");
             RaiseChanged(id);
         }
 
@@ -250,7 +250,7 @@ namespace IMUNROK.Common
         {
             EnsureInitialized();
             _gapriHandled = handled;
-            Debug.Log($"[GameState] 갑리 처리 여부: {handled}");
+            DevLog.Note($"[GameState] 갑리 처리 여부: {handled}");
         }
 
         // ── 플레이어의 신분 ──
@@ -269,7 +269,7 @@ namespace IMUNROK.Common
         {
             EnsureInitialized();
             _identityRevealed = revealed;
-            Debug.Log($"[GameState] 암행어사 신분 드러남: {revealed}");
+            DevLog.Note($"[GameState] 암행어사 신분 드러남: {revealed}");
         }
 
         /// <summary>대화 기록·자막에 찍히는 플레이어의 이름표.</summary>
@@ -295,14 +295,14 @@ namespace IMUNROK.Common
         public void EnterCase(CaseId id)
         {
             _currentCase = id;
-            Debug.Log($"[GameState] 사건 진입: {id}");
+            DevLog.Note($"[GameState] 사건 진입: {id}");
         }
 
         /// <summary>조사청(사건 밖)으로 나올 때 호출.</summary>
         public void ExitToHub()
         {
             _currentCase = null;
-            Debug.Log("[GameState] 조사청(사건 밖)으로 이동");
+            DevLog.Note("[GameState] 조사청(사건 밖)으로 이동");
         }
 
         /// <summary>모든 상태를 초기화(디버그/재시작용).</summary>
@@ -318,7 +318,7 @@ namespace IMUNROK.Common
             _identityRevealed = false;
             _allCompletedFired = false;
             _currentCase = null;   // 초기화 후에도 이전 사건에 들어가 있는 것으로 남으면 수첩 필터가 어긋난다
-            Debug.Log("[GameState] 전체 상태 초기화");
+            DevLog.Note("[GameState] 전체 상태 초기화");
 
             foreach (CaseId id in Enum.GetValues(typeof(CaseId)))
                 RaiseChanged(id);
@@ -428,7 +428,7 @@ namespace IMUNROK.Common
             if (AllCasesCompleted)
             {
                 _allCompletedFired = true;
-                Debug.Log("[GameState] 세 사건 모두 완료 — 세계가 열립니다.");
+                DevLog.Note("[GameState] 세 사건 모두 완료 — 세계가 열립니다.");
                 OnAllCasesCompleted?.Invoke();
             }
         }

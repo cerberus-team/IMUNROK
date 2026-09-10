@@ -6,12 +6,12 @@ using UnityEngine.InputSystem;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 에디터/비-VR 테스트용 "살펴보기" 도구(확대경 대역).
+    /// "살펴보기" 도구(확대경 대역).
     /// 카메라에서 마우스 방향으로 레이를 쏘아 IInspectable 대상을 가리키면
     /// 화면에 제목·본문 패널을 띄우고, 처음 가리킨 순간 OnInspected()를 호출한다.
     ///
     /// ★ 지금은 "가리키면 바로" 보이지만, 실제 게임에선 "확대경을 든 상태"에서만
-    ///   보이도록 게이트할 예정(VR에서 확대경 Grab과 연결). 그래도 대상 로직
+    ///   보이도록 게이트할 예정(확대경을 손에 든 것과 잇는다). 그래도 대상 로직
     ///   (IInspectable / InspectableNote)은 그대로 재사용된다.
     /// </summary>
     public class MouseInspector : MonoBehaviour

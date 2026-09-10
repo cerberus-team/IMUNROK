@@ -4,7 +4,7 @@ namespace IMUNROK.Common
     /// 레이로 가리켜 선택할 수 있는 대상(사건 큐브, 봉서함 등)이 구현하는 인터페이스.
     ///
     /// 지금은 에디터에서 마우스 레이(MouseRaySelector)가 호출하지만,
-    /// VR 단계에서 컨트롤러 레이 인터랙터로 교체돼도 이 세 메서드만 호출하면 되도록
+    /// 짚는 방식이 바뀌어도 이 세 메서드만 부르면 되도록
     /// 선택 로직과 입력 방식을 분리한다.
     /// </summary>
     public interface ISelectable
@@ -28,7 +28,7 @@ namespace IMUNROK.Common
     /// 들려 올라가는 보료가 곧 진행 막대다.
     ///
     /// 이것을 구현한 대상에게는 <see cref="ISelectable.OnSelect"/> 를 부르지 않는다.
-    /// VR로 갈아 끼울 때도 같다 — 컨트롤러 트리거를 쥐고 있는 동안 <see cref="OnHoldTick"/> 를 부른다.
+    /// 짚는 방식을 갈아 끼울 때도 같다 — 누르고 있는 동안 <see cref="OnHoldTick"/> 를 부른다.
     /// </summary>
     public interface IHoldable
     {

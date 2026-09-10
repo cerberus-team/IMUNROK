@@ -6,21 +6,21 @@ using UnityEngine.InputSystem;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 에디터/비-VR 테스트용 카메라. 두 모드(비행/걷기)를 Tab으로 전환.
+    /// <b>걷는 사람.</b> 늘 바닥을 딛는다.
     ///
-    ///  ● 비행(Fly) — 자유롭게 날며 둘러보기(배치 확인용)
-    ///  ● 걷기(Walk) — 사람처럼 눈높이 고정, 수평으로만 이동(잠행 동선 테스트용)
+    /// <b>2026-09-08 — 나는 갈래를 걷어냈다.</b> 두 모드를 Tab 으로 오갔는데, 이 게임에
+    /// 나는 일이 없다. 게다가 나는 동안 <b>Q 가 하강</b>이었다 — 도구를 갈아 드는 그 Q 다.
+    /// 한 키가 두 일을 하니 날면서 도구를 고를 수가 없었고, 걷기로 돌아오는 것을 잊으면
+    /// 사람이 아니라 새가 되어 담을 넘어 다녔다. 이제 <b>처음부터 끝까지 걷는다</b>.
     ///
     /// [조작] — 마우스 오른쪽 버튼(RMB)을 "누르고 있는 동안"만 이동/회전
-    ///   Tab            : 비행 ↔ 걷기 전환
-    ///   G              : "바로 아래 바닥으로 내려서기" → 그 바닥을 걷는 높이로 잡음(걷기모드 자동 전환)
     ///   RMB + 마우스   : 시점 회전
     ///   RMB + W/A/S/D  : 이동
-    ///   RMB + E / Q    : (비행 모드만) 위 / 아래
     ///   RMB + Shift    : 빠르게
+    ///   G              : 바로 아래 바닥으로 내려선다 — 어쩌다 공중에 남았을 때의 구멍
     ///
-    /// 화면 좌하단에 현재 모드/높이가 표시된다. RMB를 떼면 멈춘다(좌클릭 선택과 안 겹침).
-    /// ※ G(바닥 내려서기)는 바닥에 Collider가 있어야 작동. 집 부품엔 대부분 Mesh Collider가 있음.
+    /// RMB를 떼면 멈춘다(좌클릭 선택과 안 겹침).
+    /// ※ G 는 바닥에 Collider가 있어야 작동.
     /// </summary>
     public class DebugFlyCamera : MonoBehaviour
     {
@@ -29,9 +29,7 @@ namespace IMUNROK.Common
         [SerializeField] private float _lookSpeed = 0.12f;
         [Tooltip("Shift로 빨라지는 배수")]
         [SerializeField] private float _sprintMultiplier = 3f;
-        [Tooltip("걷기 모드로 시작할지")]
-        [SerializeField] private bool _walkMode = false;
-        [Tooltip("걷기/바닥내려서기 시 눈높이(바닥으로부터). 선 사람의 눈높이다 — " +
+        [Tooltip("걷는 눈높이(바닥으로부터). 선 사람의 눈높이다 — " +
                  "몸으로 막는 캡슐도 이 값에서 나오므로, 이것만 맞으면 눈과 몸이 어긋나지 않는다")]
         [SerializeField] private float _eyeHeight = 1.7f;
 
@@ -202,7 +200,6 @@ namespace IMUNROK.Common
         /// </summary>
         public void StandAtFloor(float floorY)
         {
-            _walkMode = true;
             _walkY = floorY + _eyeHeight;
             Vector3 p = transform.position; p.y = _walkY; transform.position = p;
         }
@@ -239,31 +236,11 @@ namespace IMUNROK.Common
             // 부르는 쪽이 따로 알려 줄 필요가 없다.
             if (Quaternion.Angle(transform.rotation, _applied) > 0.05f) SyncAngles();
 
-            // Tab: 비행 ↔ 걷기 (현재 높이를 눈높이로 고정)
-            if (!MoveLocked && kb.tabKey.wasPressedThisFrame)
-            {
-                _walkMode = !_walkMode;
-                // 걷기로 들어설 때는 <b>바닥에 내려선다</b>.
-                //
-                // 여태 그때의 높이를 그대로 눈높이로 삼았다. 날아다니던 높이가 곧
-                // 걷는 높이가 되니, Tab 을 누른 자리에 따라 사람 키가 매번 달랐다 —
-                // 서 있는 높이와 걷는 높이가 어긋난다던 것이 이것이다.
-                // 걷는다는 것은 바닥을 딛는 일이므로 바닥에서 눈높이만큼 위가 맞다.
-                if (_walkMode && Physics.Raycast(transform.position + Vector3.up * 0.2f, Vector3.down,
-                                                 out var floor, 200f, ~0, QueryTriggerInteraction.Ignore))
-                {
-                    _walkY = floor.point.y + _eyeHeight;
-                    Vector3 q = transform.position; q.y = _walkY; transform.position = q;
-                }
-                else _walkY = transform.position.y;
-            }
-
-            // G: 바로 아래 바닥으로 내려서서 그 높이를 걷는 눈높이로
+            // G: 바로 아래 바닥으로 내려선다. 어쩌다 공중에 뜬 채로 남았을 때의 구멍이다.
             if (!MoveLocked && kb.gKey.wasPressedThisFrame)
             {
                 if (Physics.Raycast(transform.position + Vector3.up * 0.2f, Vector3.down, out var hit, 200f))
                 {
-                    _walkMode = true;
                     _walkY = hit.point.y + _eyeHeight;
                     Vector3 p0 = transform.position; p0.y = _walkY; transform.position = p0;
                 }
@@ -283,7 +260,6 @@ namespace IMUNROK.Common
 
             float speed = _moveSpeed * (kb.leftShiftKey.isPressed ? _sprintMultiplier : 1f);
 
-            if (_walkMode)
             {
                 // 남이 나를 옮겼으면(순간이동) 그 높이를 받아들인다.
                 // 이걸 안 하면 다음 줄에서 _walkY 로 되돌려 놓아, 마루로 올라간 순간
@@ -321,17 +297,6 @@ namespace IMUNROK.Common
                 Vector3 p = transform.position;
                 p.y = _walkY;
                 transform.position = p;
-            }
-            else
-            {
-                Vector3 dir = Vector3.zero;
-                if (kb.wKey.isPressed) dir += Vector3.forward;
-                if (kb.sKey.isPressed) dir += Vector3.back;
-                if (kb.aKey.isPressed) dir += Vector3.left;
-                if (kb.dKey.isPressed) dir += Vector3.right;
-                if (kb.eKey.isPressed) dir += Vector3.up;
-                if (kb.qKey.isPressed) dir += Vector3.down;
-                transform.Translate(dir.normalized * speed * Time.deltaTime, Space.Self);
             }
 #endif
         }
@@ -403,10 +368,10 @@ namespace IMUNROK.Common
         /// 「카메라: 걷기 (Tab 전환 · G 바닥내려서기)」는 조선 후기 옹당촌에 있을 글이
         /// 아니고, 영상을 찍으면 그 줄이 그대로 남는다.
         ///
-        /// 헤드셋에서는 애초에 안 보인다(<c>OnGUI</c> 는 HMD에 렌더링되지 않는다).
+        /// 개발용이므로 빌드에서 보일 일은 없다.
         /// 그러니 이 줄이 보이는 자리는 <b>모니터로 찍는 화면</b>뿐이었다.
         /// </summary>
-        [Tooltip("만드는 동안만 켠다. 켜면 화면 왼쪽 아래에 걷기/비행과 눈높이가 뜬다")]
+        [Tooltip("만드는 동안만 켠다. 켜면 화면 왼쪽 아래에 눈높이가 뜬다")]
         [SerializeField] private bool _showHud;
 
         private void OnGUI()
@@ -415,8 +380,8 @@ namespace IMUNROK.Common
             if (_hud == null)
                 _hud = new GUIStyle(GUI.skin.label) { fontSize = 13, richText = true };
             string mode = MoveLocked ? "<color=#fc8>앉음</color>"
-                        : _walkMode ? "<color=#8f8>걷기</color>" : "<color=#8cf>비행</color>";
-            string keys = MoveLocked ? "(앉아 있는 동안은 둘러보기만)" : "(Tab 전환 · G 바닥내려서기)";
+                        : "<color=#8f8>걷기</color>";
+            string keys = MoveLocked ? "(앉아 있는 동안은 둘러보기만)" : "(G 바닥내려서기)";
             GUI.Label(new Rect(12, Screen.height - 46, 520, 22),
                 $"카메라: {mode}  {keys}  y={transform.position.y:0.0}", _hud);
         }

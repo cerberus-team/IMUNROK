@@ -36,7 +36,15 @@
 # ═══════════════════════════════════════════════════════════
 *.unity merge=unityyamlmerge eol=lf
 *.prefab merge=unityyamlmerge eol=lf
-*.asset merge=unityyamlmerge eol=lf
+# ⚠️ *.asset 은 <b>글자와 이진이 섞여 있다.</b> 씬 설정 같은 것은 YAML 이지만
+#    터레인·라이팅·구운 메시는 <b>이진</b>이다. 여기에 eol=lf 를 걸면 git 이
+#    커밋할 때 그 안의 0D 0A 를 0A 로 눌러 <b>파일을 부순다</b>.
+#    실제로 견우 터레인 11장이 그렇게 죽었다 — 유니티가 오류 한 줄 없이
+#    DefaultAsset 으로 읽고, 땅이 사라지고, 플레이어가 9.7km 아래로 떨어졌다.
+#    (2026-08-27 확인: 28MB 짜리 파일에 CR+LF 가 <b>한 쌍도</b> 안 남아 있었다)
+#    그래서 eol 을 걸지 않는다. 머지 도우미만 남긴다 — YAML 인 것에는 그대로 듣고,
+#    이진인 것은 git 이 알아서 이진으로 다룬다.
+*.asset merge=unityyamlmerge -text
 *.mat merge=unityyamlmerge eol=lf
 *.anim merge=unityyamlmerge eol=lf
 *.controller merge=unityyamlmerge eol=lf

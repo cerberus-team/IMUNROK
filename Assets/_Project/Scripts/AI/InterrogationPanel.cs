@@ -8,7 +8,7 @@ namespace IMUNROK.Common
     /// 심문의 조작부를 월드 공간 Canvas로 그린다. 대사 자체는 <see cref="SubtitleView"/>가
     /// 맡고, 여기는 "누를 것"만 담당한다.
     ///
-    /// OnGUI로는 헤드셋에 아무것도 안 뜨므로, 이게 없으면 VR에서 심문을 시작하거나
+    /// OnGUI 는 세상 속 판과 켜가 어긋나므로, 이게 없으면 심문을 시작하거나
     /// 끝낼 방법이 없다.
     ///
     /// <b>네 줄로 되어 있다</b>(위에서 아래로):
@@ -31,25 +31,23 @@ namespace IMUNROK.Common
         [SerializeField] private int _fontSize = 30;
         [Tooltip("켜면 색을 <b>꾸러미(IMUNROK.Ui)</b> 에서 받아 온다 — 자막 바·수첩과 한 결이 된다")]
         [SerializeField] private bool _useCommonLook = true;
-        [SerializeField] private Color _chipColor = new Color(0.06f, 0.06f, 0.07f, 0.85f);
-        [SerializeField] private Color _micColor = new Color(0.20f, 0.35f, 0.28f, 0.9f);
-        [SerializeField] private Color _micOnColor = new Color(0.72f, 0.20f, 0.16f, 0.95f);
+        [SerializeField] private Color _chipColor = UiLook.With(UiLook.Slot, 0.85f);
         [Tooltip("되돌릴 수 없는 '마치기' 버튼")]
-        [SerializeField] private Color _endColor = new Color(0.42f, 0.30f, 0.10f, 0.95f);
+        [SerializeField] private Color _endColor = UiLook.With(UiLook.WoodLit, 0.95f);
         [Tooltip("되물을 때의 색. 한 번 더 눌러야 끝난다는 것이 색으로도 보여야 한다")]
-        [SerializeField] private Color _confirmColor = new Color(0.62f, 0.16f, 0.12f, 0.97f);
+        [SerializeField] private Color _confirmColor = UiLook.With(UiLook.Seal, 0.97f);
 
         [Tooltip("명령 단추. 묻는 것과 <b>색으로 갈라 둔다</b> — 이 줄을 누르면 대답이 아니라 일이 벌어진다")]
-        [SerializeField] private Color _orderColor = new Color(0.46f, 0.11f, 0.09f, 0.95f);
+        [SerializeField] private Color _orderColor = UiLook.With(UiLook.Seal, 0.95f);
 
         [Tooltip("부를 사람 이름표")]
-        [SerializeField] private Color _seatColor = new Color(0.10f, 0.09f, 0.13f, 0.88f);
+        [SerializeField] private Color _seatColor = UiLook.With(UiLook.Slot, 0.88f);
         [Tooltip("지금 불려 나와 있는 사람")]
-        [SerializeField] private Color _seatUpColor = new Color(0.30f, 0.26f, 0.12f, 0.95f);
+        [SerializeField] private Color _seatUpColor = UiLook.With(UiLook.WoodLit, 0.95f);
         [Tooltip("아직 안 온 사람 — 자리는 있으나 사람이 없다")]
-        [SerializeField] private Color _seatEmptyColor = new Color(0.09f, 0.09f, 0.09f, 0.55f);
+        [SerializeField] private Color _seatEmptyColor = UiLook.With(UiLook.Panel, 0.55f);
 
-        [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
+        [SerializeField] private Color _textColor = UiLook.Text;
 
         /// <summary>꾸러미의 결. 정적으로 들면 판을 넘겨 살아남되 내용이 죽는다 — 판마다 제 것.</summary>
         private readonly IMUNROK.Ui.InventorySkin _skin = new IMUNROK.Ui.InventorySkin();
@@ -59,9 +57,6 @@ namespace IMUNROK.Common
         private InterrogationController _owner;
         private CanvasGroup _group;
         private WorldHudAnchor _anchor;
-        private Image _micBg;
-        private Text _micLabel;
-        private RectTransform _micRt;
         private readonly List<GameObject> _chips = new List<GameObject>();
         private readonly List<GameObject> _orderChips = new List<GameObject>();
         private readonly List<GameObject> _seatChips = new List<GameObject>();
@@ -148,7 +143,7 @@ namespace IMUNROK.Common
             if (_instance != null) return;
             _instance = FindFirstObjectByType<InterrogationPanel>();
             if (_instance != null) return;
-            var go = new GameObject("VR_심문조작", typeof(Canvas));
+            var go = new GameObject("심문_조작판", typeof(Canvas));
             // 자막(-0.28)보다 아래 — 대사를 가리지 않게
             go.AddComponent<WorldHudAnchor>().Configure(WorldHudAnchor.Placement.Front);
             _instance = go.AddComponent<InterrogationPanel>();
@@ -209,7 +204,6 @@ namespace IMUNROK.Common
             SetVisible(false);
         }
 
-        private void OnDestroy() { if (_instance == this) _instance = null; }
 
         /// <summary>
         /// 판과 자막이 서로를 밟지 않게 자리를 잡는다.
@@ -246,7 +240,6 @@ namespace IMUNROK.Common
             // <b>같은 일이 두 판에 나뉘어</b> 있었다 — 어느 쪽을 눌러야 하는지 알 수가 없다.
             // 그래서 둘을 바로 옮겼다. 이 판에는 <b>이 판에만 있는 것</b>만 남는다:
             // 추천 질문·명령·자리. 저쪽에 짝이 없는 것들이다.
-            _micRt.gameObject.SetActive(false);
             _endRt.gameObject.SetActive(false);
             RebuildChips(owner != null ? owner.Topics : null);
             BuildOrders();
@@ -263,7 +256,6 @@ namespace IMUNROK.Common
             _confirmLeft = 0f;
             ResetEndLook();
             ApplyPlacement();
-            _micRt.gameObject.SetActive(false);
             _endRt.gameObject.SetActive(false);
             RebuildChips(null);
             BuildOrders();
@@ -278,16 +270,21 @@ namespace IMUNROK.Common
             _group.alpha = on ? 1f : 0f;
             _group.blocksRaycasts = on;
             _group.interactable = on;
+
+            // 얼굴 찍개는 <b>판이 떠 있는 동안만</b> 돈다. 안 보는 그림을 매 칸 다시
+            // 그릴 까닭이 없다 — 다섯 대가 늘 돌면 밤 씬에서 그 값이 눈에 띈다.
+            FacePortrait.Show(on);
+        }
+
+        private void OnDestroy()
+        {
+            if (_instance == this) _instance = null;
+            // 씬을 갈아 끼우면 걷는다. 안 걷으면 없는 사람의 얼굴을 계속 그린다.
+            FacePortrait.Clear();
         }
 
         private void Update()
         {
-            // 듣는 중이면 마이크 버튼을 붉게 — 말해도 되는지 한눈에 보이게
-            var mic = MicInput.Instance;
-            bool listening = mic != null && mic.IsListening;
-            if (_micBg != null) _micBg.color = listening ? _micOnColor : _micColor;
-            if (_micLabel != null) _micLabel.text = listening ? "● 듣는 중 (다시 눌러 끝내기)" : "🎤 눌러서 말하기";
-
             if (_confirmLeft > 0f)
             {
                 _confirmLeft -= Time.deltaTime;
@@ -325,8 +322,6 @@ namespace IMUNROK.Common
             var pal = IMUNROK.Ui.DialogueUI.Palette();
 
             _chipColor      = Keep(pal.slotBack, _chipColor.a);      // 물음 칩 — 고를 수 있는 자리
-            _micColor       = Keep(pal.slotBack, _micColor.a);       // 마이크(평소)
-            _micOnColor     = Keep(UiLook.Seal, _micOnColor.a);      // 마이크(녹음 중) — 주칠
             _endColor       = Keep(UiLook.WoodLit, _endColor.a);     // 마치기 — 나뭇결
             _confirmColor   = Keep(UiLook.Seal, _confirmColor.a);    // 다짐 — 주칠
             _orderColor     = Keep(UiLook.Seal, _orderColor.a);      // 명령 — 주칠
@@ -349,26 +344,13 @@ namespace IMUNROK.Common
 
         private void BuildFixedParts()
         {
-            // 마이크 — 가장 크게. VR에서 주된 입력 수단이다.
-            _micRt = NewRect("마이크", new Vector2(-250f, 88f), new Vector2(560f, 96f), transform);
-            _micBg = _micRt.gameObject.AddComponent<Image>();
-            Skin(_micBg, _skin.Slot_, _micColor);
-            var micBtn = _micRt.gameObject.AddComponent<Button>();
-            micBtn.targetGraphic = _micBg;
-            micBtn.onClick.AddListener(() => MicInput.Instance?.Toggle());
-            // <b>그림글자 🎤 는 조선 궁서체에 없다</b> — 네모로 뜬다. 꾸러미도 같은 데서
-            // 걸려 마이크를 직접 그려 두었다(InventorySkin.Mic_). 그 그림을 얻어 쓴다.
-            var micIcon = NewRect("마이크그림", new Vector2(-200f, 0f), new Vector2(56f, 56f), _micRt);
-            Skin(micIcon.gameObject.AddComponent<Image>(), _skin.Mic_, _textColor);
-            _micLabel = NewText("라벨", "눌러서 말하기", new Vector2(30f, 0f), new Vector2(460f, 96f), _micRt, _fontSize);
-
             // 마치기 — 이건 되돌릴 수 없다. 상대가 자리를 뜬다.
             //
             // 한때 '잠시 멈추다' 를 곁에 두었다. 손이 미끄러진 한 번에 심문이 영영 끝나는
             // 것을 막으려던 것인데, 마주 앉아 있는 자리에서 <b>대화를 잠시 치운다</b>는 것이
             // 무슨 뜻인지 애매했다 — 치워 놓고 할 일이 없다. 안전은 버튼을 하나 더 두어
             // 얻을 것이 아니라 <b>이 버튼 자신이</b> 두 번 물어 얻는 것이다.
-            _endRt = NewRect("마치기", new Vector2(300f, 88f), new Vector2(340f, 96f), transform);
+            _endRt = NewRect("마치기", new Vector2(0f, 88f), new Vector2(340f, 96f), transform);
             _endBg = _endRt.gameObject.AddComponent<Image>();
             Skin(_endBg, _skin.Wood_, _endColor);
             var endBtn = _endRt.gameObject.AddComponent<Button>();
@@ -380,7 +362,7 @@ namespace IMUNROK.Common
             // 묻는 것보다 시키는 것이, 시키는 것보다 사람을 갈아 세우는 것이 큰일이다.
             _chipRow  = NewRect("물음줄", new Vector2(0f, -16f),  new Vector2(1200f, 90f), transform);
             _orderRow = NewRect("명령줄", new Vector2(0f, -104f), new Vector2(1200f, 72f), transform);
-            _seatRow  = NewRect("사람줄", new Vector2(0f, -188f), new Vector2(1200f, 76f), transform);
+            _seatRow  = NewRect("사람줄", new Vector2(0f, -196f), new Vector2(1200f, 104f), transform);
 
             // 제시한 증거 그림 — 평소엔 꺼져 있다가 잠깐 뜬다
             var evRt = NewRect("증거그림", new Vector2(0f, 300f), new Vector2(420f, 300f), transform);
@@ -476,7 +458,7 @@ namespace IMUNROK.Common
                 bool up = bench.IsUp(s);
                 bool here = s.사람 != null;
 
-                var rt = NewRect($"사람{i}", new Vector2(x0 + i * (w + gap), 0f), new Vector2(w, 70f), _seatRow);
+                var rt = NewRect($"사람{i}", new Vector2(x0 + i * (w + gap), 0f), new Vector2(w, 96f), _seatRow);
                 var bg = rt.gameObject.AddComponent<Image>();
                 Skin(bg, up ? _skin.Wood_ : _skin.Slot_,
                      !here ? _seatEmptyColor : (up ? _seatUpColor : _seatColor));
@@ -485,10 +467,50 @@ namespace IMUNROK.Common
                 var captured = s;
                 btn.onClick.AddListener(() => { bench.Call(captured); Refresh(); });
 
+                // <b>얼굴을 얹는다.</b> 이 사건이 가르는 것이 얼굴이다 — 甲과 乙을
+                // 「甲」「乙」이라는 글자로만 고르게 하면 두 사람을 한 번도 나란히 본 적
+                // 없이 판결까지 간다. 뜰에 실제로 선 그 사람을 그 자리에서 찍는다.
+                const float face = 72f;
+                float textX = 0f, textW = w - 20f;
+                if (here)
+                {
+                    var head = FindHead(s.사람.transform);
+                    var shot = FacePortrait.Of(head, s.사람.transform);
+                    if (shot != null)
+                    {
+                        var frt = NewRect("얼굴", new Vector2(-w * 0.5f + face * 0.5f + 10f, 0f),
+                                          new Vector2(face, face), rt);
+                        var raw = frt.gameObject.AddComponent<RawImage>();
+                        raw.texture = shot;
+                        raw.raycastTarget = false;      // 누르는 것은 이름표 전체다
+                        // 아직 안 나온 사람은 얼굴도 물러나 있다
+                        raw.color = up ? Color.white : new Color(1f, 1f, 1f, 0.78f);
+                        textX = face * 0.5f + 6f;
+                        textW = w - face - 28f;
+                    }
+                }
+
                 string label = !here ? s.이름 + " (아직)" : (up ? "▶ " + s.이름 : s.이름);
-                NewText("라벨", label, Vector2.zero, new Vector2(w - 20f, 70f), rt, _fontSize - 6);
+                var lab = NewText("라벨", label, new Vector2(textX, 0f), new Vector2(textW, 96f), rt, _fontSize - 6);
+                if (here) lab.alignment = TextAnchor.MiddleLeft;
                 _seatChips.Add(rt.gameObject);
             }
+        }
+
+        /// <summary>
+        /// 사람의 <b>머리뼈</b>를 찾는다. mixamo 리그면 <c>mixamorig:Head</c>, 손으로
+        /// 짠 리그면 그냥 <c>Head</c> 다. 못 찾으면 얼굴 없이 이름만 뜬다 —
+        /// 리그가 다른 사람이 하나 섞였다고 판이 통째로 안 뜨면 안 된다.
+        /// </summary>
+        private static Transform FindHead(Transform who)
+        {
+            if (who == null) return null;
+            foreach (var t in who.GetComponentsInChildren<Transform>(true))
+            {
+                string n = t.name.ToLower();
+                if (n == "head" || n.EndsWith(":head")) return t;
+            }
+            return null;
         }
 
         // ── UI 헬퍼 ──

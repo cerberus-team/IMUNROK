@@ -5,19 +5,19 @@ using UnityEngine.UI;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 월드 공간 UI를 VR에서 "멀미 없이" 플레이어에게 붙여 두는 앵커.
-    /// OnGUI(IMGUI)는 헤드셋에 렌더링되지 않으므로, VR UI는 전부 World Space Canvas로 그려야 한다.
-    /// 그 Canvas를 어디에 어떻게 띄울지를 이 컴포넌트 하나가 담당한다.
+    /// <b>월드 공간 판을 시야 앞에 붙여 두는 앵커.</b>
+    /// 그 Canvas 를 어디에 어떻게 띄울지를 이 부품 하나가 맡는다.
     ///
-    /// 붙이는 법: 빈 GameObject에 Canvas + 이 컴포넌트를 추가(Canvas가 없으면 자동 생성·설정).
-    ///   · Front — 시야 정면. 자막·심문창처럼 "읽어야 하는" UI.
-    ///   · Waist — 허리춤. 도구벨트처럼 "차고 다니는" UI. 고개를 숙여야 보이므로 시야를 안 가린다.
+    /// 붙이는 법: 빈 GameObject 에 Canvas + 이 부품(Canvas 가 없으면 스스로 만든다).
+    ///   · Front — 시야 정면. 문서·심문판처럼 <b>읽어야 하는</b> 판.
+    ///   · Waist — 허리춤. 차고 다니는 판. 고개를 숙여야 보이므로 시야를 안 가린다.
     ///
-    /// VR에서 UI가 멀미를 유발하는 가장 큰 원인은 머리를 따라 "즉시" 붙어 오는 것이다.
-    /// 그래서 두 가지를 쓴다:
-    ///   ① 데드존(_recenterAngle) — 고개를 그만큼 돌리기 전엔 아예 따라오지 않는다.
+    /// 즉시 붙어 오면 판이 얼굴에 못 박힌 것처럼 되어 눈이 피로하다. 그래서 둘을 쓴다:
+    ///   ① 데드존(_recenterAngle) — 시선을 그만큼 돌리기 전엔 아예 따라오지 않는다.
     ///   ② 감쇠(_damping)        — 따라올 때도 부드럽게 지연을 두고 쫓아온다.
-    /// 둘 다 0으로 두면 얼굴에 못 박힌 것처럼 되어 멀미가 난다.
+    ///
+    /// <b>이 부품은 줄어드는 중이다.</b> 자막·귀퉁이 단추·수첩은 이미 화면으로 옮겼고
+    /// (<see cref="ScreenPanel"/>), 남은 것은 문서·심문·장계처럼 아직 세상에 서 있는 판뿐이다.
     /// </summary>
     [RequireComponent(typeof(Canvas))]
     public class WorldHudAnchor : MonoBehaviour
@@ -32,13 +32,13 @@ namespace IMUNROK.Common
 
         [Header("배치")]
         [SerializeField] private Placement _placement = Placement.Front;
-        [Tooltip("카메라에서 떨어진 거리(m). VR 가독성 스위트스팟은 1.5~3m")]
+        [Tooltip("카메라에서 떨어진 거리(m). 읽기 좋은 자리는 1.5~3m")]
         [Range(0.4f, 5f)] [SerializeField] private float _distance = 2f;
         [Tooltip("눈높이 기준 위아래 오프셋(m). Waist는 보통 -0.5 ~ -0.7")]
         [SerializeField] private float _verticalOffset = -0.55f;
 
-        [Header("따라오기(멀미 방지)")]
-        [Tooltip("고개를 이 각도(도) 이상 돌려야 따라오기 시작. 0이면 항상 따라옴(멀미 위험)")]
+        [Header("따라오기")]
+        [Tooltip("시선을 이 각도(도) 이상 돌려야 따라오기 시작. 0이면 늘 따라온다")]
         [Range(0f, 60f)] [SerializeField] private float _recenterAngle = 25f;
         [Tooltip("따라오는 부드러움. 낮을수록 천천히·자연스럽게")]
         [Range(0.5f, 12f)] [SerializeField] private float _damping = 3f;
@@ -125,7 +125,7 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// 거리·높이를 실행 중에 바꾼다. 헤드셋을 쓰고 직접 보면서 맞출 때 쓴다
+        /// 거리·높이를 실행 중에 바꾼다. 직접 보면서 맞출 때 쓴다
         /// (읽기 편한 거리는 사람마다 다르고, 화면으로는 판단이 안 된다).
         /// </summary>
         public void SetDistance(float distance, float verticalOffset)
@@ -149,7 +149,7 @@ namespace IMUNROK.Common
             _rect.sizeDelta = _canvasSize;
             _rect.localScale = Vector3.one * _canvasScale;
 
-            // 버튼 클릭(마우스든 VR 레이든)은 GraphicRaycaster가 있어야 전달된다.
+            // 단추 누름은 GraphicRaycaster 가 있어야 전달된다.
             if (GetComponent<GraphicRaycaster>() == null)
                 gameObject.AddComponent<GraphicRaycaster>();
 
@@ -176,7 +176,7 @@ namespace IMUNROK.Common
 
             Transform head = cam.transform;
 
-            // 수평 시선만 쓴다. 고개를 위아래로 젓는 것까지 따라가면 UI가 출렁여서 멀미가 난다.
+            // 수평 시선만 쓴다. 위아래까지 따라가면 판이 출렁인다.
             Vector3 look = head.forward;
             look.y = 0f;
             if (look.sqrMagnitude < 0.0001f) look = head.up;   // 천장/바닥을 정면으로 볼 때
@@ -195,7 +195,7 @@ namespace IMUNROK.Common
 
             // ── 모니터에서는 붙박이 ──
             // 데드존도 감쇠도 건너뛰고 매 칸 카메라를 그대로 따른다. 위아래도 따라간다 —
-            // 수평만 따르던 것은 <b>고개를 젓는 헤드셋</b>을 위한 규칙이지 모니터의 것이 아니다.
+            // 수평만 따르던 것은 고개가 실제로 움직일 때의 규칙이지 모니터의 것이 아니다.
             if (ScreenFixed && !Pinned)
             {
                 _anchorForward = head.forward;
@@ -216,7 +216,7 @@ namespace IMUNROK.Common
         /// 왜 필요한가: 이 앵커는 눈앞 1.3m에 못 박혀 있고, 월드 캔버스는 깊이 검사를 받는다.
         /// 그래서 인물에게 1m 안쪽으로 다가서면 <b>상대 몸이 대사창을 덮어</b> 글씨가 안 보인다.
         /// "뒤로 물러서세요"라고 안내하는 대신, 창이 알아서 상대 앞으로 당겨 온다.
-        /// (VR에서는 뒤에 벽이 있어 물러설 수 없는 경우가 실제로 있다)
+        /// (좁은 방에서는 뒤에 벽이 있어 물러설 수 없는 경우가 실제로 있다)
         /// </summary>
         public void KeepInFrontOf(Transform target) => _keepInFrontOf = target;
 
@@ -228,7 +228,7 @@ namespace IMUNROK.Common
         /// <summary>화면과 나란히 설지 밖에서 정한다. 하단바처럼 넓고 아래에 눕는 판이 쓴다.</summary>
         public void SetScreenParallel(bool on) { _screenParallel = on; }
 
-        [Tooltip("헤드셋을 안 쓴 동안에는 판을 <b>화면에 붙박는다</b> — 감쇠도 데드존도 없이 " +
+        [Tooltip("판을 <b>화면에 붙박는다</b> — 감쇠도 데드존도 없이 " +
                  "매 칸 카메라를 그대로 따른다. 꾸러미 PC판이 그렇게 선다. " +
                  "끄면 예전처럼 늦게 따라온다(판이 앞에 놓인 것처럼 보이는 대신 헤엄친다)")]
         [SerializeField] private bool _screenFixedOnPc = true;
@@ -236,24 +236,24 @@ namespace IMUNROK.Common
         /// <summary>
         /// 지금 <b>화면에 붙박여야</b> 하는가.
         ///
-        /// 팀원 PC판을 보면 판이 화면에 못 박힌 듯 딱 붙어 있는데 우리 것은 고개를 돌릴
+        /// 팀원 판을 보면 판이 화면에 못 박힌 듯 딱 붙어 있는데 우리 것은 시선을 돌릴
         /// 때마다 뒤따라 헤엄쳐 왔다. 까닭을 찾아보니 <b>감쇠를 늘 걸고 있었다</b> —
-        /// 저쪽은 감쇠를 <c>UiModes.IsVr</c> 일 때만 건다(<c>DialogueUI.ApplyPose</c>).
+        /// 저쪽은 감쇠를 <b>고개가 실제로 움직이는 갈래</b>에서만 건다.
         ///
-        /// 저쪽 주석이 왜 그렇게 갈랐는지도 적어 두었다: VR에서 붙박이로 두면 판이
-        /// 시야 한구석에 <b>영원히 붙어</b> 고개를 돌려도 정면으로 가져올 수가 없다.
-        /// 모니터에는 그런 일이 없다 — 화면이 곧 시야라서, 늦게 따라오는 것은
+        /// 그렇게 가른 까닭도 저쪽 주석에 적혀 있다: 시야가 몸을 따라 도는 곳에서
+        /// 판을 붙박아 두면 판이 시야 한구석에 <b>영원히 붙어</b> 정면으로 가져올 수가
+        /// 없다. 모니터에는 그런 일이 없다 — 화면이 곧 시야라서, 늦게 따라오는 것은
         /// <b>손해일 뿐</b>이다.
         ///
-        /// 그래서 헤드셋 유무로 가른다. <see cref="Pinned"/>(세워 둔 판)와
-        /// <see cref="Frozen"/>은 제 뜻이 따로 있으므로 건드리지 않는다.
+        /// <see cref="Pinned"/>(세워 둔 판)와 <see cref="Frozen"/>은 제 뜻이 따로
+        /// 있으므로 건드리지 않는다.
         /// </summary>
-        private bool ScreenFixed { get { return _screenFixedOnPc && !VRRig.Active; } }
+        private bool ScreenFixed { get { return _screenFixedOnPc; } }
 
         [Header("벽 피하기")]
         [Tooltip("앞을 막은 것이 있으면 그 앞으로 당겨 온다. 당긴 만큼 배율도 함께 줄어 " +
                  "<b>보이는 크기는 그대로</b>다 — 그 셈은 이미 아래에 있다.\n\n" +
-                 "견우팀 꾸러미(VrPanel)가 쟀던 것을 옮겨 온 것이다. 좁은 방(사랑방·문서고)에서 " +
+                 "견우팀 꾸러미가 쟀던 것을 옮겨 온 것이다. 좁은 방(사랑방·문서고)에서 " +
                  "판이 벽에 파묻히던 자리를 막는다")]
         [SerializeField] private bool _avoidWalls = true;
         [Tooltip("막은 것에서 이만큼 앞에 선다(m)")]
@@ -280,7 +280,7 @@ namespace IMUNROK.Common
         /// 그래서 좁은 방에서는 판이 <b>벽 속에 파묻혀</b> 글자가 반쯤 잘린다.
         /// 사랑방과 문서고가 그렇다.
         ///
-        /// <b>판 가운데로만 한 번 재면 안 된다</b> — 견우팀이 헤드셋에서 재고 적어 둔 것이다.
+        /// <b>판 가운데로만 한 번 재면 안 된다</b> — 견우팀이 직접 재고 적어 둔 것이다.
         /// 판이 화면 한가운데가 아니라 아래쪽에 앉아 있으면, 가운데 광선은 앞의 물건을
         /// <b>비껴가</b> 막힌 줄을 모른다. 그래서 네 귀퉁이까지 다섯 줄기를 재고
         /// 가장 가까운 것에 맞춘다.
@@ -337,7 +337,7 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// 자막이 놓일 방향. 밑바탕은 수평 시선(위아래로 출렁이면 멀미가 난다)이지만,
+        /// 자막이 놓일 방향. 밑바탕은 수평 시선(위아래로 출렁이면 읽기 나쁘다)이지만,
         /// 고개를 크게 숙이거나 든 자세에서는 그것만으로는 창이 화면 밖으로 나간다.
         ///
         /// 어전이 그랬다 — 부복한 카메라가 51도 아래를 보는데 창은 수평에서 12도
@@ -486,6 +486,26 @@ namespace IMUNROK.Common
 
         /// <summary>이 창도 물러나야 하는가. 수첩 자신처럼 앞에 서는 것은 끈다.</summary>
         public void SetStowable(bool on) { _stowable = on; if (!on) _stow = 0f; }
+
+        /// <summary>
+        /// <b>캔버스 한 칸이 몇 m 인가.</b> 판의 좌표계를 통째로 바꿀 때 쓴다 —
+        /// 치수를 저쪽에서 베껴 오면 그 좌표계도 같이 받아야 숫자가 뜻을 지킨다.
+        /// </summary>
+        public void SetCanvasScale(float scale)
+        {
+            _canvasScale = Mathf.Max(0.00001f, scale);
+            if (_rect != null) _rect.localScale = Vector3.one * _canvasScale;
+        }
+
+        /// <summary>
+        /// <b>얼마나 굼뜨게 따라올 것인가.</b> 죽은 구간(도)과 따라잡는 빠르기.
+        /// 견우팀 꾸러미는 7도 · 0.16초로 잡아 두었다.
+        /// </summary>
+        public void SetFollow(float recenterAngle, float damping)
+        {
+            _recenterAngle = Mathf.Clamp(recenterAngle, 0f, 60f);
+            _damping = Mathf.Clamp(damping, 0.5f, 12f);
+        }
 
         /// <summary>다음 프레임에 감쇠 없이 눈앞으로 다시 가져온다(패널을 열 때 호출).</summary>
         public void Recenter() => _placed = false;

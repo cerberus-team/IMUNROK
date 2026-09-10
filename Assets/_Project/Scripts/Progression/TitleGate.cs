@@ -56,8 +56,8 @@ namespace IMUNROK.Common
         [SerializeField] private float _titleMinHeight = 0.22f;
         [SerializeField] private float _titleScale = 0.00072f;
         [SerializeField] private Font _font;
-        [SerializeField] private Color _titleColor = new Color(0.97f, 0.93f, 0.82f);
-        [SerializeField] private Color _subtitleColor = new Color(0.78f, 0.24f, 0.19f);
+        private Color _titleColor { get { return UiLook.Text; } }
+        private Color _subtitleColor { get { return UiLook.Lit(UiLook.Seal, 0.15f); } }
 
         [Header("차례(초)")]
         [Tooltip("소리만 있고 아무것도 없는 시간")]
@@ -101,8 +101,8 @@ namespace IMUNROK.Common
         [SerializeField] private string _startPromptFresh = "누르면 처음부터   ·   Space 로도 됩니다";
         [SerializeField] private string _hubSceneName = "HubScene";
 
-        [Tooltip("VR 에서 컨트롤러 레이로 누를 수 있도록 눈앞에 보이지 않는 판을 둔다. " +
-                 "키보드가 없는 헤드셋에서는 이것이 유일한 넘어가는 길이다")]
+        [Tooltip("아무 데나 눌러 넘어갈 수 있도록 눈앞에 보이지 않는 판을 둔다. " +
+                 "글쇠를 모르는 사람에게는 이것이 넘어가는 길이다")]
         [SerializeField] private bool _makePressTarget = true;
         [Tooltip("그 판의 한 변(m). 눈앞을 넉넉히 덮어야 아무 데나 겨눠도 집힌다")]
         [SerializeField] private float _pressTargetSize = 2f;
@@ -116,6 +116,7 @@ namespace IMUNROK.Common
         private Transform _cam;
         private Quaternion _camHome;
         private Color _ambientHome;
+        private bool _ambientTaken;   // Awake 를 지났는가 — 안 지났으면 되돌릴 것도 없다
         private readonly List<Light> _lights = new List<Light>();
         private readonly List<float> _lightHome = new List<float>();
         private bool _done;
@@ -136,7 +137,43 @@ namespace IMUNROK.Common
             if (_intro != null) _intro.enabled = false;
 
             _ambientHome = RenderSettings.ambientLight;
+            _ambientTaken = true;
+
+            // 씬에 굳어 버린 어둠을 '제자리'로 잡으면, 밝아 올라도 어둠에서 어둠으로
+            // 보간할 뿐이라 <b>환경광이 영영 안 밝아진다</b>. 어떻게 굳는지는 OnDestroy 에.
+            if (SameLight(_ambientHome, _darkAmbient))
+                Debug.LogWarning("[TitleGate] 씬의 환경광이 표제의 어둠과 같습니다 — 밝아 올라도 " +
+                                 "돌아갈 자리가 없습니다. 씬 Lighting 의 Ambient Color 를 제 밝기로 " +
+                                 "되돌려 주십시오.", this);
+
             RenderSettings.ambientLight = _darkAmbient;
+        }
+
+        /// <summary>
+        /// <b>내려놓은 어둠을 나가는 길에 도로 걷는다.</b>
+        ///
+        /// 이 판은 환경광을 <see cref="_darkAmbient"/> 로 내려놓고, 어전이 밝아 오를 때
+        /// 제자리로 되돌린다. 그 사이에 판이 죽으면(씬을 옮기거나 플레이를 끊으면)
+        /// 내려놓은 어둠이 그대로 남는다. 에디터에서는 그 상태로 씬을 저장하면
+        /// <b>어둠이 씬에 굳는다</b>.
+        ///
+        /// 짐작이 아니다. IntroScene 의 환경광 이력을 보면 (0.1, 0.1, 0.12) 과
+        /// (0.012, 0.012, 0.018) 이 여러 커밋에 걸쳐 번갈아 들어와 있고, 뒤엣것은
+        /// 이 판의 <c>_darkAmbient</c> 기본값과 한 자리도 다르지 않다. 한 번 굳으면
+        /// 다음 판의 <see cref="Awake"/> 가 그 어둠을 제자리로 잡아 되돌릴 데를 잃는다 —
+        /// 오류도 경고도 없이 번지는 종류의 탈이라, 나가는 길에 반드시 걷는다.
+        /// </summary>
+        private void OnDestroy()
+        {
+            if (_ambientTaken) RenderSettings.ambientLight = _ambientHome;
+        }
+
+        /// <summary>두 빛이 눈으로 같은가. 색은 자잘한 자리에서 어긋나므로 딱 맞기를 묻지 않는다.</summary>
+        private static bool SameLight(Color a, Color b)
+        {
+            return Mathf.Abs(a.r - b.r) < 0.002f
+                && Mathf.Abs(a.g - b.g) < 0.002f
+                && Mathf.Abs(a.b - b.b) < 0.002f;
         }
 
         private void Start()
@@ -153,7 +190,7 @@ namespace IMUNROK.Common
                 _cam.rotation = Quaternion.Euler(e.x + _bowExtra, e.y, e.z);
             }
             BuildTitle();
-            // 누름판은 처음부터 둔다. 헤드셋에는 키보드가 없어 이것이 없으면
+            // 누름판은 처음부터 둔다. 글쇠를 모르면 이것이 없을 때
             // 연출이 다 끝날 때까지 손쓸 방법이 아예 없다.
             MakePressTarget();
             StartCoroutine(Sequence());
@@ -306,7 +343,7 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// 눈앞에 보이지 않는 판을 하나 둔다. 헤드셋에는 키보드가 없으므로
+        /// 눈앞에 보이지 않는 판을 하나 둔다. 글쇠를 모르는 사람에게는
         /// 컨트롤러 레이로 누를 것이 있어야 한다 — 이 게임의 다른 모든 것과 같은 길이다.
         /// </summary>
         private void MakePressTarget()
@@ -441,7 +478,7 @@ namespace IMUNROK.Common
         {
 #if ENABLE_INPUT_SYSTEM
             var mouse = Mouse.current;
-            return mouse != null && mouse.leftButton.isPressed;
+            return UiGuard.AnywhereHeld;   // 단추 위에서는 안 센다(연출이 같이 건너뛰어진다)
 #else
             return false;
 #endif
@@ -564,7 +601,7 @@ namespace IMUNROK.Common
 
             // 어둠 위에 얹는 글씨라 획이 흐려 보인다. 뒤에 그림자를 한 겹 깔면 또렷해진다.
             var sh = go.AddComponent<Shadow>();
-            sh.effectColor = new Color(0f, 0f, 0f, 0.75f);
+            sh.effectColor = UiLook.With(UiLook.Shadow, 0.75f);
             sh.effectDistance = new Vector2(3f, -3f);
 
             var rt = go.GetComponent<RectTransform>();
@@ -576,7 +613,7 @@ namespace IMUNROK.Common
     }
 
     /// <summary>
-    /// 표제에서 눈앞에 두는 보이지 않는 누름판. 헤드셋에는 키보드가 없으니
+    /// 표제에서 눈앞에 두는 보이지 않는 누름판. 글쇠를 모르면
     /// 컨트롤러 레이가 집을 것이 하나는 있어야 한다.
     /// <see cref="TitleGate"/> 가 코드로 붙이므로 인스펙터에서 다룰 일은 없다.
     /// </summary>

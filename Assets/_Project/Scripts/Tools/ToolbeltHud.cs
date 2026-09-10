@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.XR;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -11,13 +10,11 @@ namespace IMUNROK.Common
     /// <summary>
     /// 손에 든 도구 선택 — 맨손 → 등불 → 돋보기 → … 를 돌려가며 고른다.
     ///
-    /// 이 클래스는 "무엇을 들고 있는가"(상태)만 책임진다. 그리는 일은 뷰가 맡는다:
-    ///   · 데스크탑(에디터 테스트) → 아래 OnGUI. VR 기기가 붙어 있으면 스스로 그리지 않는다.
-    ///   · VR                     → <see cref="ToolbeltPanel"/> 이 월드 공간 Canvas로 그린다.
-    /// 뷰를 늘리거나 갈아끼워도 이 파일은 건드리지 않는다.
+    /// 이 클래스는 "무엇을 들고 있는가"(상태)만 책임진다. 그리는 일은 아래 OnGUI 가 맡는다 —
+    /// 뷰를 갈아끼워도 이 파일은 건드리지 않는다.
     ///
-    /// 전환: 마우스 휠 또는 Q 키(개발용). VR에선 컨트롤러 버튼에서 Next/Prev를 호출하면 된다
-    /// (public 메서드라 UnityEvent에 그대로 연결 가능).
+    /// 전환: 마우스 휠 또는 Q 키. <see cref="Next"/>·<see cref="Prev"/> 는 public 이라
+    /// UnityEvent 에 그대로 연결할 수 있다.
     ///
     /// SelectedToolId: 지금 손에 든 도구 id("" = 맨손). 등불·돋보기 등이 이걸 참고한다.
     /// </summary>
@@ -27,16 +24,8 @@ namespace IMUNROK.Common
         [SerializeField] private List<ToolDef> _tools = new List<ToolDef>();
         [Tooltip("왼손잡이 배려: 수첩/지도 코너를 좌우 반전")]
         [SerializeField] private bool _leftHanded = false;
-        [Tooltip("VR 기기가 붙어 있어도 데스크탑 OnGUI를 그린다(디버그용). IMGUI는 헤드셋에 안 보인다")]
-        [SerializeField] private bool _forceLegacyGui = false;
-        [Tooltip("헤드셋이 없어도 월드 공간 도구벨트를 띄운다(에디터에서 생김새를 볼 때만)")]
-        [SerializeField] private bool _forceWorldPanel = false;
-
-        [Header("VR 패널(월드 Canvas)")]
-        [Tooltip("켜두면 실행할 때 월드 공간 도구벨트를 스스로 만든다. 씬에 미리 배치할 필요 없음")]
-        [SerializeField] private bool _autoCreateVrPanel = true;
-        [Tooltip("VR 패널에 쓸 한글 폰트. 비우면 씬의 다른 UI가 올려둔 공용 폰트를 쓴다")]
-        [SerializeField] private Font _vrFont;
+        [Tooltip("벨트 글씨에 쓸 한글 폰트. 비우면 씬의 다른 UI 가 올려 둔 공용 폰트를 쓴다")]
+        [SerializeField] private Font _font;
 
         /// <summary>
         /// 지금 손에 든 도구 id("" = 맨손).
@@ -88,13 +77,16 @@ namespace IMUNROK.Common
             => (i <= 0 || i > _tools.Count || _tools[i - 1] == null) ? null : _tools[i - 1].icon;
 
         // ─────────────────────────────────────────────
-        //  조작 — 뷰·VR 컨트롤러가 호출
+        //  조작 — 뷰가 부른다
         // ─────────────────────────────────────────────
 
-        /// <summary>다음 도구로(마지막 다음은 맨손으로 순환). VR 버튼의 UnityEvent에 연결 가능.</summary>
+        /// <summary>다음 도구로(마지막 다음은 맨손으로 순환). UnityEvent 에 연결할 수 있다.</summary>
+        /// <summary>한 번이라도 도구를 갈아 들었나. 그러면 「Q / 휠 전환」을 더는 안 적는다.</summary>
+        private bool _everSwitched;
+
         public void Next() => Select(_index + 1);
 
-        /// <summary>이전 도구로. VR 버튼의 UnityEvent에 연결 가능.</summary>
+        /// <summary>이전 도구로. UnityEvent 에 연결할 수 있다.</summary>
         public void Prev() => Select(_index - 1);
 
         /// <summary>이 도구를 이미 들고 있는가.</summary>
@@ -156,6 +148,7 @@ namespace IMUNROK.Common
             int next = ((slot % n) + n) % n;
             if (next == _index) return;
             _index = next;
+            _everSwitched = true;      // 한 번 갈아 들었으면 익힌 것이다 — 안내를 걷는다
             Apply();
         }
 
@@ -170,39 +163,8 @@ namespace IMUNROK.Common
         {
             Instance = this;
             HudSide.LeftHanded = _leftHanded;
-            UiFont.Publish(_vrFont);
+            UiFont.Publish(_font);
             Apply();
-        }
-
-        /// <summary>
-        /// 월드 공간 벨트를 쓰는가. 헤드셋이 붙어 있으면 쓴다.
-        ///
-        /// <b>여태 둘이 한꺼번에 떠 있었다</b>. 이 값을 안 보고 무조건 월드 패널을
-        /// 만들었기 때문에, 헤드셋 없이 에디터에서 돌리면 화면 아래에 OnGUI 벨트가
-        /// 깔리고 그와 별개로 허리 앞 0.6m 에 붉은 판이 하나 더 떠 있었다 —
-        /// 바닥에 뭔가 겹쳐 놓인 것처럼 보이던 것이 그것이다.
-        /// 뷰는 <b>하나만</b> 뜬다. 둘 다 보고 싶으면 두 강제 스위치를 같이 켜면 된다.
-        /// </summary>
-        private bool UseWorldPanel => XRSettings.isDeviceActive || _forceWorldPanel;
-
-        private void Start()
-        {
-            if (_autoCreateVrPanel && UseWorldPanel) CreateVrPanel();
-        }
-
-        /// <summary>
-        /// 월드 공간 도구벨트를 코드로 만들어 붙인다(Canvas + 앵커 + 패널).
-        /// 씬에 미리 만들어 두면 그걸 쓰고, 없으면 여기서 만든다 — 씬 작업 없이 바로 확인할 수 있게.
-        /// </summary>
-        private void CreateVrPanel()
-        {
-            if (FindFirstObjectByType<ToolbeltPanel>() != null) return;   // 이미 씬에 있으면 그대로 둔다
-
-            var go = new GameObject("VR_도구벨트", typeof(Canvas));   // Canvas가 RectTransform을 같이 붙인다
-            var anchor = go.AddComponent<WorldHudAnchor>();
-            anchor.Configure(WorldHudAnchor.Placement.Waist);
-            var panel = go.AddComponent<ToolbeltPanel>();
-            panel.Configure(UiFont.Resolve(_vrFont));
         }
 
         private void OnDestroy()
@@ -232,18 +194,15 @@ namespace IMUNROK.Common
         }
 
         // ─────────────────────────────────────────────
-        //  데스크탑 뷰(OnGUI) — 에디터에서 헤드셋 없이 테스트할 때만
+        //  벨트 뷰(OnGUI)
         // ─────────────────────────────────────────────
 
         private GUIStyle _iconText, _label;
         private Texture2D _slot, _slotOn;
 
-        /// <summary>IMGUI는 XR 스테레오 렌더링에 합성되지 않는다 → 헤드셋이 붙어 있으면 그리지 않는다.</summary>
-        private bool SkipLegacyGui => UseWorldPanel && !_forceLegacyGui;
-
         private void OnGUI()
         {
-            if (SkipLegacyGui || Hidden) return;
+            if (Hidden) return;
             EnsureStyles();
 
             const float size = 54f, gap = 8f, margin = 16f;
@@ -266,8 +225,18 @@ namespace IMUNROK.Common
                 if (GUI.Button(r, GUIContent.none, GUIStyle.none)) Select(i);   // 클릭으로도 선택
             }
 
+            // <b>「Q / 휠 전환」은 처음 한 번만.</b>
+            //
+            // 한 번 익히면 다시 볼 일이 없는 말인데 화면 아래에 <b>내내</b> 붙어 있었다.
+            // 늘 있는 안내는 안 읽히면서 자리만 차지하고, 무엇보다 조선 후기 옹당촌에
+            // 「Q / 휠」이라 적힌 것이 계속 떠 있으면 그 말이 <b>세상 밖의 것</b>임이
+            // 매 순간 드러난다.
+            //
+            // 그래서 <b>한 번이라도 갈아 들면</b> 그때부터 안 적는다. 갈아 들었다는 것이
+            // 곧 익혔다는 뜻이다. 익히지 않은 사람에게는 그대로 남는다.
+            string hint = _everSwitched ? "" : "     (Q / 휠 전환)";
             GUI.Label(new Rect(x0, y - 24f, totalW, 22f),
-                      $"손 : {SlotName(_index)}     (Q / 휠 전환)", _label);
+                      $"손 : {SlotName(_index)}{hint}", _label);
         }
 
         private static string First(string s) => string.IsNullOrEmpty(s) ? "?" : s.Substring(0, 1);
@@ -275,8 +244,8 @@ namespace IMUNROK.Common
         private void EnsureStyles()
         {
             if (_iconText != null) return;
-            _slot   = Solid(new Color(1f, 1f, 1f, 0.08f));
-            _slotOn = Solid(new Color(1f, 0.85f, 0.4f, 0.32f));
+            _slot   = Solid(UiLook.With(UiLook.Paper, 0.08f));
+            _slotOn = Solid(UiLook.With(UiLook.Gold, 0.32f));
             _iconText = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
@@ -285,7 +254,7 @@ namespace IMUNROK.Common
             _label = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 13, alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = new Color(1f, 0.9f, 0.6f, 0.95f) }
+                normal = { textColor = UiLook.With(UiLook.Lit(UiLook.Gold, 0.30f), 0.95f) }
             };
         }
 

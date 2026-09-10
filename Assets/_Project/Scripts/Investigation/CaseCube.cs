@@ -260,7 +260,7 @@ namespace IMUNROK.Common
                 // (여기서 StartCase를 부르면 들어가지도 못한 사건이 영구히 InProgress(주황)로 남아,
                 //  ResetAll 말고는 되돌릴 방법이 없어진다.)
                 Say(_notReadyLine);
-                Debug.Log($"[CaseCube] {_caseId} — 씬 '{_caseSceneName}' 이 빌드 목록에 없어 열지 않음.");
+                DevLog.Note($"[CaseCube] {_caseId} — 씬 '{_caseSceneName}' 이 빌드 목록에 없어 열지 않음.");
                 return;
             }
 
@@ -295,7 +295,7 @@ namespace IMUNROK.Common
         {
             Journal.Instance.ClearCase(_caseId);
             _state.ResetCase(_caseId);
-            Debug.Log($"[CaseCube] {_caseId} 처음부터");
+            DevLog.Note($"[CaseCube] {_caseId} 처음부터");
             Enter();
         }
 
@@ -304,7 +304,7 @@ namespace IMUNROK.Common
         {
             _state.StartCase(_caseId);   // 색이 주황으로 → 진행중 시각 피드백
             _state.EnterCase(_caseId);   // 수첩이 이 사건 단서를 보여줌
-            Debug.Log($"[CaseCube] {_caseId} 사건 씬 로드 → '{_caseSceneName}'");
+            DevLog.Note($"[CaseCube] {_caseId} 사건 씬 로드 → '{_caseSceneName}'");
             string scene = _caseSceneName;
             ScreenFade.Blink(0.4f, 0.5f, delegate { SceneManager.LoadScene(scene); });
         }

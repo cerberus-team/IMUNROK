@@ -13,6 +13,11 @@ namespace IMUNROK.Common
     ///
     /// <b>그래서 도구가 아니라 문(門)이다.</b>
     ///
+    /// ⚠️ <b>이것이 막는 것은 출도뿐이다.</b> 등불도 돋보기도 유척도 처음부터 언제든 쓴다 —
+    /// 조사를 막는 자물쇠가 아니다. 그런데 「아직 이르다, 품에 든 것을 꺼내기에는」이라고만
+    /// 적어 두었더니 <b>도구가 잠긴 줄로 읽혔다</b>. 말이 무엇을 막는지 밝히지 않으면,
+    /// 사람은 자기가 지금 못 하는 일 가운데 <b>가장 답답한 것</b>을 그 말에 갖다 붙인다.
+    ///
     /// <b>왜 도구벨트에서 뺐나</b>: 한동안 마패가 벨트 네 번째 칸에 걸려 있었다.
     /// 그러면 두 가지가 한꺼번에 망가진다.
     ///
@@ -25,6 +30,10 @@ namespace IMUNROK.Common
     ///
     /// 그래서 이것은 끝까지 <b>도구 목록에 없다</b>. 있다는 것은 아는데 꺼낼 수가 없다 —
     /// 그 답답함이 1막 내내 깔려 있다가 출도에서 한 번에 풀린다.
+    ///
+    /// <b>맨손일 때만 나온다.</b> F 는 「들어 올린다」는 하나의 손짓이라 돋보기·등불과
+    /// 나눠 쓰는데, 손에 무언가 들려 있으면 그 F 는 <b>그 도구의 것</b>이다.
+    /// 마패는 품에서 나오는 것이므로 손이 비어 있어야 한다.
     ///
     /// <b>꺼내는 느낌</b>: 톡 눌러 되돌릴 수 없는 일이 벌어지면 안 되므로 <b>꾹</b>
     /// 눌러야 한다. 누르고 있는 동안 패가 품에서 <b>천천히 올라온다</b>. 손을 떼면
@@ -84,8 +93,11 @@ namespace IMUNROK.Common
         [Header("말")]
         [SerializeField] private string _speaker = "";
         [TextArea(2, 3)]
-        [Tooltip("낼 것이 모자랄 때 눌렀을 때. {0} 자리에 몇 개 모자란지가 들어간다")]
-        [SerializeField] private string _notYetLine = "아직 이르다. 품에 든 것을 꺼내기에는 *{0}가지*가 모자라다.";
+        [Tooltip("낼 것이 모자랄 때 눌렀을 때. {0} 자리에 몇 개 모자란지가 들어간다. " +
+                 "<b>무엇을 막는 말인지가 드러나야 한다</b> — 「품에 든 것을 꺼내기에는」이라고만 " +
+                 "적어 두었더니 도구를 못 쓴다는 말로 읽혔다. 도구는 언제든 쓸 수 있고, " +
+                 "막히는 것은 출도 하나뿐이다")]
+        [SerializeField] private string _notYetLine = "아직 이르다 — *출도(出道)*하려면 밝혀 둘 것이 *{0}가지* 남았다.";
         [TextArea(2, 3)]
         [Tooltip("다 채운 <b>그 순간</b> 한 번. 이것이 곧 '이제 나가도 된다'는 신호다")]
         [SerializeField] private string _readyLine = "품 속의 것이 *무거워진다*. ({0} 꾹 눌러 내보이기)";
@@ -163,9 +175,24 @@ namespace IMUNROK.Common
                 Say(string.Format(_readyLine, KeyName()));
             }
 
+            // <b>손이 비어 있어야 듣는다.</b>
+            //
+            // F 는 세 곳이 함께 쓴다 — 돋보기를 눈에 대고(MagnifierLens), 손에 든 것을
+            // 들어 올리고(ToolRaise), 마패를 품에서 꺼낸다. 앞의 둘은 <b>손에 무언가
+            // 들려 있을 때</b>의 손짓이고 마패는 <b>품</b>에서 나오는 것이므로, 셋이 한
+            // 키를 나눠 쓰는 것 자체는 옳다 — 「들어 올린다」는 하나의 손짓이다.
+            //
+            // 다만 마패가 <b>남의 차례에 말을 얹고 있었다</b>. 돋보기를 눈에 대려고
+            // F 를 누르면 마패도 그 F 를 듣고 「아직 이르다」를 뱉었다. 도구를 쓰는데
+            // 난데없이 출도 이야기가 뜨니, 도구가 잠긴 줄로 읽힌다.
+            //
+            // 그러니 <b>맨손일 때만</b> 듣는다. 어사가 돋보기를 눈에 대고 있는 채로
+            // 품에서 마패가 올라오는 그림도 말이 안 된다.
+            bool emptyHanded = string.IsNullOrEmpty(ToolbeltHud.SelectedToolId);
+
 #if ENABLE_INPUT_SYSTEM
             var kb = UnityEngine.InputSystem.Keyboard.current;
-            var key = kb != null ? kb[_raiseKey] : null;
+            var key = emptyHanded && kb != null ? kb[_raiseKey] : null;
             bool pressing = key != null && key.isPressed;
             bool tapped = key != null && key.wasPressedThisFrame;
 #else

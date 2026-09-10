@@ -15,7 +15,7 @@ namespace IMUNROK.Common
     ///   · 물증을 하나 주울 때마다 — 이 게임에서 진행이란 곧 수첩에 적힌 것이다.
     ///   · 사건에 들어설 때·판결을 내릴 때(<see cref="GameState.OnCaseChanged"/>).
     ///   · 조사청에 들어설 때.
-    ///   · 앱을 끄거나 헤드셋을 벗을 때 — 퀘스트에서는 이쪽이 진짜 종료다.
+    ///   · 앱을 끄거나 창을 내릴 때.
     ///
     /// <b>표제·어전에서는 저장하지 않는다</b>(<see cref="_armed"/>). 아직 아무 일도
     /// 안 한 사람에게 저장 파일이 생기면, 다음에 켰을 때 "하던 데부터"가 떠 있는데
@@ -123,7 +123,7 @@ namespace IMUNROK.Common
 
         private void OnApplicationQuit() { if (_dirty) Flush(); }
 
-        /// <summary>헤드셋을 벗으면 여기로 온다. 퀘스트에서는 이쪽이 진짜 종료다.</summary>
+        /// <summary>앱이 뒤로 물러나면 여기로 온다.</summary>
         private void OnApplicationPause(bool paused) { if (paused && _dirty) Flush(); }
 
         /// <summary>
@@ -135,7 +135,7 @@ namespace IMUNROK.Common
             GameState.Instance.ResetAll();
             Journal.Instance.ClearAll();
             if (_instance != null) { _instance._armed = false; _instance._dirty = false; }
-            Debug.Log("[자동저장] 처음부터 — 지금 판을 비웠습니다(저장 파일은 그대로).");
+            DevLog.Note("[자동저장] 처음부터 — 지금 판을 비웠습니다(저장 파일은 그대로).");
         }
     }
 }

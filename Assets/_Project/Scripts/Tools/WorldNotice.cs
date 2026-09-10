@@ -68,7 +68,7 @@ namespace IMUNROK.Common
                 found._anchor.SetDistance(1.6f, verticalOffset);
                 return found;
             }
-            var go = new GameObject($"VR_알림_{key}", typeof(Canvas));
+            var go = new GameObject($"알림_{key}", typeof(Canvas));
             var anchor = go.AddComponent<WorldHudAnchor>();
             anchor.Configure(WorldHudAnchor.Placement.Front);
             anchor.SetDistance(1.6f, verticalOffset);
@@ -82,9 +82,12 @@ namespace IMUNROK.Common
             _anchor = GetComponent<WorldHudAnchor>();
             _group = gameObject.AddComponent<CanvasGroup>();
 
+            // <b>판이 아니라 말이다.</b> 바탕을 0.72 로 깔아 두었더니 지나가는 한 마디가
+            // <b>창</b>으로 보였다 — 테두리가 뚜렷한 네모는 「닫아야 하는 것」으로 읽힌다.
+            // 글이 배경에 묻히지 않을 만큼만 남기고(0.28) 나머지는 글씨의 그림자가 받는다.
             var panel = NewRect("바탕", Vector2.zero, new Vector2(1100f, 420f), transform);
             _bg = panel.gameObject.AddComponent<Image>();
-            _bg.color = new Color(0.03f, 0.035f, 0.05f, 0.72f);
+            _bg.color = UiLook.With(UiLook.Panel, 0.28f);
 
             var imgRt = NewRect("그림", Vector2.zero, new Vector2(1040f, 380f), panel);
             _image = imgRt.gameObject.AddComponent<RawImage>();
@@ -95,7 +98,7 @@ namespace IMUNROK.Common
             _text = txtRt.gameObject.AddComponent<Text>();
             _text.font = UiFont.Resolve(null);
             _text.fontSize = 40;
-            _text.color = new Color(1f, 0.93f, 0.78f);
+            _text.color = UiLook.Text;
             _text.alignment = TextAnchor.MiddleCenter;
             _text.horizontalOverflow = HorizontalWrapMode.Wrap;
             _text.verticalOverflow = VerticalWrapMode.Overflow;
@@ -104,11 +107,31 @@ namespace IMUNROK.Common
             SetVisible(false);
         }
 
+        /// <summary>가고자 하는 밝기. 실제 밝기는 이쪽으로 <b>스르르</b> 따라간다.</summary>
+        private float _want;
+
+        /// <summary>
+        /// <b>툭 켜고 툭 끄지 않는다.</b>
+        ///
+        /// 여태 알파를 0 과 1 로 곧장 바꿨다. 그러면 글이 <b>나타나는</b> 것이 아니라
+        /// 화면에 <b>붙었다 떨어진다</b> — 창을 여닫는 꼴이라, 읽고 지나가는 한 마디로
+        /// 안 읽히고 「무엇이 떴다」가 된다.
+        /// 뜨는 것은 조금 느리게, 지는 것은 그보다 느리게 둔다 — 사라지는 것을
+        /// 눈으로 좇을 수 있어야 「지나간 말」로 읽힌다.
+        /// </summary>
         private void SetVisible(bool on)
         {
             if (_group == null) return;
-            _group.alpha = on ? 1f : 0f;
+            _want = on ? 1f : 0f;
             _group.blocksRaycasts = false;   // 알림판은 눌리지 않는다 — 뒤의 것을 가리면 안 된다
+        }
+
+        private void LateUpdate()
+        {
+            if (_group == null) return;
+            if (Mathf.Approximately(_group.alpha, _want)) return;
+            float speed = _want > _group.alpha ? 4.5f : 2.2f;      // 지는 것이 더 느리다
+            _group.alpha = Mathf.MoveTowards(_group.alpha, _want, speed * Time.deltaTime);
         }
 
         private RectTransform NewRect(string name, Vector2 pos, Vector2 size, Transform parent)

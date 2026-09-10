@@ -48,7 +48,7 @@ namespace IMUNROK.Common
         {
             _active = true;
             RefreshColor();
-            Debug.Log("[BongseoBox] 봉서함 활성화 — 복명으로 나아갈 수 있습니다.");
+            DevLog.Note("[BongseoBox] 봉서함 활성화 — 복명으로 나아갈 수 있습니다.");
         }
 
         /// <summary>닫힘 상태로(초기/리셋).</summary>
@@ -90,14 +90,14 @@ namespace IMUNROK.Common
         {
             if (!_active)
             {
-                Debug.Log("[BongseoBox] 아직 봉서함이 열리지 않았습니다. 세 사건을 모두 마쳐야 합니다.");
+                DevLog.Note("[BongseoBox] 아직 봉서함이 열리지 않았습니다. 세 사건을 모두 마쳐야 합니다.");
                 return;
             }
 
             // 복명(EndingScene)으로 이동
             if (!string.IsNullOrEmpty(_endingSceneName) && Application.CanStreamedLevelBeLoaded(_endingSceneName))
             {
-                Debug.Log($"[BongseoBox] 봉서함 선택 — 복명으로 이어집니다: '{_endingSceneName}'");
+                DevLog.Note($"[BongseoBox] 봉서함 선택 — 복명으로 이어집니다: '{_endingSceneName}'");
                 SceneManager.LoadScene(_endingSceneName);
             }
             else

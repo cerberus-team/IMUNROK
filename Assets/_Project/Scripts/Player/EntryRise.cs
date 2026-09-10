@@ -49,20 +49,48 @@ namespace IMUNROK.Common
         [Tooltip("일어서는 데 걸리는 시간(초)")]
         [SerializeField] private float _riseSeconds = 1.5f;
 
-        /// <summary>한 판에 한 번. 사건에서 돌아올 때마다 다시 앉히지 않는다.</summary>
-        private static bool _done;
+        /// <summary>
+        /// <b>보료에서 일어난 적이 있는가.</b> 한 판에 한 번뿐인 연출이라 여기 적어 둔다.
+        ///
+        /// 어느 씬에서 조사청으로 들어왔는지로는 가릴 수 없다. 사건을 마치고 돌아오는
+        /// 것이 <b>이 판에서 조사청을 처음 보는 것</b>일 수도 있기 때문이다 —
+        /// 어전에서 봉서를 집으면 조사청을 거치지 않고 사건으로 곧장 간다.
+        /// 그러니 「어디서 왔나」가 아니라 「본 적이 있나」로 가른다.
+        ///
+        /// 어전이 올라오면 도로 지운다. 어전은 판이 새로 시작하는 자리다 —
+        /// 표제에서 「처음부터」를 눌러도 앱은 그대로이므로, 여기서 지우지 않으면
+        /// 두 번째 판에서는 영영 안 일어난다.
+        /// </summary>
+        private static bool _rose;
+
+        /// <summary>이 씬에서 이미 한 번 맞이했는가. 씬 하나에 두 번 붙는 것을 막는다.</summary>
+        private static int _greetedScene = -1;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void Install()
+        private static void Hook()
         {
-            if (_done) return;
-            if (GameObject.Find("조사청_실내") == null) return;   // 조사청에서만
+            // <b>한 번만 도는 자리에서 듣기만 걸어 둔다.</b>
+            //
+            // 여태 이 자리에서 곧바로 붙였는데, <c>AfterSceneLoad</c> 는 게임을 켜고
+            // <b>첫 씬</b>이 올라올 때 딱 한 번 돈다. 어전에서 시작하면 그때는 조사청이
+            // 없어 그냥 돌아가고, 나중에 조사청으로 넘어가도 다시 안 불렸다 —
+            // 조사청 씬에서 바로 Play 를 눌렀을 때만 되던 까닭이 이것이다.
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+            OnSceneLoaded(UnityEngine.SceneManagement.SceneManager.GetActiveScene(),
+                          UnityEngine.SceneManagement.LoadSceneMode.Single);
+        }
 
-            // 헤드셋을 쓰고 있으면 <b>앉히지 않는다</b>. 앉은 눈높이는 카메라를 내려서
-            // 만드는 것인데, VR 에서 눈높이를 정하는 것은 쓰고 있는 사람의 <b>실제 키</b>다.
-            // 거기에 대고 카메라를 끌어내리면 몸은 서 있는데 눈만 꺼지는 꼴이 되어
-            // 곧바로 멀미가 난다. 앉은 채 시작하는 연출은 VR 용으로 따로 지어야 한다.
-            if (UnityEngine.XR.XRSettings.isDeviceActive) return;
+        private static void OnSceneLoaded(UnityEngine.SceneManagement.Scene sc,
+                                          UnityEngine.SceneManagement.LoadSceneMode mode)
+        {
+            // 어전이 올라왔다 = 판이 새로 시작한다. 일어선 기억을 지운다.
+            if (GameObject.Find("_IntroController") != null) { _rose = false; _greetedScene = -1; }
+
+            if (GameObject.Find("조사청_실내") == null) return;   // 조사청에서만
+            if (_greetedScene == sc.handle) return;               // 이 씬은 이미 맞이했다
+            _greetedScene = sc.handle;
+
             var cam = Camera.main;
             if (cam == null || cam.GetComponent<EntryRise>() != null) return;
             cam.gameObject.AddComponent<EntryRise>();
@@ -70,10 +98,45 @@ namespace IMUNROK.Common
 
         private void Start()
         {
-            if (_done) { Destroy(this); return; }
-            _done = true;
+            if (_rose) { StartCoroutine(OpenEyesAtBoard()); return; }
+            _rose = true;
             StartCoroutine(Run());
         }
+
+        /// <summary>
+        /// <b>두 번째부터는 사건판 앞에서 눈을 뜬다.</b>
+        ///
+        /// 보료에서 일어나는 것은 <b>이 방을 처음 보는 사람</b>의 한 호흡이다. 사건을
+        /// 마치고 돌아올 때마다 도로 앉혀 놓고 둘러보게 하면, 처음의 그 호흡이
+        /// <b>매번 치르는 절차</b>로 닳는다.
+        ///
+        /// 그렇다고 그냥 세워 두면 어디를 봐야 할지 모른 채 방 한복판에 떨어진다.
+        /// 그래서 <b>볼 곳을 정해 두고</b> 눈을 뜬다 — 돌아온 사람이 할 일은 사건판을
+        /// 보는 것 하나뿐이니, 눈뜬 자리가 곧 다음에 할 일이 된다.
+        /// </summary>
+        private IEnumerator OpenEyesAtBoard()
+        {
+            var board = GameObject.Find("조사청_소품/사건판");
+            if (board != null)
+            {
+                Vector3 dir = board.transform.position - transform.position;
+                dir.y *= 0.35f;                      // 사건판이 눈보다 높다 — 다 올려다보면 천장이 든다
+                if (dir.sqrMagnitude > 0.0001f)
+                    transform.rotation = Quaternion.LookRotation(dir.normalized, Vector3.up);
+                var fly0 = GetComponent<DebugFlyCamera>();
+                if (fly0 != null) fly0.SyncAngles();
+            }
+
+            // 검은 데서 뜬다. 이미 밝으면 이 두 줄은 아무 일도 안 한다.
+            ScreenFade.To(1f, 0f);
+            yield return null;
+            ScreenFade.To(0f, _openSeconds);
+
+            Destroy(this);
+        }
+
+        [Tooltip("두 번째부터 — 사건판 앞에서 눈이 떠지는 데 걸리는 시간(초)")]
+        [SerializeField] private float _openSeconds = 0.9f;
 
         private IEnumerator Run()
         {

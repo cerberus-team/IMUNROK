@@ -589,7 +589,7 @@ namespace IMUNROK.Common
 
             PaintPropOnTop();
 
-            Debug.Log("[돋보기] 소품 " + _prop.name + " 의 유리를 " + (_measureProp ? "쟀다" : "재지 않고 손값을 쓴다")
+            DevLog.Note("[돋보기] 소품 " + _prop.name + " 의 유리를 " + (_measureProp ? "쟀다" : "재지 않고 손값을 쓴다")
                       + " — 반지름 " + _glassRadius.ToString("F3") + "m, 잰 한가운데 " + center.ToString("F4")
                       + ", 실제로 쓰는 한가운데 " + GlassLocal.ToString("F4"), _prop);
         }
@@ -684,24 +684,6 @@ namespace IMUNROK.Common
             // 아래 셋(크기 키우기·눈 쪽으로 바로 세우기·눈앞으로 당기기)은 전부
             // <b>손이 없는 사람</b>을 위한 것이다. 화면으로 할 때는 돋보기를 눈에
             // 가져다 댈 손이 없으니 코드가 대신 가져다 대 준다.
-            //
-            // 헤드셋을 쓰면 그 손이 <b>있다</b>. 그런데도 코드가 계속 당기면,
-            // 사람이 팔을 뻗어도 돋보기가 제자리로 튕겨 오고 — 무엇보다 이 값들은
-            // <b>눈 기준</b>이라 컨트롤러에 매달린 것에 쓰면 손아귀에서 한 뼘씩
-            // 어긋난 자리로 끌려간다.
-            //
-            // 남기는 것은 <b>렌즈를 유리에 맞추는 일</b>뿐이다(아래 3번). 유리가
-            // 어디에 있든 눈에서 그리로 뚫어 보는 것이 돋보기다.
-            if (HeldHand.InHand)
-            {
-                if (_glassRadiusBase < 0f) _glassRadiusBase = _glassRadius;
-                _glassRadius = _glassRadiusBase;
-                _lens.position = _propRoot.TransformPoint(GlassLocal);
-                Vector3 off = _lens.position - _eye.position;
-                if (off.sqrMagnitude > 1e-6f) _lens.rotation = Quaternion.LookRotation(off, _eye.up);
-                return;
-            }
-
             float t = Mathf.SmoothStep(0f, 1f, _raise);
 
             // 0) 크기 — 눈에 댈수록 커진다. 유리 원판과 배율 셈에 쓰는 반지름도 같이 키워야

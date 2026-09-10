@@ -121,7 +121,7 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// 밖에서 일어서라 이를 때. 헤드셋에는 Space 가 없어 컨트롤러 단추가 이리로 온다.
+        /// 밖에서 일어서라 이를 때.
         /// </summary>
         public void RiseNow()
         {

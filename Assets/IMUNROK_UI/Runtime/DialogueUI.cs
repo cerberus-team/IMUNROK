@@ -145,7 +145,7 @@ namespace IMUNROK.Ui
         }
 
         //  세로 화각 60°(±30°), 16:9 기준 가로 ±45.8° 안에 들어가게 잡은 값들.
-        static Geom GeomOf(DialogueLayout l)
+        public static Geom GeomOf(DialogueLayout l)
         {
             switch (l)
             {
@@ -189,16 +189,16 @@ namespace IMUNROK.Ui
         ///
         /// 폭이 줄면 한 줄에 담기는 글자가 줄어 <b>줄 수를 늘려</b> 메운다 (아래 VR 수치 참고).
         /// </summary>
-        const float VrBarWidth = 1500f;
+        public const float VrBarWidth = 1500f;
 
         /// <summary>
         /// VR에서 하단 바가 눕는 높이(도). 판 반높이가 약 10°이므로 −16°면 위끝 −6°, 아래끝 −26° —
         /// 아래를 보되 고개를 숙일 정도는 아닌 자리다. PC(−23°)보다 조금 올려 잡았다:
         /// HMD는 아래쪽 시야가 화면보다 좁다.
         /// </summary>
-        const float VrBarUpDeg = -16f;
+        public const float VrBarUpDeg = -16f;
 
-        static Geom BarGeom(float w, DialogueLayout l)
+        public static Geom BarGeom(float w, DialogueLayout l)
         {
             float h = StyleOf(l).TotalHeight;
 
@@ -224,14 +224,14 @@ namespace IMUNROK.Ui
         /// 둘을 더해야 한다 — 줄 간격은 줄 높이에 <b>곱하는 것이 아니라 더하는 것</b>이다.
         /// (여기를 곱셈으로 잘못 잡아 3줄짜리 상자가 2.5줄만 담고 있었다.)
         /// </summary>
-        static float LineBox(int lineSize, int lines)
+        public static float LineBox(int lineSize, int lines)
         {
             const float PerLine = 1.25f + 0.28f;
             return Mathf.Ceil(lineSize * PerLine * lines) + 6f;   // 6 = 첫 줄 윗여유
         }
 
         /// <summary>배치안·모드별 수치. 얼개는 하나, 값만 다르다.</summary>
-        static BottomStyle StyleOf(DialogueLayout l)
+        public static BottomStyle StyleOf(DialogueLayout l)
         {
             switch (l)
             {
@@ -291,10 +291,17 @@ namespace IMUNROK.Ui
 
         /// <summary>뒤판 불투명도. 낮은 쪽이 많이 비치지만 낮 야외에서 글이 흐려진다 —
         /// 0.50 이 하한, 0.80 이면 거의 안 비친다. 두 조명에서 재어 0.65 로 정했다.</summary>
-        const float BackAlpha = 0.65f;
+        public const float BackAlpha = 0.65f;
 
         /// <summary>먹빛 — 푸른 기가 도는 검정. 낮 야외·밤 실내 양쪽에서 밝은 글씨가 뜬다.</summary>
-        static readonly Color BackRgb = new Color(0.062f, 0.066f, 0.086f);
+        public static readonly Color BackRgb = new Color(0.062f, 0.066f, 0.086f);
+
+        /// <summary>
+        /// 하단 바의 <b>목재 테두리 두께</b>(단위). 넉 줄을 겹치지 않게 두르는 폭이다.
+        /// 바탕 한 겹 + 테두리 넉 줄로 짓는 까닭은 판을 짓는 자리의 주석에 적어 두었다 —
+        /// 겹을 쌓으면 알파가 1−(1−a)ⁿ 로 불어나 투명도가 뜻대로 안 나온다.
+        /// </summary>
+        public const float BarBorder = 5f;
 
         /// <summary>확정된 색 한 벌.</summary>
         public static BarPalette Palette()
@@ -316,7 +323,7 @@ namespace IMUNROK.Ui
             };
         }
 
-        static bool IsBottomBar(DialogueLayout l)
+        public static bool IsBottomBar(DialogueLayout l)
         {
             return l == DialogueLayout.하단바_확정
                 || l == DialogueLayout.E_하단바_얇게
@@ -324,7 +331,7 @@ namespace IMUNROK.Ui
         }
 
         /// <summary>말풍선 치수 (C안). 캔버스 단위 × 0.001 = m.</summary>
-        const float BubbleW = 900f, BubbleH = 420f, BubbleScale = 0.001f;
+        public const float BubbleW = 900f, BubbleH = 420f, BubbleScale = 0.001f;
 
         /// <summary>
         /// VR에서 판 전체에 곱하는 배율 (2026-08-26).
@@ -339,7 +346,7 @@ namespace IMUNROK.Ui
         /// 1.5 로 올리면 76°가 되어 모서리를 보려고 고개를 돌려야 한다.
         /// ⚠️ 계산으로 잡은 값이다 — 헤드셋에서 22단위 줄이 실제로 읽히는지 확인할 것.
         /// </summary>
-        const float VrScale = 1.35f;
+        public const float VrScale = 1.35f;
 
         public static DialogueUI Instance { get; private set; }
 
@@ -359,6 +366,10 @@ namespace IMUNROK.Ui
         IDialogueSpeaker owner;
         IDialogueBackend session;
         Transform eye;
+
+        /// <summary>말 상대의 <b>보이는 몸</b>. 판을 그 앞으로 당길 때 쓴다 — <see cref="ApplyPose"/> 참고.
+        /// 프레임마다 찾지 않도록 <see cref="Open"/> 에서 한 번만 모은다.</summary>
+        Renderer[] speakerBody;
         Geom geom;
         bool built;
         /// <summary>지을 때의 모드. 하단 바는 PC와 VR의 <b>치수가 아예 다르므로</b>
@@ -408,6 +419,9 @@ namespace IMUNROK.Ui
         {
             owner = npc;
             session = s;
+            // 말 상대의 몸 — 판이 그 뒤로 들어가지 않게 (ApplyPose)
+            var speakerGo = npc as Component;
+            speakerBody = speakerGo != null ? speakerGo.GetComponentsInChildren<Renderer>() : null;
             eye = Camera.main != null ? Camera.main.transform : null;
             if (eye == null) { Debug.LogError("[대화] Camera.main이 없다 — 대화창을 세울 수 없다."); return; }
 
@@ -458,6 +472,9 @@ namespace IMUNROK.Ui
             Hovered = null;
             owner = null;
             session = null;
+            speakerBody = null;
+            bodySampleCount = 0;
+            bodyBoxAt = -999f;
             if (bubbleGo != null) bubbleGo.SetActive(false);
             gameObject.SetActive(false);
         }
@@ -466,6 +483,7 @@ namespace IMUNROK.Ui
         {
             if (eventSystemMine && EventSystem.current != null) Destroy(EventSystem.current.gameObject);
             skin.Dispose();
+            if (bodyScratch != null) { Destroy(bodyScratch); bodyScratch = null; }
             if (Instance == this) Instance = null;
         }
 
@@ -540,6 +558,28 @@ namespace IMUNROK.Ui
                 float along = h2.distance * Vector3.Dot(dir, ahead);
                 dist = Mathf.Min(dist, along - 0.08f);
             }
+
+            // ── 말 상대의 몸 앞으로 ──
+            //
+            // ⚠️ 위의 광선만으로는 <b>말 상대 자신</b>을 못 피한다 (2026-08-27 어머니에서 실측).
+            //    까닭이 둘이다.
+            //      ① 광선이 맞히는 것은 <b>조준 캡슐</b>인데 그 캡슐은 보이는 몸보다 훨씬 작다.
+            //         앉은 어머니는 치마·무릎이 앞으로 0.5 m 나와 있는데 캡슐(반지름 0.40)의
+            //         앞면은 1.30 m 였다 — 캡슐을 피해도 무릎에 가린다.
+            //      ② 폭 2900짜리 하단 바는 귀퉁이 광선이 ±44°로 <b>옆으로 날아가</b> 눈앞의
+            //         사람을 아예 지나친다. 가운데 광선은 −23°로 발밑을 짚는다.
+            //    실측: 눈에서 어머니 몸 앞면까지 0.50 m 인데 판은 1.454 m 에 섰다 —
+            //    <b>말을 거는 상대보다 1 m 뒤</b>다. 그래서 치마·툇마루·댓돌·기둥이 바를 잘랐다.
+            //
+            //    보이는 몸의 AABB 앞면까지로 깊이를 묶는다. 조준 캡슐이 아니라 <b>렌더러</b>를
+            //    보므로 자세가 어떻든 따라온다. 서 있는 사람은 몸이 얇아 거의 안 물린다.
+            //
+            // ⚠️ 이것은 <b>배치가 아니라 깊이</b>만 바꾼다. 아래 <c>k</c> 가 자리·배율을 같은
+            //    비율로 줄이므로 화면에 보이는 크기·자리는 <b>한 픽셀도 달라지지 않는다.</b>
+            //    (당겨 온 만큼 배율을 줄이는 것은 이 판이 원래 쓰던 수법이다)
+            float body = SpeakerFrontDepth(eye.position, ahead);
+            if (body > 0f) dist = Mathf.Min(dist, body - BodyClearance);
+
             dist = Mathf.Max(0.35f, dist);
 
             float k = dist / geom.dist;
@@ -552,6 +592,81 @@ namespace IMUNROK.Ui
             transform.localScale = Vector3.one * geom.scale * k * scaleMul;
 
             if (bubbleGo != null && bubbleGo.activeSelf) PlaceBubble();
+        }
+
+        /// <summary>말 상대의 몸과 판 사이에 두는 틈(m). 자세가 흔들려도 파고들지 않을 만큼.</summary>
+        const float BodyClearance = 0.12f;
+
+        Mesh bodyScratch;
+        readonly List<Vector3> bodyRaw = new List<Vector3>();
+        Vector3[] bodySamples;
+        int bodySampleCount;
+        float bodyBoxAt = -999f;
+
+        /// <summary>몸을 다시 재는 간격(초). 대화 중 자세는 거의 안 변하니 이 정도면 넉넉하다.</summary>
+        const float BodyRefresh = 0.5f;
+
+        /// <summary>몸에서 뽑아 둘 점의 수. 프레임마다 이만큼만 내적하면 되니 값이 싸다.
+        /// ⚠️ 256으로는 <b>가장 앞으로 나온 꼭짓점을 놓친다</b> — 아이01에서 실측 오차 0.14 m 라
+        ///    여유(0.12)를 다 까먹고 몸이 판보다 2 cm 앞에 섰다. 1024면 오차가 3 cm 안쪽이다.</summary>
+        const int BodySampleMax = 1024;
+
+        /// <summary>
+        /// 말 상대의 <b>보이는 몸</b>이 시선 방향으로 얼마나 앞에서 시작하는가(m).
+        /// 잴 몸이 없으면 0 (묶지 않는다).
+        ///
+        /// ⚠️ <see cref="Renderer.bounds"/> 를 쓰면 안 된다 (2026-08-27 실측). 이 모델들의
+        ///    렌더러 AABB는 <b>바인드 자세 기준이라 터무니없이 크다</b> — 키 1.7 m 인 주모가
+        ///    2.38 × 2.22 × 2.26 m 로 잡힌다. 그 상자로 앞면을 구하면 값이 <b>음수</b>가 되어
+        ///    (주모 −0.29, 아이03 −0.32) 묶는 일이 통째로 없던 일이 된다 —
+        ///    가장 필요한 순간에 조용히 꺼지는 종류의 결함이다.
+        ///    <see cref="SkinnedMeshRenderer.BakeMesh"/> 로 <b>지금 자세</b>를 구워서 잰다.
+        ///
+        /// ⚠️ 구운 것의 <b>AABB</b> 로도 안 된다. 서 있는 주모의 구운 상자가 1.77 × 1.84 × 1.75 —
+        ///    폭이 1.8 m 다. 축에 정렬된 상자라 몸보다 한참 부풀어, 앞면이 0.21 m 로 나온다
+        ///    (실제 몸은 그보다 훨씬 뒤에 있다). 그러면 아무 이유 없이 판을 바닥값까지 당긴다.
+        ///    그래서 <b>구운 꼭짓점 자체</b>를 (솎아서) 들고 시선축 최소값을 낸다.
+        /// </summary>
+        float SpeakerFrontDepth(Vector3 from, Vector3 ahead)
+        {
+            if (Time.unscaledTime - bodyBoxAt > BodyRefresh) { bodyBoxAt = Time.unscaledTime; RefreshSpeakerBody(); }
+            if (bodySampleCount == 0) return 0f;
+
+            float near = float.MaxValue;
+            for (int i = 0; i < bodySampleCount; i++)
+            {
+                Vector3 v = bodySamples[i] - from;
+                float d = v.x * ahead.x + v.y * ahead.y + v.z * ahead.z;
+                if (d < near) near = d;
+            }
+            return near;
+        }
+
+        /// <summary>지금 자세를 구워 <see cref="BodySampleMax"/> 개의 월드 점으로 솎아 둔다.</summary>
+        void RefreshSpeakerBody()
+        {
+            bodySampleCount = 0;
+            if (speakerBody == null) return;
+            if (bodyScratch == null) bodyScratch = new Mesh { name = "대화_상대몸_임시" };
+            if (bodySamples == null) bodySamples = new Vector3[BodySampleMax];
+
+            for (int r = 0; r < speakerBody.Length && bodySampleCount < BodySampleMax; r++)
+            {
+                var skin = speakerBody[r] as SkinnedMeshRenderer;
+                if (skin == null || !skin.enabled || skin.sharedMesh == null
+                    || !skin.gameObject.activeInHierarchy) continue;
+
+                // ⚠️ useScale 은 켠다 — 끄면 FBX 의 cm 단위 그대로라 100배가 된다.
+                //    (스킨 트랜스폼 배율 100은 TransformPoint 가 마저 곱한다)
+                skin.BakeMesh(bodyScratch, true);
+                bodyScratch.GetVertices(bodyRaw);          // 목록을 돌려 써서 매번 배열을 만들지 않는다
+                if (bodyRaw.Count == 0) continue;
+
+                int step = Mathf.Max(1, bodyRaw.Count / Mathf.Max(1, BodySampleMax - bodySampleCount));
+                var tr = skin.transform;
+                for (int i = 0; i < bodyRaw.Count && bodySampleCount < BodySampleMax; i += step)
+                    bodySamples[bodySampleCount++] = tr.TransformPoint(bodyRaw[i]);
+            }
         }
 
         /// <summary>말풍선을 NPC 얼굴 <b>왼쪽 위</b>에 띄운다. 판과 같이 화면과 나란히 세운다.</summary>
@@ -942,7 +1057,7 @@ namespace IMUNROK.Ui
                 paper = MakeImage(root, "바탕", pal.paperGrain ? skin.Hanji_ : UiSkin.White, pal.back);
                 Stretch(paper, 0f);
 
-                const float T = 5f;                      // 테두리 두께 (목재 느낌은 남긴다)
+                const float T = BarBorder;               // 테두리 두께 (목재 느낌은 남긴다)
                 float hw0 = geom.w * 0.5f, hh0 = geom.h * 0.5f;
                 Place(MakeImage(root, "테_위", skin.Wood_, pal.border), new Vector2(0f, hh0 - T * 0.5f), new Vector2(geom.w, T));
                 Place(MakeImage(root, "테_아래", skin.Wood_, pal.border), new Vector2(0f, -hh0 + T * 0.5f), new Vector2(geom.w, T));

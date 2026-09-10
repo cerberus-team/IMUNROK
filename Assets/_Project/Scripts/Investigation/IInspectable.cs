@@ -8,7 +8,7 @@ namespace IMUNROK.Common
     ///  - 직접 구현하거나(자유),
     ///  - 코드 없이 쓰려면 InspectableNote 컴포넌트를 오브젝트에 붙이면 된다.
     ///
-    /// 지금은 마우스(MouseInspector)가 살펴보지만, VR에서는 확대경을 든 손이
+    /// 지금은 마우스(MouseInspector)가 살펴보지만, 나중에 확대경을 든 손이
     /// 같은 계약을 호출하게 된다(입력만 교체, 대상 로직은 그대로).
     /// </summary>
     public interface IInspectable

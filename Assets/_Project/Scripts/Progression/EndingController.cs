@@ -15,7 +15,7 @@ namespace IMUNROK.Common
     ///  - 세 판결의 경향(다수결)에 따라 왕의 총평이 분기.
     ///  - 마지막 대사 "그래서, 그 이야기들은 거짓이었느냐." 로 종료.
     ///
-    /// 자막은 <see cref="SubtitleView"/> 로 세상 속에 띄운다 — OnGUI 는 헤드셋에 안 보인다.
+    /// 자막은 <see cref="SubtitleView"/> 로 띄운다.
     /// 진행: 자동으로 넘어가거나(줄당 시간), 스페이스/클릭으로 즉시 다음 줄.
     /// </summary>
     public class EndingController : MonoBehaviour
@@ -108,7 +108,7 @@ namespace IMUNROK.Common
             // 단독 실행 등으로 판결이 비어 있으면 샘플로 채움(테스트 편의)
             if (_autofillIfEmpty && gs.CompletedCount == 0)
             {
-                Debug.Log("[EndingController] 판결 데이터가 없어 샘플 판결로 채웁니다(디버그).");
+                DevLog.Note("[EndingController] 판결 데이터가 없어 샘플 판결로 채웁니다(디버그).");
                 gs.SetVerdict(CaseId.Case1_Onggojip, Verdict.Truth);
                 gs.SetVerdict(CaseId.Case2_Seocheon, Verdict.Mercy);
                 gs.SetVerdict(CaseId.Case3_Gyeonu, Verdict.Truth);
@@ -216,7 +216,7 @@ namespace IMUNROK.Common
                 _index = _lines.Count - 1;
                 _finished = true;
                 _justFinished = true;
-                Debug.Log("[EndingController] 복명을 마칩니다.");
+                DevLog.Note("[EndingController] 복명을 마칩니다.");
             }
         }
 
@@ -251,7 +251,7 @@ namespace IMUNROK.Common
             var kb = Keyboard.current;
             var mouse = Mouse.current;
             bool space = kb != null && kb.spaceKey.wasPressedThisFrame;
-            bool click = mouse != null && mouse.leftButton.wasPressedThisFrame;
+            bool click = UiGuard.AnywherePressed;   // 단추 위에서는 안 센다
             return space || click;
 #else
             return false;
@@ -263,8 +263,8 @@ namespace IMUNROK.Common
         // ─────────────────────────────────────────────
         //
         // 여태 이 대목만 OnGUI 였다. 그때는 그것이 편했다 — 폰트 에셋 없이도 한글이
-        // 확실히 찍히니까. 그런데 <b>OnGUI 는 헤드셋에 안 보인다</b>. 화면 위에 덧그리는
-        // 그림이라 두 눈으로 갈리는 그림에는 아예 끼지 못한다. 그러니 헤드셋을 쓰고
+        // 확실히 찍히니까. 그런데 <b>OnGUI 는 세상 속 판과 켜가 어긋난다</b>. 화면 위에 덧그리는
+        // 그림이라 세상 속 판과는 켜가 아예 어긋난다. 그러니 판을 세워 두고
         // 복명에 들어서면 왕의 말이 <b>한 줄도 안 뜬다</b> — 캄캄한 데 서서 아무 일도
         // 안 일어나는 것으로 보인다.
         //
@@ -288,7 +288,7 @@ namespace IMUNROK.Common
         ///
         /// 앞서 한지 한 장에 적어 눈앞에 띄웠다. 그릇은 맞았는데 <b>크기가 틀렸다</b> —
         /// 만든 사람 셋과 빌려 온 것 여남은 줄이 손바닥만 한 종이에 다 들어가니
-        /// 끝을 맺는 것이 아니라 <b>쪽지 한 장 읽고 마는</b> 것이 됐다. 헤드셋에서는
+        /// 끝을 맺는 것이 아니라 <b>쪽지 한 장 읽고 마는</b> 것이 됐다. 넓은 화면에서는
         /// 그 종이 하나 말고 온 사방이 텅 비어 있기까지 했다.
         ///
         /// <see cref="CreditsRing"/> 이 글을 고리처럼 둘러 걸고 한 바퀴 돌린다.
@@ -356,12 +356,12 @@ namespace IMUNROK.Common
         private int _fromLine = -1;
 
         /// <summary>
-        /// 아랫줄. <b>헤드셋에서는 자판 이름을 안 적는다</b> — 누를 손이 없다.
+        /// 아랫줄.
         /// </summary>
         private string Hint()
         {
             if (!_finished) return Controls.Skip;
-            return Controls.Vr ? "— 복명을 마친다 —" : "— 복명을 마친다 —    (H: 조사청으로,  Esc: 종료)";
+            return "— 복명을 마친다 —    (H: 조사청으로,  Esc: 종료)";
         }
 
         private string CurrentLine()

@@ -27,11 +27,11 @@ namespace IMUNROK.Common
     {
         [Header("모양")]
         [SerializeField] private Font _font;
-        [SerializeField] private Color _paperColor = new Color(0.91f, 0.87f, 0.76f, 0.98f);
-        [SerializeField] private Color _inkColor = new Color(0.15f, 0.10f, 0.06f);
-        [SerializeField] private Color _rodColor = new Color(0.33f, 0.22f, 0.12f);
-        [SerializeField] private Color _cordColor = new Color(0.58f, 0.10f, 0.09f);
-        [SerializeField] private Color _labelColor = new Color(0.98f, 0.94f, 0.86f);
+        private Color _paperColor { get { return UiLook.With(UiLook.Paper, 0.98f); } }
+        private Color _inkColor { get { return UiLook.Ink; } }
+        private Color _rodColor { get { return UiLook.Wood; } }
+        private Color _cordColor { get { return UiLook.Seal; } }
+        private Color _labelColor { get { return UiLook.Text; } }
 
         [Header("풀리기")]
         [Tooltip("종이가 다 풀리는 데 걸리는 시간(초)")]
@@ -70,7 +70,7 @@ namespace IMUNROK.Common
                 _instance = FindFirstObjectByType<CaseChoicePanel>();
                 if (_instance == null)
                 {
-                    var go = new GameObject("VR_사건고르기", typeof(Canvas));
+                    var go = new GameObject("사건고르기_판", typeof(Canvas));
                     go.AddComponent<WorldHudAnchor>().Configure(WorldHudAnchor.Placement.Front);
                     _instance = go.AddComponent<CaseChoicePanel>();
                 }
@@ -194,12 +194,12 @@ namespace IMUNROK.Common
             // 요지 두어 줄로는 모자라니, 봉서를 <b>여기서 펴 볼</b> 길을 둔다 —
             // 들어가지 않고도.
             _more = MakeButton("자세히 알아보기", new Vector2(0f, -PageH * 0.5f + 250f),
-                               new Color(0.20f, 0.19f, 0.16f, 0.90f), out _moreLabel);
+                               UiLook.With(UiLook.Deep(UiLook.InkSoft, 0.35f), 0.90f), out _moreLabel);
 
             _fresh = MakeButton("처음부터", new Vector2(-330f, -PageH * 0.5f + 150f), _cordColor, out _freshLabel);
-            _cont = MakeButton("이어하기", new Vector2(0f, -PageH * 0.5f + 150f), new Color(0.24f, 0.22f, 0.18f, 0.94f), out _contLabel);
+            _cont = MakeButton("이어하기", new Vector2(0f, -PageH * 0.5f + 150f), UiLook.With(UiLook.Deep(UiLook.InkSoft, 0.25f), 0.94f), out _contLabel);
             Text backLabel;
-            _back = MakeButton("물러나기", new Vector2(330f, -PageH * 0.5f + 150f), new Color(0.30f, 0.28f, 0.24f, 0.75f), out backLabel);
+            _back = MakeButton("물러나기", new Vector2(330f, -PageH * 0.5f + 150f), UiLook.With(UiLook.InkSoft, 0.75f), out backLabel);
             _back.onClick.AddListener(Close);
         }
 

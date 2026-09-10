@@ -128,7 +128,7 @@ namespace IMUNROK.Common.EditorTools
                           + (s != null && s.localScale.x < 0f ? " ✔" : " ✘ 음수여야 미러가 산다")
                           + "  ·  북 X배율 " + (n != null ? n.localScale.x.ToString("F0") : "<없음>"));
 
-            // 콜라이더 — VR 타깃이라 프리미티브만 쓴다
+            // 콜라이더 — 값을 아끼려고 프리미티브만 쓴다
             int box = root.GetComponentsInChildren<BoxCollider>(true).Length;
             int cap = root.GetComponentsInChildren<CapsuleCollider>(true).Length;
             int mesh = root.GetComponentsInChildren<MeshCollider>(true).Length;

@@ -40,8 +40,8 @@ namespace IMUNROK.Common
         [Tooltip("눈높이보다 이만큼 아래(m). 종이는 내려다보는 것이다")]
         [SerializeField] private float _holdDrop = -0.06f;
         [SerializeField] private Color _paper = Color.white;
-        [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
-        [SerializeField] private Color _tabColor = new Color(0.28f, 0.10f, 0.09f, 0.9f);
+        private Color _textColor { get { return UiLook.Text; } }
+        private Color _tabColor { get { return UiLook.With(UiLook.Deep(UiLook.Seal, 0.55f), 0.90f); } }
 
         [Header("옮긴 글")]
         [Tooltip("읽어낸 것을 <b>종이 위에</b> 얹는다 — 한자 위에 우리말이 배어 나오듯. " +
@@ -54,8 +54,21 @@ namespace IMUNROK.Common
                  "0.6 안팎이면 <b>밑의 글자가 비쳐 보이면서도</b> 읽힌다")]
         [Range(0.2f, 1f)] [SerializeField] private float _transAlpha = 0.62f;
 
-        /// <summary>종이를 내려 두는 높이(m). 눈앞은 설명이 쓴다.</summary>
-        private const float LowDrop = -0.34f;
+        /// <summary>
+        /// <b>설명이 뜰 때 종이가 비켜서는 높이(m).</b>
+        ///
+        /// 여태 −0.34 였다 — 아래로 내려 두라는 뜻이다. 자막이 <b>눈앞 1.3m 허공에</b>
+        /// 서 있던 시절에는 그것이 맞았다: 종이가 0.6m 로 더 앞이라 자막 한가운데를
+        /// 통째로 덮었고, 그러니 종이가 내려가야 했다.
+        ///
+        /// 자막을 화면에 붙이면서 그 셈이 <b>뒤집혔다</b>. 화면판 자막은 아래 삼분의
+        /// 일에 눕는다 — 종이를 내리면 바로 그 위로 내려앉는다. 재 보니 종이가
+        /// 뷰포트 0.01 까지 밀려 화면 밑으로 반쯤 빠져 있었다.
+        ///
+        /// 비켜설 쪽이 아래에서 <b>위</b>로 바뀐 것이다. 종이(화면 높이의 43%)가
+        /// 자막 바(위 끝 0.34) 위에 앉으려면 가운데에서 조금 올라와야 한다.
+        /// </summary>
+        private const float LowDrop = 0.06f;
 
         private static DocumentView _instance;
 
@@ -68,10 +81,14 @@ namespace IMUNROK.Common
         private RectTransform _pageRt;
 
         /// <summary>그림 없는 문서를 적을 빈 종이의 빛깔. 한지.</summary>
-        private static readonly Color _blankPaper = new Color(0.82f, 0.76f, 0.62f, 0.99f);
+        private static Color _blankPaper { get { return UiLook.With(UiLook.PaperDim, 0.99f); } }
         private Image _edge;
         private Image _backdrop;     // 수첩에서 볼 때 뒤를 덮는 어둠
         private Image _backFace;     // 종이 뒷면 — 뒤집었을 때 글씨가 비치지 않게
+        private RawImage _backArt;   // 뒤에 새겨진 것(있으면)
+        private bool _hasBackArt;
+        private RawImage _stageImage;   // 종이가 아닌 것 — 무대에서 찍어 온 그림
+        private static bool _onStage;   // 지금 무대에 물건이 올라 있는가
         private Image _transPlate;   // 옮긴 글이 앉는 바탕 — 종이 위에 한 켜
         private Text _trans;         // 옮긴 글 — 한자 위에 얹히는 우리말
         private Image _slip;         // 종이에 붙은 표제 쪽지
@@ -129,21 +146,21 @@ namespace IMUNROK.Common
         public static void Show(Texture page, string title, string body,
                                 string finePrint = null, System.Action onRead = null, bool dim = false,
                                 Texture litPage = null, string litPrint = null, System.Action onLit = null,
-                                string litGlyphs = null)
+                                string litGlyphs = null, Texture backPage = null)
         {
             if (_instance == null)
             {
                 _instance = FindFirstObjectByType<DocumentView>();
                 if (_instance == null)
                 {
-                    var go = new GameObject("VR_문서보기", typeof(Canvas));
+                    var go = new GameObject("문서보기_판", typeof(Canvas));
                     go.AddComponent<WorldHudAnchor>().Configure(WorldHudAnchor.Placement.Front);
                     _instance = go.AddComponent<DocumentView>();
                 }
             }
             // 읽는 자리는 하나뿐이다. 수첩이나 개요가 펴져 있으면 그쪽이 닫힌다.
             ReadingFocus.Claim(ReadingFocus.Panel.Document, Hide);
-            _instance.ShowInternal(page, title, body, finePrint, onRead, dim, litPage, litPrint, onLit, litGlyphs);
+            _instance.ShowInternal(page, title, body, finePrint, onRead, dim, litPage, litPrint, onLit, litGlyphs, backPage);
         }
 
         /// <summary>
@@ -175,6 +192,8 @@ namespace IMUNROK.Common
 
         public static void Hide()
         {
+            EvidenceStage.Clear();   // 안 보는 무대를 그릴 까닭이 없다
+            _onStage = false;
             ReadingFocus.Release(ReadingFocus.Panel.Document);
             var back = OnPutDown;
             OnPutDown = null;
@@ -240,7 +259,7 @@ namespace IMUNROK.Common
             if (!go.activeSelf) go.SetActive(true);
             if (_trans.text.Length == 0) _trans.text = Emphasis.Rich(_finePrint, Emphasis.OnPaper);
 
-            _transPlate.color = new Color(0.96f, 0.93f, 0.85f, _transPlateAlpha * k);
+            _transPlate.color = UiLook.With(UiLook.Paper, _transPlateAlpha * k);
             var c = _trans.color;
             _trans.color = new Color(c.r, c.g, c.b, _transAlpha * k);
         }
@@ -354,8 +373,23 @@ namespace IMUNROK.Common
         private void ShowInternal(Texture page, string title, string body,
                                   string finePrint, System.Action onRead, bool dim,
                                   Texture litPage, string litPrint, System.Action onLit,
-                                  string litGlyphs)
+                                  string litGlyphs, Texture backPage)
         {
+            // 뒤에 새겨진 것이 있으면 뒷면에 얹는다. 없으면 예전처럼 민면이다.
+            if (_backArt != null)
+            {
+                _backArt.texture = backPage;
+                _backArt.enabled = false;          // 켜고 끄는 것은 뒤를 볼 때 정한다
+            }
+            _hasBackArt = backPage != null;
+
+            // 이웃은 <b>부르는 쪽이 그때그때</b> 일러 준다. 안 일러 주면 없는 것이다 —
+            // 앞서 수첩에서 꺼냈던 이웃이 방에서 집은 종이에 붙어 있으면 안 된다.
+            SetNeighbors(null, null);
+
+            // 무대도 마찬가지다. 종이를 펴는 부름에 앞서 올려 둔 물건이 남아 있으면
+            // 종이 위에 마패가 겹쳐 뜬다.
+            SetStageModel(null, Vector3.zero);
             // 수첩에서 꺼내 든 것은 <b>어둠 위에</b> 놓는다. 방을 보며 조사하는 중이 아니라
             // 앉아서 물건 하나를 뜯어보는 중이므로, 둘레가 비면 그 하나에만 눈이 간다.
             // 방에서 곧바로 짚은 것에는 어둠을 깔지 않는다 — 그때는 방도 함께 봐야 한다.
@@ -427,8 +461,8 @@ namespace IMUNROK.Common
             if (_trans != null)
             {
                 _trans.text = "";
-                _trans.color = new Color(0.07f, 0.06f, 0.06f, 0f);
-                _transPlate.color = new Color(0.96f, 0.93f, 0.85f, 0f);
+                _trans.color = UiLook.With(UiLook.Ink, 0f);
+                _transPlate.color = UiLook.With(UiLook.Paper, 0f);
                 _transPlate.gameObject.SetActive(false);
             }
             _fine.gameObject.SetActive(false);
@@ -570,6 +604,22 @@ namespace IMUNROK.Common
             _spinArmed = true;
 #endif
             Vector2 drag = _spinArmed ? DragDelta() : Vector2.zero;
+
+            // <b>무대에 물건이 올라 있으면 손은 그쪽으로 간다.</b> 종이는 판을 돌리지만
+            // 물건은 무대의 회전축을 돌린다 — 돌아가는 것이 다르므로 손도 갈린다.
+            if (_onStage)
+            {
+                if (drag.sqrMagnitude > 0.0001f) EvidenceStage.Spin(drag * 0.4f);
+#if ENABLE_INPUT_SYSTEM
+                var mw = UnityEngine.InputSystem.Mouse.current;
+                if (mw != null)
+                {
+                    float dy = mw.scroll.ReadValue().y;
+                    if (Mathf.Abs(dy) > 0.01f) EvidenceStage.Zoom(Mathf.Sign(dy));
+                }
+#endif
+            }
+
             _spin.x -= drag.x;
             _spin.y += drag.y;
             _spin.y = Mathf.Clamp(_spin.y, -85f, 85f);
@@ -592,7 +642,12 @@ namespace IMUNROK.Common
                 var cam = Camera.main;
                 bool seeingBack = cam != null &&
                     Vector3.Dot(_pageRt.forward, _pageRt.position - cam.transform.position) < 0f;
+                // 무대에 물건이 서 있으면 종이 쪽은 통째로 쉰다 — 뒷면 판이 켜지면
+                // 마패 뒤로 한지가 비쳐 「종이에 그려진 마패」가 된다.
+                if (_onStage) seeingBack = false;
                 if (_backFace.enabled != seeingBack) _backFace.enabled = seeingBack;
+                bool showArt = seeingBack && _hasBackArt;
+                if (_backArt != null && _backArt.enabled != showArt) _backArt.enabled = showArt;
             }
 
             _sinceRead += Time.deltaTime;
@@ -616,7 +671,7 @@ namespace IMUNROK.Common
             // 종이 <b>자체가</b> 달아오른다.
             _lit01 = Mathf.MoveTowards(_lit01, want, (want > _lit01 ? 1.9f : 0.8f) * Time.deltaTime);
             if (_page != null)
-                _page.color = Color.Lerp(_paper, new Color(1f, 0.90f, 0.66f), _lit01);
+                _page.color = Color.Lerp(_paper, UiLook.Lit(UiLook.Gold, 0.35f), _lit01);
             if (_pageLit != null && _pageLit.enabled)
                 _pageLit.color = new Color(1f, 1f, 1f, _lit01);
 
@@ -684,7 +739,11 @@ namespace IMUNROK.Common
             // 된다. 수첩에서 꺼내 들 때만 이 어둠을 켠다.
             var backRt = NewRect("어둠", Vector2.zero, new Vector2(6000f, 4500f), transform);
             _backdrop = backRt.gameObject.AddComponent<Image>();
-            _backdrop.color = new Color(0.02f, 0.02f, 0.03f, 0.99f);
+            // <b>덮되 지우지는 않는다.</b> 0.99 는 방을 통째로 없앤다 — 종이 한 장만
+            // 남아 어디서 읽고 있는지조차 사라지니, 읽는 것이 아니라 화면이 갈린 것이
+            // 된다. 0.82 면 뒤의 방이 <b>어렴풋이</b> 남아 「그 자리에서 종이를 든 것」
+            // 으로 읽히면서도 눈은 종이로 간다.
+            _backdrop.color = UiLook.With(UiLook.Panel, 0.82f);
             _backdrop.raycastTarget = false;
             _backdrop.enabled = false;
 
@@ -711,7 +770,7 @@ namespace IMUNROK.Common
             // 종이 가장자리 — 방 색에 종이가 묻히지 않게 얇게 두른다
             var edgeRt = NewRect("가장자리", Vector2.zero, new Vector2(_pageSpan + 10f, _pageSpan + 10f), _hand);
             _edge = edgeRt.gameObject.AddComponent<Image>();
-            _edge.color = new Color(0.20f, 0.16f, 0.12f, 0.55f);
+            _edge.color = UiLook.With(UiLook.Wood, 0.55f);
             _edge.raycastTarget = false;
 
             // 등불빛은 <b>테두리로 두르지 않는다</b>.
@@ -749,11 +808,11 @@ namespace IMUNROK.Common
             // 배접 속에서 배어 나오는 글(등불)과는 빛깔도 자리도 다르다.
             var transRt = NewRect("옮긴글", Vector2.zero, new Vector2(_pageSpan * 0.86f, _pageSpan * 0.42f), _pageRt);
             _transPlate = transRt.gameObject.AddComponent<Image>();
-            _transPlate.color = new Color(0.96f, 0.93f, 0.85f, 0f);
+            _transPlate.color = UiLook.With(UiLook.Paper, 0f);
             _transPlate.raycastTarget = false;
             _trans = NewText("옮긴글자", "", Vector2.zero, new Vector2(_pageSpan * 0.80f, _pageSpan * 0.38f),
                              transRt, _fontSize - 8);
-            _trans.color = new Color(0.07f, 0.06f, 0.06f, 0f);
+            _trans.color = UiLook.With(UiLook.Ink, 0f);
             _trans.alignment = TextAnchor.MiddleCenter;
             _trans.horizontalOverflow = HorizontalWrapMode.Wrap;
             _trans.verticalOverflow = VerticalWrapMode.Overflow;
@@ -770,20 +829,41 @@ namespace IMUNROK.Common
             slipRt.anchoredPosition = new Vector2(17f, -13f);
             slipRt.localRotation = Quaternion.Euler(0f, 0f, 0.8f);        // 손으로 붙인 것은 반듯하지 않다
             _slip = slipRt.gameObject.AddComponent<Image>();
-            _slip.color = new Color(0.90f, 0.86f, 0.75f, 0.97f);
+            _slip.color = UiLook.With(UiLook.Paper, 0.97f);
             _slip.raycastTarget = false;
             _slipText = NewText("이름", "", Vector2.zero, new Vector2(30f, 116f), slipRt, 15);
-            _slipText.color = new Color(0.13f, 0.10f, 0.08f);             // 먹
+            _slipText.color = UiLook.Ink;             // 먹
             _slipText.alignment = TextAnchor.UpperCenter;
             _slipText.lineSpacing = 0.86f;
 
             // 종이 뒷면. UI는 앞뒤가 없어서 돌려 보면 글씨가 그대로 비쳐 보인다 —
             // 뒤집힌 글씨가 비치는 종이는 세상에 없다. 뒤를 보는 동안만 덮는다.
+            //
+            // <b>덮는 것이 곧 뒷면이다.</b> 여태 이 판은 한지빛 민면이었고, 앞글씨를
+            // 가리는 것이 하는 일의 전부였다. 그런데 뒤에 <b>새겨진 것이 있는</b> 종이가
+            // 있다 — 맞은편 백지에 눌린 자국, 재에 닿아 그을린 쪽, 배접과 수결.
+            // 그런 것을 받을 자리를 낸다. 안 주면 예전처럼 민면이다.
             var backFaceRt = NewRect("뒷면", Vector2.zero, new Vector2(_pageSpan, _pageSpan), _hand);
             _backFace = backFaceRt.gameObject.AddComponent<Image>();
-            _backFace.color = new Color(0.93f, 0.90f, 0.82f);
+            _backFace.color = UiLook.Lit(UiLook.Paper, 0.30f);
             _backFace.raycastTarget = false;
             _backFace.enabled = false;
+
+            // 뒤에 새겨진 것. 뒷면 판 위에 얹되 <b>좌우를 뒤집어</b> 그린다 —
+            // 종이를 넘긴 것이므로 뒷그림도 넘긴 대로 서야 한다.
+            var backArtRt = NewRect("뒷그림", Vector2.zero, new Vector2(_pageSpan, _pageSpan), backFaceRt);
+            backArtRt.localScale = new Vector3(-1f, 1f, 1f);
+            _backArt = backArtRt.gameObject.AddComponent<RawImage>();
+            _backArt.raycastTarget = false;
+            _backArt.enabled = false;
+
+            // <b>종이가 아닌 것이 설 자리.</b> 마패·유척처럼 앞뒤가 아니라 사방이 있는
+            // 물건은 평면 한 장으로는 안 보인다. 무대(<see cref="EvidenceStage"/>)에서
+            // 찍어 온 그림을 여기 얹고, 그때는 종이 쪽을 통째로 끈다.
+            var stageRt = NewRect("무대", Vector2.zero, new Vector2(_pageSpan, _pageSpan), _hand);
+            _stageImage = stageRt.gameObject.AddComponent<RawImage>();
+            _stageImage.raycastTarget = false;
+            _stageImage.enabled = false;
 
             // 읽어낸 것 — 종이 <b>아래</b>에 뜬다. 종이 위에는 아무것도 덧그리지 않는다.
             //
@@ -794,7 +874,7 @@ namespace IMUNROK.Common
             // 것이므로, 읽어낸 바는 종이 밖에 적는다.
             _fine = NewText("읽어낸것", "", new Vector2(0f, -_pageSpan * 0.62f - 64f),
                             new Vector2(780f, 78f), _chrome.transform, _fontSize - 6);
-            _fine.color = new Color(1f, 0.93f, 0.74f);
+            _fine.color = UiLook.Lit(UiLook.Gold, 0.40f);
             _fine.gameObject.SetActive(false);
 
             // 빛에 배어 나온 것 — 읽어낸 것과 같은 자리, 다른 빛깔. 불에 익은 글씨는
@@ -820,6 +900,73 @@ namespace IMUNROK.Common
             closeBtn.targetGraphic = closeBg;
             closeBtn.onClick.AddListener(Hide);
             NewText("라벨", "내려놓기", Vector2.zero, new Vector2(150f, 56f), _closeRt, _fontSize - 8);
+
+            // <b>이웃으로 넘기는 두 짝.</b> 수첩에서 꺼내 든 종이는 여럿 가운데 하나다 —
+            // 다음 것을 보려고 매번 수첩을 폈다 덮었다 하면, 견주어 보는 일이 끊긴다.
+            // 부르는 쪽이 이웃을 일러 주지 않으면(SetNeighbors) 이 두 짝은 안 뜬다.
+            _prevRt = MakeStep(new Vector2(-_pageSpan * 0.78f, 0f), "◀", () => _onPrev?.Invoke());
+            _nextRt = MakeStep(new Vector2(_pageSpan * 0.78f, 0f), "▶", () => _onNext?.Invoke());
+            _prevRt.gameObject.SetActive(false);
+            _nextRt.gameObject.SetActive(false);
+        }
+
+        private RectTransform MakeStep(Vector2 at, string glyph, UnityEngine.Events.UnityAction onClick)
+        {
+            var rt = NewRect("이웃", at, new Vector2(88f, 120f), _chrome.transform);
+            var bg = rt.gameObject.AddComponent<Image>();
+            bg.color = _tabColor;
+            var b = rt.gameObject.AddComponent<Button>();
+            b.targetGraphic = bg;
+            b.onClick.AddListener(onClick);
+            NewText("글", glyph, Vector2.zero, new Vector2(88f, 120f), rt, _fontSize - 2);
+            return rt;
+        }
+
+        private RectTransform _prevRt, _nextRt;
+        private static System.Action _onPrev, _onNext;
+
+        /// <summary>
+        /// <b>지금 든 종이의 이웃을 일러 준다.</b> <see cref="Show"/> 바로 뒤에 부른다.
+        ///
+        /// Show 의 인자로 받지 않는 까닭: 이웃이 있고 없고는 <b>어디서 꺼냈느냐</b>에 달렸다.
+        /// 방에서 집은 종이에는 이웃이 없고, 수첩에서 꺼낸 것에는 있다. 같은 물건인데
+        /// 부르는 자리마다 다른 것이라, 종이의 생김새를 적는 자리에 끼워 넣을 것이 아니다.
+        /// 두 짝을 다 비우면(null) 안 뜬다.
+        /// </summary>
+        /// <summary>
+        /// <b>종이 대신 물건을 세운다</b> — 무대에서 찍어 온 그림으로.
+        ///
+        /// <see cref="Show"/> 바로 뒤에 부른다. 인자로 안 받는 까닭은 이웃과 같다:
+        /// 3D 모델이 있고 없고는 <b>물건에 달린</b> 것이지 이 판의 생김새가 아니다.
+        /// <c>null</c> 을 주면 도로 종이로 돌아간다.
+        ///
+        /// 종이 쪽을 <b>통째로</b> 끈다 — 앞면·뒷면·뒷그림까지. 반쯤 남겨 두면
+        /// 마패 뒤로 한지가 비쳐 「종이에 그려진 마패」가 된다.
+        /// </summary>
+        public static void SetStageModel(GameObject prefab, Vector3 euler)
+        {
+            _onStage = prefab != null;
+            if (_instance == null) return;
+
+            if (_onStage) EvidenceStage.Show(prefab, euler);
+            else EvidenceStage.Clear();
+
+            if (_instance._stageImage != null)
+            {
+                _instance._stageImage.texture = EvidenceStage.Texture;
+                _instance._stageImage.enabled = _onStage;
+            }
+            if (_instance._page != null) _instance._page.enabled = !_onStage;
+            if (_instance._backFace != null && _onStage) _instance._backFace.enabled = false;
+            if (_instance._backArt != null && _onStage) _instance._backArt.enabled = false;
+        }
+
+        public static void SetNeighbors(System.Action prev, System.Action next)
+        {
+            _onPrev = prev; _onNext = next;
+            if (_instance == null) return;
+            if (_instance._prevRt != null) _instance._prevRt.gameObject.SetActive(prev != null);
+            if (_instance._nextRt != null) _instance._nextRt.gameObject.SetActive(next != null);
         }
 
         /// <summary>
@@ -878,7 +1025,7 @@ namespace IMUNROK.Common
         }
 
         /// <summary>한지 위에 적는 먹빛.</summary>
-        private static readonly Color _paperInk = new Color(0.14f, 0.10f, 0.07f);
+        private static Color _paperInk { get { return UiLook.Ink; } }
 
         private RectTransform NewRect(string name, Vector2 pos, Vector2 size, Transform parent)
         {

@@ -33,6 +33,9 @@ namespace IMUNROK.Common
         [SerializeField] private Transform _home;
         [Tooltip("살피러 오는 곳 — <b>문 밖</b>이다. 방 안으로는 들어오지 않는다")]
         [SerializeField] private Transform _checkSpot;
+        [Tooltip("밤자리에서 살피는자리까지 <b>돌아 오는 길</b>. 순서대로 거친다. " +
+                 "비우면 곧게 온다 — 사이에 담이 있으면 담을 뚫고 온다")]
+        [SerializeField] private Transform[] _via;
 
         [Header("걸음")]
         [Tooltip("걷는 빠르기(m/초). 늙은 사람의 걸음이다 — 뛰지 않는다")]
@@ -185,6 +188,7 @@ namespace IMUNROK.Common
             if (_checkSpot == null) { OnNoticed(at); return; }
 
             _phase = Phase.오는중;
+            _leg = 0;
             Watching = true;
             // <b>오고 있다는 것</b>은 지나가는 자막이 아니라 눈에 박혀 있어야 한다.
             // 이 한 줄이 뜬 동안이 곧 요까지 뛰어갈 수 있는 시간이다.
@@ -215,6 +219,12 @@ namespace IMUNROK.Common
             switch (_phase)
             {
                 case Phase.오는중:
+                    // <b>담을 돌아 온다.</b> 곧게 오면 담을 뚫으므로 경유점을 차례로 밟는다.
+                    if (_leg < LegCount)
+                    {
+                        if (StepTo(LegAt(_leg))) _leg++;
+                        break;
+                    }
                     if (StepTo(_checkSpot.position))
                     {
                         _phase = Phase.살핌;
@@ -245,11 +255,18 @@ namespace IMUNROK.Common
                     if (Time.time >= _until)
                     {
                         _phase = Phase.돌아감;
+                        _leg = 0;
                         Play(_walkState);
                     }
                     break;
 
                 case Phase.돌아감:
+                    // 왔던 길을 거꾸로 되짚는다.
+                    if (_leg < LegCount)
+                    {
+                        if (StepTo(LegAt(LegCount - 1 - _leg))) _leg++;
+                        break;
+                    }
                     if (StepTo(_homePos))
                     {
                         _phase = Phase.제자리;
@@ -263,6 +280,34 @@ namespace IMUNROK.Common
                     }
                     break;
             }
+        }
+
+        /// <summary>지금 몇 번째 다리를 걷고 있나.</summary>
+        private int _leg;
+
+        /// <summary>거쳐야 할 자리의 수(빈 칸은 안 센다).</summary>
+        private int LegCount
+        {
+            get
+            {
+                if (_via == null) return 0;
+                int n = 0;
+                for (int i = 0; i < _via.Length; i++) if (_via[i] != null) n++;
+                return n;
+            }
+        }
+
+        /// <summary><paramref name="i"/> 번째로 거칠 자리.</summary>
+        private Vector3 LegAt(int i)
+        {
+            int n = 0;
+            for (int k = 0; k < _via.Length; k++)
+            {
+                if (_via[k] == null) continue;
+                if (n == i) return _via[k].position;
+                n++;
+            }
+            return _homePos;
         }
 
         /// <summary>그 자리로 한 걸음. 다 왔으면 참.</summary>

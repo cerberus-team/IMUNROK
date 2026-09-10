@@ -65,9 +65,9 @@ namespace IMUNROK.Common
         [SerializeField] private float _readLabelDistance = 0.34f;
         [Tooltip("이름표 글씨 크기. 보이는 크기는 거리에 상관없이 늘 같다")]
         [SerializeField] private int _labelFontSize = 56;
-        [SerializeField] private Color _labelColor = new Color(1f, 0.92f, 0.72f);
+        private Color _labelColor { get { return UiLook.Text; } }
 
-        [SerializeField] private Color _paperColor = new Color(0.85f, 0.80f, 0.68f); // 종이/한지 색
+        private Color _paperColor { get { return UiLook.Paper; } }   // 종이/한지 색
         [Range(0f, 1f)]
         [SerializeField] private float _hoverBrighten = 0.30f;
 
@@ -233,6 +233,13 @@ namespace IMUNROK.Common
         /// <summary>
         /// 읽는 동안 집는 자리를 펼친 종이에 맞춘다. 말렸을 때의 넓적한 자리를 그대로
         /// 두면 글 밖 허공을 눌러도 '맡기'가 된다.
+        ///
+        /// <b>한 번만 맞추면 안 된다.</b> 두루마리는 <see cref="ScrollUnroll.Unroll"/> 로
+        /// <b>시간을 두고</b> 풀린다. 푸는 일을 시킨 그 프레임에 자리를 재면 종이는 아직
+        /// 말린 채라 세로 5cm 짜리 띠가 나오고, 그 뒤로 영영 안 고쳐진다.
+        /// 그러면 화면의 90%가 「물리기」인 <see cref="DocumentPutBack"/> 판이 되어,
+        /// 안내대로 <b>글을 눌러도 봉서가 도로 내려갈 뿐</b> 사건을 맡을 수가 없다.
+        /// 그래서 읽는 동안 매 프레임 다시 잰다 — 종이가 자라는 만큼 자리도 자란다.
         /// </summary>
         private void FitColliderToPaper()
         {
@@ -265,7 +272,7 @@ namespace IMUNROK.Common
         /// 종이 바깥을 누르면 도로 내려놓는다.
         ///
         /// 얼굴 앞에 펼친 종이는 그 뒤를 가린다 — 옆의 봉서를 곧장 누를 수가 없다.
-        /// 기하로 풀 일이 아니라 조작으로 풀 일이다. 실제로도, VR 에서도, 손에 든 것을
+        /// 기하로 풀 일이 아니라 조작으로 풀 일이다. 실제로도, 손에 든 것을
         /// 먼저 내려놓고 다른 것을 집는다. 종이 밖 아무 데나 누르면 물러진다.
         /// </summary>
         private void MakePutBackTarget()
@@ -330,7 +337,7 @@ namespace IMUNROK.Common
         /// <summary>
         /// 펼친 종이를 들어 올릴 거리. 못 박으면 안 된다 — 얼마나 멀리 들어야 다 보이는지는
         /// <b>보는 이의 시야각</b>이 정한다. 모니터는 세로 60도라 종이 한 장도 빠듯해
-        /// 멀찍이 들어야 하고, 헤드셋은 그 갑절이라 같은 종이를 코앞에 들어도 다 들어온다.
+        /// 멀찍이 들어야 한다.
         /// 시야각에서 뽑아 쓰면 리그를 갈아 끼워도 다시 맞출 일이 없다.
         /// </summary>
         private float ReadDistance(Camera cam)
@@ -373,59 +380,13 @@ namespace IMUNROK.Common
         /// </summary>
         /// <param name="seconds">덮는 데 걸리는 시간</param>
         /// <param name="then">다 덮은 뒤에 할 일 — 대개 씬 갈아 끼우기</param>
-        public void CoverScreen(float seconds, System.Action then)
-        {
-            if (_moving != null) StopCoroutine(_moving);
-            _moving = StartCoroutine(CoverRoutine(seconds, then));
-        }
+        // <b>CoverScreen 을 걷었다.</b> 맡은 봉서가 시야를 덮으며 넘어가게 하던 자리다 —
+        // 「그 봉서가 조사청까지 따라온 것이 된다」는 뜻이었는데, 화면으로 보면
+        // <b>종이가 얼굴로 날아드는</b> 것이었다. 다가오는 결을 눅이고 시간을 늘려도
+        // 그 성질은 안 바뀐다 — 덮는 물건은 시야에서 커지는 것이고, 커지는 것은
+        // 다가오는 것이다. 자리를 옮기는 데 필요한 것은 덮개가 아니라 눈꺼풀이라,
+        // 이제 어전은 그냥 눈을 감았다 뜬다(IntroController.LeaveForHub).
 
-        private IEnumerator CoverRoutine(float seconds, System.Action then)
-        {
-            var cam = Camera.main;
-            if (cam == null) { if (then != null) then(); yield break; }
-
-            HideLabel();
-            KillPutBackTarget();
-            SubtitleView.Hide();
-            if (_collider != null) _collider.enabled = false;
-
-            // <b>읽는중에서 빠져나와야 한다.</b> LateUpdate 가 「읽는중」인 동안
-            // 종이를 <b>매 프레임 읽는 자리로 끌어다 놓기</b> 때문이다(고개를 돌려도
-            // 종이가 정면을 보게 하려고 둔 것). 코루틴이 당겨 놓으면 그 프레임 끝에
-            // 도로 밀려나서, 6초를 걸어 놓고도 종이가 <b>한 뼘도 안 움직였다</b>.
-            //
-            // 떠오르는중으로 옮긴다 — LateUpdate 는 손을 떼고, IsReading 은 참으로
-            // 남아 다른 데서 「지금 읽는 중」으로 세는 셈은 그대로 간다.
-            _phase = Phase.떠오르는중;
-
-            Vector3 fromPos = transform.position;
-            Quaternion fromRot = transform.rotation;
-
-            float dur = Mathf.Max(0.05f, seconds);
-            float t = 0f;
-            while (t < 1f)
-            {
-                t += Time.deltaTime / dur;
-                float k = Mathf.Clamp01(t);
-
-                // 끝에서 빨라진다 — 다가오는 것은 가까울수록 빨리 커진다
-                float e = k * k * k;
-
-                // 눈 바로 앞. 카메라의 앞 자름면보다 조금 앞이라야 잘리지 않는다.
-                float near = Mathf.Max(cam.nearClipPlane + 0.02f, 0.055f);
-                float half = PaperHalf();
-                Vector3 to = cam.transform.position
-                             + cam.transform.forward * near
-                             + cam.transform.up * half;      // 종이는 축에 매달려 아래로 자란다
-
-                transform.position = Vector3.Lerp(fromPos, to, e);
-                transform.rotation = Quaternion.Slerp(fromRot, ReadRotation(cam), Mathf.Min(1f, e * 2f));
-                yield return null;
-            }
-
-            _moving = null;
-            if (then != null) then();
-        }
 
         /// <summary>도로 발치에 내려놓는다(다른 봉서를 집었을 때).</summary>
         public void Lower()
@@ -461,6 +422,13 @@ namespace IMUNROK.Common
             transform.localPosition = _homeLocal;
             transform.localRotation = _homeRot;
             _phase = Phase.놓임;
+
+            // <b>다 내려놓았다고 알린다.</b> 여태 이 말을 <see cref="OnHoverExit"/> 만
+            // 하고 있었다 — 손을 물린 자리에서 마우스가 그대로 멎어 있으면 아무도
+            // 알리지 않아, 「조사청으로」가 걷힌 채로 남았다. 물리는 것과 눈을 떼는 것은
+            // 다른 일이므로 각자 알린다.
+            var intro = FindFirstObjectByType<IntroController>();
+            if (intro != null) intro.RestorePickPrompt();
             _moving = null;
         }
 
@@ -479,6 +447,23 @@ namespace IMUNROK.Common
             KillPutBackTarget();
             SetRenderers(false);
             if (_collider != null) _collider.enabled = false;
+        }
+
+        /// <summary>
+        /// <b>맡기로 한 봉서를 잠근다.</b> 자세는 그대로 둔다 — 이 종이가 곧 화면을 덮는다.
+        ///
+        /// <see cref="Freeze"/> 와 다르다. 저것은 <b>안 고른</b> 봉서를 굳히는 것이라
+        /// 들고 있던 것을 내려놓고 숨음으로 보내는데, 고른 봉서에 그러면 덮을 것이
+        /// 사라진다. 여기서는 <b>손만 뗀다</b> — 콜라이더를 끄고, 「물리기」 판을 걷고,
+        /// 이름표를 내린다. 이미 받잡겠다 한 뒤에 도로 물릴 수 있으면 그 말이 헛말이 된다.
+        /// </summary>
+        public void Seal()
+        {
+            _hovered = false;
+            if (_collider != null) _collider.enabled = false;
+            KillPutBackTarget();
+            HideLabel();
+            RefreshColor();
         }
 
         public void Freeze()
@@ -521,7 +506,7 @@ namespace IMUNROK.Common
         //
         // 자막판(SubtitleView)은 폭이 화면만 해서, 물건 이름을 그것으로 띄우면
         // 옆에 놓인 다른 봉서를 통째로 덮어 고를 수가 없다. 이름표는 그 물건 곁에
-        // 작게 붙어야 한다 — VR 에서 물건을 가리켰을 때의 보통 방식이기도 하다.
+        // 작게 붙어야 한다 — 물건을 가리켰을 때의 보통 방식이기도 하다.
 
         private GameObject _labelGo;
         private UnityEngine.UI.Text _labelText;
@@ -557,7 +542,7 @@ namespace IMUNROK.Common
             _labelText.horizontalOverflow = HorizontalWrapMode.Overflow;
             _labelText.verticalOverflow = VerticalWrapMode.Overflow;
             var sh = t.AddComponent<UnityEngine.UI.Shadow>();
-            sh.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            sh.effectColor = UiLook.Shadow;
             sh.effectDistance = new Vector2(2.5f, -2.5f);
             var trt = t.GetComponent<RectTransform>();
             trt.SetParent(rt, false);
@@ -570,7 +555,7 @@ namespace IMUNROK.Common
             if (cam == null) return;
 
             // 읽는 동안에는 고개를 돌려도 종이가 늘 정면을 보게 따라온다.
-            // 헤드셋에서는 머리가 가만히 있지 않으므로, 한 번 맞춰 놓는 것만으로는
+            // 시선이 가만히 있지 않으므로, 한 번 맞춰 놓는 것만으로는
             // 곧 비스듬해진다. 손에 든 것을 눈앞에 고쳐 드는 것과 같다.
             if (_phase == Phase.읽는중 && _scroll != null)
             {
@@ -578,6 +563,10 @@ namespace IMUNROK.Common
                 float t = 1f - Mathf.Exp(-_readFollow * Time.deltaTime);   // 프레임률에 안 흔들리는 감쇠
                 transform.position = Vector3.Lerp(transform.position, ReadPosition(cam, half), t);
                 transform.rotation = Quaternion.Slerp(transform.rotation, ReadRotation(cam), t);
+
+                // 종이가 풀리는 동안 집는 자리도 같이 자라야 한다. 위 주석 참고 —
+                // 펼치라고 시킨 그 프레임에 한 번 재고 마는 것이 오래 묵은 탈이었다.
+                FitColliderToPaper();
             }
 
             if (_labelGo == null || !_labelGo.activeSelf) return;
@@ -653,7 +642,7 @@ namespace IMUNROK.Common
             if (_phase != Phase.읽는중) return;
 
             GameState.Instance.StartCase(_caseId);
-            Debug.Log($"[IntroDocument] {_caseId} 를 맡았습니다 — 조사청으로 갑니다.");
+            DevLog.Note($"[IntroDocument] {_caseId} 를 맡았습니다 — 조사청으로 갑니다.");
 
             var ic = FindFirstObjectByType<IntroController>();
             if (ic != null) { ic.TakeChosen(_caseId); return; }

@@ -11,7 +11,7 @@ namespace IMUNROK.Common
     /// 않았다. 들킬 일이 없으면 뒤지는 것이 아니라 <b>구경하는 것</b>이 된다.
     ///
     /// <b>두 갈래를 한 눈금에 모은다</b>
-    ///   ① <b>마이크</b> — 사람이 실제로 낸 소리. 헤드셋을 쓰고 "어이쿠" 하면 그것이
+    ///   ① <b>마이크</b> — 사람이 실제로 낸 소리. 앞에서 "어이쿠" 하면 그것이
     ///      곧 소리다. 이것만은 흉내로 대신할 수가 없다.
     ///   ② <b>짓</b> — 문 여닫기·서랍 빼기·보료 들추기·뛰기. 이쪽은 재는 것이 아니라
     ///      <b>매기는 것</b>이다. 실제로 튼 소리를 재면 배경음악이 다 잡아먹고, 소리를
@@ -163,7 +163,7 @@ namespace IMUNROK.Common
         /// 따로 두면 반드시 어긋난다. 소리는 나는데 눈금은 안 오르거나, 눈금은 올랐는데
         /// 아무 소리도 안 나거나. <b>낸 크기가 곧 들리는 크기</b>여야 사람이 규칙을 익힌다.
         ///
-        /// 3D 로 튼다 — 어디서 났는지 들려야 피할 데를 안다. VR 에서는 이것이 특히 크다.
+        /// 3D 로 튼다 — 어디서 났는지 들려야 피할 데를 안다.
         /// </summary>
         /// <param name="startAt">클립의 이 자리(초)부터 튼다. 0이면 처음부터</param>
         /// <param name="seconds">이만큼(초)만 튼다. 0이면 끝까지 — 소리 <b>한 토막만</b> 쓸 때 준다.
@@ -289,7 +289,7 @@ namespace IMUNROK.Common
             _armed = on;
             if (!on) { _act = 0f; _actWhat = null; }
             if (on && !_micReady) StartMic();
-            Debug.Log(on
+            DevLog.Note(on
                 ? "[소리계] 조사가 시작됐다 — 이제부터 소리가 무게를 가진다."
                 : "[소리계] 무게를 내린다. 눈금은 그대로 움직인다.");
         }
@@ -298,7 +298,7 @@ namespace IMUNROK.Common
         /// 마이크를 연다. <b>못 열려도 조용히 넘어간다</b> — 마이크가 없다고 게임이
         /// 멈추면 안 된다. 그때는 짓으로 낸 소리만으로 잰다.
         ///
-        /// 헤드셋(안드로이드)에서는 <b>권한을 먼저 받아야</b> 한다. 안 받으면 장치
+        /// 갈래에 따라서는 <b>권한을 먼저 받아야</b> 한다. 안 받으면 장치
         /// 목록부터 비어 있어서, 마이크가 없는 컴퓨터와 구별이 안 된다.
         /// </summary>
         private void StartMic()
@@ -313,14 +313,14 @@ namespace IMUNROK.Common
 #endif
             if (Microphone.devices == null || Microphone.devices.Length == 0)
             {
-                Debug.Log("[소리계] 마이크가 없다 — 짓으로 낸 소리만 잰다.");
+                DevLog.Note("[소리계] 마이크가 없다 — 짓으로 낸 소리만 잰다.");
                 return;
             }
             _device = Microphone.devices[0];
             // 1초짜리 고리 하나면 된다. 저장하려는 것이 아니라 <b>지금 얼마나 큰가</b>만 본다.
             _clip = Microphone.Start(_device, true, 1, 16000);
             _micReady = _clip != null;
-            if (_micReady) Debug.Log("[소리계] 마이크: " + _device);
+            if (_micReady) DevLog.Note("[소리계] 마이크: " + _device);
         }
 
         private void StopMic()
@@ -345,13 +345,10 @@ namespace IMUNROK.Common
             // <b>말을 알아듣는 쪽이 있으면 마이크를 내준다.</b> 창이 닫히면 도로 잡는다 —
             // 이 갈아타기는 사람 눈에 안 띈다.
             //
-            // 심문창은 이름으로 안다. 그 밖의 것(UI 꾸러미의 대화창 같은)은 <b>다른
-            // 어셈블리</b>라 이름으로 알 수가 없고, 알게 만들면 핵심이 UI 에 매인다.
-            // 그래서 <see cref="MicHold"/> 라는 이름 없는 걸쇠를 본다 — 누가 올렸는지
-            // 모른 채 비켜 준다. 안 비키면 그쪽이 마이크를 여는 순간 이 눈금이
-            // <b>오류 한 줄 없이 죽는다</b>.
-            bool talking = _yieldMicToInterrogation
-                           && (InterrogationController.AnyOpen || MicHold.Held);
+            // <b>걸쇠(MicHold)를 걷었다.</b> 마이크를 두고 다투던 상대가 「말하기」였는데
+            // 그것을 걷어냈으므로 이제 이 귀를 넘볼 자가 없다. 심문 중에 비켜서는 것은
+            // 그대로 둔다 — 마주 앉아 이야기하는 동안 발소리를 재는 것은 뜻이 없다.
+            bool talking = _yieldMicToInterrogation && InterrogationController.AnyOpen;
             if (talking && _micReady) StopMic();
 
             // 권한을 물어보고 온 참이면 여기서 다시 연다. 매 프레임 두드리면 안 된다 —
@@ -424,7 +421,27 @@ namespace IMUNROK.Common
         private void Ring(Vector3 at, float loudness, string what)
         {
             if (!_armed) return;
-            float reach = _fullRange * loudness;
+
+            // <b>닿는 거리에 크기를 곱하지 않는다.</b>
+            //
+            // 여태 <c>reach = _fullRange * loudness</c> 였다. 그러면 작은 소리는
+            // <b>가까이서도 안 들린다</b> — 크기가 작을수록 시작점이 낮아지는 것이
+            // 아니라 <b>사정거리 자체가 줄어들기</b> 때문이다. 재 보니 이랬다:
+            //
+            //   서랍  0.50 → 10m 까지  · 문밖 귀(4.7m)에서 0.200   돌아봄
+            //   병풍  0.30 →  6m 까지  · 귀가 7.2m 라 <b>못 들음</b>
+            //   보료  0.25 →  5m 까지  · 귀가 6.6m 라 <b>못 들음</b>
+            //   재    0.20 →  4m 까지  · 귀가 7.4m 라 <b>못 들음</b>
+            //
+            // 사랑방 한 칸이 7m 남짓인데 0.37 아래로는 <b>방 안 어디서 내도 안 들렸다</b>.
+            // 소리를 넷 매겨 두고 셋이 없는 셈이었다.
+            //
+            // 실제 소리는 그렇지 않다. 작은 소리는 <b>더 일찍 묻힐</b> 뿐 사정거리가
+            // 따로 있지 않다. 그러니 잦아드는 것은 거리만 보고, 크기는 <b>시작점</b>으로만 쓴다.
+            // 그렇게 고치면 같은 자리에서 이렇게 갈린다 —
+            //   서랍 0.287(돌아봄, 다가옴 0.32 코앞) · 병풍 0.144(돌아봄)
+            //   보료 0.125(간신히 못 미침) · 재 0.094(안 들림 — 재 헤집기는 조용한 짓이다)
+            float reach = _fullRange;
             foreach (var ear in NoiseListener.All)
             {
                 if (ear == null) continue;
@@ -435,13 +452,13 @@ namespace IMUNROK.Common
         /// <summary>
         /// 화면 구석 눈금 — <b>모니터에서 맞춰 볼 때만</b> 쓴다.
         ///
-        /// 헤드셋 안에서는 이 그림이 <b>보이지 않는다</b>. OnGUI 는 화면에 곧장 그리는
-        /// 것이라 눈앞의 두 화면에는 안 올라온다. VR 에서 눈금을 보이려면 월드 공간에
+        /// 화면 구석의 이 그림은 <b>눈에 잘 안 띈다</b>. 조사에 정신이 팔려 있으면
+        /// 구석에 뜬 눈금은 없는 것과 같다. 그래서 눈금을 한 벌 더 두려면 월드 공간에
         /// 세워야 한다(SubtitleView·ToolbeltHud 가 하는 방식).
         /// </summary>
         [Header("머리 위 알림판에도 보이기")]
-        [Tooltip("화면 구석 눈금(OnGUI)은 <b>헤드셋에서 안 보인다</b>. 켜면 목표 알림판 아래에 " +
-                 "월드 공간으로 한 줄 더 띄운다 — 헤드셋에서도 제 소리가 보인다")]
+        [Tooltip("화면 구석 눈금은 조사 중에 눈에 잘 안 띈다. 켜면 목표 알림판 아래에 " +
+                 "월드 공간으로 한 줄 더 띄운다 — 보던 자리에서 제 소리가 보인다")]
         [SerializeField] private bool _worldGauge = true;
         // 여기 있던 _worldGaugeHeight 는 걷었다. 눈금이 제 판을 세우고 높이를 잡던 때의
         // 값인데, 지금은 <b>StatusPanel</b> 이 한 줄을 얻어 가는 방식이라 자리를 그쪽이 쥔다.
@@ -453,7 +470,7 @@ namespace IMUNROK.Common
         /// <summary>
         /// <b>머리 위에 소리를 적는다.</b>
         ///
-        /// 눈금이 화면 구석에만 있으면 헤드셋을 쓴 사람에게는 없는 것과 같다. 그런데
+        /// 눈금이 화면 구석에만 있으면 조사에 정신이 팔린 사람에게는 없는 것과 같다. 그런데
         /// 잠행에서 제일 알아야 할 것이 바로 그 눈금이다 — 지금 내가 시끄러운가.
         /// 목표 안내가 이미 눈 위에 떠 있으니 그 아래 한 줄을 붙인다.
         ///

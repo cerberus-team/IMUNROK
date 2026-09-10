@@ -4,7 +4,7 @@ using UnityEngine;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 가짜(목업) 대답기 — 미리 정한 규칙으로 NPC 대사를 만든다. 무료·오프라인·헤드셋/키 불필요.
+    /// 가짜(목업) 대답기 — 미리 정한 규칙으로 NPC 대사를 만든다. 무료·오프라인·열쇠 불필요.
     /// 내일 ClaudeNpcResponder(실제 AI)로 이 자리를 교체한다.
     ///
     /// 규칙:

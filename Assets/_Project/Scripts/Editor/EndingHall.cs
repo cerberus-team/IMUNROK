@@ -215,7 +215,7 @@ namespace IMUNROK.Common.EditorTools
                 cam = go.AddComponent<Camera>();
                 SceneManager.MoveGameObjectToScene(go, scene);
             }
-            // 꿇어앉은 눈높이. 헤드셋을 쓰면 그쪽 키가 이깁니다(VRRig 이 바닥을 재서 앉힌다).
+            // 꿇어앉은 눈높이.
             cam.transform.SetPositionAndRotation(new Vector3(0f, 1.05f, -2.30f), Quaternion.identity);
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = Color.black;

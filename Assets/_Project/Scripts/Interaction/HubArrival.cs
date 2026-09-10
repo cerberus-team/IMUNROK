@@ -57,15 +57,29 @@ namespace IMUNROK.Common
             if (!string.IsNullOrEmpty(_line))
             {
                 SubtitleView.Show(_speaker, _line, "");
-                StartCoroutine(HideLineSoon());
+                StartCoroutine(HideLineSoon(SubtitleView.Generation));
             }
             WayMark.Show(_aim.transform, _markLabel);
         }
 
-        private IEnumerator HideLineSoon()
+        private IEnumerator HideLineSoon(int mine)
         {
             yield return new WaitForSeconds(Mathf.Max(0.5f, _lineSeconds));
-            SubtitleView.Hide();
+
+            // <b>내 말이 아직 그대로일 때만 지운다.</b> 이 사이에 도구를 누르면 익히기가
+            // 제 말을 띄우는데, 그것까지 지워 버리면 글은 판에 적혀 있는데 판이 안 보인다 —
+            // 눌러도 아무 일이 없는 것으로 읽힌다.
+            SubtitleView.HideIfUnchanged(mine);
+
+            // <b>길표도 말과 함께 걷는다.</b>
+            //
+            // 여태 길표는 사건을 고를 때까지 <b>계속 떠 있었다</b>. 등 뒤에 놓인 문서를
+            // 가리켜 주자는 뜻이었는데, 한 번 그쪽을 보고 나면 그 뒤로는 알려 줄 것이
+            // 없는데도 화살표가 화면에 남는다 — 안내가 아니라 <b>거슬리는 것</b>이 된다.
+            //
+            // 알려 줄 것은 「저쪽이오」 한 번이다. 말이 끝나면 그 말도 길표도 함께 걷는다.
+            // 잊었으면 다시 들어오면 되고, 방은 한눈에 들어올 만큼 좁다.
+            WayMark.Hide();
         }
 
         /// <summary>

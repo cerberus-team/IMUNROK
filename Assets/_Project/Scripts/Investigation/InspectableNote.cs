@@ -34,6 +34,17 @@ namespace IMUNROK.Common
         [Tooltip("돋보기로 읽어야만 단서가 적힌다. 끄면 쥐어 보기만 해도 적힌다")]
         [SerializeField] private bool _clueNeedsMagnifier = false;
 
+        [Header("종이가 아닌 것")]
+        [Tooltip("무대에 세워 돌려 볼 3D 모델(선택). 넣으면 종이 대신 이것이 뜬다 — " +
+                 "마패·유척·부서진 자물쇠처럼 앞뒤가 아니라 사방이 있는 물건에 쓴다")]
+        [SerializeField] private GameObject _model;
+        [Tooltip("무대에 올릴 때의 첫 자세(도). 눕혀 두면 앞이 안 보이는 물건이 있다")]
+        [SerializeField] private Vector3 _modelEuler;
+
+        [Header("뒤집으면 나오는 것")]
+        [Tooltip("종이 뒤에 새겨진 것(선택). 뒤집어야 나온다 — 맞은편 백지에 눌린 자국, 재에 닿아 그을린 쪽, 배접과 수결 같은 것. 비우면 예전처럼 민면이다")]
+        [SerializeField] private Texture2D _backPage;
+
         [Header("등불에 비추면 나오는 것")]
         [Tooltip("배접 속에 숨긴 글이 보이는 종이 면(선택). 등불을 들면 원래 면 위로 배어 나온다")]
         [SerializeField] private Texture2D _litPage;
@@ -120,7 +131,8 @@ namespace IMUNROK.Common
         {
             var page = ResolvePage();
             if (page == null) return;
-            Journal.Instance.AttachDocument(_clueCase, key, page, _title, _body, _fineText);
+            Journal.Instance.AttachDocument(_clueCase, key, page, _title, _body, _fineText, _backPage,
+                                            _model, _modelEuler);
         }
 
         // ── 눌러서 손에 쥐기 ────────────────────────
@@ -183,7 +195,7 @@ namespace IMUNROK.Common
                                   false,
                                   _litPage, _litText,
                                   new System.Action(OnLitThrough),
-                                  _litGlyphs);
+                                  _litGlyphs, _backPage);
             }
             else
             {

@@ -39,21 +39,21 @@ namespace IMUNROK.Common
                     journal = Journal.Instance.ToJson(),
                 };
                 File.WriteAllText(SavePath, JsonUtility.ToJson(c));
-                Debug.Log($"[SaveSystem] 저장 완료 → {SavePath}");
+                DevLog.Note($"[SaveSystem] 저장 완료 → {SavePath}");
             }
             catch (Exception e) { Debug.LogWarning($"[SaveSystem] 저장 실패: {e.Message}"); }
         }
 
         public static bool Load()
         {
-            if (!HasSave) { Debug.Log("[SaveSystem] 저장 파일이 없습니다."); return false; }
+            if (!HasSave) { DevLog.Note("[SaveSystem] 저장 파일이 없습니다."); return false; }
             try
             {
                 var c = JsonUtility.FromJson<Combined>(File.ReadAllText(SavePath));
                 if (c == null) return false;
                 GameState.Instance.FromJson(c.game);
                 Journal.Instance.FromJson(c.journal);
-                Debug.Log("[SaveSystem] 불러오기 완료");
+                DevLog.Note("[SaveSystem] 불러오기 완료");
                 return true;
             }
             catch (Exception e) { Debug.LogWarning($"[SaveSystem] 불러오기 실패: {e.Message}"); return false; }
@@ -61,7 +61,7 @@ namespace IMUNROK.Common
 
         public static void Delete()
         {
-            try { if (HasSave) File.Delete(SavePath); Debug.Log("[SaveSystem] 저장 삭제"); }
+            try { if (HasSave) File.Delete(SavePath); DevLog.Note("[SaveSystem] 저장 삭제"); }
             catch (Exception e) { Debug.LogWarning($"[SaveSystem] 삭제 실패: {e.Message}"); }
         }
     }

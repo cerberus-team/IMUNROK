@@ -7,12 +7,12 @@ namespace IMUNROK.Common
     /// <summary>
     /// 시야를 검게 덮었다가 걷는 연출(페이드). 순간이동·장면 전환에 쓴다.
     ///
-    /// VR에서 왜 필요한가: 플레이어를 갑자기 다른 자리로 옮기면 눈은 움직였다고 하는데
-    /// 몸은 가만히 있어서 멀미가 난다. 옮기는 순간을 어둠으로 덮으면 그 충돌이 사라진다.
-    /// (이것이 VR 순간이동의 표준 방식 — 'blink teleport')
+    /// 왜 필요한가: 플레이어를 갑자기 다른 자리로 옮기면 눈은 움직였다고 하는데
+    /// 세상이 툭 갈린다. 옮기는 순간을 어둠으로 덮으면 그 끊김이 사라진다.
+    /// (눈을 감았다 뜨는 식 — 'blink teleport')
     ///
     /// 화면 전체를 덮는 UI가 아니라 카메라 코앞에 검은 판을 두는 방식이다.
-    /// 스크린 오버레이는 헤드셋에 렌더링되지 않기 때문.
+    /// 스크린 오버레이는 세상 속 판과 켜가 어긋나기 때문.
     ///
     /// 쓰는 법 — 씬에 미리 둘 필요 없다:
     ///   ScreenFade.Blink(0.25f, 0.35f, () => { 옮기는_처리(); });
@@ -77,6 +77,51 @@ namespace IMUNROK.Common
         /// <summary>목표 어둡기(0=밝음, 1=완전 검정)로 서서히 바꾼다.</summary>
         public static void To(float target, float duration) => Instance.StartTo(target, duration);
 
+        /// <summary>
+        /// <b>검은 화면에서 씬이 다 읽히기를 기다렸다가 들여보내고, 눈을 뜬다.</b>
+        ///
+        /// <c>SceneManager.LoadScene</c> 은 동기라 부르는 순간 화면이 그 자리에서 굳는다.
+        /// 재 보니 에디터에서 서천 1.72초 · 옹고집 1.15초였다 — 덮으러 다가오던 것이
+        /// <b>얼굴 앞에서 얼어붙는다</b>. 연출이 끝나는 바로 그 순간에 멎기 때문이다.
+        ///
+        /// 그래서 미리(<c>LoadSceneAsync</c> + <c>allowSceneActivation = false</c>) 읽어
+        /// 두고 이것을 부른다. 읽는 일은 덮는 연출 뒤에서 돌고, 다 읽혔을 때 들여보낸다.
+        /// 아직 덜 읽혔으면 <b>검은 화면에서</b> 기다린다 — 기다림은 어둠 속이라야 한다.
+        ///
+        /// 이 판은 씬을 넘어 살아남으므로(DontDestroyOnLoad) 새 씬에서 눈뜨는 일까지
+        /// 여기서 마칠 수 있다. 부르는 쪽은 씬과 함께 사라지니 거기 맡길 수 없다.
+        /// </summary>
+        public static void EnterWhenReady(AsyncOperation op, float openSeconds = 0.9f, float blackHold = 0.4f)
+        {
+            Instance.StartCoroutine(Instance.EnterRoutine(op, openSeconds, blackHold));
+        }
+
+        private IEnumerator EnterRoutine(AsyncOperation op, float openSeconds, float blackHold)
+        {
+            // <b>먼저 다 감겨야 한다.</b> 아직 뜨고 있는 눈으로 씬을 갈아 끼우면
+            // 옮겨 간 것이 아니라 화면이 튄 것이 된다. 하염없이 기다리지는 않는다 —
+            // 부르는 쪽이 어둡게 걸지 않았을 수도 있다.
+            float waitBlack = 0f;
+            while (_alpha < 0.999f && waitBlack < 3f) { waitBlack += Time.unscaledDeltaTime; yield return null; }
+
+            // 0.9 에서 멎는다 — 들여보내라고 하기 전까지 유니티가 더 올리지 않는다.
+            while (op != null && !op.isDone && op.progress < 0.9f) yield return null;
+            if (op != null) op.allowSceneActivation = true;
+
+            // 새 씬이 첫 칸을 돌 때까지 어둠을 붙들고 있는다. 한 칸으로 모자랄 때가
+            // 있어 둘을 센다 — 눈뜬 첫 그림에 아직 안 선 것이 비치면 그게 더 눈에 띈다.
+            yield return null;
+            yield return null;
+
+            // <b>검은 채로 한 박자 둔다.</b> 다 읽히자마자 곧바로 눈을 뜨면 어두워진 것이
+            // <b>깜빡임</b>으로 지나가 버려서, 옮겨 간 것이 아니라 화면이 튄 것이 된다.
+            // 눈을 감았다는 것이 한 번은 느껴져야 뜨는 것도 느껴진다.
+            float held = 0f;
+            while (held < blackHold) { held += Time.unscaledDeltaTime; yield return null; }
+
+            StartTo(0f, openSeconds);
+        }
+
         private void Awake()
         {
             if (_instance != null && _instance != this) { Destroy(gameObject); return; }
@@ -122,7 +167,7 @@ namespace IMUNROK.Common
             if (_cam == null) _cam = Camera.main;
             if (_cam == null) return;
 
-            // 카메라 코앞에 붙여 시야를 통째로 덮는다. 넉넉히 키워 VR의 넓은 시야각도 남김없이 가린다.
+            // 카메라 코앞에 붙여 시야를 통째로 덮는다. 넉넉히 키워 가장자리까지 남김없이 가린다.
             float d = Mathf.Max(_cam.nearClipPlane * 2f, 0.05f);
             _quad.SetPositionAndRotation(_cam.transform.position + _cam.transform.forward * d,
                                          _cam.transform.rotation);
