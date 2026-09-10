@@ -4599,8 +4599,9 @@ MonoBehaviour:
   _swayDegrees: 0.7
   _period: 4.6
   _swayPeriodScale: 1.6
-  _phase: 0
+  _phase: 0.37
   _renderer: {fileID: 0}
+  _evenWhilePlaying: 1
 --- !u!95 &428992168
 Animator:
   serializedVersion: 7
@@ -43512,6 +43513,7 @@ MonoBehaviour:
   _swayPeriodScale: 1.6
   _phase: 0.37
   _renderer: {fileID: 6745467644205861390}
+  _evenWhilePlaying: 0
 --- !u!114 &8718433563307248838
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -43526,6 +43528,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.MareumController
   _animator: {fileID: 8718433563307248839}
   _openState: OpenDoor
+  _closeState: "OpenDoor_\uAC70\uAFB8\uB85C"
   _walkState: Walking
   _standPoseState: Idle
   _walkStride: 1.87
