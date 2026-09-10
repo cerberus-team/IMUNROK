@@ -48,6 +48,23 @@ namespace IMUNROK.Common
         [SerializeField] private bool _turnToward = true;
         [Tooltip("돌아서는 빠르기(초당 도). 홱 도는 것과 천천히 도는 것은 딴 사람이다")]
         [SerializeField] private float _turnSpeed = 160f;
+        [Tooltip("<b>실제로 돌릴 것.</b> 비우면 이 부품이 붙은 오브젝트를 돌린다.\n\n" +
+                 "그 오브젝트 밑에 <b>길잡이 표식</b>(경유점·설 자리·앉을 자리)을 매달아 둔 " +
+                 "인물에게는 반드시 <b>몸</b>을 지목해야 한다. 아니면 소리 한 번에 " +
+                 "표식이 통째로 딸려 돌아, 그 사람이 걸어갈 자리가 매번 딴 곳이 된다")]
+        [SerializeField] private Transform _turn;
+
+        /// <summary>
+        /// 돌릴 몸. <see cref="_turn"/> 을 비워 두면 제 오브젝트다.
+        ///
+        /// <b>이 갈래가 왜 필요한가.</b> 마름은 제 오브젝트 밑에 경유점·설 자리·앉을
+        /// 자리를 자식으로 달고 있다. 여기서 제 오브젝트를 돌리면 그 표식들이 함께
+        /// 돌아 <b>세계 좌표가 통째로 바뀐다</b> — 문을 두드리는 소리 한 번에 축이
+        /// 274도 돌아가, 앉을 자리가 마루에서 1.4m 떨어진 마당 한복판으로 옮겨 갔다.
+        /// 게다가 몸 자신도 자식이라 그 축을 중심으로 <b>휩쓸려 날아간다</b>.
+        /// (<see cref="FaceThePlayer"/> 가 같은 까닭으로 이미 이 갈래를 두고 있다.)
+        /// </summary>
+        private Transform Body { get { return _turn != null ? _turn : transform; } }
         [Tooltip("돌아본 채로 이만큼(초) 있다가 하던 대로 돌아간다")]
         [SerializeField] private float _turnHold = 2.0f;
 
@@ -95,7 +112,7 @@ namespace IMUNROK.Common
 
             if (_turnToward)
             {
-                Vector3 flat = at - transform.position; flat.y = 0f;
+                Vector3 flat = at - Body.position; flat.y = 0f;
                 if (flat.sqrMagnitude > 0.0004f)
                 {
                     _lookAt = Quaternion.LookRotation(flat.normalized, Vector3.up);
@@ -114,7 +131,8 @@ namespace IMUNROK.Common
         private void Update()
         {
             if (!_turnToward || Time.time >= _lookUntil) return;
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, _lookAt, _turnSpeed * Time.deltaTime);
+            var body = Body;
+            body.rotation = Quaternion.RotateTowards(body.rotation, _lookAt, _turnSpeed * Time.deltaTime);
         }
 
         /// <summary>

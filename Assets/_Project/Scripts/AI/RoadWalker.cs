@@ -61,14 +61,21 @@ namespace IMUNROK.Common
         private InterrogationController _talk;
         private FaceThePlayer _face;
 
-        /// <summary>
-        /// 클립에 구워진 앞뒤 이동을 걷어내는 장치. 까닭은 <see cref="BakedTravel"/> 에.
-        ///
-        /// 마을사람의 걷기도 마름과 같은 판에서 왔다 — 한 바퀴에 엉덩이뼈가 <b>1.91m</b>
-        /// 앞으로 나갔다가 되돌아온다. 그동안 '동작 속도를 걸음에 맞추는' 손질로 발
-        /// 미끄러짐만 달래 왔는데, 몸이 제 발치보다 앞서 떠 다니는 것은 그대로였다.
-        /// </summary>
-        private readonly BakedTravel _travel = new BakedTravel();
+        // 여기 <see cref="BakedTravel"/> 를 달았다가 도로 걷었다.
+        //
+        // 마을사람의 걷기 클립도 마름과 같은 판이라(한 바퀴에 엉덩이뼈가 1.91m
+        // 앞으로 나갔다 되돌아온다) 같은 처방이 필요해 보였다. 그런데 이 사람에게는
+        // <see cref="GroundFeet"/> 가 붙어 있고, 그것이 <b>이미 같은 일을 한다</b> —
+        // 매 칸 엉덩이뼈를 마커 자리에 수평으로 끌어다 붙인다. 앞뒤만이 아니라
+        // 좌우까지 잡으니 이쪽보다 낫다.
+        //
+        // 둘을 겹쳐 달았더니 <b>서로 밟았다.</b> 되밀기는 뼈대 꼭지의 자리를
+        // 통째로 다시 쓰는데, 그 꼭지가 바로 GroundFeet 가 발밑을 맞추려고
+        // 높이를 적어 두는 칸이다. 매 칸 그 높이가 지워지니 마을사람이 비탈을
+        // 오를 때 <b>땅에 허벅지까지 잠겨</b> 걸었다.
+        //
+        // 그러므로 GroundFeet 를 단 인물에게는 되밀기를 붙이지 않는다.
+        // 마름에게만 남는다 — 그쪽에는 GroundFeet 가 없고 제 길 높이를 따로 쓴다.
 
         private void Start()
         {
@@ -79,7 +86,6 @@ namespace IMUNROK.Common
             _talk = GetComponent<InterrogationController>();
             _face = GetComponent<FaceThePlayer>();
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
-            _travel.Bind(transform, _animator);
             if (_animator != null && !string.IsNullOrEmpty(_walkBool))
                 foreach (var p in _animator.parameters)
                     if (p.name == _walkBool && p.type == AnimatorControllerParameterType.Bool) _hasWalkBool = true;
@@ -93,13 +99,6 @@ namespace IMUNROK.Common
             // 먼 쪽부터 간다 — 서 있던 자리에서 곧장 되돌아서지 않게
             _goal = Scatter(Flat(_from - transform.position).sqrMagnitude > Flat(_to - transform.position).sqrMagnitude ? _from : _to);
         }
-
-        /// <summary>
-        /// 애니메이터가 포즈를 다 쓴 뒤에, 앞뒤로 새어 나간 만큼 뼈대를 되민다.
-        /// 이 자리를 <see cref="FaceThePlayer"/> 도 같이 쓰지만 저쪽은 <b>돌리기</b>만
-        /// 하므로 서로 밟지 않는다.
-        /// </summary>
-        private void LateUpdate() { _travel.Cancel(); }
 
         private static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
 

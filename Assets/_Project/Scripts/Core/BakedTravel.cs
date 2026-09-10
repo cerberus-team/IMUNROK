@@ -38,11 +38,20 @@ namespace IMUNROK.Common
         private Transform _bone;      // 이동이 구워진 뼈(Hips)
         private Vector3 _rest;        // 뼈대 꼭지의 원래 자리
 
-        /// <summary>이동이 구워진 뼈를 찾아 묶는다. 못 찾으면 아무 일도 안 한다.</summary>
+        /// <summary>
+        /// 이동이 구워진 뼈를 찾아 묶는다. 못 찾으면 아무 일도 안 한다.
+        ///
+        /// <b><see cref="GroundFeet"/> 가 붙어 있으면 손을 떼고 물러난다.</b>
+        /// 저쪽이 이미 같은 일을 한다 — 매 칸 엉덩이뼈를 마커 자리에 수평으로
+        /// 끌어다 붙이므로 구워진 이동이 거기서 이미 걷힌다. 게다가 저쪽은
+        /// <b>같은 칸의 높이</b>에 발밑 보정을 적어 둔다. 둘이 겹치면 이쪽이
+        /// 그 높이를 매 칸 지워, 사람이 비탈에서 땅에 잠긴 채 걷게 된다.
+        /// </summary>
         public void Bind(Transform root, Animator animator)
         {
             _root = null; _skeleton = null; _bone = null;
             if (root == null) return;
+            if (root.GetComponentInParent<GroundFeet>() != null) return;
 
             Transform hips = null;
             foreach (var t in root.GetComponentsInChildren<Transform>(true))

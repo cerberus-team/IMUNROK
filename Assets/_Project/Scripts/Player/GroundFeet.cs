@@ -65,7 +65,31 @@ namespace IMUNROK.Common
         /// 같이 꺼져서, 앉기 클립의 원점 어긋남 때문에 몸이 2m 넘게 밀려나 버린다
         /// (실제로 머리가 x 6.05 → 3.35 로 날아갔다).
         /// </summary>
-        public bool PinHeight { get; set; } = true;
+        public bool PinHeight
+        {
+            get { return _pinHeight; }
+            set
+            {
+                // <b>다시 켤 때는 옛 바닥을 버린다.</b>
+                //
+                // 꺼져 있는 동안에는 아래에서 <c>_shownGroundY</c> 를 갱신하지 않는다.
+                // 그래서 앉아 있는 내내 그 값이 <b>앉기 직전에 딛던 바닥</b>에 멈춰 있다 —
+                // 마당에서 걸어 들어와 앉은 甲은 −1.54(마당)를 쥔 채 앉아 있고, 그가
+                // 일어서는 사랑방 마루는 −0.79 다. <b>0.76m 차이</b>다.
+                //
+                // 그대로 켜면 정해진 속도(<c>_followSpeed</c>)로 그 차이를 기어 올라오는데,
+                // 올라오는 동안 몸은 마루보다 그만큼 아래에 있다 — 허벅지까지 잠긴 채
+                // 문까지 걸어간다. 게다가 <c>_maxStepUp</c> 이 「발보다 너무 높은 것은
+                // 바닥이 아니다」로 거르므로, 반 뼘 넘게 잠기면 <b>마루를 아예 못 찾고</b>
+                // 되레 <c>_fallbackY</c> 쪽으로 더 내려간다. 기어 올라올 길이 막힌다.
+                //
+                // 켜는 그 칸에 <c>_hasGround</c> 를 지우면 아래에서 <b>즉시</b> 맞춘다.
+                // 어차피 켜는 쪽(일어서기가 끝난 자리)은 이미 제자리이므로 튈 것이 없다.
+                if (value && !_pinHeight) _hasGround = false;
+                _pinHeight = value;
+            }
+        }
+        private bool _pinHeight = true;
 
         private float _shownGroundY;      // 지금 몸이 딛고 있는 것으로 치는 높이
         private bool _hasGround;
@@ -139,7 +163,13 @@ namespace IMUNROK.Common
                 // 중문 문짝 콜라이더가 마당보다 1.71m 위에 떠 있어서, 위에서 쏜 광선이
                 // 그것을 먼저 맞고 바닥으로 쳤다 — 복동이 문간에서 1.7m 솟구친 원인이다.
                 // 디딤돌(10cm)·문지방은 넘고 문짝·처마는 거르도록 딛을 수 있는 높이로 자른다.
-                if (h.point.y > lowest + _maxStepUp) continue;
+                //
+                // 다만 잣대를 발에만 두면 <b>한 번 잠긴 몸은 영영 못 올라온다</b> —
+                // 반 뼘 넘게 꺼진 순간 진짜 바닥이 「너무 높은 것」으로 걸러지고,
+                // 그러면 <c>_fallbackY</c> 를 향해 더 내려간다. 마커는 게임이 아는
+                // 자리라 늘 성하므로, <b>발과 마커 중 높은 쪽</b>을 잣대로 쓴다.
+                // 문짝(마당보다 1.71m)은 이래도 걸러진다.
+                if (h.point.y > Mathf.Max(lowest, transform.position.y) + _maxStepUp) continue;
 
                 if (h.distance < best) { best = h.distance; groundY = h.point.y; }
             }
