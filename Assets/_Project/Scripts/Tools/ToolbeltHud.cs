@@ -254,6 +254,15 @@ namespace IMUNROK.Common
         /// </summary>
         private const float HowToSeconds = 1.8f;
 
+        /// <summary>
+        /// 마지막 <b>이만큼</b>은 스러지며 간다(초).
+        ///
+        /// 시간이 다 찼다고 글자가 <b>툭</b> 없어지면 눈이 그것을 「사라짐」이 아니라
+        /// <b>깜빡임</b>으로 읽는다 — 무엇이 잘못된 줄 알고 그쪽을 다시 본다.
+        /// 등불 심지가 잦아들 듯 옅어져야 읽고 흘려보낸 것이 된다.
+        /// </summary>
+        private const float HowToFade = 0.7f;
+
         /// <summary>이 때까지만 쓰는 법을 적는다.</summary>
         private float _howToUntil;
 
@@ -336,12 +345,17 @@ namespace IMUNROK.Common
             // 못 읽고, 그 뒤로 다시 볼 길이 없다. 맨손이면 적을 것이 없으니 안 적는다.
             // 줄은 <b>지금 든 칸 옆</b>에 나란히 선다. 예전처럼 띠 위에 한 줄로 띄우면
             // 그 말이 어느 칸을 두고 하는 말인지 눈으로 이어지지 않는다.
-            // 뜨는 것은 바꿔 든 뒤 <see cref="HowToSeconds"/> 동안뿐이다.
-            string how = Time.unscaledTime < _howToUntil ? Controls.HowTo(CurrentId) : "";
+            // 뜨는 것은 바꿔 든 뒤 <see cref="HowToSeconds"/> 동안뿐이고,
+            // 마지막 <see cref="HowToFade"/> 는 스러지며 간다.
+            float left = _howToUntil - Time.unscaledTime;
+            string how = left > 0f ? Controls.HowTo(CurrentId) : "";
             if (!string.IsNullOrEmpty(how))
             {
                 float ry = y0 + _index * (size + gap) + size * 0.5f - line;
+                var was = GUI.color;
+                GUI.color = new Color(was.r, was.g, was.b, was.a * Mathf.Clamp01(left / HowToFade));
                 GUI.Label(new Rect(capX, ry, capW, line * 2f), how, _howTo);
+                GUI.color = was;
             }
         }
 
@@ -389,12 +403,17 @@ namespace IMUNROK.Common
             // 쓰는 법은 이름줄보다 한 뼘 묽게 — 읽히되 이름을 덮지 않게.
             // 글쇠 이름에 낙관빛을 입히므로 richText 를 켠다(Controls.Key).
             // 오른쪽 벽에 붙었으므로 글도 <b>오른쪽 끝을 맞춰</b> 흘린다.
+            //
+            // <b>색은 금물 쪽이다.</b> 여태 한지빛(<c>Paper</c>)을 그대로 썼는데, 한지는
+            // <b>종이에 얹힐 때</b> 종이빛이지 밤하늘 위에 그냥 두면 그냥 <b>흰 글씨</b>다 —
+            // 이름줄은 낙관빛인데 그 밑줄만 하얘서 둘이 딴 판의 글로 보였다.
+            // 이름줄보다 한 켜 묽은 금으로 두면 같은 붓에서 나온 것이 된다.
             _howTo = new GUIStyle(_label)
             {
                 fontSize = Mathf.RoundToInt(size * 0.22f),
                 alignment = TextAnchor.MiddleRight,
                 richText = true, wordWrap = true,
-                normal = { textColor = UiLook.With(UiLook.Paper, 0.72f) }
+                normal = { textColor = UiLook.With(UiLook.Lit(UiLook.Gold, 0.42f), 0.92f) }
             };
         }
 
