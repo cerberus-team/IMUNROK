@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -26,7 +27,9 @@ namespace IMUNROK.Common
     public class CaseChoicePanel : MonoBehaviour
     {
         [Header("모양")]
-        [SerializeField] private Font _font;
+        // 낡은 판 시절의 글꼴 칸을 걷었다 — 글씨는 이제 꾸러미의 TMP 에셋 하나뿐이다
+        // (UiText ▸ UiSkin.Font). 인스펙터에 꽂아 두어도 아무 데도 안 쓰이는 칸이라,
+        // 남겨 두면 「여기서 글꼴을 바꿀 수 있다」는 거짓말이 된다.
         private Color _paperColor { get { return UiLook.With(UiLook.Paper, 0.98f); } }
         private Color _inkColor { get { return UiLook.Ink; } }
         private Color _rodColor { get { return UiLook.Wood; } }
@@ -47,9 +50,9 @@ namespace IMUNROK.Common
         private WorldHudAnchor _anchor;
         private RectTransform _paper, _bottomRod, _body;
         private CanvasGroup _bodyGroup;
-        private Text _title, _sub, _brief;
+        private TextMeshProUGUI _title, _sub, _brief;
         private Button _fresh, _cont, _back, _more;
-        private Text _freshLabel, _contLabel, _moreLabel;
+        private TextMeshProUGUI _freshLabel, _contLabel, _moreLabel;
         private Coroutine _run;
 
         /// <summary>지금 고르는 창이 떠 있나. 다른 것이 끼어들지 않게 참고한다.</summary>
@@ -137,7 +140,6 @@ namespace IMUNROK.Common
             _anchor.SetDistance(0.90f, -0.10f);
             _anchor.SetStowable(false);
 
-            _font = UiFont.Resolve(_font);
             _group = gameObject.GetComponent<CanvasGroup>();
             if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
 
@@ -182,8 +184,10 @@ namespace IMUNROK.Common
 
             _brief = NewText("요지", "", new Vector2(0f, 40f), new Vector2(PageW - 220f, 300f),
                              _body, 34, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.90f));
-            _brief.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _brief.verticalOverflow = VerticalWrapMode.Truncate;
+            UiText.Wrap(_brief, true);
+            // ⚠️ TMP 의 Truncate 는 상자에 <b>온전히 안 들어가는 줄을 통째로 버린다</b> —
+            //    낡은 판 시절 숫자로 잡아 둔 상자에서 마지막 줄이 사라진다. Overflow 로 둔다.
+            _brief.overflowMode = TextOverflowModes.Overflow;
 
             // 단추 셋 — 왼쪽부터 처음부터 · 이어하기 · 물러나기
             // 단추 넷 — 아랫줄에 셋, 그 위에 「자세히 알아보기」 한 줄.
@@ -198,7 +202,7 @@ namespace IMUNROK.Common
 
             _fresh = MakeButton("처음부터", new Vector2(-330f, -PageH * 0.5f + 150f), _cordColor, out _freshLabel);
             _cont = MakeButton("이어하기", new Vector2(0f, -PageH * 0.5f + 150f), UiLook.With(UiLook.Deep(UiLook.InkSoft, 0.25f), 0.94f), out _contLabel);
-            Text backLabel;
+            TextMeshProUGUI backLabel;
             _back = MakeButton("물러나기", new Vector2(330f, -PageH * 0.5f + 150f), UiLook.With(UiLook.InkSoft, 0.75f), out backLabel);
             _back.onClick.AddListener(Close);
         }
@@ -210,7 +214,7 @@ namespace IMUNROK.Common
             k.gameObject.AddComponent<Image>().color = new Color(_rodColor.r * 0.75f, _rodColor.g * 0.75f, _rodColor.b * 0.75f);
         }
 
-        private Button MakeButton(string label, Vector2 pos, Color bg, out Text text)
+        private Button MakeButton(string label, Vector2 pos, Color bg, out TextMeshProUGUI text)
         {
             var rt = NewRect(label, pos, new Vector2(280f, 84f), _body);
             var img = rt.gameObject.AddComponent<Image>();
@@ -310,19 +314,15 @@ namespace IMUNROK.Common
             return rt;
         }
 
-        private Text NewText(string name, string content, Vector2 pos, Vector2 size,
-                             Transform parent, int fontSize, Color color)
+        /// <summary>
+        /// 글 한 줄. <b>낡은 UI.Text 에서 TMP 로 옮겼다</b>(<see cref="UiText"/>) —
+        /// 견우 판과 같은 붓으로 그려야 한 게임의 화면으로 읽힌다.
+        /// </summary>
+        private TextMeshProUGUI NewText(string name, string content, Vector2 pos, Vector2 size,
+                                        Transform parent, float fontSize, Color color)
         {
-            var rt = NewRect(name, pos, size, parent);
-            var t = rt.gameObject.AddComponent<Text>();
-            t.font = _font;
-            t.fontSize = fontSize;
-            t.color = color;
-            t.alignment = TextAnchor.MiddleCenter;
-            t.horizontalOverflow = HorizontalWrapMode.Overflow;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
-            t.raycastTarget = false;
-            t.text = content;
+            var t = UiText.New(name, content, pos, size, parent, fontSize, TextAnchor.MiddleCenter, color);
+            UiText.Wrap(t, false);
             return t;
         }
     }

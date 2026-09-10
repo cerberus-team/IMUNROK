@@ -744,7 +744,7 @@ namespace IMUNROK.Common
             // 따로 배워야 하지만, 되묻는 말은 그 자리에서 읽힌다. (옛 판이 쓰던 규약 그대로)
             _endChip = Chip(_inputRow, "마치기", EndWord, new Vector2(x + endW * 0.5f, 0f),
                             new Vector2(endW, h), st.input, UiLook.Wood, OnEndPressed);
-            _endLabel = _endChip.GetComponentInChildren<Text>();
+            _endLabel = _endChip.GetComponentInChildren<TextMeshProUGUI>();
             _endBg = _endChip.GetComponent<Image>();
 
             _inputRow.gameObject.SetActive(false);
@@ -752,7 +752,13 @@ namespace IMUNROK.Common
 
         private RectTransform _endChip;
         private Image _endBg;
-        private Text _endLabel;
+        /// <summary>
+        /// 「이만 마치겠소」 딱지의 글. <b>TMP 로 옮기며 놓칠 뻔한 자리다</b> —
+        /// 여기만 낡은 형으로 두면 <c>GetComponentInChildren&lt;Text&gt;</c> 가 아무것도
+        /// 못 찾아 <b>조용히 null</b> 이 되고, 세 초 되묻기(「정말 마치겠소?」)가
+        /// 글자를 못 바꾼 채 그냥 안 뜬다. 오류도 안 난다.
+        /// </summary>
+        private TextMeshProUGUI _endLabel;
 
         private const string EndWord = "이만 마치겠소";
         private const string EndAsk  = "정말 마치겠소?";

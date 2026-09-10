@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 #if ENABLE_INPUT_SYSTEM
@@ -56,7 +57,9 @@ namespace IMUNROK.Common
         [Tooltip("옮겨 갈 때 눈을 감았다 뜨는 시간(초)")]
         [SerializeField] private float _blink = 0.45f;
 
-        [SerializeField] private Font _font;
+        // 낡은 판 시절의 글꼴 칸을 걷었다 — 글씨는 이제 꾸러미의 TMP 에셋 하나뿐이다
+        // (UiText ▸ UiSkin.Font). 인스펙터에 꽂아 두어도 아무 데도 안 쓰이는 칸이라,
+        // 남겨 두면 「여기서 글꼴을 바꿀 수 있다」는 거짓말이 된다.
         [SerializeField] private string _title = "어디로 가시겠소";
 
         private bool _unlocked;
@@ -163,7 +166,6 @@ namespace IMUNROK.Common
                 _anchor.SetDistance(1.3f, -0.10f);
                 _canvas = go.GetComponent<Canvas>();
                 _group = go.AddComponent<CanvasGroup>();
-                _font = UiFont.Resolve(_font);
                 _row = NewRect("줄", new Vector2(0f, -40f), new Vector2(1200f, 110f), go.transform);
                 var t = NewText("제목", _title, new Vector2(0f, 70f), new Vector2(1200f, 70f), go.transform, 34);
                 t.color = UiLook.Text;
@@ -208,18 +210,15 @@ namespace IMUNROK.Common
             return rt;
         }
 
-        private Text NewText(string name, string content, Vector2 pos, Vector2 size, Transform parent, int fs)
+        /// <summary>
+        /// 글 한 줄. <b>낡은 UI.Text 에서 TMP 로 옮겼다</b>(<see cref="UiText"/>) —
+        /// 견우 판과 같은 붓으로 그려야 한 게임의 화면으로 읽힌다.
+        /// </summary>
+        private TextMeshProUGUI NewText(string name, string content, Vector2 pos, Vector2 size,
+                                        Transform parent, float fs)
         {
-            var rt = NewRect(name, pos, size, parent);
-            var t = rt.gameObject.AddComponent<Text>();
-            t.font = _font;
-            t.fontSize = fs;
-            t.color = UiLook.Text;
-            t.alignment = TextAnchor.MiddleCenter;
-            t.horizontalOverflow = HorizontalWrapMode.Overflow;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
-            t.raycastTarget = false;
-            t.text = content;
+            var t = UiText.New(name, content, pos, size, parent, fs, TextAnchor.MiddleCenter, UiLook.Text);
+            UiText.Wrap(t, false);
             return t;
         }
     }

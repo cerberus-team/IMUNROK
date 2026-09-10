@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -178,21 +179,20 @@ namespace IMUNROK.Common
                 rt.sizeDelta = new Vector2(900f, 520f);
                 rt.localScale = Vector3.one * Scale;
 
-                var txtGo = new GameObject("줄", typeof(Text));
+                var txtGo = new GameObject("줄", typeof(TextMeshProUGUI));
                 var trt = txtGo.GetComponent<RectTransform>();
                 trt.SetParent(rt, false);
                 trt.sizeDelta = rt.sizeDelta;
 
-                var txt = txtGo.GetComponent<Text>();
-                txt.font = font;
-                txt.fontSize = 44;
-                txt.lineSpacing = 1.35f;
-                txt.alignment = TextAnchor.MiddleCenter;
+                var txt = txtGo.GetComponent<TextMeshProUGUI>();
+                // 낡은 UI.Text 에서 TMP 로 옮겼다(UiText). 줄 간격은 낡은 판이 <b>배수</b>,
+                // TMP 는 <b>백분율 여분</b>이라 환산이 있어야 한다 — 1.35 → 35.
+                UiText.Dress(txt, 44f, TextAnchor.MiddleCenter, txt.color);
+                txt.lineSpacing = IMUNROK.Ui.UiSkin.LineSpacing(1.35f);
                 // 어둠 위의 글씨다. 순백은 눈을 찌르고, 붉은 것은 경고문으로 읽힌다 —
                 // 앞서 엔딩이 통째로 붉어 그 꼴이 났다. 한지빛으로 둔다.
                 txt.color = UiLook.Text;
-                txt.horizontalOverflow = HorizontalWrapMode.Wrap;
-                txt.verticalOverflow = VerticalWrapMode.Overflow;
+                UiText.Wrap(txt, true);
                 txt.text = _blocks[i];
 
                 _groups.Add(go.GetComponent<CanvasGroup>());

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -112,7 +113,7 @@ namespace IMUNROK.Common
 
         private GameObject _titleGo;
         private CanvasGroup _titleGroup;
-        private Text _hintText;
+        private TextMeshProUGUI _hintText;
         private Transform _cam;
         private Quaternion _camHome;
         private Color _ambientHome;
@@ -587,27 +588,21 @@ namespace IMUNROK.Common
             return sb.ToString();
         }
 
-        private Text MakeText(RectTransform parent, string s, Font font, int size, Color color, Vector2 offset)
+        /// <summary>
+        /// 글 한 줄. <b>낡은 UI.Text 에서 TMP 로 옮겼다</b>(<see cref="UiText"/>) —
+        /// 견우 판과 같은 붓으로 그려야 한 게임의 화면으로 읽힌다.
+        /// </summary>
+        private TextMeshProUGUI MakeText(RectTransform parent, string s, Font font, int size,
+                                         Color color, Vector2 offset)
         {
-            var go = new GameObject(s, typeof(Text));
-            var t = go.GetComponent<Text>();
-            t.text = s;
-            t.font = font;
-            t.fontSize = size;
-            t.color = color;
-            t.alignment = TextAnchor.MiddleCenter;
-            t.horizontalOverflow = HorizontalWrapMode.Overflow;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
+            var t = UiText.New(s, s, offset, new Vector2(880f, size + 40f), parent,
+                               size, TextAnchor.MiddleCenter, color);
+            UiText.Wrap(t, false);
 
             // 어둠 위에 얹는 글씨라 획이 흐려 보인다. 뒤에 그림자를 한 겹 깔면 또렷해진다.
-            var sh = go.AddComponent<Shadow>();
-            sh.effectColor = UiLook.With(UiLook.Shadow, 0.75f);
-            sh.effectDistance = new Vector2(3f, -3f);
-
-            var rt = go.GetComponent<RectTransform>();
-            rt.SetParent(parent, false);
-            rt.anchoredPosition = offset;
-            rt.sizeDelta = new Vector2(880f, size + 40f);
+            // 낡은 판에서는 글자 꼴을 한 벌 더 그리는 <c>UI.Shadow</c> 였는데,
+            // TMP 는 셰이더의 <b>밑칠</b>이 한 번에 한다.
+            UiText.Shadow(t, UiLook.With(UiLook.Shadow, 0.75f), 0.8f, 0.3f);
             return t;
         }
     }

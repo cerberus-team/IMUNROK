@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -55,14 +56,14 @@ namespace IMUNROK.Common
         private CanvasGroup _group;
         private RectTransform _paper;
         private RectTransform _wordBox;
-        private Text _title, _head, _tail, _hint;
-        private readonly List<Text> _rowLabels = new List<Text>();
+        private TextMeshProUGUI _title, _head, _tail, _hint;
+        private readonly List<TextMeshProUGUI> _rowLabels = new List<TextMeshProUGUI>();
         private readonly List<RectTransform> _rows = new List<RectTransform>();
         private int[] _picked;                  // 빈칸마다 고른 보기 번호. -1 이면 아직
         private int _openRow = -1;
         private bool _open;
         private Button _sealBtn;
-        private Text _sealLabel;
+        private TextMeshProUGUI _sealLabel;
         private bool _sealed;
 
         /// <summary>장계를 편다. 다 끝나면 <paramref name="onClosed"/> 가 불린다.</summary>
@@ -150,7 +151,7 @@ namespace IMUNROK.Common
                 btn.onClick.AddListener(() => PickRow(at));
                 // 글상자를 살짝 오른쪽으로 밀어 왼쪽에 여백을 준다 — 번호가 테두리에 붙으면 안 읽힌다
                 var lab = Label("글", "", new Vector2(14f, 0f), new Vector2(W - 150f, RowH - 20f), row, Base);
-                lab.alignment = TextAnchor.MiddleLeft;
+                lab.alignment = TextAlignmentOptions.Left;
                 lab.color = UiLook.Ink;
                 _rows.Add(row); _rowLabels.Add(lab);
             }
@@ -363,24 +364,14 @@ namespace IMUNROK.Common
             return rt;
         }
 
-        private Text Label(string name, string content, Vector2 pos, Vector2 size, Transform parent, int fontSize)
+        /// <summary>
+        /// 글 한 줄. <b>낡은 UI.Text 에서 TMP 로 옮겼다</b>(<see cref="UiText"/>) —
+        /// 견우 판과 같은 붓으로 그려야 한 게임의 화면으로 읽힌다.
+        /// </summary>
+        private TextMeshProUGUI Label(string name, string content, Vector2 pos, Vector2 size,
+                                      Transform parent, float fontSize)
         {
-            var go = new GameObject(name, typeof(RectTransform));
-            var rt = (RectTransform)go.transform;
-            rt.SetParent(parent, false);
-            rt.anchoredPosition = pos;
-            rt.sizeDelta = size;
-            var t = go.AddComponent<Text>();
-            t.font = _font;
-            t.fontSize = fontSize;
-            t.text = content;
-            t.supportRichText = true;
-            t.alignment = TextAnchor.MiddleCenter;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
-            t.color = UiLook.Ink;
-            t.raycastTarget = false;
-            return t;
+            return UiText.New(name, content, pos, size, parent, fontSize, TextAnchor.MiddleCenter, UiLook.Ink);
         }
 
         private static string Num(int i)

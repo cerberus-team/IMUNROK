@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,7 +19,9 @@ namespace IMUNROK.Common
     [RequireComponent(typeof(Canvas))]
     public class WorldNote : MonoBehaviour
     {
-        [SerializeField] private Font _font;
+        // 낡은 판 시절의 글꼴 칸을 걷었다 — 글씨는 이제 꾸러미의 TMP 에셋 하나뿐이다
+        // (UiText ▸ UiSkin.Font). 인스펙터에 꽂아 두어도 아무 데도 안 쓰이는 칸이라,
+        // 남겨 두면 「여기서 글꼴을 바꿀 수 있다」는 거짓말이 된다.
         [SerializeField] private int _fontSize = 40;
         [Tooltip("물건 꼭대기에서 이만큼 위(m)")]
         [SerializeField] private float _lift = 0.14f;
@@ -31,7 +34,7 @@ namespace IMUNROK.Common
 
         private Canvas _canvas;
         private CanvasGroup _group;
-        private Text _text;
+        private TextMeshProUGUI _text;
         private Image _plate;
         private RectTransform _rect;
         private Transform _target;
@@ -77,7 +80,6 @@ namespace IMUNROK.Common
             _group.interactable = false;
             _group.alpha = 0f;
 
-            _font = UiFont.Resolve(_font);
 
             var plateGo = new GameObject("바탕", typeof(RectTransform));
             plateGo.transform.SetParent(transform, false);
@@ -93,14 +95,9 @@ namespace IMUNROK.Common
             var trt = (RectTransform)textGo.transform;
             trt.anchorMin = trt.anchorMax = trt.pivot = new Vector2(0.5f, 0.5f);
             trt.sizeDelta = new Vector2(660f, 96f);
-            _text = textGo.AddComponent<Text>();
-            _text.font = _font;
-            _text.fontSize = _fontSize;
-            _text.color = _inkColor;
-            _text.alignment = TextAnchor.MiddleCenter;
-            _text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _text.verticalOverflow = VerticalWrapMode.Overflow;
-            _text.raycastTarget = false;
+            // 낡은 UI.Text 에서 TMP 로 옮겼다 — 견우 판과 같은 붓으로 그린다(UiText).
+            _text = UiText.Dress(textGo.AddComponent<TextMeshProUGUI>(),
+                                 _fontSize, TextAnchor.MiddleCenter, _inkColor);
         }
 
         private void OnDestroy() { if (_instance == this) _instance = null; }

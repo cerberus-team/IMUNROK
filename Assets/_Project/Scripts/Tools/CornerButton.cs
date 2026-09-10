@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -202,13 +203,14 @@ namespace IMUNROK.Common
             // 테는 없앤다. 판이 낙관빛이 되었으니 그 위에 다시 붉은 줄을 그으면
             // 같은 색이 겹칠 뿐이고, 고르는 창의 단추에도 그런 줄은 없다.
 
-            var txtGo = new GameObject("글", typeof(Text));
+            var txtGo = new GameObject("글", typeof(TextMeshProUGUI));
             var trt = txtGo.GetComponent<RectTransform>();
             trt.SetParent(brt, false);
+            trt.anchorMin = trt.anchorMax = trt.pivot = new Vector2(0.5f, 0.5f);
             trt.anchoredPosition = Vector2.zero;
             trt.sizeDelta = size;
-            var txt = txtGo.GetComponent<Text>();
-            txt.font = UiFont.Resolve(null);
+            // 낡은 UI.Text 에서 TMP 로 옮겼다 — 견우 판과 같은 붓으로 그린다(UiText).
+            var txt = txtGo.GetComponent<TextMeshProUGUI>();
             // <b>자막의 대사와 같은 크기로 맞춘다.</b> 캔버스가 서로 달라 숫자만으로는
             // 견줄 수 없다 — 화면 높이에서 차지하는 몫으로 재야 한다.
             //   자막  : 대사 56단위 ÷ 화면 1732단위 = 3.23%
@@ -216,12 +218,8 @@ namespace IMUNROK.Common
             // 36 이던 것은 3.46% 라 대사보다 도리어 컸다. 넘기라고 조르는 말이
             // 왕의 말보다 큰 것은 앞뒤가 뒤집힌 것이다.
             // (값은 <see cref="FontSize"/> 에 있다 — 판 너비 셈도 그것을 쓴다)
-            txt.fontSize = FontSize;
-            txt.alignment = TextAnchor.MiddleCenter;
-            txt.color = UiLook.Text;
-            txt.raycastTarget = false;
-            txt.horizontalOverflow = HorizontalWrapMode.Overflow;
-            txt.verticalOverflow = VerticalWrapMode.Overflow;
+            UiText.Dress(txt, FontSize, TextAnchor.MiddleCenter, UiLook.Text);
+            UiText.Wrap(txt, false);
             txt.text = label;
 
             Place();

@@ -1,4 +1,5 @@
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -509,7 +510,7 @@ namespace IMUNROK.Common
         // 작게 붙어야 한다 — 물건을 가리켰을 때의 보통 방식이기도 하다.
 
         private GameObject _labelGo;
-        private UnityEngine.UI.Text _labelText;
+        private TextMeshProUGUI _labelText;
 
         private void ShowLabel(string s)
         {
@@ -533,14 +534,12 @@ namespace IMUNROK.Common
             rt.sizeDelta = new Vector2(900f, 90f);
             rt.localScale = Vector3.one * 0.0006f;
 
-            var t = new GameObject("글", typeof(UnityEngine.UI.Text));
-            _labelText = t.GetComponent<UnityEngine.UI.Text>();
-            _labelText.font = UiFont.Resolve(null);
-            _labelText.fontSize = _labelFontSize;
+            var t = new GameObject("글", typeof(TextMeshProUGUI));
+            _labelText = t.GetComponent<TextMeshProUGUI>();
+            // 낡은 UI.Text 에서 TMP 로 옮겼다 — 견우 판과 같은 붓으로 그린다(UiText).
+            UiText.Dress(_labelText, _labelFontSize, TextAnchor.MiddleCenter, _labelText.color);
             _labelText.color = _labelColor;
-            _labelText.alignment = TextAnchor.MiddleCenter;
-            _labelText.horizontalOverflow = HorizontalWrapMode.Overflow;
-            _labelText.verticalOverflow = VerticalWrapMode.Overflow;
+            UiText.Wrap(_labelText, false);
             var sh = t.AddComponent<UnityEngine.UI.Shadow>();
             sh.effectColor = UiLook.Shadow;
             sh.effectDistance = new Vector2(2.5f, -2.5f);

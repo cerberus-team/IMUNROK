@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -28,7 +29,9 @@ namespace IMUNROK.Common
     [RequireComponent(typeof(Canvas))]
     public class DocumentView : MonoBehaviour
     {
-        [SerializeField] private Font _font;
+        // 낡은 판 시절의 글꼴 칸을 걷었다 — 글씨는 이제 꾸러미의 TMP 에셋 하나뿐이다
+        // (UiText ▸ UiSkin.Font). 인스펙터에 꽂아 두어도 아무 데도 안 쓰이는 칸이라,
+        // 남겨 두면 「여기서 글꼴을 바꿀 수 있다」는 거짓말이 된다.
         [SerializeField] private int _fontSize = 26;
         [Tooltip("펼친 종이의 긴 변(월드 캔버스 단위 = mm). 300이면 한 뼘 남짓")]
         [SerializeField] private float _pageSpan = 300f;
@@ -93,12 +96,12 @@ namespace IMUNROK.Common
         private RawImage _stageImage;   // 종이가 아닌 것 — 무대에서 찍어 온 그림
         private static bool _onStage;   // 지금 무대에 물건이 올라 있는가
         private Image _transPlate;   // 옮긴 글이 앉는 바탕 — 종이 위에 한 켜
-        private Text _trans;         // 옮긴 글 — 한자 위에 얹히는 우리말
+        private TextMeshProUGUI _trans;         // 옮긴 글 — 한자 위에 얹히는 우리말
         private Image _slip;         // 종이에 붙은 표제 쪽지
-        private Text _slipText;      // 그 위에 세로로 적힌 이름
-        private Text _body;
-        private Text _fine;
-        private Text _hint;
+        private TextMeshProUGUI _slipText;      // 그 위에 세로로 적힌 이름
+        private TextMeshProUGUI _body;
+        private TextMeshProUGUI _fine;
+        private TextMeshProUGUI _hint;
         private RectTransform _closeRt;   // 내려놓기 단추 — 익히는 동안엔 감춘다
 
         // ── 등불에 비추기 ──
@@ -108,7 +111,7 @@ namespace IMUNROK.Common
         // 종이에 그려져 있지 않았다.
         private float _lit01;         // 종이가 달아오른 정도(0~1)
         private RawImage _pageLit;    // 빛에 드러난 종이 면(있으면 겹쳐 배어 나온다)
-        private Text _lit;            // 빛에 드러난 것 — 종이 아래에
+        private TextMeshProUGUI _lit;            // 빛에 드러난 것 — 종이 아래에
 
         private System.Action _onRead;
         private string _finePrint = "";
@@ -375,7 +378,6 @@ namespace IMUNROK.Common
             _anchor.SetDistance(_holdDistance, _holdDrop);   // 팔 길이 — 손에 든 거리다
 
             _canvas = GetComponent<Canvas>();
-            _font = UiFont.Resolve(_font);
             _group = GetComponent<CanvasGroup>();
             if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
 
@@ -875,9 +877,8 @@ namespace IMUNROK.Common
             _trans = NewText("옮긴글자", "", Vector2.zero, new Vector2(_pageSpan * 0.80f, _pageSpan * 0.38f),
                              transRt, _fontSize - 8);
             _trans.color = UiLook.With(UiLook.Ink, 0f);
-            _trans.alignment = TextAnchor.MiddleCenter;
-            _trans.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _trans.verticalOverflow = VerticalWrapMode.Overflow;
+            _trans.alignment = TextAlignmentOptions.Center;
+            UiText.Wrap(_trans, true);
             transRt.gameObject.SetActive(false);
 
             // 표제 쪽지 — <b>종이의 자식</b>이다. 그래야 종이를 돌리면 같이 돌고,
@@ -895,8 +896,10 @@ namespace IMUNROK.Common
             _slip.raycastTarget = false;
             _slipText = NewText("이름", "", Vector2.zero, new Vector2(30f, 116f), slipRt, 15);
             _slipText.color = UiLook.Ink;             // 먹
-            _slipText.alignment = TextAnchor.UpperCenter;
-            _slipText.lineSpacing = 0.86f;
+            _slipText.alignment = TextAlignmentOptions.Top;
+            // 낡은 판의 줄 간격은 <b>배수</b>(1 = 기본)인데 TMP 는 <b>백분율 여분</b>이다.
+            // 그대로 옮기면 줄 간격이 글자의 86배가 되어 글이 화면 밖으로 흩어진다.
+            _slipText.lineSpacing = IMUNROK.Ui.UiSkin.LineSpacing(0.86f);
 
             // 종이 뒷면. UI는 앞뒤가 없어서 돌려 보면 글씨가 그대로 비쳐 보인다 —
             // 뒤집힌 글씨가 비치는 종이는 세상에 없다. 뒤를 보는 동안만 덮는다.
@@ -1091,7 +1094,7 @@ namespace IMUNROK.Common
                 var size = _pageRt.sizeDelta;
                 rt.sizeDelta = new Vector2(size.x * 0.88f, size.y * 0.86f);
                 rt.anchoredPosition = new Vector2(0f, -size.y * 0.02f);
-                _body.alignment = TextAnchor.UpperLeft;
+                _body.alignment = TextAlignmentOptions.TopLeft;
                 _body.color = _paperInk;
                 _body.fontSize = _fontSize - 8;
             }
@@ -1104,7 +1107,7 @@ namespace IMUNROK.Common
                 float hy = _pageRt != null ? _pageRt.sizeDelta.y * 0.5f : _pageSpan * 0.5f;
                 rt.sizeDelta = new Vector2(Mathf.Max(700f, _pageRt != null ? _pageRt.sizeDelta.x : 700f), 76f);
                 rt.anchoredPosition = new Vector2(0f, -(hy + 64f));
-                _body.alignment = TextAnchor.MiddleCenter;
+                _body.alignment = TextAlignmentOptions.Center;
                 _body.color = _textColor;
                 _body.fontSize = _fontSize - 4;
             }
@@ -1147,19 +1150,14 @@ namespace IMUNROK.Common
             return rt;
         }
 
-        private Text NewText(string name, string s, Vector2 pos, Vector2 size, Transform parent, int fontSize)
+        /// <summary>
+        /// 글 한 줄. <b>낡은 UI.Text 에서 TMP 로 옮겼다</b>(<see cref="UiText"/>) —
+        /// 견우 판과 같은 붓으로 그려야 한 게임의 화면으로 읽힌다.
+        /// </summary>
+        private TextMeshProUGUI NewText(string name, string s, Vector2 pos, Vector2 size,
+                                        Transform parent, float fontSize)
         {
-            var rt = NewRect(name, pos, size, parent);
-            var t = rt.gameObject.AddComponent<Text>();
-            t.font = _font;
-            t.fontSize = fontSize;
-            t.color = _textColor;
-            t.alignment = TextAnchor.MiddleCenter;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
-            t.raycastTarget = false;
-            t.text = s;
-            return t;
+            return UiText.New(name, s, pos, size, parent, fontSize, TextAnchor.MiddleCenter, _textColor);
         }
     }
 }

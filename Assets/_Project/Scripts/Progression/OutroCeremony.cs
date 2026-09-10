@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 namespace IMUNROK.Common
@@ -409,17 +410,15 @@ namespace IMUNROK.Common
             }
             else
             {
-                var txtGo = new GameObject("글", typeof(UnityEngine.UI.Text));
+                var txtGo = new GameObject("글", typeof(TextMeshProUGUI));
                 var trt = txtGo.GetComponent<RectTransform>();
                 trt.SetParent(rt, false);
                 trt.sizeDelta = rt.sizeDelta;
-                var txt = txtGo.GetComponent<UnityEngine.UI.Text>();
-                txt.font = UiFont.Resolve(null);
-                txt.fontSize = 150;
-                txt.alignment = TextAnchor.MiddleCenter;
+                // 낡은 UI.Text 에서 TMP 로 옮겼다 — 견우 판과 같은 붓으로 그린다(UiText).
+                var txt = UiText.Dress(txtGo.GetComponent<TextMeshProUGUI>(),
+                                       150f, TextAnchor.MiddleCenter, Color.white);
                 txt.color = UiLook.Text;
-                txt.horizontalOverflow = HorizontalWrapMode.Overflow;
-                txt.verticalOverflow = VerticalWrapMode.Overflow;
+                UiText.Wrap(txt, false);
                 txt.text = _titleText;
             }
         }
