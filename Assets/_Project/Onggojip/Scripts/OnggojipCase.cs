@@ -159,18 +159,32 @@ namespace IMUNROK.Onggojip
             }
         }
 
-        /// <summary>진실 규명의 결정타(대면 심문 '복동아')가 가능한가.</summary>
-        private bool CanFinalPress => Has("J13") && Has("G03");
+        /// <summary>
+        /// 진실 규명의 결정타(대면 심문 '복동아')가 가능한가.
+        /// <b>조건은 한 자리에만 둔다</b> — <see cref="OnggojipEnding.TruthProven"/>.
+        /// 여기와 거기에 같은 조건을 두 벌 적으면 한쪽만 고쳐져 어긋난다.
+        /// </summary>
+        private bool CanFinalPress => OnggojipEnding.TruthProven;
 
         private void Judge(Verdict v)
         {
-            _gs.SetGapriHandled(_gapri);
-            _gs.SetVerdict(ThisCase, v);   // 완료 처리 + 조사청 큐브 금색 + 기록대 누적
+            // <b>판결은 이야기의 끝을 거쳐 적는다.</b> 여태 여기서 곧바로
+            // SetVerdict 를 불렀는데, 그러면 공통 기록에 남는 것은 판결 셋뿐이라
+            // 「이 사건이 어떻게 끝났는가」를 물을 자리가 없다. 제3사건은 그 켜를
+            // 이미 지니고 있다(GyeonuCase.FinishCase) — 같은 얼개로 맞춘다.
+            var ending = OnggojipEnding.FinishCase(v, _gapri);
             _phase = Phase.Judged;
-            Debug.Log($"[옹고집] 판결: {v} / 갑리처결:{_gapri} → 조사청 복귀");
+            Debug.Log($"[옹고집] 판결: {v} / 갑리처결:{_gapri} / 끝: {OnggojipEnding.LabelOf(ending)} → 조사청 복귀");
             _gs.ExitToHub();
             if (!string.IsNullOrEmpty(_hubSceneName) && Application.CanStreamedLevelBeLoaded(_hubSceneName))
                 SceneManager.LoadScene(_hubSceneName);
+        }
+
+        /// <summary>지금 갑리 토글 그대로 그 판결을 고르면 어떤 끝이 되는가(판에 미리 보이려고).</summary>
+        private OnggojipEndingId Peek(Verdict v)
+        {
+            if (v == Verdict.Truth) return _gapri ? OnggojipEndingId.Truth : OnggojipEndingId.HalfTruth;
+            return OnggojipEnding.EndingFor(v);
         }
 
         private int CountDiscovered(bool stealth)
@@ -238,6 +252,14 @@ namespace IMUNROK.Onggojip
                 GUILayout.Space(8);
                 GUILayout.Label("── 판결 ──", _rich);
                 _gapri = GUILayout.Toggle(_gapri, " 갑리(고리대) 처결");
+
+                // <b>어떤 끝이 되는지 먼저 보여 준다.</b> 판결 단추 셋만 있으면
+                // 갑리 토글이 결말을 가른다는 것이 화면에 안 나온다 — 안 보이는
+                // 갈래에 손을 얹게 두면 무엇을 고른 것인지 모르고 고르게 된다.
+                GUILayout.Label($"지금 고르면 → <b>{OnggojipEnding.LabelOf(Peek(Verdict.Truth))}</b> / "
+                              + $"{OnggojipEnding.LabelOf(Peek(Verdict.Mercy))} / "
+                              + $"{OnggojipEnding.LabelOf(Peek(Verdict.AcceptFake))}", _rich);
+
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("진실대로", _btn)) _pending = () => Judge(Verdict.Truth);
                 if (GUILayout.Button("정상참작", _btn)) _pending = () => Judge(Verdict.Mercy);
