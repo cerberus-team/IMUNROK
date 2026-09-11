@@ -57,6 +57,13 @@ namespace IMUNROK.Common
         {
             if (head == null) return null;
 
+            // <b>그려 둔 얼굴이 있으면 그것이 먼저다.</b> 그 자리에서 찍는 길은
+            // 뒤가 제각각이라 다섯을 나란히 놓으면 한 벌로 안 보인다
+            // (<see cref="FaceBook"/> 의 머리말 참조). 그려 둔 것이 없는 사람만
+            // 아래의 옛 길로 간다.
+            var drawn = DrawnCard(body != null ? body : head);
+            if (drawn != null) return drawn;
+
             Shot s;
             if (Shots.TryGetValue(head, out s) && s.cam != null) { Place(s, head, body); return s.rt; }
 
@@ -115,6 +122,21 @@ namespace IMUNROK.Common
         public static Texture2D Snapshot(Transform who)
         {
             if (who == null) return null;
+
+            // <b>머리뼈를 찾기 전에 책부터 본다.</b> 그려 둔 얼굴은 몸에서 뜨는 것이
+            // 아니므로 뼈 이름이 어떻든 상관이 없다. 뼈로 먼저 거르면 이름이
+            // 다른 리그를 쓴 사람은 그려 둔 얼굴이 있어도 「言」자가 찍힌다.
+            var book1 = FaceBook.Book;
+            if (book1 != null)
+            {
+                var e1 = book1.Find(who);
+                if (e1 != null)
+                {
+                    var card1 = FaceCards.Card(book1, e1);
+                    if (card1 != null) return card1;
+                }
+            }
+
             Transform head = null;
             foreach (var t in who.GetComponentsInChildren<Transform>(true))
             {
@@ -152,6 +174,40 @@ namespace IMUNROK.Common
             RenderTexture.active = prev;
             return tex;
         }
+
+        /// <summary>
+        /// <b>그려 둔 얼굴을 이름표가 받을 꼴로 내준다.</b>
+        ///
+        /// 이름표 판(<c>InterrogationPanel</c>)은 <see cref="RenderTexture"/> 를 받게 되어
+        /// 있으므로, 구운 카드를 한 번만 옮겨 담아 둔다. 찍개도 불도 안 만든다 —
+        /// 그려 둔 얼굴에는 비출 것이 없다.
+        /// </summary>
+        private static RenderTexture DrawnCard(Transform who)
+        {
+            var book = FaceBook.Book;
+            if (book == null) return null;
+            var e = book.Find(who);
+            if (e == null) return null;
+
+            RenderTexture had;
+            if (Drawn.TryGetValue(e, out had) && had != null) return had;
+
+            var card = FaceCards.Card(book, e);
+            if (card == null) return null;
+
+            var rt = new RenderTexture(card.width, card.height, 0, RenderTextureFormat.ARGB32)
+            {
+                name = "얼굴_" + e.이름,
+                antiAliasing = 1,
+            };
+            rt.Create();
+            Graphics.Blit(card, rt);
+            Drawn[e] = rt;
+            return rt;
+        }
+
+        private static readonly Dictionary<FaceBook.Entry, RenderTexture> Drawn =
+            new Dictionary<FaceBook.Entry, RenderTexture>();
 
         /// <summary>얼굴 앞에 선다. 사람이 걸어 나가면 따라가야 하므로 볼 때마다 다시 잡는다.</summary>
         private static void Place(Shot s, Transform head, Transform body)
@@ -195,6 +251,11 @@ namespace IMUNROK.Common
                 if (s.rt != null) { s.rt.Release(); Object.Destroy(s.rt); }
             }
             Shots.Clear();
+
+            foreach (var kv in Drawn)
+                if (kv.Value != null) { kv.Value.Release(); Object.Destroy(kv.Value); }
+            Drawn.Clear();
+            FaceCards.Clear();
         }
     }
 }
