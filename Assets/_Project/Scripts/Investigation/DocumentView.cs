@@ -973,13 +973,13 @@ namespace IMUNROK.Common
             // 드러내는 것이니, 둘이 같은 자리에 같은 빛깔로 뜨면 어느 쪽이 무슨 일을
             // 한 것인지 알 수 없다. 그래서 조금 아래에, 배접을 통해 비친 <b>묽은 먹빛</b>
             // 으로 앉힌다. 바탕판도 종이빛이 아니라 <b>등불빛</b>이라 뒤에서 밝힌 티가 난다.
-            var litRt = NewRect("배어난글", new Vector2(0f, -_pageSpan * 0.26f),
-                                new Vector2(_pageSpan * 0.86f, _pageSpan * 0.30f), _pageRt);
-            _litPlate = litRt.gameObject.AddComponent<Image>();
+            var soakRt = NewRect("배어난글", new Vector2(0f, -_pageSpan * 0.26f),
+                                 new Vector2(_pageSpan * 0.86f, _pageSpan * 0.30f), _pageRt);
+            _litPlate = soakRt.gameObject.AddComponent<Image>();
             _litPlate.color = UiLook.With(new Color(1f, 0.86f, 0.62f), 0f);
             _litPlate.raycastTarget = false;
             _litOnPage = NewText("배어난글자", "", Vector2.zero,
-                                 new Vector2(_pageSpan * 0.80f, _pageSpan * 0.27f), litRt, _fontSize - 8);
+                                 new Vector2(_pageSpan * 0.80f, _pageSpan * 0.27f), soakRt, _fontSize - 8);
             _litOnPage.color = UiLook.With(UiLook.Ink, 0f);
             _litOnPage.alignment = TextAlignmentOptions.Center;
             UiText.Wrap(_litOnPage, true);
