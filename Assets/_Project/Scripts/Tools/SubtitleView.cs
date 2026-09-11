@@ -528,12 +528,26 @@ namespace IMUNROK.Common
             float top = h * 0.5f;
             float y = top - st.padTop;
 
-            // 이름패 — 판 안 왼쪽 위(저쪽과 같은 자리). 나뭇결 위에 주칠.
+            // 이름패 — 판 안 왼쪽 위(저쪽과 같은 자리).
+            //
+            // <b>왜 나뭇결을 걷었나.</b> 여기와 단추가 둘 다 <c>UiLook.Seal</c>(주칠)에
+            // 알파도 1인데 화면에서는 이름패가 <b>한 켜 깊게</b> 나왔다 —
+            // (0.184, 0.019, 0.006) 대 (0.667, 0.220, 0.165). 까닭은 겹침이 아니라
+            // <b>그림이 빛깔을 곱한다</b>는 데 있었다. <c>Image.color</c> 는 스프라이트를
+            // <b>곱하는</b> 값이므로, 어떤 그림에 얹느냐에 따라 같은 주칠이 딴 빛깔이 된다.
+            //
+            //   나뭇결(<c>Wood_</c>) 평균 ≈ (0.309, 0.221, 0.153)  — 어두운 나무
+            //   주칠 x 나뭇결          ≈ (0.206, 0.049, 0.025)  ← 잰 값과 맞는다
+            //   단추는 <c>Slot_</c>(한지빛)에 얹혀 있어 주칠이 거의 그대로 나온다
+            //
+            // 되살릴 길이 없다 — 곱해서 어두워진 것을 밝히려면 주칠을 2.2배 해야 하는데
+            // 그러면 붉은 기가 흰빛으로 날아간다. 그래서 <b>단추와 같은 바탕</b>에 얹는다.
+            // 결이 아주 없어지는 것은 아니다(<c>Slot_</c> 에도 얕은 결이 있다).
             float nameW = Mathf.Max(220f, st.name * 7f);
             _nameplate = NewRect("이름판",
                 new Vector2(-w * 0.5f + st.padX + nameW * 0.5f, y - nameH * 0.5f),
                 new Vector2(nameW, nameH), panel);
-            Skin(_nameplate.gameObject.AddComponent<Image>(), _skin.Wood_, _nameplateColor);
+            Skin(_nameplate.gameObject.AddComponent<Image>(), _skin.Slot_, _nameplateColor);
             _nameText = NewText("이름", "", Vector2.zero, new Vector2(nameW, nameH),
                                 _nameplate, _nameFontSize,
                                 _useCommonLook ? UiLook.SealText : _textColor);

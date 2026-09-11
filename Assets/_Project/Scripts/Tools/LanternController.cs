@@ -63,6 +63,41 @@ namespace IMUNROK.Common
             // 모델까지 넘긴다 — 크기도 공통이다. 조사청의 등불이 옹고집전 것의
             // 절반이었고(8 대 21), 같은 방 문갑에 놓인 등불보다도 작았다.
             if (_useCommonPose) HeldRig.Apply(transform, _toolId, _model != null ? _model.transform : null);
+            if (_hangFromHook) HangFromHook();
+        }
+
+        [Tooltip("<b>걸린 자리에서 돌게 한다.</b> 모델의 중심이 몸통 한가운데 있으면 " +
+                 "손이 돌 때 등불이 <b>제 배꼽을 축으로</b> 빙 돈다 — 매달린 물건은 " +
+                 "걸린 데를 축으로 돌아야 한다. 켜면 모델을 재어 <b>윗면 한가운데</b>가 " +
+                 "이 오브젝트의 원점에 오도록 밀어 준다. 조사청 등불이 어긋나 보이면 켜 볼 것")]
+        [SerializeField] private bool _hangFromHook = false;
+
+        /// <summary>
+        /// <b>매달린 자리를 축으로 삼는다.</b>
+        ///
+        /// 등불은 고리에 걸려 있으므로 도는 축이 <b>고리</b>다. 그런데 모델의 원점은
+        /// 대개 몸통 한가운데(또는 발치)에 찍혀 오므로, 그것을 그대로 손에 물리면
+        /// 손이 돌 때 등불이 제 몸 한가운데를 축으로 돈다 — 들고 도는 것이 아니라
+        /// <b>제자리에서 구르는</b> 것으로 보인다.
+        ///
+        /// 그려지는 몸을 재어 <b>윗면 한가운데</b>가 이 오브젝트의 원점에 오도록 민다.
+        /// 이미 고리가 원점에 있는 모델이면 미는 양이 0 에 가까우므로 아무 일도 없다.
+        /// </summary>
+        private void HangFromHook()
+        {
+            if (_model == null) return;
+            var rs = _model.GetComponentsInChildren<Renderer>(true);
+            if (rs.Length == 0) return;
+
+            var b = rs[0].bounds;
+            for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+
+            // 윗면 한가운데 — 세계 자리로 잡아 이 오브젝트 기준으로 옮긴다
+            Vector3 hook = new Vector3(b.center.x, b.max.y, b.center.z);
+            Vector3 local = transform.InverseTransformPoint(hook);
+            _model.transform.localPosition -= local;
+
+            DevLog.Note("[등불] 걸린 자리를 축으로 맞췄다 — 모델을 " + (-local).ToString("F3") + " 만큼 밀었다.", this);
         }
 
         private void Start()

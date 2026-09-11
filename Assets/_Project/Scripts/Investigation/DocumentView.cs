@@ -97,6 +97,8 @@ namespace IMUNROK.Common
         private static bool _onStage;   // 지금 무대에 물건이 올라 있는가
         private Image _transPlate;   // 옮긴 글이 앉는 바탕 — 종이 위에 한 켜
         private TextMeshProUGUI _trans;         // 옮긴 글 — 한자 위에 얹히는 우리말
+        private TextMeshProUGUI _litOnPage;     // 등불이 드러낸 글 — 종이 <b>안쪽</b>에서 배어 나온다
+        private Image _litPlate;
         private Image _slip;         // 종이에 붙은 표제 쪽지
         private TextMeshProUGUI _slipText;      // 그 위에 세로로 적힌 이름
         private TextMeshProUGUI _body;
@@ -350,12 +352,49 @@ namespace IMUNROK.Common
                 if (d._lit.gameObject.activeSelf != on) d._lit.gameObject.SetActive(on);
             }
 
+            d.SoakLit(progress);
+
             if (progress < 1f || d._litDone) return;
 
             d._litDone = true;
             var cb = d._onLit;
             if (cb != null) cb();
             ToolPractice.Done("lantern");
+        }
+
+        /// <summary>
+        /// <b>드러난 글이 종이 위로 배어 나온다</b>(0~1).
+        ///
+        /// 옮긴 글(<see cref="ShowTranslation"/>)과 같은 결이다 — 다 대야 나타나는 것이
+        /// 아니라 <b>대고 있는 만큼</b> 짙어지고, 떼면 옅어진다. 그래야 지금 하고 있는
+        /// 일이 눈에 보인다.
+        ///
+        /// 다만 <b>뜻이 새겨진 뒤에만</b> 배어 나온다(<see cref="Legible"/>). 그 앞의
+        /// 「무언가 비친다」는 아직 읽어낸 것이 아니라 <b>보이기 시작한 것</b>이라,
+        /// 종이에 적으면 안 읽은 것을 읽었다고 적는 꼴이 된다.
+        /// </summary>
+        private void SoakLit(float progress)
+        {
+            if (!_translateOnPage || _litOnPage == null || string.IsNullOrEmpty(_litPrint)) return;
+
+            float k = Mathf.Clamp01(_litDone ? 1f : Mathf.InverseLerp(Legible, 1f, progress));
+            if (k <= 0.001f)
+            {
+                if (_litOnPage.text.Length > 0)
+                {
+                    _litOnPage.color = UiLook.With(UiLook.Ink, 0f);
+                    if (_litPlate != null) _litPlate.color = UiLook.With(new Color(1f, 0.86f, 0.62f), 0f);
+                }
+                return;
+            }
+
+            if (_litOnPage.text.Length == 0)
+                _litOnPage.text = Emphasis.Rich(_litPrint, Emphasis.OnPaper);
+
+            var c = _litOnPage.color;
+            _litOnPage.color = new Color(c.r, c.g, c.b, _transAlpha * k);
+            if (_litPlate != null)
+                _litPlate.color = UiLook.With(new Color(1f, 0.86f, 0.62f), 0.16f * k);
         }
 
         /// <summary>이만큼은 대고 있어야 무언가 비친다는 것을 안다.</summary>
@@ -507,6 +546,12 @@ namespace IMUNROK.Common
             _litTexture = litPage;
             _onLit = onLit;
             _litDone = false;
+            if (_litOnPage != null)
+            {
+                _litOnPage.text = "";
+                _litOnPage.color = UiLook.With(UiLook.Ink, 0f);
+            }
+            if (_litPlate != null) _litPlate.color = UiLook.With(new Color(1f, 0.86f, 0.62f), 0f);
             _litProgress = 0f;
             _sinceLit = 99f;
             _lit.text = "";
@@ -920,6 +965,24 @@ namespace IMUNROK.Common
             _trans.color = UiLook.With(UiLook.Ink, 0f);
             _trans.alignment = TextAlignmentOptions.Center;
             UiText.Wrap(_trans, true);
+
+            // ── 등불이 드러낸 글 — <b>종이 안쪽에서 배어 나온다</b> ──
+            //
+            // 옮긴 글(돋보기)과 <b>같은 일을 반대편에서</b> 한다. 돋보기는 이미 적힌
+            // 글자를 <b>알아보는</b> 것이고 등불은 배접 속에 <b>가려져 있던</b> 것을
+            // 드러내는 것이니, 둘이 같은 자리에 같은 빛깔로 뜨면 어느 쪽이 무슨 일을
+            // 한 것인지 알 수 없다. 그래서 조금 아래에, 배접을 통해 비친 <b>묽은 먹빛</b>
+            // 으로 앉힌다. 바탕판도 종이빛이 아니라 <b>등불빛</b>이라 뒤에서 밝힌 티가 난다.
+            var litRt = NewRect("배어난글", new Vector2(0f, -_pageSpan * 0.26f),
+                                new Vector2(_pageSpan * 0.86f, _pageSpan * 0.30f), _pageRt);
+            _litPlate = litRt.gameObject.AddComponent<Image>();
+            _litPlate.color = UiLook.With(new Color(1f, 0.86f, 0.62f), 0f);
+            _litPlate.raycastTarget = false;
+            _litOnPage = NewText("배어난글자", "", Vector2.zero,
+                                 new Vector2(_pageSpan * 0.80f, _pageSpan * 0.27f), litRt, _fontSize - 8);
+            _litOnPage.color = UiLook.With(UiLook.Ink, 0f);
+            _litOnPage.alignment = TextAlignmentOptions.Center;
+            UiText.Wrap(_litOnPage, true);
             transRt.gameObject.SetActive(false);
 
             // 표제 쪽지 — <b>종이의 자식</b>이다. 그래야 종이를 돌리면 같이 돌고,
