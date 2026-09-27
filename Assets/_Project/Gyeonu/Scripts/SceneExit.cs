@@ -78,6 +78,15 @@ namespace IMUNROK.Gyeonu
         bool _leftVolumeOnce;
         bool _blockedNotified;
 
+        /// <summary>
+        /// 잠긴 문을 열려 했을 때 <b>대신 처리할 것</b> (2026-09-11). <c>true</c> 를 돌려주면
+        /// 기본 안내 문구(<see cref="lockedMessage"/>)를 띄우지 않는다.
+        ///
+        /// 낮의 집무실처럼 "막혔다"가 한 줄 문구가 아니라 <b>연출</b>인 곳이 쓴다
+        /// (<see cref="OfficeDayGate"/>). 코드에서만 꽂는다 — 인스펙터에 노출할 것이 아니다.
+        /// </summary>
+        public System.Func<bool> lockedHandler;
+
         public override string Prompt => locked ? "살펴보기" : promptText;
 
         public override bool CanInteract(GameObject actor)
@@ -86,7 +95,12 @@ namespace IMUNROK.Gyeonu
         public override void Interact(GameObject actor)
         {
             if (!CanInteract(actor)) return;
-            if (locked) { DebugToast.ShowPinned(lockedMessage); return; }
+            if (locked)
+            {
+                if (lockedHandler != null && lockedHandler()) return;
+                DebugToast.ShowPinned(lockedMessage);
+                return;
+            }
             if (!ConditionsMet()) { DebugToast.ShowPinned(BlockedText()); return; }
             Depart();
         }
@@ -94,8 +108,18 @@ namespace IMUNROK.Gyeonu
         void OnTriggerEnter(Collider other)
         {
             if (mode == Trigger.상호작용) return;
-            if (locked) return;
             if (!IsPlayer(other)) return;
+            if (locked)
+            {
+                // 걸어서 밟는 출구가 잠겼을 때도 까닭은 알려 준다 (2026-09-13 — 구출 뒤 관아 마당의 재회 전 잠금).
+                // 볼륨 안에 서 있어도 한 번만. 나갔다 들어오면 다시.
+                if (!_blockedNotified && !string.IsNullOrEmpty(lockedMessage))
+                {
+                    _blockedNotified = true;
+                    DebugToast.ShowPinned(lockedMessage);
+                }
+                return;
+            }
 
             if (requireExitFirst && !_leftVolumeOnce) return;
             if (Time.time - SceneTransition.LastArrivalTime < armDelay) return;

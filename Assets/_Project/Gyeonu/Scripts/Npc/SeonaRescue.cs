@@ -44,6 +44,26 @@ namespace IMUNROK.Gyeonu
         [Tooltip("몸을 일으킨 뒤")]
         public float eyeStanding = 1.50f;
 
+        [Header("일어서는 동안 발을 바닥에 붙이기 (2026-09-10)")]
+        [Tooltip("StandingUp 클립을 0.2초마다 재서 구운 표 — 그 순간 몸의 최저점이 루트보다 얼마나 위인가(m). " +
+                 "루트 y = 바닥 − 이 값. 첫 키는 FallIdle 의 값(0.52)이라 크로스페이드와 이어진다. " +
+                 "⚠️ 이 팩의 쓰러짐·일어섬 클립은 루트를 두고 몸만 움직여서, 누운 루트(바닥 −0.52)에서 " +
+                 "그대로 일어서면 무릎까지 바닥에 박힌 채 선다 (실측 0.70m)")]
+        public AnimationCurve riseCurve = new AnimationCurve(
+            new Keyframe(0.0f, 0.517f), new Keyframe(0.2f, 0.372f), new Keyframe(0.4f, 0.360f),
+            new Keyframe(0.6f, 0.359f), new Keyframe(0.8f, 0.380f), new Keyframe(1.0f, 0.387f),
+            new Keyframe(1.2f, 0.409f), new Keyframe(1.4f, 0.438f), new Keyframe(1.6f, 0.430f),
+            new Keyframe(1.8f, 0.390f), new Keyframe(2.0f, 0.291f), new Keyframe(2.2f, 0.221f),
+            new Keyframe(2.4f, 0.163f), new Keyframe(2.6f, 0.165f), new Keyframe(2.8f, 0.144f),
+            new Keyframe(3.0f, 0.280f), new Keyframe(3.2f, 0.293f), new Keyframe(3.4f, 0.504f),
+            new Keyframe(3.6f, 0.559f), new Keyframe(3.8f, 0.509f), new Keyframe(4.0f, 0.399f),
+            new Keyframe(4.2f, 0.210f), new Keyframe(4.4f, 0.170f), new Keyframe(4.6f, 0.154f),
+            new Keyframe(4.8f, 0.112f), new Keyframe(5.0f, 0.060f), new Keyframe(5.2f, 0.040f),
+            new Keyframe(5.4f, 0.053f), new Keyframe(5.6f, 0.071f), new Keyframe(5.8f, 0.099f),
+            new Keyframe(6.0f, 0.074f), new Keyframe(6.2f, 0.049f), new Keyframe(6.4f, 0.038f),
+            new Keyframe(6.6f, 0.025f), new Keyframe(6.8f, 0.017f), new Keyframe(7.0f, 0.006f),
+            new Keyframe(7.2f, 0.004f), new Keyframe(7.4f, 0.001f), new Keyframe(7.6f, 0.000f));
+
         NpcDialogue talk;
         NpcActor actor;
         bool _started;
@@ -76,7 +96,24 @@ namespace IMUNROK.Gyeonu
                 actor.PauseRandom(true);
                 actor.Play(standingUp, NpcActor.Pri.Story);
             }
-            yield return new WaitForSeconds(standUpSeconds);
+
+            // 일어서는 동안 몸의 최저점을 바닥에 붙인 채 루트를 끌어올린다. 서고 바닥은 루트보다
+            // 0.52 위(누운 자세 기준)이므로 여기서 재면 -6.60 이 나온다. 클립이 끝나면 발이 바닥에 닿아 있다.
+            float floorY = NpcPatrol.Ground(transform.position, 1.5f, 4f, transform).y;
+            float t = 0f;
+            while (t < standUpSeconds)
+            {
+                t += Time.deltaTime;
+                Vector3 p = transform.position;
+                p.y = floorY - riseCurve.Evaluate(Mathf.Min(t, standUpSeconds));
+                transform.position = p;
+                yield return null;
+            }
+            {
+                Vector3 p = transform.position;
+                p.y = floorY;
+                transform.position = p;
+            }
 
             if (actor != null)
             {

@@ -127,17 +127,20 @@ namespace IMUNROK.Gyeonu
         Provable = 3,       // 범행 입증 가능
     }
 
-    /// <summary>엔딩 4종. 구출 여부 × 입증 여부.</summary>
+    /// <summary>
+    /// 엔딩 3종 (2026-09-13 「엔딩 시스템 기획 문서」). 12차의 4종은 폐기했다.
+    /// ⚠️ 숫자는 옛 세이브와 맞추려고 그대로 두었다 — 2(절반의 구원)는 노멀로, 3(늦은 문)·4(전설의 완성)는
+    ///    배드로 읽힌다 (<see cref="GyeonuCase"/> 의 RestoreFrom 참고).
+    /// </summary>
     public enum EndingId
     {
+        /// <summary>아직 정해지지 않았다 — 구출 전이라 진·노멀 판정을 할 수 없다.</summary>
         None = 0,
-        /// <summary>진상 — 구출 O · 입증 O</summary>
+        /// <summary>진엔딩 「밝혀진 진실」 — 구출 O · 증거 충분</summary>
         Truth = 1,
-        /// <summary>절반의 구원 — 구출 O · 입증 X</summary>
-        HalfSalvation = 2,
-        /// <summary>늦은 문 — 구출 X · 입증 O</summary>
-        LateDoor = 3,
-        /// <summary>전설의 완성 — 구출 X · 입증 X (경계도 100 도달 시 강제)</summary>
-        LegendComplete = 4,
+        /// <summary>노멀엔딩 「살아 돌아온 직녀」 — 구출 O · 증거 부족</summary>
+        Normal = 2,
+        /// <summary>배드엔딩 「끝나지 않은 칠석」 — 경계도 최대치 도달</summary>
+        Bad = 4,
     }
 }

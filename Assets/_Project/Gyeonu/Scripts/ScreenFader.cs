@@ -31,6 +31,39 @@ namespace IMUNROK.Gyeonu
         /// <summary>0 = 투명, 1 = 완전 암전.</summary>
         public float Alpha { get; private set; }
 
+        /// <summary>
+        /// 암전 쿼드의 렌더 큐 (<c>Overlay</c> = 4000). 투명 소품·물·안개보다 확실히 나중에 그린다.
+        /// </summary>
+        public const int Queue = (int)RenderQueue.Overlay;
+
+        /// <summary>
+        /// <b>암전 위에</b> 그려야 하는 것의 렌더 큐 (2026-09-11). 캄캄한 동안에도 보여야 하는 UI —
+        /// 안내 문구(<see cref="ToastPanel"/>), 획득 순간의 조사 화면(<see cref="InventoryInspect"/>) —
+        /// 가 재질 큐를 여기로 올린다. 큐가 암전보다 크면 거리와 무관하게 암전 뒤에 그려진다.
+        /// </summary>
+        public const int QueueAbove = Queue + 100;
+
+        /// <summary>
+        /// 이 뿌리 아래 모든 UI 그래픽의 재질 큐를 암전 위로 올린다. 이미지는 사본 재질을 만들고
+        /// (기본 UI 재질은 공유물이라 직접 만지면 화면의 모든 UI가 따라온다), TMP 글은 자기만의
+        /// <c>fontMaterial</c> 을 쓴다. 여러 번 불러도 안전하다 — 이미 올라간 것은 건너뛴다.
+        /// </summary>
+        public static void LiftAboveFade(Transform root)
+        {
+            if (root == null) return;
+            foreach (var g in root.GetComponentsInChildren<UnityEngine.UI.Graphic>(true))
+            {
+                if (g is TMPro.TMP_Text tmp)
+                {
+                    if (tmp.fontMaterial != null && tmp.fontMaterial.renderQueue < QueueAbove)
+                        tmp.fontMaterial.renderQueue = QueueAbove;
+                    continue;
+                }
+                if (g.material == null || g.material.renderQueue >= QueueAbove) continue;
+                g.material = new Material(g.material) { renderQueue = QueueAbove };
+            }
+        }
+
         MeshRenderer _mr;
         Transform _quad;
         MaterialPropertyBlock _mpb;

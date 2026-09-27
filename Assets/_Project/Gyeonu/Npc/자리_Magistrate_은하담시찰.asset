@@ -239,9 +239,9 @@ MonoBehaviour:
   recoveryNote: "\uBCC4\uB3C4 \uC218\uCE58 \uC5C6\uC74C. \uC804\uBD80 \uACBD\uACC4\uB3C4\uB85C
     \uCC98\uB9AC\uD55C\uB2E4."
   gradeTalk: 1
-  grantableClues: 
+  grantableClues: 1b000000
   grantableFlags: []
-  grantOnFirstTalk: 1b000000
+  grantOnFirstTalk: 
   flagsOnFirstTalk: []
   secretFlag: 
   secretToast: 
@@ -250,11 +250,7 @@ MonoBehaviour:
   idleState: StandIdle
   talkState: StandIdle
   walkState: Walk
-  randomMotions:
-  - state: SitGun
-    minInterval: 20
-    maxInterval: 40
-    chance: 0.35
+  randomMotions: []
   randomStartDelay: 0
   eyeHeight: 1.62
   talkDistance: 1.7

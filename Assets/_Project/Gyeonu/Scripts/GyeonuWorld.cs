@@ -111,6 +111,20 @@ namespace IMUNROK.Gyeonu
         /// 그 뒤로는 견우마을에 기본 배경음(S11)만 흐른다. <see cref="MusicDirector"/> 가 세운다.</summary>
         public const string F_최초두사람_주제곡 = "first_two_theme_played";
 
+        /// <summary>견우마을 첫 방문에 최초의 두 사람이 <b>플레이어 뒤에서 나타났다</b> (2026-09-10).
+        /// 두 사람의 NpcSchedule 이 이 플래그를 요구한다 — 서기 전까지는 집 앞에 서 있지 않다.
+        /// <see cref="FirstCoupleEntrance"/> 가 세운다.</summary>
+        public const string F_최초두사람_등장 = "first_two_appeared";
+
+        /// <summary>두 사람이 걸어와 집 앞 제자리에 섰다 (2026-09-10). 그 뒤 방문부터는 처음부터 서 있다.</summary>
+        public const string F_최초두사람_도착 = "first_two_arrived";
+
+        /// <summary>
+        /// 구출 뒤 관아 마당에서 견우·선아와의 재회 대화를 마쳤다 (2026-09-13). 이 순간이 엔딩 판정 시점이다 —
+        /// <see cref="EndingDirector"/> 가 세우고, 서면 관아에서 마을로 나가는 출구가 열린다.
+        /// </summary>
+        public const string F_재회완료 = "gwana_reunion_done";
+
         /// <summary>
         /// 알려진 플래그 전부 — (키, 한글 이름). 디버그 창이 이 순서로 그린다.
         /// 새 플래그를 만들면 여기에도 한 줄 넣어야 창에 뜬다.
@@ -137,11 +151,14 @@ namespace IMUNROK.Gyeonu
             (F_최초직녀만남,    "최초의 직녀를 만남"),
             (F_관아통로,       "관아 쪽 통로를 들음"),
             (F_최초두사람_주제곡, "최초의 두 사람 주제곡 들음"),
+            (F_최초두사람_등장,  "최초의 두 사람 뒤에서 등장"),
+            (F_최초두사람_도착,  "최초의 두 사람 집 앞 도착"),
             (F_아버지검수기록,  "아버지 검수 기록 (C1)"),
             (F_선아풀이표,     "선아의 풀이표 (C3)"),
             (F_장부복원,       "서고 ① 장부 복원"),
             (F_기물대조,       "서고 ② 기물 대조"),
             (F_후고단서,       "서고 ③ 후고 단서"),
+            (F_재회완료,       "관아 재회 대화 마침 (엔딩 판정)"),
         };
 
         /// <summary>플래그·시간대가 바뀌면 발생. 조명·안내 UI가 따라 갱신하는 데 쓴다.</summary>

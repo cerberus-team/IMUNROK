@@ -692,8 +692,10 @@ namespace IMUNROK.Gyeonu
                     break;
 
                 case Threshold.Alert100:
-                    _forcedEnding = EndingId.LegendComplete;
-                    Debug.LogWarning("[제3사건] 임계 — 경계도 100. 수령이 서고를 먼저 정리했다. '전설의 완성' 고정.");
+                    // 배드엔딩 고정. 실제 연출(수령이 조사를 막고 마을에서 내쫓는 것)은
+                    // EndingDirector 가 ThresholdFired 를 받아 현재 대화가 닫힌 뒤에 시작한다.
+                    _forcedEnding = EndingId.Bad;
+                    Debug.LogWarning("[제3사건] 임계 — 경계도 100. 수령의 경계가 극에 달했다 — 배드엔딩 고정.");
                     break;
             }
 
@@ -704,49 +706,70 @@ namespace IMUNROK.Gyeonu
         //  엔딩
         // ─────────────────────────────────────────────────────────
 
-        /// <summary>지금 상태로 끝난다면 어떤 엔딩인가.</summary>
+        /// <summary>
+        /// 지금 상태로 끝난다면 어떤 엔딩인가 — 「엔딩 시스템 기획 문서 30. 판정 우선순위」 그대로다.
+        ///
+        /// <code>
+        ///   1순위  경계도 최대치 도달        → 배드
+        ///   2순위  선아 미구출               → 판정 불가 (None)
+        ///   3순위  구출 상태에서 증거도      → 기준 이상 진 / 미만 노멀
+        /// </code>
+        ///
+        /// 판정 <b>시점</b>은 여기서 정하지 않는다. 구출 뒤 관아에서 견우·선아와의 재회 대화가 끝나는 순간
+        /// <see cref="EndingDirector"/> 가 이 값을 읽는다 (2026-09-13 확정 흐름).
+        /// 진엔딩 기준은 <see cref="Proven"/> — 증거도 <see cref="ClueTable.ProofEvidenceMin"/> 이상 <b>이면서</b>
+        /// 핵심 3종(C1·C2·C3) 전부. 12차 기준을 유지한다.
+        /// </summary>
         public static EndingId Ending
         {
             get
             {
                 if (_forcedEnding != EndingId.None) return _forcedEnding;
-                if (_seonaRescued) return Proven ? EndingId.Truth : EndingId.HalfSalvation;
-                return Proven ? EndingId.LateDoor : EndingId.LegendComplete;
+                if (!_seonaRescued) return EndingId.None;
+                return Proven ? EndingId.Truth : EndingId.Normal;
             }
         }
 
-        public static string EndingLabel
+        /// <summary>엔딩이 고정되었는가 (경계도 100). 이후의 증거·구출은 결과를 바꾸지 못한다.</summary>
+        public static bool EndingForced => _forcedEnding != EndingId.None;
+
+        public static string EndingLabel => Label(Ending);
+
+        /// <summary>문서 「31. 엔딩 UI 명칭 권장안」의 한글 이름.</summary>
+        public static string Label(EndingId e)
         {
-            get
+            switch (e)
             {
-                switch (Ending)
-                {
-                    case EndingId.Truth: return "진상";
-                    case EndingId.HalfSalvation: return "절반의 구원";
-                    case EndingId.LateDoor: return "늦은 문";
-                    default: return "전설의 완성";
-                }
+                case EndingId.Truth:  return "밝혀진 진실";
+                case EndingId.Normal: return "살아 돌아온 직녀";
+                case EndingId.Bad:    return "끝나지 않은 칠석";
+                default:              return "미정 (구출 전)";
             }
         }
 
         /// <summary>
         /// 사건을 끝맺는다 — 공통 <see cref="GameState"/>에 판결까지 기록한다.
-        /// 진상=Truth / 절반의 구원·늦은 문=Mercy / 전설의 완성=AcceptFake 로 옮긴다.
+        /// 진=Truth / 노멀=Mercy / 배드=AcceptFake 로 옮긴다.
+        /// ⚠️ 아직 판정할 수 없는 상태(구출 전·경계도 미달)면 아무것도 기록하지 않고 None 을 돌려준다.
         /// </summary>
         public static EndingId FinishCase()
         {
             var e = Ending;
+            if (e == EndingId.None)
+            {
+                Debug.LogWarning("[제3사건] 엔딩을 확정할 수 없다 — 선아를 구출하지 않았고 경계도도 최대치가 아니다.");
+                return e;
+            }
             Verdict v;
             switch (e)
             {
-                case EndingId.Truth: v = Verdict.Truth; break;
-                case EndingId.HalfSalvation:
-                case EndingId.LateDoor: v = Verdict.Mercy; break;
-                default: v = Verdict.AcceptFake; break;
+                case EndingId.Truth:  v = Verdict.Truth; break;
+                case EndingId.Normal: v = Verdict.Mercy; break;
+                default:              v = Verdict.AcceptFake; break;
             }
             CurrentAct = Act.Ending;
             GameState.Instance.SetVerdict(CaseId.Case3_Gyeonu, v);
-            Debug.Log("[제3사건] 엔딩 = " + EndingLabel + " → 판결 " + v);
+            Debug.Log("[제3사건] 엔딩 = " + Label(e) + " → 판결 " + v);
             return e;
         }
 
@@ -883,7 +906,8 @@ namespace IMUNROK.Gyeonu
             _ledgerBurned = d.ledgerBurned; _c5LostForever = d.c5Lost;
             _nightSceneTransitions = d.nightSceneTransitions; _nightsRemaining = d.nightsRemaining;
             _act = (Act)d.act; _time = (TimeOfDay)d.time; _weather = (Weather)d.weather;
-            _forcedEnding = (EndingId)d.forcedEnding;
+            // 옛 세이브의 4종 값 — 2(절반의 구원)는 고정값이 아니었고, 3(늦은 문)·4(전설의 완성)는 배드로 읽는다.
+            _forcedEnding = d.forcedEnding == 3 || d.forcedEnding == 4 ? EndingId.Bad : EndingId.None;
             TimeSeeded = d.timeSeeded;
             Inventory.RestoreKeys(d.items);
 

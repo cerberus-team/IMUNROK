@@ -353,7 +353,15 @@ namespace IMUNROK.Gyeonu
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("임계 되돌리기")) GyeonuCase.ClearThresholds();
             if (GUILayout.Button("배점 검산 로그")) Debug.Log("[제3사건] 검산\n" + ClueTable.SelfCheck());
-            if (GUILayout.Button("엔딩 확정")) GyeonuCase.FinishCase();
+            GUILayout.EndHorizontal();
+
+            // 엔딩 연출 (2026-09-13). 판정은 GyeonuCase.Ending, 연출은 EndingDirector.
+            //   ⚠️ 구출 전이면 판정 불가 — 배드 연출로 보여 준다. 진·노멀을 보려면 위의 「선아 구출」을 먼저 켤 것.
+            GUILayout.BeginHorizontal();
+            GUI.enabled = Application.isPlaying && EndingDirector.Instance != null && !EndingDirector.Running;
+            if (GUILayout.Button("엔딩 연출 시작 (지금 판정: " + GyeonuCase.EndingLabel + ")")) EndingDirector.DebugStart();
+            if (GUILayout.Button("경계도 100 → 배드엔딩", GUILayout.Width(170f))) GyeonuCase.SetAlert(100);
+            GUI.enabled = true;
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();

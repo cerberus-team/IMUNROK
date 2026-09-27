@@ -181,6 +181,13 @@ namespace IMUNROK.Gyeonu
                       + (profile.useTrustBands ? ", 신뢰도 " + GyeonuCase.Trust + " / " + profile.BandLabelFor(GyeonuCase.Trust) : "") + ")");
         }
 
+        /// <summary>
+        /// 대화가 닫혔다 (2026-09-13). 인자는 이 NPC 와 <b>방금 닫힌</b> 세션 — 세션은 이미 Dispose 된 뒤라
+        /// 대화 내용(<see cref="DialogueSession.Lines"/>)만 읽을 것. <see cref="EndingDirector"/> 가
+        /// 구출 뒤 관아 재회 대화의 끝을, 그리고 경계도 100 뒤 수령 대화의 끝을 여기서 잡는다.
+        /// </summary>
+        public static event System.Action<NpcDialogue, DialogueSession> SessionEnded;
+
         void End()
         {
             EndTalkMotion();
@@ -188,8 +195,10 @@ namespace IMUNROK.Gyeonu
             if (session != null)
             {
                 Debug.Log("[대화] " + profile.displayName + " — 끝\n" + session.Dump());
+                var ended = session;
                 session.Dispose();
                 session = null;
+                SessionEnded?.Invoke(this, ended);
             }
             if (DialogueUI.Instance != null) DialogueUI.Instance.Close();
 

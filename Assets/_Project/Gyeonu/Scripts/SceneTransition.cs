@@ -92,6 +92,58 @@ namespace IMUNROK.Gyeonu
             _runner.StartCoroutine(_runner.Run(sceneName, spawnName, fadeOut, fadeIn));
         }
 
+        /// <summary>
+        /// <b>씬을 갈지 않는 암전</b> (2026-09-11) — 어두워졌다가 다시 밝아진다.
+        ///
+        /// 쫓겨나는 연출처럼 "눈앞이 캄캄해졌다 정신을 차리니 딴 자리" 를 그릴 때 쓴다.
+        /// 씬 전환과 <b>같은 암전 쿼드·같은 곡선</b>을 쓴다 — 두 벌을 만들면 하나만 고쳐져
+        /// 같은 게임 안에서 어두워지는 모양이 둘이 된다.
+        /// </summary>
+        /// <param name="atBlack">완전히 어두워진 순간에 한 번 불린다. 플레이어를 옮기는 자리다.</param>
+        /// <param name="hold">캄캄한 채로 머무는 시간(초).</param>
+        /// <param name="onDone">
+        /// <b>다 밝아진 뒤</b>에 한 번 불린다 (2026-09-11). 조작을 돌려주는 자리다.
+        /// ⚠️ 획득 창처럼 "밝아지는 순간 이미 떠 있어야" 하는 것은 여기가 아니라 <paramref name="atBlack"/>
+        ///    에서 띄운다 — 단 그 UI 는 <see cref="ScreenFader.LiftAboveFade"/> 로 암전 위에 올라가 있어야
+        ///    캄캄한 동안 가려지지 않는다 (같은 날 개정. 처음엔 여기서 띄웠는데 창이 한 박자 늦게 튀어나왔다).
+        /// </param>
+        public static void Blink(System.Action atBlack, float fadeOut = 0.5f, float hold = 0.35f, float fadeIn = 0.7f,
+                                 System.Action onDone = null)
+        {
+            if (IsTransitioning) { Debug.Log("[암전] 이미 전환 중 — 무시"); return; }
+            EnsureRunner();
+            _runner.StartCoroutine(_runner.RunBlink(atBlack, fadeOut, hold, fadeIn, onDone));
+        }
+
+        IEnumerator RunBlink(System.Action atBlack, float fadeOut, float hold, float fadeIn, System.Action onDone)
+        {
+            IsTransitioning = true;
+            yield return Fade(0f, 1f, fadeOut);
+
+            atBlack?.Invoke();
+
+            // 옮긴 자리가 카메라에 반영된 뒤에 밝힌다 — 밝히는 첫 프레임에 이전 자리가 스치지 않게.
+            yield return null;
+            LastArrivalTime = Time.time;      // 도착 직후 출구 트리거가 곧바로 물리지 않게 (씬 전환과 같은 규약)
+            PlayerPlaced?.Invoke();
+
+            if (hold > 0f) yield return new WaitForSeconds(hold);
+
+            LastArrivalTime = Time.time;
+            yield return Fade(1f, 0f, fadeIn);
+            IsTransitioning = false;
+            onDone?.Invoke();
+        }
+
+        /// <summary>
+        /// 지금 씬 안에서 플레이어를 스폰 마커로 옮긴다 — <see cref="Blink"/> 의 <c>atBlack</c> 에서 쓴다.
+        /// 마커가 없으면 아무것도 하지 않고 경고만 남긴다.
+        /// </summary>
+        public static void MoveToSpawn(string spawnName)
+        {
+            PlacePlayer(spawnName, SceneManager.GetActiveScene().name);
+        }
+
         static void EnsureRunner()
         {
             if (_runner != null) return;

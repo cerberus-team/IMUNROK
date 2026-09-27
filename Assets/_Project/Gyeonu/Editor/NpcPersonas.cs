@@ -237,6 +237,19 @@ Identity +
                                "다만 지도의 해독법과 목적지는 여전히 모른다.",
                 },
             };
+
+            // 구출 뒤 — 관아 마당의 재회 (2026-09-13 엔딩 흐름). 이 대화가 끝나는 순간 엔딩이 판정된다.
+            p.conditionalFacts = new[]
+            {
+                new NpcProfile.ConditionalFact
+                {
+                    label = "구출 뒤 — 관아 마당 재회",
+                    requireRescued = true,
+                    text = "[지금의 태도] 선아가 살아서 돌아왔다. 관아 마당에서 두 사람을 맞이한다. 안도와 고마움이 앞서고, " +
+                           "긴 밤이 끝나 간다는 것을 안다. 이제 감출 것이 없다 — 묻는 것에는 아는 대로 답한다. " +
+                           "다만 누가 선아를 가뒀는지는 여전히 모른다고 하라. 지어내지 마라.",
+                },
+            };
         }
 
         // ═══════════════════════════════════════════════════════
@@ -365,7 +378,11 @@ Identity +
             p.idleState = "Idle";
             p.talkState = "";            // 대화 전용 모션이 없다 — 불필요한 전환을 하지 않는다 (문서)
             p.walkState = "Walk";
-            p.randomMotions = new[] { R("Sit", 60f, 110f, 0.30f) };   // 쉬는 연출에만, 자주 반복하지 않는다
+            // ⚠️ 문서의 "Sit 는 쉬는 연출에만"을 랜덤 R("Sit", 60f, 110f, 0.30f) 으로 두었었다 (2026-09-10 뺌).
+            //    이 팩의 Jumomo_Sit 은 루트를 두고 다리를 접는 클립이라 엉덩이·발이 루트보다 0.46m 위에
+            //    온다 — 서 있는 자리에서 틀면 4초 동안 허공에 양반다리로 뜬다. 주모가 앉을 것(평상 등)을
+            //    정하면 그 자리(루트 y = 앉을 면 − 0.46)로 옮기는 연출과 함께 위 한 줄을 되살린다.
+            p.randomMotions = Array.Empty<NpcProfile.RandomMotion>();
 
             p.grantOnFirstTalk = Array.Empty<ClueId>();
             p.grantableClues = new[] { ClueId.A3, ClueId.A7, ClueId.B3 };
@@ -613,7 +630,9 @@ Identity;
             p.idleState = "Idle";
             p.talkState = "Talk";
             p.walkState = "Walk";
-            p.randomMotions = new[] { R("Clap", 15f, 25f, 0.5f), R("Walk", 22f, 34f, 0.35f) };
+            // 문서의 "짧은 Walk"는 랜덤 Walk 가 아니라 NpcPatrol 로 1~2m 오가는 것이다 (NpcSetup 의 아이03 자리).
+            // 랜덤으로 튼 Walk 는 제자리걸음일 뿐이고, 되도는 상태라 끝도 없었다 (2026-09-10 실측).
+            p.randomMotions = new[] { R("Clap", 15f, 25f, 0.5f) };
             p.randomStartDelay = 4f;
             p.grantOnFirstTalk = Array.Empty<ClueId>();
 
