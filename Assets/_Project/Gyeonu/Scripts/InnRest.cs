@@ -42,15 +42,20 @@ namespace IMUNROK.Gyeonu
         [TextArea(2, 4)]
         public string confirmLate =
             "평상에 몸을 뉘었다. 여기서 쉬면 날이 밝을 것이다.\n한 번 더 누르면 아침까지 잔다.";
+        // ── 쉬고 난 뒤 (2026-09-11 개정) ───────────────────────────────
+        //   <b>시간이 바뀌었다는 것만</b> 담백하게 알린다. 예전에는 여기에
+        //   "관아를 지키는 눈도 드물어졌다 / 오늘 밤 안에 끝내야 한다" 가 붙어 있었다 —
+        //   어디로 가라는 힌트와 재촉을 시계가 대신 말하는 꼴이었다. 할 일은 대화와 단서가
+        //   알려 준다. 세 문구를 같은 기준으로 맞췄다: 첫 문장은 시각, 둘째는 풍경 한 줄.
         [TextArea(2, 4)]
         public string afterDay =
-            "해가 저물었다. 주막에 등불이 걸리고 마을이 어스름에 잠긴다.";
+            "해가 저물었다. 주막에 등불이 걸린다.";
         [TextArea(2, 4)]
         public string afterEvening =
-            "밤이 깊었다. 마을 사람들은 잠들었고 관아를 지키는 눈도 드물어졌다.";
+            "밤이 깊었다. 마을이 고요하다.";
         [TextArea(2, 4)]
         public string afterLate =
-            "날이 밝았다. 마을이 다시 깨어나고 사람들이 하나둘 밖으로 나온다.";
+            "날이 밝았다. 마을이 다시 깨어난다.";
 
         [Header("연출")]
         [Tooltip("첫 클릭 뒤 이 시간(초) 안에 다시 누르면 쉰다. 안내 두 줄을 읽고 결정할 여유를 준다")]
@@ -126,7 +131,11 @@ namespace IMUNROK.Gyeonu
             yield return FadeTo(fader, 1f, fadeOut);
 
             var before = GyeonuCase.Time;
-            GyeonuCase.RestAtInn();                       // 하늘·조명·NPC 일정은 GyeonuWorld.Changed 로 따라온다
+            GyeonuCase.RestAtInn();                       // 하늘·조명은 GyeonuWorld.Changed 로 따라온다
+            // NPC 자리는 <b>캄캄한 지금</b> 한꺼번에 바꾼다 (2026-09-11). 일정의 "보고 있는 동안에는
+            // 바꾸지 않는다" 규칙을 여기서는 건너뛴다 — 눈을 감고 있던 셈이니 바로 바뀌어도 자연스럽다.
+            // 안 그러면 5m 앞 상인 자리가 시야에 걸려, 다른 NPC 는 바뀌었는데 상인만 늦게 나타난다.
+            NpcSchedule.RefreshAll();
             yield return new WaitForSeconds(hold);
 
             yield return FadeTo(fader, 0f, fadeIn);

@@ -207,7 +207,8 @@ namespace IMUNROK.Gyeonu
         ///
         /// 자리 다툼 규칙 둘은 그대로 옮겼다:
         ///   ① 소지품 판·조사 화면이 떠 있으면 그쪽 안내가 화면을 맡는다 (2026-08-24)
-        ///   ② 하단 고정 안내(<see cref="DebugToast.ShowPinned"/>)가 뜨면 조작 힌트가 자리를 내준다
+        ///   ② 하단 안내 문구(<see cref="DebugToast"/>)가 뜨면 조작 힌트가 자리를 내준다 —
+        ///      2026-09-11 부터 시간제한 문구도 같은 자리에 뜨므로 둘 다 본다
         /// </summary>
         void UpdateHintPanel()
         {
@@ -219,7 +220,7 @@ namespace IMUNROK.Gyeonu
                 return;
             }
             if (hintPanel == null) hintPanel = FocusHintPanel.Create(transform);
-            string hint = DebugToast.PinnedActive ? null : target.FocusHint;
+            string hint = DebugToast.Active ? null : target.FocusHint;
             hintPanel.Set(target.FocusStatus, hint);
         }
 

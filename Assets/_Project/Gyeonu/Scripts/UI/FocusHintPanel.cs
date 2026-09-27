@@ -37,7 +37,22 @@ namespace IMUNROK.Gyeonu
             this.hint = hint;
         }
 
-        protected override Vector2 PanelSize { get { return new Vector2(RefW, 80f); } }
+        /// <summary>
+        /// 상태 줄이 앉을 높이(화면 바닥에서 px). 평소에는 IMGUI 시절 그대로 53이지만,
+        /// 안내 문구(<see cref="DebugToast"/>)가 같은 아래쪽에 떠 있으면 그 상자 <b>위로</b> 비켜선다.
+        /// 2026-09-11 에 안내 상자가 글 길이만큼 자라게 되면서 필요해졌다 — 예전 상자는 높이가
+        /// 36 으로 고정이라 53 자리와 겹칠 일이 없었다.
+        /// </summary>
+        float StatusY
+        {
+            get
+            {
+                if (!DebugToast.Active) return 53f;
+                return Mathf.Max(53f, ToastPanel.BottomMargin + DebugToast.PanelHeight + 14f);
+            }
+        }
+
+        protected override Vector2 PanelSize { get { return new Vector2(RefW, StatusY + 27f); } }
         /// <summary>바닥 가운데에 밑변을 붙인다 — 화면 높이가 바뀌어도 두 줄의 자리가 안 흔들린다.</summary>
         protected override Vector2 Pivot { get { return new Vector2(0.5f, 0f); } }
         protected override Vector2 Anchor { get { return new Vector2(0.5f, 0f); } }
@@ -57,11 +72,13 @@ namespace IMUNROK.Gyeonu
         {
             // 화면 너비가 바뀌면 판도 따라 넓어져야 가운데 맞춤이 어긋나지 않는다
             float w = RefW;
-            if (!Mathf.Approximately(root.sizeDelta.x, w)) root.sizeDelta = new Vector2(w, 80f);
+            var size = PanelSize;
+            if ((root.sizeDelta - size).sqrMagnitude > 0.01f) root.sizeDelta = size;
 
-            // 판 밑변이 화면 바닥 — 바닥에서 53px / 29px 자리에 앉힌다 (IMGUI와 같은 높이)
-            Place(statusText.rectTransform, new Vector2(0f, 53f - 40f), new Vector2(w, 22f));
-            Place(hintText.rectTransform, new Vector2(0f, 29f - 40f), new Vector2(w, 22f));
+            // 판 밑변이 화면 바닥 — 바닥에서 StatusY / 29px 자리에 앉힌다 (IMGUI와 같은 높이)
+            float half = size.y * 0.5f;
+            Place(statusText.rectTransform, new Vector2(0f, StatusY - half), new Vector2(w, 22f));
+            Place(hintText.rectTransform, new Vector2(0f, 29f - half), new Vector2(w, 22f));
 
             string s = status ?? "";
             string h = hint ?? "";
