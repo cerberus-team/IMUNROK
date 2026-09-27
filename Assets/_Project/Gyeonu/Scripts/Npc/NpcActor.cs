@@ -51,6 +51,16 @@ namespace IMUNROK.Gyeonu
             public float length = 1f;
             [Tooltip("켜져 있으면 스스로 되돌아 도는 상태다 — 끝을 기다리지 않는다")]
             public bool loops = false;
+            [Tooltip("이 지점(0~1)부터 튼다. 상인의 SitDrinking 처럼 앞부분이 다른 자세(서 있다가 앉는다)인 " +
+                     "클립에서 앉은 구간만 돌릴 때 쓴다. 0이면 처음부터")]
+            [Range(0f, 1f)] public float startAt = 0f;
+
+            [Tooltip("이 지점(0~1)에서 기본 자세로 돌아온다. 뒷부분이 다른 자세인 클립에서 쓴다 — " +
+                     "아이03의 Clap 은 끝에서 다시 주저앉는다. 1이면 끝까지")]
+            [Range(0f, 1f)] public float endAt = 1f;
+
+            /// <summary>실제로 도는 구간의 길이(초).</summary>
+            public float Span => length * Mathf.Max(0.02f, Mathf.Clamp01(endAt) - Mathf.Clamp01(startAt));
         }
 
         [Header("연결")]
@@ -145,10 +155,20 @@ namespace IMUNROK.Gyeonu
             // 문서 「23-3」 특수·이동·대화 모션이 겹치지 않게. 같은 등급끼리는 나중 것이 이긴다.
             if (pri > _pri && (_held || _until < 0f || Time.time < _until)) return false;
 
+            // ⚠️ 같은 상태를 같은 조건으로 다시 요청하면 크로스페이드를 다시 걸지 않는다 (2026-09-10 실측).
+            //    NpcPatrol·NpcFollow 는 걷는 동안 <b>매 프레임</b> Play(Walk, hold) 를 부른다. 그때마다
+            //    CrossFadeInFixedTime 을 새로 걸면 0.18초짜리 전이가 프레임마다 0으로 되돌아가
+            //    Walk 클립이 영원히 첫 장에 갇힌다 — 몸은 Idle 자세 그대로 미끄러져 갔다.
+            if (hold && _held && _playing == state && _pri == pri) return true;
+
             _pri = pri;
             _held = hold;
             _playing = state;
-            _until = (m.loops || hold) ? -1f : Time.time + Mathf.Max(0.1f, m.length - returnLead);
+            float span = m.Span;
+            _until = (m.loops || hold) ? -1f : Time.time + Mathf.Max(0.1f, span - returnLead);
+            // ⚠️ 되도는 상태(Walk)를 <b>랜덤</b>으로 틀면 끝이 없어 다음 랜덤이 올 때까지 제자리걸음을
+            //    했다(아이03, 55초 넘게 실측). 랜덤으로 튼 되도는 상태는 한 바퀴만 돌고 기본 자세로 돌아간다.
+            if (m.loops && !hold && pri == Pri.Random) _until = Time.time + Mathf.Max(0.1f, span);
             GoTo(state, fade);
             // 문서 「23-4」 이벤트 전용 모션 재생 중에는 평상시 랜덤 루프를 일시 정지한다.
             if (pri <= Pri.Move) ScheduleAllRandom(false);
@@ -249,8 +269,14 @@ namespace IMUNROK.Gyeonu
         {
             if (string.IsNullOrEmpty(state)) return;
             _playing = state;
-            if (f <= 0.001f) animator.Play(state, 0, 0f);
-            else animator.CrossFadeInFixedTime(state, f, 0, 0f);
+            var m = Find(state);
+            // 앞부분을 건너뛰고 트는 클립 — 상인의 SitDrinking 은 앞 30%가 '서 있다가 앉는' 구간이라
+            // 평상에 앉은 자리에서는 앉은 구간부터 튼다 (2026-09-10).
+            float off = m != null ? Mathf.Clamp01(m.startAt) : 0f;
+            // ⚠️ Play 의 셋째 인자는 정규화 시각(0~1)이지만 CrossFadeInFixedTime 의 넷째 인자는 <b>초</b>다.
+            //    0.3 을 그대로 넘겼더니 0.3초 지점(2%)에서 시작해 서 있는 구간이 그대로 나왔다 (2026-09-10 실측).
+            if (f <= 0.001f) animator.Play(state, 0, off);
+            else animator.CrossFadeInFixedTime(state, f, 0, off * (m != null ? m.length : 0f));
 
             // ⚠️ 기본 자세가 <b>되돌지 않는 클립</b>일 수 있다. 상인의 SitDrinking(15.2초)이 그렇다 —
             //    그래프에 자기 전이가 없어(이름에 Idle·Walk·Talk가 없다) 끝나면 마지막 한 장에
@@ -258,8 +284,7 @@ namespace IMUNROK.Gyeonu
             //    한 번 도는 연출 모션(GiveKey·Clap…)은 이 길로 오지 않는다 — 저쪽은 _until 이 맡는다.
             _baseRepeat = -1f;
             if (state != _baseState) return;
-            var m = Find(state);
-            if (m != null && !m.loops) _baseRepeat = Time.time + Mathf.Max(0.3f, m.length - fade);
+            if (m != null && !m.loops) _baseRepeat = Time.time + Mathf.Max(0.3f, m.Span - fade);
         }
 
         Motion Find(string state)

@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace IMUNROK.Gyeonu.Editor
 {
@@ -328,6 +329,72 @@ namespace IMUNROK.Gyeonu.Editor
             return null;
         }
 
+        // ── 견우 전달 연출 (2026-09-11 개정) ───────────────
+        //
+        //   <b>조건만 맞춘다.</b> 자리로 데려다 놓지 않는다 — 그 자리까지 걸어가는 것이 연출의
+        //   첫 박자이기 때문이다. 마당에 들어서야 뒤에서 목소리가 들리고, 돌아봐야 문 앞의
+        //   견우가 보인다. 텔레포트로 앉혀 두면 그 두 박자가 통째로 사라진다.
+        //
+        //   두 전달은 자리도 조건도 다르다:
+        //     ① 열쇠 — 신뢰도 40 · <b>초밤</b> · 선아 집 문 앞  (Gyeonu_밤_선아집마당)
+        //     ② 지도 — 신뢰도 70 · <b>낮</b>   · 견우 집 문 앞  (Gyeonu)
+        //   각각 "아직 안 받은 상태"로 되돌리고 연출도 처음으로 되감으므로 몇 번이든 다시 볼 수 있다.
+
+        [MenuItem(Root + "견우 전달 — ① 열쇠 조건 (신뢰도 40 · 초밤)", priority = 460)]
+        static void ReadyGiveKey() => ReadyGive(true);
+
+        [MenuItem(Root + "견우 전달 — ② 지도 조건 (신뢰도 70 · 낮)", priority = 461)]
+        static void ReadyGiveMap() => ReadyGive(false);
+
+        [MenuItem(Root + "견우 전달 — ① 열쇠 조건 (신뢰도 40 · 초밤)", validate = true)]
+        [MenuItem(Root + "견우 전달 — ② 지도 조건 (신뢰도 70 · 낮)", validate = true)]
+        static bool ReadyGiveValidate() => Application.isPlaying;
+
+        /// <summary>전달이 일어날 조건만 갖춘다. 플레이어는 제자리에 둔다.</summary>
+        static void ReadyGive(bool key)
+        {
+            if (!Application.isPlaying) { Debug.LogWarning("[디버그] Play 중에만 된다."); return; }
+            if (SceneManager.GetActiveScene().name != "Gyeonu")
+            {
+                Debug.LogWarning("[디버그] 마을 씬(Gyeonu)에서 실행할 것 — 두 견우가 다 거기 있다.");
+                return;
+            }
+
+            GyeonuCase.SeonaRescued = false;                     // 두 인스턴스 다 '구출 전에만' 이다
+            GyeonuCase.Time = key ? TimeOfDay.EarlyNight : TimeOfDay.Day;
+
+            if (key)
+            {
+                GyeonuCase.HasSeonaHouseKey = false;             // 아직 안 받은 것으로
+                var it = Inventory.Find("SEONA_HOUSE_KEY");
+                if (it != null) Inventory.Remove(it);
+                GyeonuCase.SetTrust(40);                         // ← Threshold.Trust40 이 여기서 켜진다
+            }
+            else
+            {
+                GyeonuCase.RemoveClue(ClueId.A1);
+                GyeonuCase.RemoveClue(ClueId.B1);
+                GyeonuWorld.Set(GyeonuWorld.F_비밀지도획득, false);
+                var it = Inventory.Find("A1");
+                if (it != null) Inventory.Remove(it);
+                GyeonuCase.SetTrust(70);                         // ← Trust40·Trust70. 날씨가 비로 바뀐다
+            }
+
+            // 연출을 처음으로 되감는다 — 이미 한 번 본 뒤에도 다시 볼 수 있게
+            GyeonuGiveKey target = null;
+            foreach (var g in Object.FindObjectsByType<GyeonuGiveKey>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                g.DebugRearm();
+                if (g.kind == (key ? GyeonuGiveKey.Kind.Key : GyeonuGiveKey.Kind.Map)) target = g;
+            }
+            foreach (var sc in Object.FindObjectsByType<NpcSchedule>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                sc.RefreshNow();
+
+            string where = key ? "선아 집 문 앞 (−44.97, 58.6)" : "견우 집 문 앞 (45.0, 43.1)";
+            Debug.Log("[디버그] 견우 " + (key ? "열쇠(신뢰도 40 · 초밤)" : "지도(신뢰도 70 · 낮)") + " 조건 완료. "
+                      + "이제 <b>" + where + "</b> 로 걸어가면 뒤에서 목소리가 들린다."
+                      + (target == null ? "  ⚠️ 해당 견우를 찾지 못했다." : ""));
+        }
         // ── 별 길 안내 ────────────────────────────────────
 
         [MenuItem(Root + "별 길 켜기/끄기 (비밀지도)", priority = 440)]

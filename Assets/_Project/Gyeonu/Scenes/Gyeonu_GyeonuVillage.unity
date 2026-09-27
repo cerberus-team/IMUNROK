@@ -33071,13 +33071,13 @@ MonoBehaviour:
   activeAt: 
   requireFlags:
   - map_path_lit
+  - first_two_appeared
   forbidFlags: []
   ignoreFlagsAt: 
   rescueState: 0
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &1333179465
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -33096,12 +33096,15 @@ MonoBehaviour:
   - state: StandIdle
     length: 13.933334
     loops: 1
+    startAt: 0
   - state: StandIdle2
     length: 3.3000002
     loops: 1
+    startAt: 0
   - state: Walk
     length: 1.0333334
     loops: 1
+    startAt: 0
   overrideRandom: []
   overrideStartDelay: -1
   fade: 0.18
@@ -39308,6 +39311,62 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1963835514266682409, guid: aefc9728e8964d34c8022e0ac0bd3749, type: 3}
   m_PrefabInstance: {fileID: 1596745708}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1596979429
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1596979431}
+  - component: {fileID: 1596979430}
+  m_Layer: 0
+  m_Name: "\uCD5C\uCD08\uC758\uB450\uC0AC\uB78C_\uB4F1\uC7A5"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1596979430
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1596979429}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e713e429f77eb884fb4cfb46202b11eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.FirstCoupleEntrance
+  gyeonu: {fileID: 1333179465}
+  jiknyeo: {fileID: 2109069739}
+  triggerRadius: 8
+  behindDistance: 9
+  viewAngle: 75
+  lineDelay: 0.8
+  line: "\uAC8C \uB258\uC2DC\uC624\u2026 \uC774 \uC9D1\uC5D4 \uC5B4\uCC0C \uCC3E\uC544\uC624\uC168\uC18C."
+  lineSeconds: 5
+  pauseBeforeWalk: 2.5
+  walkSpeed: 1
+  turnSpeed: 180
+  sideBySide: 0.9
+--- !u!4 &1596979431
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1596979429}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1599571144
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -54174,13 +54233,13 @@ MonoBehaviour:
   activeAt: 
   requireFlags:
   - map_path_lit
+  - first_two_appeared
   forbidFlags: []
   ignoreFlagsAt: 
   rescueState: 0
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &2109069739
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -54199,12 +54258,15 @@ MonoBehaviour:
   - state: StandIdle
     length: 14.333334
     loops: 1
+    startAt: 0
   - state: Thank
     length: 3.0000002
     loops: 0
+    startAt: 0
   - state: Walk
     length: 1.0333334
     loops: 1
+    startAt: 0
   overrideRandom: []
   overrideStartDelay: -1
   fade: 0.18
@@ -54757,3 +54819,4 @@ SceneRoots:
   - {fileID: 1330579337}
   - {fileID: 1333179462}
   - {fileID: 2109069736}
+  - {fileID: 1596979431}

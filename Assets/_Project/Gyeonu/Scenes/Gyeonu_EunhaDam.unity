@@ -3429,7 +3429,6 @@ MonoBehaviour:
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &148674130
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3448,24 +3447,38 @@ MonoBehaviour:
   - state: SitGun
     length: 4.8
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: SitTalk
     length: 5.0000005
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: SittingIdle
     length: 7.966667
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: SitToStand
     length: 2.266667
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: StandIdle
     length: 13.933334
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: StandToSit
     length: 2.2333333
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: Walk
     length: 1.0333334
     loops: 1
+    startAt: 0
+    endAt: 1
   overrideRandom: []
   overrideStartDelay: -1
   fade: 0.18
@@ -21390,15 +21403,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 76
+      value: 74
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 4.95
+      value: 5.184643
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -3
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: ecf7f760f6c23a045bc7b9a5b9a856bc, type: 3}
       propertyPath: m_LocalRotation.w
@@ -21473,8 +21486,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcPatrol
   points:
-  - {x: -9, y: 0, z: 4}
-  - {x: -4, y: 0, z: -6}
+  - {x: -6, y: 0, z: 0.5}
+  - {x: -11, y: 0, z: -0.3}
   walkState: Walk
   standIdle: Idle
   sitIdle: 
@@ -21509,7 +21522,6 @@ MonoBehaviour:
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &1131313093
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -21528,15 +21540,23 @@ MonoBehaviour:
   - state: GiveKey
     length: 3.766667
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: Idle
     length: 9.933333
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: LookAround
     length: 6.3333335
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: Walk
     length: 1.0333334
     loops: 1
+    startAt: 0
+    endAt: 1
   overrideRandom:
   - state: LookAround
     minInterval: 12
@@ -38212,7 +38232,6 @@ MonoBehaviour:
   guardDistance: 20
   guardAngle: 70
   checkInterval: 0.5
-  maxDefer: 8
 --- !u!114 &2075956760
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -38231,18 +38250,28 @@ MonoBehaviour:
   - state: SitDrinking
     length: 15.200001
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: SitTalk
     length: 5.0000005
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: StandDrinking
     length: 8.866667
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: StandingIdle
     length: 16.633335
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: StandTalk
     length: 3.9333336
     loops: 1
+    startAt: 0
+    endAt: 1
   overrideRandom:
   - state: StandDrinking
     minInterval: 15

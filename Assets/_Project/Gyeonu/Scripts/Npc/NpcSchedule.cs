@@ -90,6 +90,36 @@ namespace IMUNROK.Gyeonu
         }
 
         /// <summary>
+        /// 지금 조건으로 <b>즉시</b> 다시 판정한다 — 보고 있어도 바꾼다 (2026-09-11).
+        ///
+        /// 디버그 메뉴가 "조건을 갖추고 그 사람 앞에 세워 준다"를 하려면 이 문이 필요하다.
+        /// 평소의 보류 규칙(눈앞에서 사라지거나 나타나지 않게)은 <b>플레이가 흘러가는 동안</b>의
+        /// 것이라, 자리와 시간대를 한꺼번에 갈아 끼우는 디버그에는 맞지 않는다.
+        /// ⚠️ 대화 중에는 이것도 아무 일을 하지 않는다 — 그 규칙만은 깨지 않는다.
+        /// </summary>
+        /// <summary>
+        /// 씬의 모든 일정을 <b>즉시</b> 다시 판정한다 (2026-09-11). 주막에서 쉬어 시간대가 넘어가는
+        /// 순간처럼 <b>화면이 캄캄한 동안</b> 부른다 — 플레이어가 눈을 감고 있던 셈이라 보류 규칙을
+        /// 건너뛰어도 눈앞에서 사라지거나 솟아나는 사람이 없다.
+        ///
+        /// 왜 필요한가: 쉬는 자리(주막 평상)와 상인 자리는 5m 거리다. 낮에 만나지 못한 상인은 초밤이
+        /// 되어야 주막에 서는데, 쉬고 일어난 플레이어가 그쪽을 보고 있으면 보류 규칙에 걸려
+        /// 고개를 돌릴 때까지 나타나지 않았다 — 다른 NPC 는 멀어서 바로 바뀌는데 상인만 늦었다 (실측).
+        /// </summary>
+        public static void RefreshAll()
+        {
+            foreach (var s in FindObjectsByType<NpcSchedule>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (s != null) s.RefreshNow();
+        }
+
+        public void RefreshNow()
+        {
+            _first = true;
+            _next = 0f;
+            Apply(force: true);
+        }
+
+        /// <summary>
         /// ⚠️ <c>SetActive(false)</c> 로 끄지 않는다 — 꺼진 오브젝트는 <see cref="Update"/> 가 돌지 않아
         /// <b>스스로 다시 켜질 수 없다.</b> 그래서 보이는 것·만져지는 것만 끄고 이 부품은 계속 깨어 있다.
         /// 플레이어가 겪는 결과는 같다(안 보이고, 조준되지 않고, 말을 걸 수 없다).
@@ -122,8 +152,22 @@ namespace IMUNROK.Gyeonu
             if (want && _actor != null) _actor.ResetToBase();
         }
 
+        /// <summary>
+        /// 바깥에서 건 <b>덧조건</b> (2026-09-11). <c>false</c> 를 돌려주면 그 사이에는 보이지 않는다.
+        ///
+        /// 연출이 사람을 잠시 감춰야 할 때 쓴다 — 견우가 문 안에 있다가 나오는 전달 연출
+        /// (<see cref="GyeonuGiveKey"/>)이 첫 손님이다. <b>보이고 안 보이고를 두 곳에서 만지면
+        /// 반드시 어긋나므로</b>, 감추려는 쪽은 이 문만 걸고 실제 켜고 끄기는 여기에 맡긴다.
+        /// 코드에서만 꽂는다 — 인스펙터에 노출할 것이 아니다.
+        /// </summary>
+        public System.Func<bool> externalGate;
+
         public bool Wanted()
         {
+            if (externalGate != null && !externalGate()) return false;
+            // 엔딩 연출 중(재회가 끝나 날이 밝는 순간부터)에는 구출 뒤 인물(견우·선아)만 남는다 (2026-09-13).
+            // 관아가 낮으로 바뀌면 수령 자리가 살아나는데, 그 아침에 수령이 대청에 앉아 있으면 엔딩이 어긋난다.
+            if (GyeonuCase.CurrentAct == Act.Ending && rescueState != Rescue.구출_뒤에만) return false;
             if (activeAt != null && activeAt.Length > 0)
             {
                 bool ok = false;

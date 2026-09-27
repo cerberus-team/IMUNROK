@@ -20,9 +20,9 @@ RenderSettings:
   m_FogDensity: 0.01
   m_LinearFogStart: 35
   m_LinearFogEnd: 170
-  m_AmbientSkyColor: {r: 0.6928088, g: 0.7035689, b: 0.735849, a: 1}
-  m_AmbientEquatorColor: {r: 0.43698823, g: 0.4421947, b: 0.4716981, a: 1}
-  m_AmbientGroundColor: {r: 0.057479497, g: 0.057479497, b: 0.08679241, a: 1}
+  m_AmbientSkyColor: {r: 0.085, g: 0.1, b: 0.145, a: 1}
+  m_AmbientEquatorColor: {r: 0.055, g: 0.062, b: 0.082, a: 1}
+  m_AmbientGroundColor: {r: 0.03, g: 0.032, b: 0.04, a: 1}
   m_AmbientIntensity: 1
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
@@ -190,6 +190,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b2d12b2e7221c9a49ac481c350d01ac6, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2294088}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b2d12b2e7221c9a49ac481c350d01ac6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2294092}
   m_SourcePrefab: {fileID: 100100000, guid: b2d12b2e7221c9a49ac481c350d01ac6, type: 3}
 --- !u!1 &2294085 stripped
 GameObject:
@@ -214,12 +217,18 @@ MonoBehaviour:
   - state: Clap
     length: 1.1666667
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: StandIdle
     length: 9.933333
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: Talk
     length: 3.9333336
     loops: 1
+    startAt: 0
+    endAt: 1
   overrideRandom: []
   overrideStartDelay: 0
   fade: 0.18
@@ -320,6 +329,35 @@ CapsuleCollider:
   m_Height: 1.95
   m_Direction: 1
   m_Center: {x: 0, y: 0.95550007, z: 0}
+--- !u!114 &2294092
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2294085}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f42d619c8ba15542b1b33f1c8c8a764, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.ChildrenSong
+  songId: 15
+  volume: 0.85
+  minDistance: 4
+  maxDistance: 30
+  spread: 60
+  firstDelay: 3
+  wakeDistance: 32
+  restMin: 100
+  restMax: 150
+  stopFade: 0.6
+  duckTo: 0.35
+  hearDistance: 18
+  hearDelay: 4
+  childNames:
+  - VillageChild_01
+  - VillageChild_02
+  - VillageChild_03
 --- !u!1 &2353853
 GameObject:
   m_ObjectHideFlags: 0
@@ -3233,6 +3271,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8c010990926ddcb4f99b269f15a04512, type: 3}
       insertIndex: -1
       addedObject: {fileID: 23518117}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8c010990926ddcb4f99b269f15a04512, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 23518123}
   m_SourcePrefab: {fileID: 100100000, guid: 8c010990926ddcb4f99b269f15a04512, type: 3}
 --- !u!1 &23518116 stripped
 GameObject:
@@ -3277,15 +3318,23 @@ MonoBehaviour:
   - state: Clap
     length: 4.9
     loops: 0
+    startAt: 0.17
+    endAt: 0.71
   - state: Idle
     length: 16.633335
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: Talk
     length: 5.166667
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: Walk
     length: 1.0333334
     loops: 1
+    startAt: 0
+    endAt: 1
   overrideRandom: []
   overrideStartDelay: 4
   fade: 0.18
@@ -3366,6 +3415,34 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &23518123
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 23518116}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e605252cbf6cbc44cbf650f4a74bfcd2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcPatrol
+  points:
+  - {x: -1.5, y: 0, z: 0.6}
+  walkState: Walk
+  standIdle: Idle
+  sitIdle: 
+  sitToStand: 
+  standToSit: 
+  speed: 0.6
+  turnSpeed: 120
+  restRange: {x: 2, y: 4}
+  pointsPerTrip: 1
+  idleRange: {x: 22, y: 34}
+  roamForever: 0
+  stickToGround: 1
+  groundProbeAbove: 1.5
+  onlyAt: 00000000
 --- !u!1001 &24217352
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4366,12 +4443,18 @@ MonoBehaviour:
   - state: Jump
     length: 2.1666667
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: Secret
     length: 10.900001
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: StandIdle
     length: 2
     loops: 1
+    startAt: 0
+    endAt: 1
   overrideRandom: []
   overrideStartDelay: 10
   fade: 0.18
@@ -9885,6 +9968,10 @@ PrefabInstance:
       propertyPath: m_CastShadows
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2364814008126528468, guid: 107d57cb5fef158469c73c6b714b67fa, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.47
+      objectReference: {fileID: 0}
     - target: {fileID: 2603433935935367870, guid: 107d57cb5fef158469c73c6b714b67fa, type: 3}
       propertyPath: m_CastShadows
       value: 0
@@ -11809,15 +11896,23 @@ MonoBehaviour:
   - state: FallIdle
     length: 1.5000001
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: StandingIdle
     length: 6.0000005
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: StandingUp
     length: 7.6000004
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: Walk
     length: 1.0333334
     loops: 1
+    startAt: 0
+    endAt: 1
   overrideRandom: []
   overrideStartDelay: -1
   fade: 0.18
@@ -14193,13 +14288,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5db8f29c6626d4d4486ea982aaf83359, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.GyeonuGiveKey
-  givesKey: 0
-  keyNeedsNight: 1
-  keyItemId: SEONA_HOUSE_KEY
-  givesMap: 1
-  mapItemId: A1
+  kind: 1
+  itemId: A1
+  needsNight: 0
+  triggerAnchor: {x: 44.59, y: 0, z: 40.7}
+  triggerRadius: 7
+  gateSpot: {x: 47.07, y: 0, z: 36.9}
+  gateObjectName: Door01k (7)
+  minGateDistance: 3.5
+  viewAngle: 70
+  appearTimeout: 25
+  voiceLine: "\u2026\uAC00\uC2DC\uAE30 \uC804\uC5D0 \uC7A0\uAE50. \uBCF4\uC5EC \uB4DC\uB9B4
+    \uAC83\uC774 \uC788\uC18C."
+  voiceSeconds: 5
+  voiceDelay: 0.5
+  seenTimeout: 8
+  seenSeconds: 0.4
+  pauseBeforeWalk: 1.2
+  stopDistance: 1.7
+  walkSpeed: 1.1
+  turnSpeed: 200
+  walkTimeout: 20
   giveState: GiveKey
-  delay: 1.2
+  propInAt: 0.35
+  freezeAt: 1.25
+  fadeOut: 0.5
+  holdBlack: 0.35
+  fadeIn: 0.7
+  handBone: Bone_023
+  handLocalPos: {x: 0, y: 0.00035, z: 0}
+  handLocalUp: {x: 0.24, y: -0.02, z: -0.97}
+  handLocalForward: {x: 0, y: 1, z: 0}
+  handLift: 0.00018
+  keyScale: 0.01
+  mapScale: 0.005
 --- !u!114 &426858236
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14238,15 +14360,23 @@ MonoBehaviour:
   - state: GiveKey
     length: 3.766667
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: Idle
     length: 9.933333
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: LookAround
     length: 6.3333335
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: Walk
     length: 1.0333334
     loops: 1
+    startAt: 0
+    endAt: 1
   overrideRandom: []
   overrideStartDelay: -1
   fade: 0.18
@@ -14340,31 +14470,31 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.18
+      value: -0.69
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.050000012
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -19.03
+      value: -19.78
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.40609384
+      value: 0.49999997
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.9138314
+      value: 0.86602545
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1a08eb3e779adc2418182dd4376fc11c, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -14440,29 +14570,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ab2c2742f4c3264999cec0bd496edd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcActor
-  profile: {fileID: 11400000, guid: 860554d427080fd44a7ffc20512a20dc, type: 2}
+  profile: {fileID: 11400000, guid: 205225c9dce546f459a448e8f8915585, type: 2}
   animator: {fileID: 431611433}
   motions:
   - state: SitDrinking
     length: 15.200001
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: SitTalk
     length: 5.0000005
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: StandDrinking
     length: 8.866667
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: StandingIdle
     length: 16.633335
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: StandTalk
     length: 3.9333336
     loops: 1
-  overrideRandom:
-  - state: SitDrinking
-    minInterval: 12
-    maxInterval: 25
-    chance: 1
+    startAt: 0
+    endAt: 1
+  overrideRandom: []
   overrideStartDelay: -1
   fade: 0.18
   returnLead: 0.12
@@ -14479,7 +14615,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.NpcDialogue
   displayName: "\uCE60\uC11D\uC81C \uC0C1\uC778"
-  focusDistance: 1.45
+  focusDistance: 1.6
   transitionTime: 0.55
   dimStrength: 0.35
   focusAnchor: {fileID: 0}
@@ -14488,12 +14624,12 @@ MonoBehaviour:
   reticleLift: 0.004
   reticleFront: 0
   reticleRadius: 0
-  profile: {fileID: 11400000, guid: 860554d427080fd44a7ffc20512a20dc, type: 2}
+  profile: {fileID: 11400000, guid: 205225c9dce546f459a448e8f8915585, type: 2}
   faceAnchor: {fileID: 0}
   eyeHeightOverride: -1
   turnToPlayer: 1
   turnTime: 0.45
-  faceYawOffset: 180
+  faceYawOffset: 0
   layout: 0
   voiceAutoSend: 1
   aimBelowFace: 0.1
@@ -14516,10 +14652,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.4
-  m_Height: 1.35
+  m_Radius: 0.32
+  m_Height: 1.95
   m_Direction: 1
-  m_Center: {x: 0, y: 0.66150004, z: 0}
+  m_Center: {x: 0, y: 0.95550007, z: 0}
 --- !u!95 &431611433
 Animator:
   serializedVersion: 7
@@ -18679,13 +18815,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5db8f29c6626d4d4486ea982aaf83359, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Gyeonu::IMUNROK.Gyeonu.GyeonuGiveKey
-  givesKey: 1
-  keyNeedsNight: 1
-  keyItemId: SEONA_HOUSE_KEY
-  givesMap: 1
-  mapItemId: A1
+  kind: 0
+  itemId: SEONA_HOUSE_KEY
+  needsNight: 1
+  triggerAnchor: {x: -43.2, y: 0, z: 57.2}
+  triggerRadius: 7
+  gateSpot: {x: -42.99, y: 0, z: 52.55}
+  gateObjectName: "KMWall_\uC77C\uAC01\uBB38_\uB192\uC784_\uD1B5\uB85C2.2m"
+  minGateDistance: 3.5
+  viewAngle: 70
+  appearTimeout: 25
+  voiceLine: "\u2026\uAC70\uAE30 \uC7A0\uAE50. \uADF8 \uBB38\uC740 \uADF8\uB0E5 \uC5F4\uB9AC\uC9C0
+    \uC54A\uC18C."
+  voiceSeconds: 5
+  voiceDelay: 0.5
+  seenTimeout: 8
+  seenSeconds: 0.4
+  pauseBeforeWalk: 1.2
+  stopDistance: 1.7
+  walkSpeed: 1.1
+  turnSpeed: 200
+  walkTimeout: 20
   giveState: GiveKey
-  delay: 1.2
+  propInAt: 0.35
+  freezeAt: 1.25
+  fadeOut: 0.5
+  holdBlack: 0.35
+  fadeIn: 0.7
+  handBone: Bone_023
+  handLocalPos: {x: 0, y: 0.00035, z: 0}
+  handLocalUp: {x: 0.24, y: -0.02, z: -0.97}
+  handLocalForward: {x: 0, y: 1, z: 0}
+  handLift: 0.00018
+  keyScale: 0.018
+  mapScale: 0.005
 --- !u!114 &591604302
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18724,15 +18887,23 @@ MonoBehaviour:
   - state: GiveKey
     length: 3.766667
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: Idle
     length: 9.933333
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: LookAround
     length: 6.3333335
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: Walk
     length: 1.0333334
     loops: 1
+    startAt: 0
+    endAt: 1
   overrideRandom:
   - state: LookAround
     minInterval: 12
@@ -29044,15 +29215,23 @@ MonoBehaviour:
   - state: GiveKey
     length: 3.766667
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: Idle
     length: 9.933333
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: LookAround
     length: 6.3333335
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: Walk
     length: 1.0333334
     loops: 1
+    startAt: 0
+    endAt: 1
   overrideRandom: []
   overrideStartDelay: -1
   fade: 0.18
@@ -45379,21 +45558,33 @@ MonoBehaviour:
   - state: SitIdle
     length: 7.0000005
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: SitTalk
     length: 44.06667
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: SitToStand
     length: 2.266667
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: StandIdle
     length: 8.333334
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: StandToSit
     length: 2.2333333
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: Thank
     length: 3.0000002
     loops: 0
+    startAt: 0
+    endAt: 1
   overrideRandom: []
   overrideStartDelay: -1
   fade: 0.18
@@ -52269,12 +52460,18 @@ MonoBehaviour:
   - state: Idle
     length: 6.0000005
     loops: 1
+    startAt: 0
+    endAt: 1
   - state: Sit
     length: 4
     loops: 0
+    startAt: 0
+    endAt: 1
   - state: Walk
     length: 0.9666667
     loops: 1
+    startAt: 0
+    endAt: 1
   overrideRandom: []
   overrideStartDelay: -1
   fade: 0.18
@@ -60312,14 +60509,13 @@ MonoBehaviour:
     \uC26C\uBA74 \uBC24\uC774 \uAE4A\uC5B4\uC9C8 \uAC83\uC774\uB2E4. \uC8FC\uB9C9\uB3C4
     \uBB38\uC744 \uB2EB\uC744 \uC2DC\uAC01\uC774\uB2E4.\n\uD55C \uBC88 \uB354 \uB204\uB974\uBA74
     \uBC24\uC774 \uAE4A\uC744 \uB54C\uAE4C\uC9C0 \uC270\uB2E4."
-  tooLate: "\uBC24\uC774 \uB108\uBB34 \uAE4A\uC5C8\uB2E4. \uC9C0\uAE08 \uC274 \uB54C\uAC00
-    \uC544\uB2C8\uB2E4. \uB0A0\uC774 \uBC1D\uAE30 \uC804\uC5D0 \uB05D\uB0B4\uC57C
-    \uD55C\uB2E4."
+  confirmLate: "\uD3C9\uC0C1\uC5D0 \uBAB8\uC744 \uB258\uC5C8\uB2E4. \uC5EC\uAE30\uC11C
+    \uC26C\uBA74 \uB0A0\uC774 \uBC1D\uC744 \uAC83\uC774\uB2E4.\n\uD55C \uBC88 \uB354
+    \uB204\uB974\uBA74 \uC544\uCE68\uAE4C\uC9C0 \uC794\uB2E4."
   afterDay: "\uD574\uAC00 \uC800\uBB3C\uC5C8\uB2E4. \uC8FC\uB9C9\uC5D0 \uB4F1\uBD88\uC774
-    \uAC78\uB9AC\uACE0 \uB9C8\uC744\uC774 \uC5B4\uC2A4\uB984\uC5D0 \uC7A0\uAE34\uB2E4."
-  afterEvening: "\uBC24\uC774 \uAE4A\uC5C8\uB2E4. \uB9C8\uC744 \uC0AC\uB78C\uB4E4\uC740
-    \uC7A0\uB4E4\uC5C8\uACE0 \uAD00\uC544\uB97C \uC9C0\uD0A4\uB294 \uB208\uB3C4 \uB4DC\uBB3C\uC5B4\uC84C\uB2E4.
-    \uC624\uB298 \uBC24 \uC548\uC5D0 \uB05D\uB0B4\uC57C \uD55C\uB2E4."
+    \uAC78\uB9B0\uB2E4."
+  afterEvening: "\uBC24\uC774 \uAE4A\uC5C8\uB2E4. \uB9C8\uC744\uC774 \uACE0\uC694\uD558\uB2E4."
+  afterLate: "\uB0A0\uC774 \uBC1D\uC558\uB2E4. \uB9C8\uC744\uC774 \uB2E4\uC2DC \uAE68\uC5B4\uB09C\uB2E4."
   confirmWindow: 8
   fadeOut: 0.7
   hold: 1

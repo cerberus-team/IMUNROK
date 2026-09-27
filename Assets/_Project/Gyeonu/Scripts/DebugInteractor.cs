@@ -89,7 +89,10 @@ namespace IMUNROK.Gyeonu
                     if (inner != null) { target = inner; break; }
                 }
 
-                if (it != null && it.CanInteract(gameObject)) target = it;
+                // ⚠️ 꺼 둔 부품은 조준되지 않는다 (2026-09-11). <c>GetComponentInParent</c> 는
+                //    <b>enabled 를 보지 않는다</b> — 연출이 잠시 꺼 둔 대화(견우가 물건을 내밀고 선 동안)가
+                //    그대로 잡혀 「말 걸기」가 떴고, 누르면 꺼진 부품의 Interact 가 돌았다.
+                if (it != null && it.isActiveAndEnabled && it.CanInteract(gameObject)) target = it;
                 break;
             }
 
@@ -130,7 +133,7 @@ namespace IMUNROK.Gyeonu
             {
                 if (h.distance <= from) continue;
                 var inner = h.collider.GetComponentInParent<Interactable>();
-                if (inner is IInnerTarget && inner.CanInteract(gameObject)) return inner;
+                if (inner is IInnerTarget && inner.isActiveAndEnabled && inner.CanInteract(gameObject)) return inner;
             }
             return null;
         }

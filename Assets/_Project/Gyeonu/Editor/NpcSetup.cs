@@ -160,6 +160,10 @@ namespace IMUNROK.Gyeonu.EditorTools
 
             /// <summary>기본 자세를 프로필과 다르게 둘 때 (상인은 주막에서 앉아 마신다).</summary>
             public string baseState;
+            /// <summary>기본 자세 클립을 이 지점(0~1)부터 튼다 — 상인의 SitDrinking 은 앞 30%가 '서 있다가 앉는' 구간.</summary>
+            public float baseStart = 0f;
+            /// <summary>다른 상태의 쓸 구간(0~1). 아이03의 Clap 은 앞뒤가 '앉아 있는' 구간이라 가운데만 쓴다.</summary>
+            public (string state, float start, float end)[] starts;
             /// <summary>자리마다 다를 때 (상인 서서/앉아). <c>"-"</c> 는 "이 자리에서는 대화 모션 없음".</summary>
             public string talkState;
             /// <summary>자세가 바뀌면 얼굴 높이도 바뀐다. 음수면 프로필의 값.</summary>
@@ -192,12 +196,29 @@ namespace IMUNROK.Gyeonu.EditorTools
             ["Gyeonu"] = new[]
             {
                 // 낮 — 견우 집 마당. 이미 서 있다 (44.59, 0, 40.70) / 190°
+                //   ② 타공 비밀지도 전달 (신뢰도 70). 나타나는 자리는 <b>담장 사립문 안쪽</b> —
+                //      Plot_09_GyeonuHouse/Door01k (7), 통로 가운데 (47.07, 35.96) 에서 마당 쪽으로
+                //      한 걸음 (실측 2026-09-11). 플레이어가 방금 지나온 문이라 저절로 '뒤'가 된다.
                 new Slot { id = NpcId.Gyeonu, name = "Gyeonu",
                            pos = new Vector3(47.0f, 0f, 41.6f), yaw = 180f,
                            at = 낮, rescue = NpcSchedule.Rescue.구출_전에만,
-                           extra = go => { var k = Add<GyeonuGiveKey>(go); k.givesKey = false; k.givesMap = true; } },
+                           extra = go =>
+                           {
+                               var k = Add<GyeonuGiveKey>(go);
+                               k.kind = GyeonuGiveKey.Kind.Map;
+                               k.itemId = "A1";
+                               k.needsNight = false;
+                               k.triggerAnchor = new Vector3(44.59f, 0f, 40.70f);   // 마당 (제자리)
+                               k.triggerRadius = 7f;
+                               k.gateSpot = new Vector3(47.07f, 0f, 36.90f);        // 사립문 안쪽 한 걸음
+                               k.gateObjectName = "Door01k (7)";
+                               k.voiceLine = "…가시기 전에 잠깐. 보여 드릴 것이 있소.";
+                           } },
 
                 // 밤 — 선아 집 마당. 문 (-44.97, ·, 60.55) 앞, 마당 한쪽에 서서 기다린다
+                //   ① 선아 집 열쇠 전달 (신뢰도 40 · 밤). 나타나는 자리는 <b>담장 일각문 안쪽</b> —
+                //      선아집_담장/KMWall_일각문_높임_통로2.2m, 통로 가운데 (−42.99, 51.63) 에서
+                //      마당 쪽으로 한 걸음 (실측 2026-09-11). 문짝은 SM_Door01C3·C4 두 짝이다.
                 new Slot { id = NpcId.Gyeonu, name = "Gyeonu_밤_선아집마당",
                            pos = new Vector3(-43.2f, 0f, 57.2f), yaw = 332f,
                            at = 밤, rescue = NpcSchedule.Rescue.구출_전에만,
@@ -205,7 +226,15 @@ namespace IMUNROK.Gyeonu.EditorTools
                            extra = go =>
                            {
                                var k = Add<GyeonuGiveKey>(go);
-                               k.givesKey = true; k.keyNeedsNight = true; k.givesMap = true;
+                               k.kind = GyeonuGiveKey.Kind.Key;
+                               k.itemId = "SEONA_HOUSE_KEY";
+                               k.needsNight = true;
+                               k.triggerAnchor = new Vector3(-43.2f, 0f, 57.2f);    // 마당 (제자리)
+                               k.triggerRadius = 7f;
+                               k.gateSpot = new Vector3(-42.99f, 0f, 52.55f);       // 일각문 안쪽 한 걸음
+                               k.gateObjectName = "KMWall_일각문_높임_통로2.2m";
+                               k.keyScale = 0.018f;      // 제 크기(10cm)는 밤에 손바닥 얼룩처럼 보였다
+                               k.voiceLine = "…거기 잠깐. 그 문은 그냥 열리지 않소.";
                            } },
 
                 // 구출 뒤 — 선아와 함께 견우 집 마당
@@ -221,25 +250,22 @@ namespace IMUNROK.Gyeonu.EditorTools
                 new Slot { id = NpcId.Jumo, name = "Jumomo",
                            pos = new Vector3(1.64f, 0f, -20.80f), yaw = 234f, at = 낮_초밤 },
 
-                // 상인 — 주막 마당의 평상. 낮 후반(은하담에서 만난 뒤) ~ 초밤
+                // 상인 — 주막 마당. 낮 후반(은하담에서 만난 뒤) ~ 초밤
+                //
+                // 2026-09-11 — <b>앉기를 걷어내고 세웠다.</b> 이 팩에는 걸터앉는 클립이 없어
+                //   수령의 앉기(PerchIdle/PerchTalk)를 빌려 왔었는데, 빌린 자세라 무릎에서 가슴까지
+                //   크게 도는 데다 술 마시는 동작도 없었다. 자기 클립으로 돌아간다 —
+                //   <c>StandingIdle</c> / <c>StandTalk</c> / 랜덤 <c>StandDrinking</c> 은 전부
+                //   프로필에 이미 있는 것이라 이 자리에서 덮어쓸 값이 하나도 없다.
+                //
+                // 자리: 평상(Low_Wooden_Bench (1), 중심 −1.73·−17.74, 228°) 남동변 <b>바깥 땅</b>.
+                //   가장자리 중심 −0.63·−18.96, 바깥 법선 (0.669, −0.743) 에서 한 걸음 나온 곳이다.
+                //   술상(Small_Dining_Table (2), −1.73·−18.63)이 뒤 왼편 1.5m — 한 걸음이면 닿는다.
+                //   쉬는 자리(주막_쉬는자리, −3.40·−16.00)와 평상 위 멍석을 비켜 서고, 캡슐 겹침
+                //   검사로 빈 땅임을 확인했다(2026-09-11 실측). 120° 로 서서 마당과 주모 쪽을 본다.
                 new Slot { id = NpcId.FestivalMerchant, name = "FestivalMerchant_주막",
-                           // 평상(Low_Wooden_Bench) 윗면 0.62 · 멍석 0.61. 바닥을 짚으면 흙바닥으로
-                           // 내려앉으므로(2026-08-25 실측) 높이를 직접 준다. 술상을 마주 본다.
-                           // yaw 90 인데 술상은 서쪽(270)에 있다 — 몸이 정면의 반대쪽을 보는
-                           // 자세라(아래 faceYaw 참고) 이렇게 두어야 상을 마주 보고 앉는다.
-                           pos = new Vector3(-0.5f, 0.61f, -18.6f), yaw = 90f, ground = false,
-                           at = 낮_초밤, need = new[] { 상인만남 }, ignoreFlagsAt = 초밤,
-                           // ⚠️ talkState 를 비워 둔다. 이 팩의 <c>FestivalMerchant_SitTalk</c> 는
-                           //    이름과 달리 <b>서 있는 자세</b>다(2026-08-25 실측) — 대화를 걸 때마다
-                           //    평상에 앉아 있던 사람이 벌떡 일어섰다. 앉은 자리에서는 SitDrinking 을
-                           //    그대로 두고, 서 있는 은하담 자리에서만 StandTalk 을 쓴다.
-                           baseState = "SitDrinking", talkState = "-",
-                           // 평상에 앉아 있다 — 얼굴이 서 있을 때보다 반 자쯤 낮다
-                           eyeHeight = 1.10f, talkDistance = 1.45f,
-                           // ⚠️ SitDrinking 은 몸이 오브젝트 정면의 반대쪽을 본다 (2026-08-25 실측).
-                           //    보정하지 않으면 말을 걸 때마다 등을 돌린 채 대답한다.
-                           faceYaw = 180f,
-                           random = new[] { R("SitDrinking", 12f, 25f) } },
+                           pos = new Vector3(-0.69f, 0f, -19.78f), yaw = 120f,
+                           at = 낮_초밤, need = new[] { 상인만남 }, ignoreFlagsAt = 초밤 },
 
                 // 아이 3인 — 마을에서 은하담으로 가는 길목. 이미 서 있다. 밤 퇴장
                 // ⚠️ 문서 「28. 그룹 연출」 — 시작을 4초·6초씩 어긋낸다
@@ -249,7 +275,31 @@ namespace IMUNROK.Gyeonu.EditorTools
                            // 씬이 열릴 때 스스로 붙기도 하지만, 설치 때 붙여 두면 인스펙터에서 간격·거리를 만질 수 있다.
                            extra = go => { Add<ChildrenSong>(go); } },
                 new Slot { id = NpcId.Child03, name = "VillageChild_03",
-                           pos = new Vector3(66.58f, 0f, 12.81f), yaw = 128f, at = 낮, startDelay = 4f },
+                           pos = new Vector3(66.58f, 0f, 12.81f), yaw = 128f, at = 낮, startDelay = 4f,
+                           // 문서 「28」의 '짧은 Walk' — 1~2m 나갔다가 제자리로 돌아온다 (2026-09-10).
+                           // 랜덤 Walk 는 제자리걸음일 뿐이라 프로필에서 뺐다 (NpcPersonas.Child03).
+                           // ⚠️ Clap 클립은 "양반다리로 앉음 → 서서 손뼉 → 도로 앉음"이다. 앉은 몸이 루트를
+                           //    두고 허공에 떠서 어느 쪽으로 붙여도 어색했다 (2026-09-10 에 바위를 놓고
+                           //    루트를 밀어 걸터앉히는 시도를 했다가 2026-09-11 에 되돌렸다).
+                           //    이제 <b>서 있는 구간만</b> 쓴다 — 앞의 앉은 구간은 건너뛰고(startAt)
+                           //    뒤에 다시 주저앉기 전에 기본 자세로 돌아온다(endAt).
+                           //    구간은 실측으로 잡았다 (2026-09-11, 머리 높이로 앉음/섬을 갈랐다):
+                           //      0.00~0.14 앉음(머리 0.99) · 0.17~0.71 섬(머리 1.36) · 0.76~1.00 도로 앉음
+                           //    ⚠️ 이 클립에는 <b>서서 손뼉 치는 동작이 없다</b>. 서 있는 구간은 한 손을
+                           //       가슴께에 든 채 거의 정지해 있다 — 손이 움직이는 곳은 앉은 구간뿐이다.
+                           starts = new[] { ("Clap", 0.170f, 0.710f) },
+                           extra = go =>
+                           {
+                               var pt = Add<NpcPatrol>(go);
+                               pt.points = new[] { new Vector3(-1.5f, 0f, 0.6f) };   // 아이01·02 반대쪽으로
+                               pt.walkState = "Walk"; pt.standIdle = "Idle";
+                               pt.sitIdle = pt.sitToStand = pt.standToSit = "";
+                               pt.roamForever = false; pt.pointsPerTrip = 1;
+                               pt.speed = 0.6f;                                  // 아이 걸음
+                               pt.restRange = new Vector2(2f, 4f);
+                               pt.idleRange = new Vector2(22f, 34f);             // 문서 — 15~25초 언저리
+                               pt.onlyAt = new[] { TimeOfDay.Day };
+                           } },
                 new Slot { id = NpcId.Child02, name = "VillageChild_02",
                            pos = new Vector3(70.46f, 0f, 12.17f), yaw = 243f, at = 낮, startDelay = 10f,
                            extra = go =>
@@ -270,6 +320,9 @@ namespace IMUNROK.Gyeonu.EditorTools
             ["Gyeonu_EunhaDam"] = new[]
             {
                 // 상인 — 낮 초반. 한 번 만나고 나면 주막으로 옮겨 앉는다
+                // ⚠️ ground = false 를 유지할 것. 풍영정의 보행 콜라이더(풍영정_보행콜라이더, y 1.155)는
+                //    눈에 보이는 마루(≈1.00)보다 0.15m 위에 있어 광선으로 짚으면 마루 위에 떠 선다 (2026-09-10 실측).
+                //    지금 자리(y 0.98)는 눈으로 맞춘 것이고 화면에서 정상이다.
                 new Slot { id = NpcId.FestivalMerchant, name = "FestivalMerchant",
                            pos = new Vector3(-9.65f, 0.98f, 37.68f), yaw = 66f, ground = false,
                            at = 낮, forbid = new[] { 상인만남 },
@@ -295,14 +348,17 @@ namespace IMUNROK.Gyeonu.EditorTools
                            } },
 
                 // 견우 — 밤. 은하담 주변을 헤맨다
+                // ⚠️ 풍영정 앞 흙길은 z ≈ −2 ~ +2 띠다 (2026-09-10 위에서 본 실측). 예전 자리 (76, ·, −3)와
+                //    지점 (72, −9)는 길 남쪽 풀밭·덤불이었다. 길 위로 되돌렸다 — 자리 (74, ·, 0.3),
+                //    지점 (68, 0.8)·(63, 0). 수령의 낮 시찰과 같은 길이지만 시간대가 달라 마주치지 않는다.
                 new Slot { id = NpcId.Gyeonu, name = "Gyeonu_밤_은하담",
-                           pos = new Vector3(76f, 4.95f, -3f), yaw = 250f,
+                           pos = new Vector3(74f, 5.9f, 0.3f), yaw = 250f,
                            at = 밤, rescue = NpcSchedule.Rescue.구출_전에만,
                            random = new[] { R("LookAround", 12f, 20f) },
                            extra = go =>
                            {
                                var pt = Add<NpcPatrol>(go);
-                               pt.points = new[] { new Vector3(-9f, 0f, 4f), new Vector3(-4f, 0f, -6f) };
+                               pt.points = new[] { new Vector3(-6f, 0f, 0.5f), new Vector3(-11f, 0f, -0.3f) };
                                pt.walkState = "Walk"; pt.standIdle = "Idle";
                                pt.sitIdle = pt.sitToStand = pt.standToSit = "";
                                pt.roamForever = true;
@@ -368,9 +424,12 @@ namespace IMUNROK.Gyeonu.EditorTools
             // ── ④ 관측실·서고 ───────────────────────────────────
             ["Gyeonu_Observatory"] = new[]
             {
-                // 선아 — 서고 안쪽. 이미 쓰러져 있다 (15.54, −7.30, 32.29)
+                // 선아 — 서고 안쪽. 이미 쓰러져 있다 (15.54, −7.12, 32.29)
+                // ⚠️ 서고 바닥은 −6.60 이고 FallIdle 의 몸 최저점은 루트보다 0.52 위다. 루트를 −7.30 에 두었더니
+                //    누운 몸이 바닥 아래로 0.19m 들어갔다 (2026-09-10 실측) — 루트 y = −6.60 − 0.52 = −7.12.
+                //    일어선 뒤의 높이는 SeonaRescue 가 StandingUp 동안 바닥까지 끌어올린다.
                 new Slot { id = NpcId.Seona, name = "Seona",
-                           pos = new Vector3(15.54f, -7.30f, 32.29f), yaw = 44f, ground = false,
+                           pos = new Vector3(15.54f, -7.12f, 32.29f), yaw = 44f, ground = false,
                            baseState = "FallIdle",
                            // 쓰러져 있다 — 겨눌 높이는 SeonaRescue 가 자세에 맞춰 갈아 끼운다
                            eyeHeight = 0.55f, talkDistance = 1.40f,
@@ -380,13 +439,15 @@ namespace IMUNROK.Gyeonu.EditorTools
             // ── ⑥ 견우마을 ──────────────────────────────────────
             ["Gyeonu_GyeonuVillage"] = new[]
             {
-                // 지도 해독 후 첫 등장 (문서 「30」)
+                // 지도 해독 후 첫 등장 (문서 「30」). 첫 방문에는 처음부터 서 있지 않고 플레이어가 집 앞에
+                // 다가섰을 때 <b>뒤에서 나타나</b> 걸어온다 — FirstCoupleEntrance (SceneExtras) 가
+                // F_최초두사람_등장 을 세울 때까지 NpcSchedule 이 감춘다 (2026-09-10).
                 new Slot { id = NpcId.FirstJiknyeo, name = "FirstJiknyeo",
                            pos = new Vector3(-0.58f, 1.69f, 32.90f), yaw = 229f, ground = false,
-                           need = new[] { GyeonuWorld.F_타공지도_길밝힘 } },
+                           need = new[] { GyeonuWorld.F_타공지도_길밝힘, GyeonuWorld.F_최초두사람_등장 } },
                 new Slot { id = NpcId.FirstGyeonu, name = "FirstGyeonu",
                            pos = new Vector3(-0.35f, 1.70f, 32.31f), yaw = 254f, ground = false,
-                           need = new[] { GyeonuWorld.F_타공지도_길밝힘 } },
+                           need = new[] { GyeonuWorld.F_타공지도_길밝힘, GyeonuWorld.F_최초두사람_등장 } },
             },
         };
 
@@ -429,6 +490,41 @@ namespace IMUNROK.Gyeonu.EditorTools
         /// <summary>사람이 아닌 것 — 씬마다 하나씩 있는 특수 장치.</summary>
         static void SceneExtras(string sceneKey)
         {
+            // 상인 정리 (2026-09-11) — 손에 쥐여 준 것을 거두고, 주막의 상인을 세운다.
+            // 없는 이름은 그냥 지나가므로 어느 씬에서 돌려도 안전하다.
+            DropHandProp("FestivalMerchant");
+            DropHandProp("FestivalMerchant_주막");
+            StandMerchantAtTavern();
+
+            if (sceneKey == "Gyeonu")
+            {
+                // 2026-09-11 — 아이03을 걸터앉히려고 앞에 놓았던 바위(2026-09-10)를 치운다.
+                //   앉는 모션 자체가 어색해 Clap 의 <b>서서 손뼉 치는 구간만</b> 쓰기로 했고,
+                //   그러면 앉을 것이 필요 없다. 예전에 세워 둔 씬에도 남아 있으므로 여기서 지운다.
+                var oldRock = GameObject.Find("아이_앉는바위");
+                if (oldRock != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(oldRock);
+                    Debug.Log("[NPC] 아이03 앞의 앉는 바위를 치웠다 (앉는 연출을 되돌림).");
+                }
+
+                return;
+            }
+
+            if (sceneKey == "Gyeonu_GyeonuVillage")
+            {
+                // 최초의 두 사람 등장 연출 (문서 「30」 — 플레이어 뒤에서 등장). 2026-09-10.
+                const string Name = "최초의두사람_등장";
+                var host = GameObject.Find(Name);
+                if (host == null) host = new GameObject(Name);
+                var ent = Add<FirstCoupleEntrance>(host);
+                var g = GameObject.Find("FirstGyeonu"); var j = GameObject.Find("FirstJiknyeo");
+                ent.gyeonu = g != null ? g.GetComponent<NpcActor>() : null;
+                ent.jiknyeo = j != null ? j.GetComponent<NpcActor>() : null;
+                if (ent.gyeonu == null || ent.jiknyeo == null) Debug.LogWarning("[NPC] 견우마을에 두 사람이 없어 등장 연출을 잇지 못했다.");
+                return;
+            }
+
             if (sceneKey != "Gyeonu_Gwana") return;
 
             // ⚠️ 문서 「25」 — 낮에 집무실에 들어가려 하면 제지당하고 쫓겨난다.
@@ -444,6 +540,52 @@ namespace IMUNROK.Gyeonu.EditorTools
                 gate.nightPrompt = exit.promptText;
                 Debug.Log("[NPC] 집무실 문에 낮 잠금을 붙였다 (OfficeDayGate).");
             }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  상인 — 손을 비우고 세운다 (2026-09-11)
+        // ═══════════════════════════════════════════════════════
+
+        /// <summary>예전에 손에 매달았던 것의 이름. 남아 있으면 걷어낸다.</summary>
+        const string HandPropName = "손_술그릇";
+
+        /// <summary>
+        /// 상인의 손에 쥐여 주었던 술병·잔을 거둔다 (2026-09-11 철회).
+        /// 하루 만에 되돌린 까닭: 걸터앉기를 버리면서 "무엇을 들고 무엇을 하는 자세인가"가
+        /// 통째로 바뀌었다. 손은 비우고 <c>StandDrinking</c> 모션만 남긴다.
+        /// </summary>
+        static void DropHandProp(string npcName)
+        {
+            var npc = GameObject.Find(npcName);
+            if (npc == null) return;
+            int n = 0;
+            foreach (var t in npc.GetComponentsInChildren<Transform>(true))
+                if (t != null && t.name == HandPropName) { UnityEngine.Object.DestroyImmediate(t.gameObject); n++; }
+            if (n > 0) Debug.Log("[NPC] " + npcName + " 의 손에서 " + n + "개를 거두었다.");
+        }
+
+        /// <summary>
+        /// 주막의 상인을 <b>평상 밖 땅에 세운다</b> (2026-09-11).
+        ///
+        /// ⚠️ <see cref="Slot.pos"/> 는 "씬에 없을 때만" 쓰는 예비 자리라, 이미 서 있는 사람은
+        ///    옮기지 않는 것이 이 설치 스크립트의 원칙이다. 여기서만 그 원칙을 <b>일부러</b> 어긴다 —
+        ///    예전 자리는 평상 위에 걸터앉는 자세를 전제로 공중(y −0.02)에 띄워 둔 것이라,
+        ///    자세를 세우면 그 좌표가 그대로 <b>땅에 박힌 사람</b>이 된다. 한 번은 옮겨야 한다.
+        ///    옮기고 나면 그 뒤로는 값이 같아 아무 일도 하지 않는다(멱등).
+        /// </summary>
+        static void StandMerchantAtTavern()
+        {
+            var go = GameObject.Find("FestivalMerchant_주막");
+            if (go == null) return;
+
+            Vector3 want = new Vector3(-0.69f, 0f, -19.78f);
+            want = NpcPatrol.Ground(want, 20f, 60f);
+            var rot = Quaternion.Euler(0f, 120f, 0f);
+            if ((go.transform.position - want).sqrMagnitude < 0.0004f
+                && Quaternion.Angle(go.transform.rotation, rot) < 0.5f) return;
+
+            go.transform.SetPositionAndRotation(want, rot);
+            Debug.Log("[NPC] 주막 상인을 평상 밖 땅에 세웠다 @" + want.ToString("F2") + " / 120°");
         }
 
         /// <summary>
@@ -485,6 +627,13 @@ namespace IMUNROK.Gyeonu.EditorTools
             actor.profile = profile;
             actor.animator = anim;
             actor.motions = NpcRig.MotionTable(def.model, def.ModelPath);
+            // 기본 자세를 클립 중간부터 트는 자리 (상인 주막의 SitDrinking — 앉은 구간만)
+            if (s.baseStart > 0f && !string.IsNullOrEmpty(s.baseState))
+                foreach (var m in actor.motions) if (m.state == s.baseState) m.startAt = s.baseStart;
+            if (s.starts != null)
+                foreach (var (state, start, end) in s.starts)
+                    foreach (var m in actor.motions)
+                        if (m.state == state) { m.startAt = start; m.endAt = end; }
             actor.overrideRandom = s.random ?? Array.Empty<NpcProfile.RandomMotion>();
             actor.overrideStartDelay = s.startDelay;
 
@@ -546,6 +695,10 @@ namespace IMUNROK.Gyeonu.EditorTools
             else if (!string.IsNullOrEmpty(s.talkState)) p.talkState = s.talkState;
             if (s.eyeHeight >= 0f) p.eyeHeight = s.eyeHeight;
             if (s.talkDistance >= 0f) p.talkDistance = s.talkDistance;
+            // ⚠️ 원본 프로필의 랜덤 표까지 베껴 온다. 자리의 random 이 비어 있으면 NpcActor 는 프로필의 표로
+            //    되돌아가므로, 앉은 상인 자리에 은하담용 StandDrinking 이 살아나 앉은 사람이 일어서서 마셨다
+            //    (2026-09-10 실측). 자리에 random 을 적었으면(빈 배열 포함) 그것이 이 자리의 표다.
+            if (s.random != null) p.randomMotions = s.random;
             EditorUtility.SetDirty(p);
             return p;
         }

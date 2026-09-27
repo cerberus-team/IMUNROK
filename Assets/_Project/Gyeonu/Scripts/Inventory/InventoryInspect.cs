@@ -163,6 +163,14 @@ namespace IMUNROK.Gyeonu
             image.texture = rt;
             image.enabled = rt != null;
             ShowTraits(traits);
+
+            // ■ 암전 위에 그린다 (2026-09-11)
+            //   견우가 건네는 연출은 캄캄한 동안 이 화면을 띄우고, 그 상태로 세상이 밝아진다.
+            //   막(0.12m)이 암전 쿼드(0.05m)보다 뒤라 그냥 두면 캄캄한 화면이 이 화면을 덮는다 —
+            //   재질 큐를 암전보다 올려 거리와 무관하게 나중에 그린다. 안내 문구(ToastPanel)와 같다.
+            //   Show 때마다 부르는 까닭: 특징 판(ShowTraits)이 나중에 생길 수 있고, 이미 올라간
+            //   것은 건너뛰므로 값이 싸다.
+            ScreenFader.LiftAboveFade(transform);
         }
 
         /// <summary>조작 안내를 지금 모드의 이름으로 적는다 (F8로 바꿔도 곧바로 따라온다).</summary>

@@ -108,7 +108,11 @@ namespace IMUNROK.Gyeonu
                 if (!string.IsNullOrEmpty(sitToStand) && actor != null && actor.Has(sitToStand))
                 {
                     actor.Play(sitToStand, NpcActor.Pri.Transition);
-                    yield return new WaitForSeconds(2.3f);
+                    // ⚠️ 앉은 자리는 마루보다 낮게 눈으로 맞춘 높이다(수령 3.68 / 대청마루 4.00). 그 높이에서
+                    //    그대로 일어서면 발이 마루 속으로 0.3m 들어간다 (2026-09-10 실측). 일어서는 동안
+                    //    발밑(마루) 높이까지 올라가서 첫 걸음을 마루 위에서 뗀다.
+                    float standY = Ground(home, groundProbeAbove, 4f, transform).y;
+                    yield return MoveY(standY, 2.3f);
                     actor.SetBase(standIdle);
                 }
 
@@ -123,21 +127,23 @@ namespace IMUNROK.Gyeonu
 
                 if (!roamForever)
                 {
-                    // ⚠️ 돌아올 때는 바닥을 다시 짚지 않는다. 앉은 자리는 사람이 눈으로 맞춘
-                    //    높이라(수령은 대청마루보다 0.32m 낮게 앉아 있다) 광선으로 짚으면
-                    //    엉덩이가 마루 위로 떠오른다. 처음 서 있던 그 자리로 정확히 되돌린다.
-                    yield return WalkTo(home, snapGround: false);
-                    // ⚠️ 걸음마다 바닥을 짚느라 마지막 한 발이 마루 위(4.00)에 얹힌다. 앉은 자리는
-                    //    사람이 눈으로 맞춘 3.68이라 그대로 앉으면 엉덩이가 0.32m 떠오른다 —
-                    //    도착했으면 처음 그 자리로 정확히 되돌린다 (2026-08-25 실측).
-                    transform.position = home;
+                    // 돌아올 때도 발밑을 짚으며 마루 높이로 걷는다. 앉은 자리(3.68)는 마루(4.00)보다
+                    // 낮게 눈으로 맞춘 높이라 그 높이로 걸어오면 발이 마루에 박힌다 (2026-09-10 실측).
+                    yield return WalkTo(home);
+                    // 자리의 가로세로만 정확히 맞추고 높이는 마루에 둔 채 돌아선다.
+                    Vector3 stand = transform.position;
+                    stand.x = home.x; stand.z = home.z;
+                    transform.position = stand;
                     yield return TurnTo(homeRot);
                     if (!string.IsNullOrEmpty(standToSit) && actor != null && actor.Has(standToSit))
                     {
                         actor.Play(standToSit, NpcActor.Pri.Transition);
-                        yield return new WaitForSeconds(2.3f);
+                        // 앉는 동안 마루(4.00)에서 앉은 자리(3.68)로 내려간다 — 엉덩이가 교의 위로 뜨지 않는다.
+                        yield return MoveY(home.y, 2.3f);
                         actor.SetBase(sitIdle);
                     }
+                    // 처음 그 자리로 정확히 되돌린다 (2026-08-25 실측 — 눈으로 맞춘 높이가 기준이다).
+                    transform.position = home;
                 }
 
                 yield return new WaitForSeconds(Random.Range(idleRange.x, idleRange.y));
@@ -166,6 +172,21 @@ namespace IMUNROK.Gyeonu
                 yield return null;
             }
             if (actor != null) actor.Release();
+        }
+
+        /// <summary>높이만 이만큼의 시간에 걸쳐 옮긴다 — 앉기·일어서기 클립과 맞물려 돈다.</summary>
+        IEnumerator MoveY(float y, float seconds)
+        {
+            float y0 = transform.position.y;
+            float t = 0f;
+            while (t < seconds)
+            {
+                t += Time.deltaTime;
+                Vector3 p = transform.position;
+                p.y = Mathf.Lerp(y0, y, Mathf.Clamp01(t / seconds));
+                transform.position = p;
+                yield return null;
+            }
         }
 
         IEnumerator TurnTo(Quaternion want)
