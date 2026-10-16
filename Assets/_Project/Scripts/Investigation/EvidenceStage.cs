@@ -138,7 +138,9 @@ namespace IMUNROK.Common
             var l = go.AddComponent<Light>();
             l.type = LightType.Point;
             l.color = color;
-            l.intensity = intensity;
+            l.intensity = intensity * _lightScale;
+            _lights.Add(l);
+            _lightBase.Add(intensity);
             l.range = 4f;
             l.shadows = LightShadows.None;
         }
@@ -180,7 +182,156 @@ namespace IMUNROK.Common
             ApplyCamera();
         }
 
-        /// <summary>끌어서 돌린다. 가로는 세로축을 돌리고, 세로는 눈높이를 넘긴다.</summary>
+        /// <summary>
+        /// <b>그림의 가로세로 비와 바탕을 정한다</b> — <see cref="Show"/> 앞에 부른다.
+        ///
+        /// 물증은 정사각 그림에 투명한 바탕으로 찍어 판 위에 얹는다. 걷힌 팔은 다르다 —
+        /// 그 그림이 <b>화면 전체</b>가 되어 뒤의 방을 덮어야 하므로, 화면과 같은 비로 찍고
+        /// 바탕도 칠한다(<paramref name="background"/> 의 알파 1). 1 · 투명으로 부르면 평소로 돌아간다.
+        /// </summary>
+        public static void SetFrame(float aspect, Color background, int height = RtSize)
+        {
+            EnsureStage();
+            aspect = Mathf.Clamp(aspect, 0.5f, 3f);
+            height = Mathf.Clamp(height, 256, 4096);
+            _cam.backgroundColor = background;
+            int w = Mathf.RoundToInt(height * aspect);
+            if (_rt != null && _rt.width == w && _rt.height == height) return;
+            var old = _rt;
+            _rt = new RenderTexture(w, height, 24, RenderTextureFormat.ARGB32)
+            {
+                name = "물증_무대RT",
+                antiAliasing = 1,   // MSAA 를 켜면 판에 청록색 한 장만 뜬다(위 참조)
+            };
+            _rt.Create();
+            _cam.targetTexture = _rt;
+            _cam.ResetAspect();
+            if (old != null) { old.Release(); Object.Destroy(old); }
+        }
+
+        private static readonly System.Collections.Generic.List<Light> _lights = new System.Collections.Generic.List<Light>();
+        private static readonly System.Collections.Generic.List<float> _lightBase = new System.Collections.Generic.List<float>();
+        private static float _lightScale = 1f;
+
+        /// <summary>
+        /// 무대 조명의 세기를 몇 배로 할지. 흰 살갗(걷힌 팔)은 물증용 세기(키 6)에 하얗게 날아가
+        /// <b>흉터가 안 보였다</b> — 판에 비벼 넣은 붉은 자국이 바탕과 같은 흰빛이 되어 버린다.
+        /// </summary>
+        public static void SetLightScale(float scale)
+        {
+            _lightScale = Mathf.Max(0f, scale);
+            for (int i = 0; i < _lights.Count; i++)
+                if (_lights[i] != null) _lights[i].intensity = _lightBase[i] * _lightScale;
+        }
+
+        // ── 무대 위의 물건을 짚는다 ──
+        // 무대에 올린 물건은 콜라이더를 다 끈다(씬의 것과 섞이지 않게). 걷힌 팔처럼 <b>어디를 대느냐</b>가
+        // 일인 물건은 무대에서만 쓰는 콜라이더를 따로 단다 — 무대 카메라로 쏜 선이 거기 맞는다.
+        private static readonly System.Collections.Generic.List<MeshCollider> _pick = new System.Collections.Generic.List<MeshCollider>();
+
+        /// <summary>올라 있는 물건을 짚을 수 있게 한다(<see cref="Show"/> 뒤에).</summary>
+        public static void EnablePicking()
+        {
+            _pick.Clear();
+            if (_model == null) return;
+            foreach (var mf in _model.GetComponentsInChildren<MeshFilter>())
+            {
+                if (mf == null || mf.sharedMesh == null) continue;
+                var mc = mf.gameObject.AddComponent<MeshCollider>();
+                mc.sharedMesh = mf.sharedMesh;
+                _pick.Add(mc);
+            }
+            Physics.SyncTransforms();   // 방금 세운 물건의 자리를 물리에 곧바로 알린다(다음 물리 칸을 안 기다린다)
+        }
+
+        /// <summary>그림 위의 자리(0~1)로 물건을 짚는다. 맞은 자리·면의 결·그림 좌표가 <paramref name="hit"/> 에 온다.</summary>
+        public static bool Pick(Vector2 viewport, out RaycastHit hit)
+        {
+            hit = default;
+            if (_cam == null || _model == null || _pick.Count == 0) return false;
+            var ray = _cam.ViewportPointToRay(new Vector3(viewport.x, viewport.y, 0f));
+            bool any = false; float best = float.MaxValue;
+            foreach (var mc in _pick)
+            {
+                if (mc == null || !mc.Raycast(ray, out var h, 50f) || h.distance >= best) continue;
+                best = h.distance; hit = h; any = true;
+            }
+            return any;
+        }
+
+        /// <summary>물건 뿌리의 한 축이 지금 무대에서 가리키는 쪽.</summary>
+        public static Vector3 ModelAxis(Vector3 local)
+            => _model != null ? _model.transform.TransformDirection(local).normalized : local;
+
+        /// <summary>물건의 크기(둘레 상자의 가장 긴 변). 띄울 높이 같은 것을 이 몫으로 잰다.</summary>
+        public static float ModelSize
+        {
+            get
+            {
+                if (_model == null) return 1f;
+                var b = WorldBounds(_model);
+                return Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
+            }
+        }
+
+        /// <summary>곁것(유척)을 무대 안의 자리로 옮긴다 — 손에 든 채 따라다니게.</summary>
+        public static void PlaceProp(Vector3 worldPos, Quaternion worldRot)
+        {
+            if (_prop != null) _prop.transform.SetPositionAndRotation(worldPos, worldRot);
+        }
+
+        /// <summary>
+        /// <b>무대 위 물건이 방을 비추지 않게 한다</b> — 살갗처럼 거울이 아닌 것에 쓴다.
+        ///
+        /// 무대는 씬에서 멀리 떨어져 있어도 씬의 <b>반사 프로브</b>(방을 찍어 둔 반사 그림)를 그대로 받는다.
+        /// 걷힌 팔 재질은 매끈함이 0.5 라, 살갗 위에 동헌의 문살과 바닥 무늬가 어렴풋이 비쳤고 —
+        /// 돋보기로 키우면 그것이 또렷해져 「뒤가 비친다」로 보였다(2026-10-17, 배경을 다 막아도 남아서 알았다).
+        /// 물건마다 재질을 <b>제 벌로</b> 떠서(원본 자산은 안 건드린다) 주변 반사를 끄고 매끈함을 낮춘다.
+        /// </summary>
+        public static void Matte(float smoothness = 0.15f)
+        {
+            if (_model == null) return;
+            foreach (var r in _model.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null) continue;
+                r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+                var mats = r.materials;   // 이 무대 위의 사본 — 자산의 재질은 그대로다
+                foreach (var m in mats)
+                {
+                    if (m == null) continue;
+                    if (m.HasProperty("_EnvironmentReflections")) m.SetFloat("_EnvironmentReflections", 0f);
+                    m.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+                    if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", Mathf.Min(m.GetFloat("_Smoothness"), smoothness));
+                    if (m.HasProperty("_Glossiness")) m.SetFloat("_Glossiness", Mathf.Min(m.GetFloat("_Glossiness"), smoothness));
+                }
+                r.materials = mats;
+            }
+        }
+
+        /// <summary>바탕만 갈아 칠한다(그림 크기는 그대로).</summary>
+        public static void SetBackground(Color background)
+        {
+            if (_cam != null && _cam.backgroundColor != background) _cam.backgroundColor = background;
+        }
+
+        /// <summary>지금 그림의 가로세로 비.</summary>
+        public static float Aspect => _rt != null ? (float)_rt.width / Mathf.Max(1, _rt.height) : 1f;
+
+        /// <summary>
+        /// 물건의 <b>긴 쪽</b>이 그림 가로의 몇 할을 차지하게 다가선다.
+        /// 걷힌 팔은 가로로 길다 — 둘레 공 하나로 잡으면 세로에 맞춰져 손끝이 잘리거나 너무 작다.
+        /// </summary>
+        public static void FitWidth(float share)
+        {
+            if (_cam == null || _model == null) return;
+            var b = WorldBounds(_model);
+            float len = Mathf.Max(b.size.x, b.size.y);
+            float tanH = Mathf.Tan(_cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * Aspect;
+            float d = len / Mathf.Max(0.05f, share) / (2f * Mathf.Max(0.01f, tanH));
+            _zoom = Mathf.Clamp(d / Mathf.Max(0.01f, _baseDistance), 0.2f, 4f);
+            ApplyCamera();
+        }
+
         /// <summary>처음 크기를 정한다(1 = 물건 전체가 꽉 차게, 작을수록 다가선다).</summary>
         public static void SetZoom(float zoom)
         {
@@ -244,6 +395,7 @@ namespace IMUNROK.Common
 
         public static void Clear()
         {
+            _pick.Clear();
             ClearProp();
             if (_model != null) Object.Destroy(_model);
             _model = null;

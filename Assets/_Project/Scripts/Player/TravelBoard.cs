@@ -208,7 +208,9 @@ namespace IMUNROK.Common
                 t.color = UiLook.Text;
             }
 
-            foreach (var c in _chips) if (c != null) Destroy(c);
+            // 지우기는 프레임 끝에 일어난다 — 그 사이 옛 단추가 새 단추 밑에 한 번 겹쳐 그려져
+            // 「마당(대문)」 뒤로 「마당(대문) (여기)」가 비쳤다. 먼저 꺼 두고 지운다.
+            foreach (var c in _chips) if (c != null) { c.SetActive(false); Destroy(c); }
             _chips.Clear();
             if (_stops == null || _stops.Length == 0) return;
 
@@ -222,6 +224,10 @@ namespace IMUNROK.Common
                 var s = _stops[i];
                 if (s == null) continue;
                 bool here = Here(s);
+                // <b>앉는 자리는 「여기」여도 누를 수 있다</b> — 서 있으면 앉으러 간다.
+                // 심문 자리에서 일어서면 몸은 교의 바로 옆이라 그 칸이 「(여기)」로 막혀, 다시 앉을 길이 없었다.
+                bool sitHere = here && s.앉힌다 && PlayerSeat.Instance != null && !PlayerSeat.Instance.Seated;
+                if (sitHere) here = false;
 
                 var rt = NewRect("갈곳" + i, new Vector2(x0 + i * (w + gap), 0f), new Vector2(w, 100f), _row);
                 var bg = rt.gameObject.AddComponent<Image>();
@@ -231,7 +237,8 @@ namespace IMUNROK.Common
                 btn.targetGraphic = bg;
                 var captured = s;
                 if (!here) btn.onClick.AddListener(() => Go(captured));
-                NewText("라벨", here ? s.이름 + "  (여기)" : s.이름, Vector2.zero, new Vector2(w - 20f, 100f), rt, 30);
+                NewText("라벨", here ? s.이름 + "  (여기)" : sitHere ? s.이름 + "  (앉기)" : s.이름,
+                        Vector2.zero, new Vector2(w - 20f, 100f), rt, 30);
                 _chips.Add(rt.gameObject);
             }
         }

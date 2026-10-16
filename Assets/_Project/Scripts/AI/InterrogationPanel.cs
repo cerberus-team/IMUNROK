@@ -297,8 +297,28 @@ namespace IMUNROK.Common
             FacePortrait.Clear();
         }
 
+
+        // ── 걷힌 팔을 볼 때는 물러난다 ──
+        // 판을 통째로 끈다(캔버스). 제 짙기(_group)는 그대로 두므로, 물러난 사이에 들어온
+        // 말·단추도 잃지 않고 팔을 내려놓으면 그대로 다시 보인다.
+        private bool _veiled;
+        private void Veil()
+        {
+            bool v = DocumentView.StageFixedOpen;
+            // 글쇠 칸을 쥔 채로 물러나면 Q·F 가 글자로 들어가 도구를 못 든다 — 물러나 있는 내내 손을 놓는다.
+            var es = UnityEngine.EventSystems.EventSystem.current;
+            if (v && es != null && es.currentSelectedGameObject != null
+                && es.currentSelectedGameObject.transform.IsChildOf(transform))
+                es.SetSelectedGameObject(null);
+            if (v == _veiled) return;
+            _veiled = v;
+            var cv = GetComponent<Canvas>();
+            if (cv != null) cv.enabled = !v;
+        }
+
         private void Update()
         {
+            Veil();
             if (_evidence != null)
             {
                 bool show = _evidenceTimer > 0f;
@@ -441,6 +461,10 @@ namespace IMUNROK.Common
             // 서리(문서고 앞에 서 있는 아전)에게 말을 걸어도 동헌의 다섯 이름표가 떴다 —
             // 서리 앞에서 甲을 부르는 단추가 뜨니, 동헌에 온 것처럼 읽혔다.
             if (!OnBench()) return;
+            // <b>마주 앉은 동안에는 사람 줄을 안 그린다</b>(2026-10-17). 심문 중에도 다섯 이름표가
+            // 떠 있어 딴 이를 눌러 부를 수 있었고, 그러면 묻던 이가 물러나는 사이 둘이 겹쳐
+            // 불려 나왔다. 부르기는 아무도 안 나와 있을 때만 한다 — 「이만 마치겠소」 뒤에 다시 뜬다.
+            if (!_rosterOnly) return;
 
             int n = bench.Seats.Count;
             const float gap = 14f;

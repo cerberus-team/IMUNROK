@@ -12,7 +12,7 @@ namespace IMUNROK.Common
     /// 곧 종 복동이라는 것은 다른 말이다. 말과 종이로는 여기서 더 못 간다.
     ///
     /// 남은 것은 <b>몸</b>이다. 관아 호적대장 원본에는 스무 해 전 관리가 적어 둔 한 줄이
-    /// 있다 — "노 복동, <b>왼팔 안쪽 데인 자국 두 치 남짓</b>". 그 줄은 지금 이 자리에서
+    /// 있다 — "노 복동, <b>왼팔 안쪽 흉터 두 치 남짓</b>". 그 줄은 지금 이 자리에서
     /// 쓰려고 적힌 것이 아니라 그때 그냥 적힌 것이라, <b>아무도 손댈 수 없었다</b>.
     ///
     /// <b>차례</b>
@@ -74,7 +74,13 @@ namespace IMUNROK.Common
         private void Awake()
         {
             // 소매 속은 못 잰다 — 겨눌 것이 아예 없어야 한다.
-            if (_arm != null) _arm.SetActive(false);
+            if (_arm != null)
+            {
+                // 꺼 두기 전에 팔의 자세를 알려 둔다 — 꺼진 팔은 제 Awake 가 안 돌아, 수첩에서 꺼낼 때 쓸 자세가 없다
+                var view = _arm.GetComponent<ArmMeasure>();
+                if (view != null) view.Register();
+                _arm.SetActive(false);
+            }
         }
 
         /// <summary>재고 나면 안내판을 걷는다 — Measurable 의 잰 뒤 자리에 걸어 둘 것.</summary>
@@ -82,13 +88,18 @@ namespace IMUNROK.Common
 
         private void OnDisable() { StatusPanel.Clear(HintKey); }
 
-        public override string Label => _label;
+        // <b>걷은 뒤에는 「다시 본다」가 된다</b>(2026-10-17). 여태 걷고 나면 이 단추가 사라졌는데, 팔을 한 번
+        // 내려놓으면 다시 갈 길이 없었다 — 재다 말고 내려놓았거나 돋보기로 한 번 더 보고 싶어도 못 했다.
+        // 소매는 이미 걷혀 있으니 다시 걷게 하지 않고, 걷힌 팔을 눈앞에 다시 올린다.
+        [SerializeField] private string _againLabel = "걷은 팔을 다시 본다";
+
+        public override string Label => _bared ? _againLabel : _label;
 
         public override bool Available
         {
             get
             {
-                if (_bared) return false;      // 이미 걷었으면 시킬 것이 없다
+                if (_bared) return _arm != null;      // 걷은 뒤에는 다시 보기
                 if (string.IsNullOrEmpty(_needsClueKey)) return true;
                 var j = Journal.Instance;
                 return j != null && j.HasClue(_case, _needsClueKey);
@@ -116,7 +127,12 @@ namespace IMUNROK.Common
 
         public override void Run(InterrogationController who)
         {
-            if (_bared) return;
+            if (_bared)
+            {
+                var view = _arm != null ? _arm.GetComponent<ArmMeasure>() : null;
+                if (view != null) { if (!_arm.activeSelf) _arm.SetActive(true); view.Open(); }
+                return;
+            }
             string speaker = who != null && who.Character != null ? who.Character.ShownName : name;
 
             // 아직 버틸 몫이 남았다. <b>버티는 것도 심문의 일부다</b> —

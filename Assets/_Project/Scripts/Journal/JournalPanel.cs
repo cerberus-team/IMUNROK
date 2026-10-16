@@ -815,7 +815,7 @@ namespace IMUNROK.Common
                     {
                         DocumentView.Show(dd.page, dd.title, dd.body, dd.fine, null, true,
                                           null, null, null, null, dd.back);
-                        DocumentView.SetStageModel(dd.model, dd.modelEuler);
+                        DocumentView.SetStageModel(dd.model, dd.modelEuler, dd.modelFixed);
                         _owner?.Close();
                     }, null, dd.back);
                 });
@@ -852,7 +852,7 @@ namespace IMUNROK.Common
                 // 방의 종이가 없어도 한글 벌·등불 겹은 수첩이 들고 있다 — 돋보기·등불이 그대로 먹는다
                 DocumentView.Show(doc.page, doc.title, doc.body, doc.fine, null, true,
                                   doc.lit, doc.litText, null, doc.litGlyphs, doc.back, doc.ko);
-                DocumentView.SetStageModel(doc.model, doc.modelEuler);   // 종이가 아니면 무대로
+                DocumentView.SetStageModel(doc.model, doc.modelEuler, doc.modelFixed);   // 종이가 아니면 무대로
             }
             else
                 DocumentView.Show(shot, ShortName(null, c), c.text, null, null, true);

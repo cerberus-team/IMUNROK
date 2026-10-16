@@ -229,6 +229,8 @@ namespace IMUNROK.Common
             public GameObject model;
             /// <summary>무대에 올릴 때의 첫 자세. 마패는 눕혀 두면 앞이 안 보인다.</summary>
             public Vector3 modelEuler;
+            /// <summary>무대에 못 박아 세우나 — 돌려 보지 않고 대어만 보는 것(걷힌 팔).</summary>
+            public bool modelFixed;
 
             /// <summary>
             /// <b>사건 종이인가</b> — 어전에서 받아 온 봉서. 물증이 아니라 <b>출발점</b>이다.
@@ -263,6 +265,13 @@ namespace IMUNROK.Common
             _clueDocs[ImgKey(caseId, key)] = new ClueDocument
             { page = page, title = title, body = body, fine = fine, back = back,
               model = model, modelEuler = modelEuler, caseSheet = caseSheet, caseId = caseId };
+        }
+
+        /// <summary>이 단서의 모델은 수첩에서 다시 꺼내도 <b>못 박아</b> 세운다(돌려 보지 않는다).</summary>
+        public void SetDocumentFixed(CaseId caseId, string key, bool on = true)
+        {
+            var d = GetDocument(caseId, key);
+            if (d != null) d.modelFixed = on;
         }
 
         /// <summary>이미 적어 둔 종이에 한글 벌·등불 겹을 붙인다.</summary>
@@ -447,7 +456,7 @@ namespace IMUNROK.Common
             public int caseId; public string key;
             public string image, page, back, ko, lit, model;
             public string title, body, fine, litText, litGlyphs;
-            public Vector3 modelEuler; public bool caseSheet;
+            public Vector3 modelEuler; public bool caseSheet, modelFixed;
         }
 
         [Serializable]
@@ -473,7 +482,7 @@ namespace IMUNROK.Common
                     a.ko = d.ko != null ? d.ko.name : null; a.lit = d.lit != null ? d.lit.name : null;
                     a.model = d.model != null ? d.model.name : null; a.modelEuler = d.modelEuler;
                     a.title = d.title; a.body = d.body; a.fine = d.fine; a.litText = d.litText; a.litGlyphs = d.litGlyphs;
-                    a.caseSheet = d.caseSheet;
+                    a.caseSheet = d.caseSheet; a.modelFixed = d.modelFixed;
                 }
                 art.Add(a);
             }
@@ -503,7 +512,7 @@ namespace IMUNROK.Common
                 {
                     page = page, back = idx.Texture(a.back), ko = idx.Texture(a.ko), lit = idx.Texture(a.lit),
                     model = model, modelEuler = a.modelEuler, title = a.title, body = a.body, fine = a.fine,
-                    litText = a.litText, litGlyphs = a.litGlyphs, caseSheet = a.caseSheet, caseId = cid,
+                    litText = a.litText, litGlyphs = a.litGlyphs, caseSheet = a.caseSheet, modelFixed = a.modelFixed, caseId = cid,
                 };
             }
         }

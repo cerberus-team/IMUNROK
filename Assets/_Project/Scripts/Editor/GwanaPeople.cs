@@ -349,7 +349,7 @@ namespace IMUNROK.Common.EditorTools
                     ? "유척으로 잰 왼팔 안쪽 흉터 — 두 치 남짓, 대장과 같다"
                     : "乙의 왼팔 안쪽에는 흉터가 없다 — 대장과 어긋난다";
                 so.FindProperty("_nothingLine").stringValue = hasScar
-                    ? "" : "왼팔 안쪽 — *아무것도 없다*. 데인 자국도, 아문 자리도.";
+                    ? "" : "왼팔 안쪽 — *아무것도 없다*. 흉터도, 아문 자리도.";
             });
 
             var order = go.GetComponent<SleeveOrder>();
@@ -368,7 +368,7 @@ namespace IMUNROK.Common.EditorTools
                     refuse.GetArrayElementAtIndex(0).stringValue =
                         "어사또, 이 무슨…! 사대부의 몸에 함부로 손을 대시는 법이 어디 있소.";
                 so.FindProperty("_bareLine").stringValue = hasScar
-                    ? "……소매를 걷는다. 왼팔 안쪽에 오래된 데인 자국이 있다."
+                    ? "……소매를 걷는다. 왼팔 안쪽에 오래된 흉터가 있다."
                     : "예. …보시다시피 아무것도 없소이다.";
             });
 
