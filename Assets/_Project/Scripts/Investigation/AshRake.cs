@@ -158,6 +158,11 @@ namespace IMUNROK.Common
         [Tooltip("그 종이의 잔글씨 — 돋보기를 대야 읽힌다")]
         [SerializeField] private string _clueFine = "";
 
+        [Tooltip("<b>뒤에 새겨진 것</b>(선택). 수첩에서 이 종이를 꺼내 들면 눌러서 뒤집어 볼 수 있다. " +
+                 "비워 두면 뒷면이 민면인데, <b>타다 만 조각</b>처럼 앞이 없어진 종이에 " +
+                 "백지 뒤를 붙이면 종이 두 장이 된다 — 앞뒤가 맞아야 한 장이다")]
+        [SerializeField] private Texture2D _clueBack;
+
         [Tooltip("헤집은 순간 한 번 실행(더 안쪽을 열어주는 등)")]
         [SerializeField] private UnityEvent _onRaked;
 
@@ -245,12 +250,33 @@ namespace IMUNROK.Common
         private bool _caught;           // 걸렸다 — 손을 놓아도 안 떨어진다
         private float _fallSpeed;       // 떨어지는 빠르기(무게가 붙으면 점점 빨라진다)
         private bool _hovering;
+
+        /// <summary>잠긴 까닭을 방금 말했나. 잡고 있는 내내 되풀이하지 않는다.</summary>
+        private float _lockedSaid;
+        private const float LockedQuiet = 2.6f;
+
         private Vector3 _restPos;
         private Quaternion _restRot;
 
         public void OnHoldTick(float dt)
         {
-            if (Raked || _locked) return;
+            if (Raked) return;
+
+            // <b>잠긴 것을 잡고 있으면 까닭을 말해 준다.</b>
+            //
+            // 여태 여기서 그냥 돌아 나갔다. 그러면 문갑을 아무리 잡아 당겨도 <b>아무
+            // 일도 안 난다</b> — 자물쇠가 걸렸다는 것은 가리켰을 때의 글에만 적혀 있고,
+            // 잡아 당기는 손에는 한마디도 없었다. 「구현이 안 되어 있니」로 읽힌 것이
+            // 이것이다. 막은 것과 만들지 않은 것은 <b>손끝에서 구별되어야</b> 한다.
+            if (_locked)
+            {
+                if (_lockedSaid <= 0f && !string.IsNullOrWhiteSpace(_lockedBody))
+                {
+                    SubtitleView.Show("", _lockedBody, "");
+                    _lockedSaid = LockedQuiet;
+                }
+                return;
+            }
             _holdingNow = true;
             if (_holdSeconds <= 0.01f) { Rake(); return; }
 
@@ -474,24 +500,150 @@ namespace IMUNROK.Common
                 _liftedGrab = go.AddComponent<BoxCollider>();
                 _liftedGrab.isTrigger = true;
             }
-            if (_liftedGrab.gameObject.activeSelf != want) _liftedGrab.gameObject.SetActive(want);
-            if (!want) return;
+            if (!want) { if (_liftedGrab.gameObject.activeSelf) _liftedGrab.gameObject.SetActive(false); return; }
 
-            // 들린 것이 지금 어디 있나 — 눈에 보이는 몸피에 맞춘다. 다만 <b>윗면은 비운다</b>:
-            // 들린 보료 위에 깔려 있던 종이가 나와 있는데, 손자리가 그 위까지 덮으면
-            // 종이를 짚으려다 보료가 잡혀 도로 내려놓게 된다.
+            // 들린 것이 지금 어디 있나 — 눈에 보이는 몸피에 맞춘다.
             if (!ModelBounds.TryGet(_hinge, out var b)) return;
-            float keepY = Mathf.Max(0.05f, b.size.y * 0.55f);
-            _liftedGrab.transform.position = new Vector3(b.center.x, b.center.y - b.size.y * 0.22f, b.center.z);
+
+            // <b>들린 것 속에 든 것을 삼키지 않게 자리를 고른다.</b>
+            //
+            // <b>밀려 나온 것(서랍)</b>과 <b>들려 올라간 것(보료)</b>은 짚을 데가 다르다.
+            //
+            //   · 서랍은 <b>속에</b> 물건이 든다. 문갑 서랍에서 드러난 탈이 이것이다 —
+            //     몸피 아래쪽 절반에 손자리를 깔았더니 그 속의 물목장부·차용증이
+            //     통째로 손자리 안에 들어앉았고, 광선이 <b>6mm 먼저</b> 손자리를 맞아
+            //     종이를 누를 수가 없었다. 「문서가 왜 안 꺼내질까」가 이것이다.
+            //     서랍에서 짚을 데는 <b>밀려 나온 앞 코</b>다.
+            //   · 보료는 <b>위에</b> 물건이 깔린다. 그때는 아래쪽을 짚는 것이 맞다.
+            //
+            // 어느 쪽인지는 <b>어떻게 움직였는가</b>가 말해 준다. 자리를 옮긴 것(_liftOffset)이면
+            // 그 방향의 앞 코를, 돌기만 한 것이면 아래쪽을 잡는다.
+            Vector3 pull = _liftOffset;
+            if (_hinge.parent != null) pull = _hinge.parent.TransformVector(_liftOffset);
+
+            Vector3 at, size;
+            if (pull.sqrMagnitude > 1e-6f)
+            {
+                // 가장 크게 움직인 축의 <b>앞쪽 셋째</b>만 손자리로 쓴다.
+                int ax = Mathf.Abs(pull.x) >= Mathf.Abs(pull.y) && Mathf.Abs(pull.x) >= Mathf.Abs(pull.z) ? 0
+                       : Mathf.Abs(pull.y) >= Mathf.Abs(pull.z) ? 1 : 2;
+                float sign = pull[ax] >= 0f ? 1f : -1f;
+                const float Share = 0.34f;          // 앞 코가 차지하는 몫
+                const float Least = 0.07f;          // 종잇장이 되면 짚을 수가 없다
+
+                // 앞 코의 <b>바깥 끝</b>과 <b>안쪽 끝</b>.
+                float outer = sign > 0f ? b.max[ax] : b.min[ax];
+                float inner = outer - sign * Mathf.Max(0.02f, b.size[ax] * Share);
+
+                // <b>안쪽 끝은 속에 든 것보다 뒤로 못 간다.</b> 뒤로 넘어가면 손자리가
+                // 그 종이를 품고, 광선이 몇 mm 먼저 손자리를 맞아 종이를 못 짚는다.
+                if (_after != null)
+                {
+                    var cs = _after.GetComponentsInChildren<Collider>(true);
+                    for (int i = 0; i < cs.Length; i++)
+                    {
+                        if (cs[i] == null || !cs[i].enabled) continue;
+                        float edge = sign > 0f ? cs[i].bounds.max[ax] : cs[i].bounds.min[ax];
+                        if ((edge - inner) * sign > 0f) inner = edge;
+                    }
+                }
+
+                // 그러고도 얇으면 <b>바깥으로</b> 늘린다. 서랍 앞 코 너머는 빈 데다 —
+                // 안쪽으로 늘리면 방금 비켜 준 그 종이를 도로 덮는다.
+                if ((outer - inner) * sign < Least) outer = inner + sign * Least;
+
+                size = new Vector3(b.size.x * 0.9f, b.size.y * 0.9f, b.size.z * 0.9f);
+                size[ax] = Mathf.Abs(outer - inner);
+                size.x = Mathf.Max(size.x, Least);
+                size.y = Mathf.Max(size.y, Least);
+                size.z = Mathf.Max(size.z, Least);
+                size[ax] = Mathf.Abs(outer - inner);      // 끄는 축만은 위 셈 그대로
+                at = b.center;
+                at[ax] = (outer + inner) * 0.5f;
+
+                // <b>위로 들린 것은 속에 든 것의 머리 위를 비운다.</b>
+                //
+                // 옆으로 밀려 나온 서랍과 달리, 문서궤의 종이더미는 <b>위로</b> 들린다.
+                // 앞 코를 잡는 규칙을 그대로 쓰면 손자리가 더미의 <b>윗면</b>에 깔리는데,
+                // 사람은 궤를 <b>위에서 내려다본다</b> — 겹치지 않아도 눈과 문서 사이에
+                // 서면 가린다. 관아의 입안대장·환곡대장이 어느 자리에서도 안 짚혔다
+                // (입안대장은 甲을 무너뜨리는 열쇠 둘 가운데 하나다).
+                //
+                // 그래서 더미에서 <b>문서가 차지하지 않은 가장자리 한 줄</b>만 손자리로 쓴다.
+                // 그만한 가장자리가 없으면 손자리를 두지 않는다 — 더미를 도로 내려놓는 일보다
+                // 그 밑의 문서를 짚는 일이 먼저다.
+                if (ax == 1 && TryContentsFootprint(out var cb))
+                {
+                    if (!EdgeBesides(b, cb, Least, ref at, ref size))
+                    {
+                        if (_liftedGrab.gameObject.activeSelf) _liftedGrab.gameObject.SetActive(false);
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                // 돌기만 한 것 — 아래쪽 절반. <b>윗면은 비운다</b>(위에 깔린 종이 때문).
+                float keepY = Mathf.Max(0.05f, b.size.y * 0.55f);
+                size = new Vector3(b.size.x * 0.9f, keepY, b.size.z * 0.9f);
+                at = new Vector3(b.center.x, b.center.y - b.size.y * 0.22f, b.center.z);
+            }
+
+            if (!_liftedGrab.gameObject.activeSelf) _liftedGrab.gameObject.SetActive(true);
+            _liftedGrab.transform.position = at;
             Vector3 lossy = _liftedGrab.transform.lossyScale;
             _liftedGrab.size = new Vector3(
-                Mathf.Abs(lossy.x) > 1e-4f ? b.size.x * 0.9f / Mathf.Abs(lossy.x) : b.size.x,
-                Mathf.Abs(lossy.y) > 1e-4f ? keepY / Mathf.Abs(lossy.y) : keepY,
-                Mathf.Abs(lossy.z) > 1e-4f ? b.size.z * 0.9f / Mathf.Abs(lossy.z) : b.size.z);
+                Mathf.Abs(lossy.x) > 1e-4f ? size.x / Mathf.Abs(lossy.x) : size.x,
+                Mathf.Abs(lossy.y) > 1e-4f ? size.y / Mathf.Abs(lossy.y) : size.y,
+                Mathf.Abs(lossy.z) > 1e-4f ? size.z / Mathf.Abs(lossy.z) : size.z);
+        }
+
+        /// <summary>속에 든 것(<see cref="_after"/>)의 콜라이더를 한 몸피로 묶는다.</summary>
+        private bool TryContentsFootprint(out Bounds cb)
+        {
+            cb = default(Bounds);
+            if (_after == null) return false;
+            bool any = false;
+            foreach (var c in _after.GetComponentsInChildren<Collider>(true))
+            {
+                if (c == null || !c.enabled) continue;
+                if (!any) { cb = c.bounds; any = true; } else cb.Encapsulate(c.bounds);
+            }
+            return any;
+        }
+
+        /// <summary>
+        /// 들린 것의 몸피 <paramref name="b"/> 가운데, 속에 든 것 <paramref name="cb"/> 의
+        /// <b>바닥 넓이(x·z)와 겹치지 않는</b> 가장 넓은 가장자리 한 줄을 고른다.
+        /// 넓이가 <paramref name="least"/> 에 못 미치면 false.
+        /// </summary>
+        private static bool EdgeBesides(Bounds b, Bounds cb, float least, ref Vector3 at, ref Vector3 size)
+        {
+            float bestW = 0f; int bestAx = -1; float lo = 0f, hi = 0f;
+            foreach (int k in new[] { 0, 2 })
+            {
+                // −쪽 가장자리: b.min .. cb.min
+                float w1 = cb.min[k] - b.min[k];
+                if (w1 > bestW) { bestW = w1; bestAx = k; lo = b.min[k]; hi = cb.min[k]; }
+                // +쪽 가장자리: cb.max .. b.max
+                float w2 = b.max[k] - cb.max[k];
+                if (w2 > bestW) { bestW = w2; bestAx = k; lo = cb.max[k]; hi = b.max[k]; }
+            }
+            if (bestAx < 0 || bestW < least) return false;
+
+            int other = bestAx == 0 ? 2 : 0;
+            at = new Vector3(0f, b.center.y, 0f);
+            size = new Vector3(0f, Mathf.Max(b.size.y, least), 0f);
+            at[bestAx] = (lo + hi) * 0.5f;
+            size[bestAx] = hi - lo;
+            at[other] = b.center[other];
+            size[other] = b.size[other] * 0.9f;
+            return true;
         }
 
         private void Update()
         {
+            if (_lockedSaid > 0f) _lockedSaid -= Time.deltaTime;
             RaspFade();
             FollowLifted();
 
@@ -620,8 +772,10 @@ namespace IMUNROK.Common
             {
                 Journal.Instance.AddClue(_clueCase, _clueKey, _clueText, _clueImage);
                 if (_cluePage != null)
+                    ShareNoteLayers();
                     Journal.Instance.AttachDocument(_clueCase, _clueKey, _cluePage,
-                        string.IsNullOrEmpty(_clueName) ? _title : _clueName, _bodyAfter, _clueFine);
+                        string.IsNullOrEmpty(_clueName) ? _title : _clueName, _bodyAfter, _clueFine,
+                        _clueBack);
             }
             _onRaked?.Invoke();
         }
@@ -655,16 +809,33 @@ namespace IMUNROK.Common
                 // 밑에서 나온 것이 종이라면 수첩에서 다시 펼쳐 볼 수 있게 함께 적어 둔다
                 if (_cluePage != null)
                     Journal.Instance.AttachDocument(_clueCase, _clueKey, _cluePage,
-                        string.IsNullOrEmpty(_clueName) ? _title : _clueName, _bodyAfter, _clueFine);
+                        string.IsNullOrEmpty(_clueName) ? _title : _clueName, _bodyAfter, _clueFine,
+                        _clueBack);
             }
 
             _onRaked?.Invoke();
         }
 
+        /// <summary>속에 든 종이(같은 열쇠)의 한글 벌·등불 겹을 수첩 문서에 넘긴다 — 한 프레임 뒤(AttachDocument 다음).</summary>
+        private void ShareNoteLayers()
+        {
+            if (_after == null || !isActiveAndEnabled) return;
+            StartCoroutine(ShareNext());
+        }
+
+        private System.Collections.IEnumerator ShareNext()
+        {
+            yield return null;
+            foreach (var n in _after.GetComponentsInChildren<InspectableNote>(true))
+                if (n != null && n.ClueKey == _clueKey) n.ShareLayers();
+        }
+
         /// <summary>덮인 모습과 헤집은 모습을 바꾼다. 잡는 중에는 미리 헤집은 쪽을 보인다.</summary>
         private void ShowState(bool previewAfter = false)
         {
-            bool after = Raked || previewAfter;
+            // 도로 내려놓았으면 속에 든 것도 도로 덮인다. 여태 Raked 가 한 번 서면 늘 켜 두어,
+            // 보료를 내려도 그 밑의 별급문기가 요 <b>위로</b> 비어져 나와 있었다.
+            bool after = previewAfter || (Raked && !(_canPutBack && _lowered));
             if (_before != null) _before.SetActive(!after);
             if (_after != null) _after.SetActive(after);
             if (Raked) YieldTo(_after);

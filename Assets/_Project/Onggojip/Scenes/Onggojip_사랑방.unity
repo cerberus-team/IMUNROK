@@ -153,6 +153,7 @@ Transform:
   - {fileID: 146450625}
   - {fileID: 861381880}
   - {fileID: 320305214}
+  - {fileID: 1414312162}
   m_Father: {fileID: 1318843944}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &10715030
@@ -174,9 +175,16 @@ MonoBehaviour:
     \uBB38\uC744 \uC5B5\uC9C0\uB85C \uB534 \uAC83\uC774 \uC544\uB2C8\uB77C \uC548\uC5D0
     \uC788\uB358 \uC0AC\uB78C\uC774 *\uC5F4\uC1E0 \uC5C6\uC774* \uBE44\uD2C0\uC5B4
     \uB72F\uC5C8\uB2E4."
-  _clueNeedsMagnifier: 1
-  _model: {fileID: 0}
-  _modelEuler: {x: 0, y: 0, z: 0}
+  _clueNeedsMagnifier: 0
+  _dimBehind: 1
+  _clueNoteAfterMagnify: "\uB3CB\uBCF4\uAE30\uB85C \uBCF4\uB2C8 \u2014 \uC5F4\uC1E0
+    \uAD6C\uBA4D\uC5D4 \uAE01\uD78C \uC790\uAD6D\uC774 \uC5C6\uACE0 \uACE0\uB9AC\uB294
+    \uBE44\uD2C0\uC5B4 \uB04A\uACBC\uB2E4. <b>\uC5F4\uC1E0 \uC5C6\uC774</b> \uC5F0
+    \uAC83\uC774\uB2E4."
+  _model: {fileID: 8652569365924108817, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+  _modelEuler: {x: -25, y: 20, z: 0}
+  _pageKo: {fileID: 0}
+  _revealsPressed: {fileID: 0}
   _backPage: {fileID: 0}
   _litPage: {fileID: 0}
   _litText: 
@@ -186,15 +194,17 @@ MonoBehaviour:
   _litClueOwnText: 
   _litClueText: 
   _title: "\uBD80\uC11C\uC9C4 \uC790\uBB3C\uC1E0"
-  _body: "\uBB38\uAC11 \uC790\uBB3C\uC1E0\uAC00 *\uBE44\uD2C0\uB824 \uBD80\uC11C\uC838*
-    \uC788\uB2E4."
+  _body: "\uBB38\uAC11\uC5D0\uC11C \uB72F\uACA8 \uB5A8\uC5B4\uC9C4 \uC790\uBB3C\uC1E0\uB2E4.
+    *\uBE44\uD2C0\uB824 \uBD80\uC11C\uC9C4* \uCC44\uB2E4 \u2014 \uC774\uC81C \uD71C
+    \uACE0\uB9AC\uB97C \uC11C\uB78D\uC5D0\uC11C \uBE7C\uB0BC \uC218 \uC788\uACA0\uB2E4."
   _requiresMagnifier: 0
   _recordClue: 1
   _clueCase: 0
   _clueKey: J15
-  _clueText: "[J15] \uBB38\uAC11 \uC790\uBB3C\uC1E0\uAC00 \uBE44\uD2C0\uB824 \uBD80\uC11C\uC84C\uB2E4.
-    *\uC5F4\uC1E0\uB97C \uAC00\uC9C4 \uC0AC\uB78C*\uC774 \uC5F0 \uAC83\uC774 \uC544\uB2C8\uB2E4."
-  _clueImage: {fileID: 0}
+  _clueText: "[J15] \uBB38\uAC11 \uC55E \uBC14\uB2E5\uC5D0 \uB5A8\uC5B4\uC838 \uC788\uB358
+    \uB18B\uC1E0 \uC790\uBB3C\uC1E0. \uBAB8\uD1B5\uC774 \uBE44\uD2C0\uB824 \uB72F\uACA8
+    \uB098\uAC14\uB2E4."
+  _clueImage: {fileID: 2800000, guid: d3fbdde647a895b4cb2bc74995ef019d, type: 3}
 --- !u!65 &10715031
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -214,8 +224,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.16, y: 0.24, z: 0.08}
-  m_Center: {x: 0, y: 0.03, z: 0}
+  m_Size: {x: 0.25346878, y: 0.10568561, z: 0.21209076}
+  m_Center: {x: 0.0000019073486, y: -0.055157244, z: -0.00036525726}
 --- !u!1 &26385128 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1518978542047137045, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
@@ -247,32 +257,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 185, y: 370.00018, z: 49.99999}
   m_Center: {x: 92.27634, y: 184.71877, z: -15.863144}
---- !u!1 &38713554 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1382321809893530038, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-  m_PrefabInstance: {fileID: 8546719454161316330}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &38713558
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 38713554}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0.835, z: 0.5000001}
 --- !u!1 &57506538
 GameObject:
   m_ObjectHideFlags: 0
@@ -360,6 +344,11 @@ MonoBehaviour:
     \uB9C8\uC2DC\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: 
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!114 &89610835
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -375,18 +364,96 @@ MonoBehaviour:
   _size: {x: 0, y: 0, z: 0}
   _center: {x: 0, y: 0, z: 0}
   _shrink: 0.04
---- !u!1 &113341376 stripped
+--- !u!1 &104723624
 GameObject:
-  m_CorrespondingSourceObject: {fileID: 3762035054037107139, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-  m_PrefabInstance: {fileID: 8546719454161316330}
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
---- !u!65 &113341380
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 104723625}
+  - component: {fileID: 104723628}
+  - component: {fileID: 104723627}
+  - component: {fileID: 104723626}
+  m_Layer: 0
+  m_Name: "\uBCBD_\uB3D9 (1)"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483629
+  m_IsActive: 1
+--- !u!4 &104723625
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 104723624}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 17, y: 0.47, z: -10.625}
+  m_LocalScale: {x: 0.16, y: 2.54, z: 4.01}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8546719454161316335}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!23 &104723626
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 104723624}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: abc00000000001438190374450964176, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!65 &104723627
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 113341376}
+  m_GameObject: {fileID: 104723624}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -400,7 +467,15 @@ BoxCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0.835, z: 0.5000001}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!33 &104723628
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 104723624}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &146450624
 GameObject:
   m_ObjectHideFlags: 0
@@ -418,7 +493,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &146450625
 Transform:
   m_ObjectHideFlags: 0
@@ -491,32 +566,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 146450624}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &212822094 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1492844550504105596, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-  m_PrefabInstance: {fileID: 8546719454161316330}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &212822098
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 212822094}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0.835, z: 0.5000001}
 --- !u!1 &238313417
 GameObject:
   m_ObjectHideFlags: 0
@@ -746,37 +795,48 @@ MonoBehaviour:
   _page: {fileID: 2800000, guid: bd70dc3b94cfe7b40ac910d17fa614d1, type: 3}
   _canOpen: 1
   _maxTouchDistance: 3
-  _fineText: "\u5974 \u535C\u540C \u8F9B\u672A\u5E74 \u6B7B\u4EA1 \u2014 \uBCF5\uB3D9\uC774
-    \uC8FD\uC740 \uAC83\uC73C\uB85C \uC801\uD600 \uC788\uB2E4. \uD638\uC801\uB300\uC7A5\uACFC
-    \uD544\uC801\uC774 \uB2E4\uB974\uB2E4. \uAD00\uB9AC\uAC00 \uC544\uB2C8\uB77C
-    \uC774 \uC9D1 \uC0AC\uB78C\uC758 \uC190\uC774\uB2E4."
+  _fineText: "\u5974 \u535C\u540C \u58EC\u5348\u5E74 \u516D\u6708 \u6B7B\u4EA1 \u2014
+    \uC885 \uBCF5\uB3D9\uC774 \uC62C\uD574 \uC720\uC6D4\uC5D0 \uC8FD\uC5C8\uB2E4\uACE0
+    \uC801\uD600 \uC788\uB2E4. \uADF8 \uC904\uC5D0\uB9CC \uC218\uACB0(\u62BC)\uC774
+    \uBD99\uC5C8\uB2E4. \uAD00\uB9AC\uAC00 \uC544\uB2C8\uB77C \uC774 \uC9D1 \uC0AC\uB78C\uC758
+    \uC190\uC774\uB2E4."
   _clueNeedsMagnifier: 1
+  _dimBehind: 1
+  _clueNoteAfterMagnify: "\uB3CB\uBCF4\uAE30\uB85C \uBCF4\uB2C8 \u2014 \u300C\uC885
+    \uBCF5\uB3D9, <b>\uC784\uC624\uB144 \uC720\uC6D4\uC5D0 \uC8FD\uC74C</b>\u300D.
+    \uADF8 \uC904\uC5D0\uB9CC \uC218\uACB0\uC774 \uBD99\uC5C8\uB2E4."
   _model: {fileID: 0}
   _modelEuler: {x: 0, y: 0, z: 0}
-  _backPage: {fileID: 0}
+  _pageKo: {fileID: 2800000, guid: 7b5eab60707ff554583a7b094e138c90, type: 3}
+  _revealsPressed: {fileID: 0}
+  _backPage: {fileID: 2800000, guid: d9386634dcad90b409c7c5fb803b52bc, type: 3}
   _litPage: {fileID: 0}
   _litText: "\uACB9 \uC0AC\uC774\uC5D0 \uAC19\uC740 \uB450 \uC904\uC774 \uD55C \uC7A5
     \uB354 \uC788\uB2E4 \u2014 *\uBA3C\uC800 \uC368 \uBCF4\uACE0 \uBC84\uB9B0 \uC7A5*\uC774\uB2E4.
     \uD68D\uC774 \uB5A8\uB9AC\uACE0 \uBA39\uC774 \uBC88\uC84C\uB2E4. \uAD00\uC544\uC5D0
     \uB0B8 \uAC83\uC740 \uC774\uAC83\uC744 \uBCF4\uACE0 \uBCA0\uB080 \uAC83\uC774\uB2E4."
   _clueNeedsLantern: 0
-  _litGlyphs: "\u5974 \u535C\u540C \u8F9B\u672A\u5E74 \u6B7B\u4EA1"
+  _litGlyphs: "\u5974 \u535C\u540C \u58EC\u5348\u5E74 \u516D\u6708 \u6B7B\u4EA1"
   _litClueKey: 
   _litClueOwnText: 
-  _litClueText: "[J13] \uC62C\uD574 \uB0B8 \uD638\uAD6C\uB2E8\uC790. \uB178 \uBCF5\uB3D9\uC774
-    *\uC2E0\uBBF8\uB144\uC5D0 \uC8FD\uC5C8\uB2E4*\uACE0 \uC801\uD600 \uC788\uB294\uB370
-    \uAE00\uC528\uAC00 \uAD00\uB9AC\uC758 \uAC83\uC774 \uC544\uB2C8\uACE0, \uBC30\uC811
-    \uC18D\uC5D0 *\uAC19\uC740 \uB450 \uC904\uC744 \uBA3C\uC800 \uC368 \uBCF8 \uC7A5*\uC774
-    \uB07C\uC5B4 \uC788\uB2E4 \u2014 \uBCA0\uAEF4 \uC4F4 \uAC83\uC774\uB2E4."
+  _litClueText: "[J13] \uC62C\uD574 \uC774 \uC9D1\uC5D0\uC11C \uAD00\uC5D0 \uC368
+    \uC62C\uB9B0 \uD638\uAD6C\uB2E8\uC790\uC758 \uBD80\uBCF8. \uAD00\uB9AC\uC758
+    \uAE00\uC528\uAC00 \uC544\uB2C8\uB77C \uAE30\uC6B8\uACE0 \uB4E4\uCB49\uB0A0\uCB49\uD55C
+    \uC190\uC774\uB2E4.\n\n\uBD88\uBE5B\uC5D0 \uBE44\uCD94\uB2C8 \uBC30\uC811 \uC18D\uC5D0
+    \u300C\uC885 \uBCF5\uB3D9 \uC8FD\uC74C\u300D \uC904\uC744 <b>\uBA3C\uC800 \uC368
+    \uBCF4\uACE0 \uBC84\uB9B0 \uC7A5</b>\uC774 \uB07C\uC5B4 \uC788\uB2E4."
   _title: "\uD638\uAD6C\uB2E8\uC790(\u6236\u53E3\u55AE\u5B50)"
-  _body: "\uC62C\uD574 \uC2DD\uB144\uC5D0 \uC0C8\uB85C \uB0B8 \uD638\uAD6C\uB2E8\uC790\uB2E4."
+  _body: "\uC62C\uD574 \uC2DD\uB144\uC5D0 \uC774 \uC9D1\uC5D0\uC11C \uC368 \uC62C\uB9B0
+    \uD638\uAD6C\uB2E8\uC790\uC758 \uBD80\uBCF8\uC774\uB2E4."
   _requiresMagnifier: 0
   _recordClue: 1
   _clueCase: 0
   _clueKey: J13
-  _clueText: "[J13] \uC62C\uD574 \uB0B8 \uAC83\uC774\uB2E4. \uB178 \uBCF5\uB3D9\uC774
-    *\uC2E0\uBBF8\uB144\uC5D0 \uC8FD\uC5C8\uB2E4*\uACE0 \uC801\uD600 \uC788\uB294\uB370,
-    \uAE00\uC528\uAC00 *\uAD00\uB9AC\uC758 \uAC83\uC774 \uC544\uB2C8\uB2E4*"
+  _clueText: "[J13] \uC62C\uD574 \uC774 \uC9D1\uC5D0\uC11C \uAD00\uC5D0 \uC368 \uC62C\uB9B0
+    \uD638\uAD6C\uB2E8\uC790(\u6236\u53E3\u55AE\u5B50)\uC758 \uBD80\uBCF8 \u2014
+    \uC2DD\uAD6C\uC640 \uC885\uC744 \uC801\uC5B4 \uB0B8 \uC2E0\uACE0\uC11C\uB2E4.\n\n\uAD00\uB9AC\uC758
+    \uAE00\uC528\uAC00 \uC544\uB2C8\uB77C \uAE30\uC6B8\uACE0 \uB4E4\uCB49\uB0A0\uCB49\uD55C
+    \uC190\uC774\uB2E4."
   _clueImage: {fileID: 0}
 --- !u!65 &275361242
 BoxCollider:
@@ -816,6 +876,11 @@ MonoBehaviour:
     \uB9C8\uC2DC\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: 
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!1 &284824630
 GameObject:
   m_ObjectHideFlags: 0
@@ -1013,7 +1078,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &320305214
 Transform:
   m_ObjectHideFlags: 0
@@ -1086,32 +1151,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 320305213}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &406098932 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 4349699332139647416, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-  m_PrefabInstance: {fileID: 8546719454161316330}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &406098936
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 406098932}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0.835, z: 0.5000001}
 --- !u!1 &413094057 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1809209526279249495, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
@@ -1134,6 +1173,11 @@ MonoBehaviour:
     \uADF8\uB0E5 \uB450\uC2DC\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: 
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!1 &473134832 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7862699792654519427, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
@@ -1156,6 +1200,11 @@ MonoBehaviour:
     \uADF8\uB0E5 \uB450\uC2DC\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: 
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!1 &497422221
 GameObject:
   m_ObjectHideFlags: 0
@@ -1204,16 +1253,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.PressedMarks
   _title: "\uB20C\uB9B0 \uC790\uAD6D"
-  _readOut: "\u4E19\u5BC5\u5E74, \u79DF \u4E09\u5341\u77F3 \u2014 \uC7A5\uBD80\uC5D0
+  _readOut: "\u58EC\u5348\u5E74 \u516D\u6708, \u79DF \u4E8C\u5341\u6597 \u2014 \uC7A5\uBD80\uC5D0
     \uC801\uD78C \uADF8 \uB450 \uC904\uC744 \uC5EC\uAE30 \uBA87 \uBC88\uC774\uB098
     \uB20C\uB7EC \uC368 \uBCF4\uC558\uB2E4."
   _recordClue: 1
   _clueCase: 0
   _clueKey: J06
-  _clueText: "[J06] \uC2A4\uBB34 \uD574\uCE58\uAC00 \uD55C \uC190\uC73C\uB85C \uC801\uD788\uB2E4\uAC00,
-    \uB9C8\uC9C0\uB9C9 \uB450 \uC904\uB9CC \uB2E4\uB978 \uC190\uC774\uB2E4. \uB9DE\uC740\uD3B8
-    \uBC31\uC9C0\uC5D0\uB294 \uADF8 \uB450 \uC904\uC744 \uBBF8\uB9AC \uC5F0\uC2B5\uD55C
-    \uC790\uAD6D\uC774 \uB20C\uB824 \uC788\uB2E4."
+  _clueText: "[J06] \uC0AC\uB791\uBC29 \uC11C\uC548\uC5D0 \uD3B4 \uB454 \uC804\uC870\uAE30(\u7530\u79DF\u8A18).
+    \uB9E8 \uB05D \uB450 \uC904\uB9CC \uBD93\uB05D\uC774 \uB2E4\uB974\uB2E4.\n\n\uACC1\uC5D0
+    \uB454 \uBE48 \uC885\uC774\uC5D0 \uADF8 \uB450 \uC904\uC744 \uBA87 \uBC88\uC774\uACE0
+    \uB20C\uB7EC \uC368 \uBCF8 \uC790\uAD6D\uC774 \uB0A8\uC544 \uC788\uB2E4 \u2014
+    \uB204\uAD70\uAC00 \uC774 \uC7A5\uBD80\uC758 \uAE00\uC528\uB97C <b>\uD749\uB0B4
+    \uB0B4\uB824\uACE0 \uC5F0\uC2B5\uD588\uB2E4</b>."
   _cluePage: {fileID: 2800000, guid: eb3ebdc161ff9cb4694f85fa720511af, type: 3}
   _alsoHide: []
 --- !u!65 &497422224
@@ -1320,49 +1371,50 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1.0000001}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!1 &514870025 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2764417169022865645, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-  m_PrefabInstance: {fileID: 8546719454161316330}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &514870029
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 514870025}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0.835, z: 0.5000001}
 --- !u!4 &543471821 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 178669844351573538, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
   m_PrefabInstance: {fileID: 8546719454161316330}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &572987640 stripped
+--- !u!1 &555557661
 GameObject:
-  m_CorrespondingSourceObject: {fileID: 6978232280287980023, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-  m_PrefabInstance: {fileID: 8546719454161316330}
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
---- !u!65 &572987644
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 555557662}
+  - component: {fileID: 555557663}
+  m_Layer: 0
+  m_Name: "\uBB38\uC9DD_\uB204\uB984"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &555557662
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 555557661}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.00000017881389, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 28.39417, y: 24.95584, z: -0.3789423}
+  m_LocalScale: {x: 182.09946, y: 182.09941, z: 182.09941}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8546719454161316333}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &555557663
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 572987640}
+  m_GameObject: {fileID: 555557661}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -1375,8 +1427,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0.835, z: 0.5000001}
+  m_Size: {x: 0.3000002, y: 0.29, z: 0.03}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &579870915
 GameObject:
   m_ObjectHideFlags: 0
@@ -1409,13 +1461,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b8e8c95a8470bf4eb8d40d4c9e925c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.InspectableNote
-  _page: {fileID: 0}
+  _page: {fileID: 2800000, guid: c458175964945ec4994a0c613f09d0bd, type: 3}
   _canOpen: 1
   _maxTouchDistance: 2.5
   _fineText: 
   _clueNeedsMagnifier: 0
+  _dimBehind: 1
+  _clueNoteAfterMagnify: 
   _model: {fileID: 0}
   _modelEuler: {x: 0, y: 0, z: 0}
+  _pageKo: {fileID: 2800000, guid: eb3ebdc161ff9cb4694f85fa720511af, type: 3}
+  _revealsPressed: {fileID: 497422223}
   _backPage: {fileID: 0}
   _litPage: {fileID: 0}
   _litText: 
@@ -1426,7 +1482,7 @@ MonoBehaviour:
   _litClueText: 
   _title: "\uBE48 \uC885\uC774"
   _body: "\uC544\uBB34\uAC83\uB3C4 \uC4F0\uC774\uC9C0 \uC54A\uC740 \uD55C\uC9C0 \uD55C
-    \uC7A5\uC774\uB2E4."
+    \uC7A5\uC774\uB2E4. \uD45C\uBA74\uC774 \uAD70\uB370\uAD70\uB370 \uC624\uBAA9\uD558\uB2E4."
   _requiresMagnifier: 0
   _recordClue: 0
   _clueCase: 0
@@ -1519,8 +1575,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 579870915}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7053843, y: 0.049325272, z: -0.049325272, w: 0.7053843}
-  m_LocalPosition: {x: 6.894, y: -0.51789457, z: -10.394}
+  m_LocalRotation: {x: 0.46802443, y: 0.53005016, z: -0.53005016, w: 0.46802443}
+  m_LocalPosition: {x: 6.894, y: -0.51789457, z: -10.365}
   m_LocalScale: {x: 0.3, y: 0.27, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1577,12 +1633,21 @@ MonoBehaviour:
   _canOpen: 1
   _maxTouchDistance: 3
   _fineText: "\uC55E\uC758 \uB109 \uC904\uC5D0\uB294 \uC218\uACB0(\u62BC)\uC774 \uC5C6\uACE0
-    \uB9C8\uC9C0\uB9C9 \uB450 \uC904\uC5D0\uB9CC \uB20C\uB824 \uC788\uB2E4. \u767D\u6728
-    \u4E8C\u5341\u5339, \u7D19 \u4E09\u5341\u5377."
+    \uB05D\uC758 \uC11D \uC904\uC5D0\uB9CC \uB20C\uB824 \uC788\uB2E4. \u936E\u5668
+    \u8CE3, \u767D\u6728 \u8CE3, \u87F9\u91AC \u8CB7 \u2014 \uB18B\uADF8\uB987\uACFC
+    \uBB34\uBA85\uC744 \uD314\uACE0 \uAC8C\uC7A5\uC744 \uC0C0\uB2E4."
   _clueNeedsMagnifier: 1
+  _dimBehind: 1
+  _clueNoteAfterMagnify: "\uB3CB\uBCF4\uAE30\uB85C \uBCF4\uB2C8 \u2014 \uC55E \uC904\uB4E4\uC740
+    \uB4E4\uC778 \uBB3C\uAC74\uC774\uACE0, \uB05D \uC11D \uC904\uC740 \uC190\uC774
+    \uBC14\uB00C\uC5B4 <b>\uB18B\uADF8\uB987\xB7\uBB34\uBA85\uC744 \uD314\uACE0 \uAC8C\uC7A5\uC744
+    \uC11D \uB0E5\uC5D0 \uC0AC\uB4E4\uC778</b> \uAE30\uB85D\uC774\uB2E4. \uADF8 \uC11D
+    \uC904\uC5D0\uB9CC \uBD89\uC740 <b>\uC218\uACB0</b>\uC774 \uBD99\uC5C8\uB2E4."
   _model: {fileID: 0}
   _modelEuler: {x: 0, y: 0, z: 0}
-  _backPage: {fileID: 0}
+  _pageKo: {fileID: 2800000, guid: 5f4a76c3e9ad30244b5250675b1f4240, type: 3}
+  _revealsPressed: {fileID: 0}
+  _backPage: {fileID: 2800000, guid: b2521a1866112d247a740e43c9b4168c, type: 3}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
@@ -1591,14 +1656,14 @@ MonoBehaviour:
   _litClueOwnText: 
   _litClueText: 
   _title: "\uBB3C\uBAA9 \uC7A5\uBD80"
-  _body: "\uBC1B\uC740 \uBB3C\uAC74\uC744 \uC801\uC740 \uBB3C\uBAA9\uAE30\uB2E4."
+  _body: "\uC9D1\uC5D0 \uB4E4\uACE0 \uB09C \uBB3C\uAC74\uC744 \uC801\uC740 \uBB3C\uBAA9\uAE30\uB2E4.
+    \uC904 \uB05D \uBA87 \uACF3\uC5D0 \uBD89\uC740 \uC790\uAD6D\uC774 \uC788\uB2E4."
   _requiresMagnifier: 0
   _recordClue: 1
   _clueCase: 0
   _clueKey: J07
-  _clueText: "[J07] \uC2A4\uBB34 \uD574\uCE58\uC5D0\uB294 \uC218\uACB0(\u62BC)\uC774
-    *\uC5C6\uB294\uB370*, \uCD5C\uADFC *\uD55C \uB2EC\uCE58\uC5D0\uB9CC* \uCC0D\uD600
-    \uC788\uB2E4."
+  _clueText: "[J07] \uBB38\uAC11 \uC11C\uB78D\uC5D0 \uB4E0 \uBB3C\uBAA9\uAE30(\u7269\u76EE\u8A18)
+    \u2014 \uC9D1\uC5D0 \uB4E4\uACE0 \uB09C \uBB3C\uAC74\uC744 \uC801\uC740 \uC7A5\uBD80\uB2E4."
   _clueImage: {fileID: 2800000, guid: 6e5e3982a13a6c04cb4fb5440bfbff4a, type: 3}
 --- !u!65 &603466277
 BoxCollider:
@@ -1638,6 +1703,11 @@ MonoBehaviour:
     \uB9C8\uC2DC\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: 
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!1 &622068724 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7401410504871201945, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
@@ -1660,32 +1730,13 @@ MonoBehaviour:
     \uB4DC\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
---- !u!1 &683476187 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 27588527977113643, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-  m_PrefabInstance: {fileID: 8546719454161316330}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &683476191
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 683476187}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0.835, z: 0.5000001}
+  _lineAfter: "\uB9C8\uB2F9\uC744 \uD5A5\uD55C \uBD84\uD569\uBB38\uC774\uB2E4. \uC5EC\uB294
+    \uC18C\uB9AC\uAC00 \uB9C8\uB2F9\uC5D0 \uADF8\uB300\uB85C \uB4E4\uB9B0\uB2E4 \u2014
+    \uBC16\uC73C\uB85C \uB098\uAC08 \uAE38\uC740 \uC11C\uCABD *\uCABD\uBB38*\uC774\uB2E4."
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!1001 &712261230
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1799,6 +1850,7 @@ Transform:
   m_Children:
   - {fileID: 57506539}
   - {fileID: 1568818404}
+  - {fileID: 812988685}
   m_Father: {fileID: 1318843944}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &794536286
@@ -1848,7 +1900,8 @@ MonoBehaviour:
   _emberBoost: 2.2
   _boostSeconds: 0
   _title: "\uBB38\uAC11"
-  _bodyBefore: "\uBB38\uC11C\uB97C \uB123\uC5B4 \uB450\uB294 \uADA4\uB2E4."
+  _bodyBefore: "\uBB38\uC11C\uB97C \uB123\uC5B4 \uB450\uB294 \uBB38\uAC11\uC774\uB2E4.
+    \uD71C \uACE0\uB9AC\uB97C \uBE7C\uB0C8\uC73C\uB2C8 \uC11C\uB78D\uC774 \uBE60\uC9C4\uB2E4."
   _bodyAfter: "\uBB38\uC11C \uB450 \uC7A5\uC774 \uAC1C\uCF1C\uC838 \uC788\uB2E4."
   _hint: "(\uB20C\uB7EC \uC7A1\uACE0 \uC11C\uB78D \uBE7C\uAE30)"
   _recordClue: 0
@@ -1860,12 +1913,14 @@ MonoBehaviour:
   _cluePage: {fileID: 0}
   _clueName: 
   _clueFine: 
+  _clueBack: {fileID: 0}
   _onRaked:
     m_PersistentCalls:
       m_Calls: []
   _lockedAtStart: 1
-  _lockedBody: "\uC790\uBB3C\uC1E0\uAC00 \uACE0\uB9AC\uC5D0 \uBB3C\uB824 \uC788\uB2E4.
-    \uBD80\uC11C\uC84C\uB294\uB370\uB3C4 \uAC78\uB9B0 \uCC44\uB2E4."
+  _lockedBody: "\uC11C\uB78D\uC774 \uC548 \uBE60\uC9C4\uB2E4 \u2014 \uBE44\uD2C0\uB9B0
+    \uAC78\uC1E0 \uACE0\uB9AC\uAC00 \uC11C\uB78D\uC5D0 \uBB3C\uB824 \uC788\uB2E4.
+    \uBC1C\uCE58\uC5D0 \uB5A8\uC5B4\uC9C4 *\uC790\uBB3C\uC1E0*\uBD80\uD130 \uC0B4\uD3B4\uBCF4\uC790."
   _yieldWhenDone: 1
 --- !u!65 &794536287
 BoxCollider:
@@ -1905,6 +1960,11 @@ MonoBehaviour:
     \uD568\uBD80\uB85C \uC5EC\uB294 \uBC95\uC774 \uC5B4\uB514 \uC788\uC18C."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: 
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!114 &794536289
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1919,6 +1979,59 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.UnlockWhenClued
   _clueKey: J15
   _case: 0
+--- !u!1 &812988684
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 812988685}
+  - component: {fileID: 812988686}
+  m_Layer: 0
+  m_Name: "\uBB38\uAC11_\uBAB8"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &812988685
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 812988684}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0.0050001144, y: 0.029999971, z: -0.3550005}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 794536285}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &812988686
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 812988684}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.11, y: 0.27, z: 0.54}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &844021625
 GameObject:
   m_ObjectHideFlags: 0
@@ -2004,7 +2117,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &861381880
 Transform:
   m_ObjectHideFlags: 0
@@ -2255,7 +2368,7 @@ MonoBehaviour:
   _hoverHint: 0.06
   _fallBackSpeed: 3
   _catchAt: 0.66
-  _holdToKeep: 1
+  _holdToKeep: 0
   _weight: 0.4
   _tremble: 0
   _trembleHz: 4
@@ -2285,21 +2398,23 @@ MonoBehaviour:
   _bodyBefore: "\uC8FC\uC778\uC774 \uC549\uC544 \uC788\uB358 \uC790\uB9AC\uB2E4."
   _bodyAfter: "\uB4E4\uB9B0 \uC694 \uBC11\uC5D0 *\uBCC4\uAE09\uBB38\uAE30* \uD55C
     \uC7A5\uC774 \uAE54\uB824 \uC788\uB2E4."
-  _hint: "(\uB20C\uB7EC *\uC7A1\uACE0 \uC788\uC5B4\uC57C* \uB4E4\uB9B0\uB2E4)"
+  _hint: "(\uB20C\uB7EC \uC7A1\uACE0 \uB4E4\uC5B4 \uC62C\uB9AC\uAE30)"
   _recordClue: 1
   _clueCase: 0
   _clueKey: J11
-  _clueText: "[J11] \uBCF4\uB8CC \uBC11 \uBCC4\uAE09\uBB38\uAE30. \uC7AC\uC0B0\uC744
-    '\uC624\uB798 \uBD80\uB9B0 \uC885 \uBCF5\uB3D9\uC5D0\uAC8C' \uC900\uB2E4 \u2014
-    \uC544\uB4E4\uC774\uB77C\uB294 \uB9D0\uC774 \uC5C6\uB2E4."
+  _clueText: "[J11] \uBCF4\uB8CC \uBC11\uC5D0 \uAE54\uB824 \uC788\uB358 \uBCC4\uAE09\uBB38\uAE30(\u5225\u7D66\u6587\u8A18)
+    \u2014 \uC7AC\uC0B0\uC744 \uB530\uB85C \uB5BC\uC5B4 \uC900\uB2E4\uB294 \uBB38\uC11C\uB2E4.
+    \uAD00\uC758 \uB3C4\uC7A5\uC774 \uCC0D\uD600 \uC788\uB2E4.\n\n\uBC1B\uB294 \uC774\uC758
+    \uC774\uB984\uC740 \uB9E8\uB208\uC73C\uB85C \uBABB \uC77D\uB294\uB2E4."
   _clueImage: {fileID: 0}
   _cluePage: {fileID: 2800000, guid: 026958a115f7a0d4a97fc756841adada, type: 3}
-  _clueName: 
+  _clueName: "\uBCC4\uAE09\uBB38\uAE30"
   _clueFine: "\u4E45\u4F7F\u5974 \u535C\u540C \u8655 \u2014 '\uC624\uB798 \uBD80\uB9B0
     \uC885 \uBCF5\uB3D9\uC5D0\uAC8C' \uC900\uB2E4. \uC544\uB4E4\uC774\uB77C \uC801\uC9C0
     \uC54A\uC558\uACE0 \uBA74\uCC9C\uD55C\uB2E4\uB294 \uB9D0\uB3C4 \uC5C6\uB2E4.
-    \uC7AC\uC0B0\uC740 \uC8FC\uB418 \uC885\uC740 \uADF8\uB300\uB85C\uB2E4. \u8F9B\u672A\u5E74
-    \u6B63\u6708 \u5B98\u7ACB\u6848."
+    \u58EC\u620C\u5E74 \u6B63\u6708 \u5B98\u7ACB\u6848 \u2014 \uC2A4\uBB34 \uD574
+    \uC804\uC774\uB2E4."
+  _clueBack: {fileID: 2800000, guid: 23e41afd1cf7d3e418d8aeca78348daa, type: 3}
   _onRaked:
     m_PersistentCalls:
       m_Calls: []
@@ -2344,6 +2459,11 @@ MonoBehaviour:
     \uBCF4\uC2DC\uACA0\uB2E4\uB294 \uAC83\uC774\uC624?"
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: 
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!114 &910118048
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2356,32 +2476,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 109a21ec139b0c7468c467ad6ca014e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.UnlockWhenGone
---- !u!1 &939975640 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 4239325114264058313, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-  m_PrefabInstance: {fileID: 8546719454161316330}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &939975644
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 939975640}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0.835, z: 0.5000001}
 --- !u!1 &1095863539
 GameObject:
   m_ObjectHideFlags: 0
@@ -2414,32 +2508,6 @@ Transform:
   - {fileID: 850858656}
   m_Father: {fileID: 543471821}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1159323965 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1442675864760634428, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-  m_PrefabInstance: {fileID: 8546719454161316330}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &1159323969
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1159323965}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0.835, z: 0.5000001}
 --- !u!1 &1160642942
 GameObject:
   m_ObjectHideFlags: 0
@@ -2496,7 +2564,7 @@ MonoBehaviour:
       m_Calls: []
   _summonServant: 1
   _useSustained: 1
-  _warnAt: 0.55
+  _warnAt: 0.45
 --- !u!114 &1160642945
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2519,6 +2587,7 @@ MonoBehaviour:
   _cooldown: 3
   _turnToward: 0
   _turnSpeed: 160
+  _turn: {fileID: 0}
   _turnHold: 2
   _onNoticed:
     m_PersistentCalls:
@@ -2695,14 +2764,24 @@ MonoBehaviour:
   _page: {fileID: 2800000, guid: 1cc41d64a2ca5e842b7f459b07ab6b6d, type: 3}
   _canOpen: 1
   _maxTouchDistance: 3
-  _fineText: "\uBCBC \uC5F4 \uC12C\uC744 \uBE4C\uB9AC\uACE0 \uD574\uB9C8\uB2E4 \uC5F4
-    \uC12C\uC744 \uB354 \uC5B9\uB294\uB2E4 \u2014 \uD55C \uD574\uC5D0 \uACF1\uC774
-    \uB418\uB294 \uAC11\uB9AC(\u7532\u5229)\uB2E4. \u671F\uB97C \uB118\uAE30\uBA74
-    \uB17C\uBC2D\uC73C\uB85C \uB300\uB0A9."
+  _fineText: "\uBB34\uC7A5 \uBC15\uAC00\uAC00 \uC639\uB355\uAD6C\uC5D0\uAC8C\uC11C
+    \uBCBC \uC5F4 \uC12C\uC744 \uAFB8\uACE0, \uD574\uB9C8\uB2E4 \uC5F4 \uC12C\uC744
+    \uB354 \uC5B9\uB294\uB2E4 \u2014 \uD55C \uD574\uC5D0 \uACF1\uC774 \uB418\uB294
+    \uAC11\uB9AC(\u7532\u5229)\uB2E4. \uAE30\uD55C\uC744 \uB118\uAE30\uBA74 \uB17C\uBC2D\uC73C\uB85C
+    \uB300\uC2E0 \uAC1A\uB294\uB2E4. \uC784\uC624\uB144 \uC0BC\uC6D4, \uAFBC \uC774
+    \uBC15\uAC00."
   _clueNeedsMagnifier: 1
+  _dimBehind: 1
+  _clueNoteAfterMagnify: "\uB3CB\uBCF4\uAE30\uB85C \uBCF4\uB2C8 \u2014 \uC62C\uD574
+    \uC0BC\uC6D4, \uBB34\uC7A5 \uBC15\uAC00\uAC00 <b>\uC639\uB355\uAD6C\uC5D0\uAC8C\uC11C</b>
+    \uBCBC \uC5F4 \uC12C\uC744 \uAFB8\uC5C8\uB2E4. \uD574\uB9C8\uB2E4 \uC5F4 \uC12C\uC529
+    \uB354 \uC5B9\uB294 <b>\uAC11\uB9AC(\u7532\u5229)</b>, \uB098\uB77C\uAC00 \uAE08\uD55C
+    \uACF1\uC808 \uC774\uC790\uB2E4. \uBE4C\uB824\uC900 \uCABD\uC774 \uC774 \uC9D1\uC774\uB2E4."
   _model: {fileID: 0}
   _modelEuler: {x: 0, y: 0, z: 0}
-  _backPage: {fileID: 0}
+  _pageKo: {fileID: 2800000, guid: ad44b0c5fddb1d04bb0edfe8c0eace17, type: 3}
+  _revealsPressed: {fileID: 0}
+  _backPage: {fileID: 2800000, guid: 20155138ae284914ba720df302c66534, type: 3}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
@@ -2711,15 +2790,14 @@ MonoBehaviour:
   _litClueOwnText: 
   _litClueText: 
   _title: "\uCC28\uC6A9\uC99D"
-  _body: "\uC639\uB355\uAD6C\uAC00 \uB0A8\uC5D0\uAC8C \uBCBC\uB97C \uAFB8\uC5B4 \uC8FC\uBA70
-    \uBC1B\uC544 \uB454 \uC99D\uC11C\uB2E4."
+  _body: "\uC0AC\uC0AC\uB85C\uC774 \uB9FA\uC740 \uBE5A \uBB38\uC11C\uB2E4. \uC774
+    \uC9D1\uC774 \uBC1B\uC544 \uB454 \uAC83\uC774\uB2E4."
   _requiresMagnifier: 0
   _recordClue: 1
   _clueCase: 0
   _clueKey: J08
-  _clueText: "[J08] \uC774\uC790\uAC00 *\uAC11\uB9AC(\u7532\u5229)* \u2014 \uD55C
-    \uD574\uC5D0 \uC5F4 \uC12C\uC744 \uAFBC \uB9CC\uD07C *\uB354 \uAC1A\uC73C\uB77C*
-    \uC801\uD600 \uC788\uB2E4."
+  _clueText: "[J08] \uBB38\uAC11 \uC11C\uB78D\uC5D0 \uB4E0 \uCC28\uC6A9\uC99D(\u501F\u7528\u8B49)
+    \u2014 \uC0AC\uC0AC\uB85C\uC774 \uB9FA\uC740 \uBE5A \uBB38\uC11C\uB2E4."
   _clueImage: {fileID: 2800000, guid: 1cc41d64a2ca5e842b7f459b07ab6b6d, type: 3}
 --- !u!65 &1253046797
 BoxCollider:
@@ -2759,6 +2837,11 @@ MonoBehaviour:
     \uB9C8\uC2DC\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: 
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!1 &1259042990 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1012546555593800258, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
@@ -2790,6 +2873,7 @@ MonoBehaviour:
   _maxTouchDistance: 2
   _locked: 0
   _noise: 0.42
+  _creakAloud: 0
   _openSound: {fileID: 8300000, guid: 00cfb73ffefbc614f9efc02fb4cb7833, type: 3}
   _closeSound: {fileID: 8300000, guid: 952891825eb4a454d87233965e79fcd6, type: 3}
   _pitchJitter: 0.08
@@ -2821,6 +2905,11 @@ MonoBehaviour:
   _line: "\uAC70\uAE34 \uB0B4\uAC00 \uC190\uC218 \uC7A0\uADF8\uB294 \uACF3\uC774\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: 
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!114 &1259042995
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2841,18 +2930,107 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7031006257642310637, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
   m_PrefabInstance: {fileID: 8546719454161316330}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1430125034 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 9143543124095007661, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-  m_PrefabInstance: {fileID: 8546719454161316330}
+--- !u!1001 &1414312161
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 10715029}
+    m_Modifications:
+    - target: {fileID: 5457413279518865646, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5457413279518865646, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.05502826
+      objectReference: {fileID: 0}
+    - target: {fileID: 5457413279518865646, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5457413279518865646, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.9702957
+      objectReference: {fileID: 0}
+    - target: {fileID: 5457413279518865646, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5457413279518865646, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.2419219
+      objectReference: {fileID: 0}
+    - target: {fileID: 5457413279518865646, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5457413279518865646, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5457413279518865646, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5457413279518865646, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8652569365924108817, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+      propertyPath: m_Name
+      value: "\uBD80\uC11C\uC9C4\uC790\uBB3C\uC1E0"
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+--- !u!4 &1414312162 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5457413279518865646, guid: 1cb9b11461f2cc64fa300b0b5ad02b67, type: 3}
+  m_PrefabInstance: {fileID: 1414312161}
   m_PrefabAsset: {fileID: 0}
---- !u!65 &1430125038
+--- !u!1 &1448632585
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1448632586}
+  - component: {fileID: 1448632587}
+  m_Layer: 0
+  m_Name: "\uBB38\uC9DD_\uB204\uB984"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1448632586
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1448632585}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.00000017881389, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -150.04535, y: 136.98253, z: -2.0809631}
+  m_LocalScale: {x: 999.99994, y: 999.9996, z: 999.9996}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8546719454161316334}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &1448632587
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1430125034}
+  m_GameObject: {fileID: 1448632585}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -2865,8 +3043,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0.835, z: 0.5000001}
+  m_Size: {x: 0.28999996, y: 0.29, z: 0.03}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1458143780 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7979112629664038426, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
@@ -2889,32 +3067,13 @@ MonoBehaviour:
     \uB4DC\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
---- !u!1 &1483726846 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 5506174140835626029, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-  m_PrefabInstance: {fileID: 8546719454161316330}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &1483726850
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1483726846}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0.835, z: 0.5000001}
+  _lineAfter: "\uB9C8\uB2F9\uC744 \uD5A5\uD55C \uBD84\uD569\uBB38\uC774\uB2E4. \uC5EC\uB294
+    \uC18C\uB9AC\uAC00 \uB9C8\uB2F9\uC5D0 \uADF8\uB300\uB85C \uB4E4\uB9B0\uB2E4 \u2014
+    \uBC16\uC73C\uB85C \uB098\uAC08 \uAE38\uC740 \uC11C\uCABD *\uCABD\uBB38*\uC774\uB2E4."
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!1001 &1489911334
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3049,6 +3208,7 @@ MonoBehaviour:
   _lieSeconds: 0.55
   _riseSeconds: 0.5
   _lieLine: "\uC694\uC5D0 \uBAB8\uC744 \uB25C\uB2E4. *\uC228\uC744 \uC8FD\uC778\uB2E4*."
+  _offerReveal: 1
   _coolFaster: 3
   _sleepAfterSeconds: 0
   _onSleptThrough:
@@ -3241,6 +3401,13 @@ MonoBehaviour:
     \uB4DC\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: "\uB9C8\uB2F9\uC744 \uD5A5\uD55C \uBD84\uD569\uBB38\uC774\uB2E4. \uC5EC\uB294
+    \uC18C\uB9AC\uAC00 \uB9C8\uB2F9\uC5D0 \uADF8\uB300\uB85C \uB4E4\uB9B0\uB2E4 \u2014
+    \uBC16\uC73C\uB85C \uB098\uAC08 \uAE38\uC740 \uC11C\uCABD *\uCABD\uBB38*\uC774\uB2E4."
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!1 &1690755721 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5960532119415313919, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
@@ -3263,6 +3430,13 @@ MonoBehaviour:
     \uB4DC\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: "\uB9C8\uB2F9\uC744 \uD5A5\uD55C \uBD84\uD569\uBB38\uC774\uB2E4. \uC5EC\uB294
+    \uC18C\uB9AC\uAC00 \uB9C8\uB2F9\uC5D0 \uADF8\uB300\uB85C \uB4E4\uB9B0\uB2E4 \u2014
+    \uBC16\uC73C\uB85C \uB098\uAC08 \uAE38\uC740 \uC11C\uCABD *\uCABD\uBB38*\uC774\uB2E4."
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!1 &1730422660
 GameObject:
   m_ObjectHideFlags: 0
@@ -3313,12 +3487,19 @@ MonoBehaviour:
   _canOpen: 1
   _maxTouchDistance: 3
   _fineText: "\u5974 \u535C\u540C \u5E74 \u4E09\u5341\u516B \u2014 \uC885 \uBCF5\uB3D9\uC774
-    \uC0B4\uC544 \uC788\uB294 \uAC83\uC73C\uB85C \uC62C\uB77C \uC788\uB2E4. \uBC18\uB4EF\uD55C
+    \uC11C\uB978\uC5EC\uB35F\uC73C\uB85C \uC0B4\uC544 \uC788\uB2E4. \uBC18\uB4EF\uD55C
     \uD55C \uC190, \uAD00\uB9AC\uC758 \uAE00\uC528\uB2E4."
   _clueNeedsMagnifier: 1
+  _dimBehind: 1
+  _clueNoteAfterMagnify: "\uB3CB\uBCF4\uAE30\uB85C \uBCF4\uB2C8 \u2014 \uD638\uC8FC
+    \uC639\uB355\uAD6C, \uC544\uB0B4 \uAE40\uC528, \uADF8\uB9AC\uACE0 \u300C\uC885
+    \uBCF5\uB3D9, \uB098\uC774 \uC11C\uB978\uC5EC\uB35F\u300D\uC774 <b>\uC0B4\uC544
+    \uC788\uB294 \uC0AC\uB78C</b>\uC73C\uB85C \uC62C\uB77C \uC788\uB2E4."
   _model: {fileID: 0}
   _modelEuler: {x: 0, y: 0, z: 0}
-  _backPage: {fileID: 0}
+  _pageKo: {fileID: 2800000, guid: 1c9f44528cd76124d9ef779fe5cb3f10, type: 3}
+  _revealsPressed: {fileID: 0}
+  _backPage: {fileID: 2800000, guid: fcff95b0c28556a4199f6feaa4157b11, type: 3}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
@@ -3327,14 +3508,15 @@ MonoBehaviour:
   _litClueOwnText: 
   _litClueText: 
   _title: "\uD638\uC801\uB300\uC7A5(\u6236\u7C4D\u5927\u5E33)"
-  _body: "\uC0BC \uB144 \uC804 \uAD00\uAC00\uAC00 \uAC00\uC9C0\uACE0 \uC788\uB294
-    \uD638\uC801\uC774\uB2E4."
+  _body: "\uC0BC \uB144 \uC804 \uC2DD\uB144\uC758 \uD638\uC801\uB300\uC7A5\uC5D0\uC11C
+    \uC774 \uC9D1 \uD55C \uC7A5\uC744 \uBCA0\uAEF4 \uB454 \uAC83\uC774\uB2E4."
   _requiresMagnifier: 0
   _recordClue: 1
   _clueCase: 0
   _clueKey: J12
-  _clueText: "[J12] \uC0BC \uB144 \uC804 \uD638\uC801\uC774\uB2E4. \uB178 \uBCF5\uB3D9\uC774
-    *\uC0B4\uC544 \uC788\uB2E4*\uACE0 \uC801\uD600 \uC788\uB2E4"
+  _clueText: "[J12] \uC0BC \uB144 \uC804 \uAD00\uC758 \uD638\uC801\uB300\uC7A5\uC5D0\uC11C
+    \uC774 \uC9D1 \uD55C \uC7A5\uC744 \uBCA0\uB080 \uAC83. \uAD00\uB9AC\uC758 \uBC18\uB4EF\uD55C
+    \uAE00\uC528\uB2E4."
   _clueImage: {fileID: 0}
 --- !u!65 &1730422663
 BoxCollider:
@@ -3374,6 +3556,11 @@ MonoBehaviour:
     \uB9C8\uC2DC\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: 
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!1001 &1748312476
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3396,7 +3583,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 6.8936515
+      value: 6.865
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalPosition.y
@@ -3404,27 +3591,27 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -10.668423
+      value: -10.624
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7071068
+      value: 0.4680244
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.7071068
+      value: -0.4680244
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0
+      value: 0.53005016
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0.53005016
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
+      value: -90
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
@@ -3432,12 +3619,12 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3467811235257963604, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
+      value: 97.112
       objectReference: {fileID: 0}
     - target: {fileID: 5260064872674817566, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: _body
-      value: "\uC2A4\uBB34 \uD574\uCE58 \uC804\uC870(\u7530\u79DF)\uB97C \uC801\uC5B4
-        \uC628 \uC7A5\uBD80\uB2E4. \uB05D\uC758 \uB450 \uC904\uC774 \uC5B4\uB518\uAC00
+      value: "\uC2A4\uBB34 \uD574\uCE58 \uB3C4\uC870(\u8CED\u79DF)\uB97C \uC801\uC5B4
+        \uC628 \uC804\uC870\uAE30\uB2E4. \uB05D\uC758 \uB450 \uC904\uC774 \uC5B4\uB518\uAC00
         \uB2E4\uB974\uB2E4."
       objectReference: {fileID: 0}
     - target: {fileID: 5260064872674817566, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
@@ -3445,24 +3632,43 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2800000, guid: 976316d300456484099e0477c95dccd9, type: 3}
     - target: {fileID: 5260064872674817566, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
+      propertyPath: _pageKo
+      value: 
+      objectReference: {fileID: 2800000, guid: acaa97f0e8e19ae489ca1193f331ff3d, type: 3}
+    - target: {fileID: 5260064872674817566, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: _clueKey
       value: J06
       objectReference: {fileID: 0}
     - target: {fileID: 5260064872674817566, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
+      propertyPath: _backPage
+      value: 
+      objectReference: {fileID: 2800000, guid: fbdafd16c24f691438d59aa182f2ff12, type: 3}
+    - target: {fileID: 5260064872674817566, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: _clueText
-      value: "[J06] \uC2A4\uBB34 \uD574\uCE58 \uAE30\uB85D \uB4A4 \uCD5C\uADFC \uB450
-        \uC904\uB9CC \uD544\uC801\uC774 \uB2E4\uB974\uB2E4"
+      value: "[J06] \uC0AC\uB791\uBC29 \uC11C\uC548\uC5D0 \uD3B4 \uB454 \uC804\uC870\uAE30(\u7530\u79DF\u8A18)
+        \u2014 \uD574\uB9C8\uB2E4 \uAC70\uB454 \uB3C4\uC870\uB97C \uC801\uC5B4 \uC628
+        \uC7A5\uBD80\uB2E4.\n\n\uC55E\uC758 \uC904\uB4E4\uACFC \uB9E8 \uB05D \uB450
+        \uC904\uC758 \uBD93\uB05D\uC774 \uB2E4\uB974\uB2E4. \uAE00\uC744 \uBABB \uC77D\uC5B4\uB3C4
+        \uC190\uC774 \uBC14\uB010 \uAC83\uC774 \uBCF4\uC778\uB2E4."
       objectReference: {fileID: 0}
     - target: {fileID: 5260064872674817566, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: _fineText
-      value: "\u4E19\u5BC5\u5E74 \uB450 \uC904\uB9CC \uBD93\uB05D\uC774 \uB2E4\uB974\uB2E4.
-        \uD68D\uC758 \uCCAB\uBA38\uB9AC\uAC00 \uBB34\uB514\uACE0 \uC090\uCE68\uC774
-        \uC9E7\uB2E4 \u2014 \uC55E\uC758 \uC2A4\uBB34 \uD574\uC640 \uAC19\uC740 \uC190\uC774
-        \uC544\uB2C8\uB2E4."
+      value: "\uC784\uC624\uB144 \uC720\uC6D4\xB7\uCE60\uC6D4 \uB450 \uC904\uB9CC
+        \uBD93\uB05D\uC774 \uB2E4\uB974\uB2E4. \uD68D\uC758 \uCCAB\uBA38\uB9AC\uAC00
+        \uBB34\uB514\uACE0 \uC090\uCE68\uC774 \uC9E7\uB2E4 \u2014 \uC55E\uC758 \uC904\uB4E4\uACFC
+        \uAC19\uC740 \uC190\uC774 \uC544\uB2C8\uB2E4. \uB3C4\uC870\uB3C4 \uADF8 \uB2EC\uBD80\uD130
+        \uC11C\uB978 \uB9D0\uC5D0\uC11C \uC2A4\uBB34 \uB9D0\uB85C \uAEBE\uC600\uB2E4."
       objectReference: {fileID: 0}
     - target: {fileID: 5260064872674817566, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: _clueNeedsMagnifier
-      value: 1
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5260064872674817566, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
+      propertyPath: _clueNoteAfterMagnify
+      value: "\uB3CB\uBCF4\uAE30\uB85C \uBCF4\uB2C8 \u2014 \uB05D\uC758 \uB450 \uC904\uC740
+        \uD68D\uC744 \uB9FA\uACE0 \uB5BC\uB294 \uC790\uB9AC\uBD80\uD130 \uB2E4\uB974\uB2E4.
+        \uB299\uC5B4 \uB5A8\uB9B0 \uC190\uC774 \uC544\uB2C8\uB77C <b>\uB2E4\uB978
+        \uC0AC\uB78C\uC758 \uC190</b>\uC774\uB2E4."
       objectReference: {fileID: 0}
     - target: {fileID: 6864834452352987828, guid: 4546360fa5a3bcb4bb176b7ce25d7195, type: 3}
       propertyPath: m_Name
@@ -3564,6 +3770,14 @@ MonoBehaviour:
     \uC2A4\uBB34 \uD574\uB97C \uADF8\uB9AC \uD588\uC18C."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: 
+  _grantsClueKey: J02
+  _grantsClueTitle: "\uC2A4\uBB34 \uD574\uB97C \uC81C \uC190\uC73C\uB85C \uC801\uC5C8\uB2E4"
+  _grantsClueText: "\uC7A5\uBD80\uC5D0 \uC190\uC744 \uB300\uC790 \uC8FC\uC778\uC774
+    \uB9C9\uC544\uC130\uB2E4. \u300C\uC7A5\uBD80\uB294 \uB0B4\uAC00 \uC190\uC218
+    \uC801\uC740 \uAC83\uC774\uC624. \uC2A4\uBB34 \uD574\uB97C \uADF8\uB9AC \uD588\uC18C.\u300D
+    \uB0A8\uC758 \uC190\uC5D0 \uB9E1\uAE34 \uC801\uC774 \uC5C6\uB2E4\uB294 \uC790\uB791\uC774\uB2E4."
+  _grantsCase: 0
 --- !u!1 &1986024753
 GameObject:
   m_ObjectHideFlags: 0
@@ -3593,7 +3807,7 @@ Transform:
   m_GameObject: {fileID: 1986024753}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7018361, y: 0.086174645, z: -0.086174645, w: 0.7018361}
-  m_LocalPosition: {x: 0, y: 0.005000055, z: 0.39999962}
+  m_LocalPosition: {x: 0, y: -0.13499999, z: 0.39999962}
   m_LocalScale: {x: 0.16970399, y: 0.23999998, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3674,12 +3888,20 @@ MonoBehaviour:
   _fineText: "\u4E45\u4F7F\u5974 \u535C\u540C \u8655 \u2014 '\uC624\uB798 \uBD80\uB9B0
     \uC885 \uBCF5\uB3D9\uC5D0\uAC8C' \uC900\uB2E4. \uC544\uB4E4\uC774\uB77C \uC801\uC9C0
     \uC54A\uC558\uACE0 \uBA74\uCC9C\uD55C\uB2E4\uB294 \uB9D0\uB3C4 \uC5C6\uB2E4.
-    \uC7AC\uC0B0\uC740 \uC8FC\uB418 \uC885\uC740 \uADF8\uB300\uB85C\uB2E4. \u8F9B\u672A\u5E74
-    \u6B63\u6708 \u5B98\u7ACB\u6848."
+    \u58EC\u620C\u5E74 \u6B63\u6708 \u5B98\u7ACB\u6848 \u2014 \uC2A4\uBB34 \uD574
+    \uC804\uC774\uB2E4."
   _clueNeedsMagnifier: 1
+  _dimBehind: 1
+  _clueNoteAfterMagnify: "\uB3CB\uBCF4\uAE30\uB85C \uBCF4\uB2C8 \u2014 \uBC1B\uB294
+    \uC774\uB294 \u300C<b>\uC624\uB798 \uBD80\uB9B0 \uC885 \uBCF5\uB3D9</b>\u300D.
+    \uB17C \uC5EC\uB35F \uB9C8\uC9C0\uAE30\uC5D0 \uB178\uBE44 \uB450 \uC0AC\uB78C\uC744
+    \uB5BC\uC5B4 \uC8FC\uC5C8\uB2E4. \uC885\uC5D0\uAC8C \uC904 \uBAAB\uC73C\uB85C\uB294
+    \uB108\uBB34 \uD06C\uB2E4."
   _model: {fileID: 0}
   _modelEuler: {x: 0, y: 0, z: 0}
-  _backPage: {fileID: 0}
+  _pageKo: {fileID: 2800000, guid: 2a44c4ae1ca04014f9a636228ee91bfa, type: 3}
+  _revealsPressed: {fileID: 0}
+  _backPage: {fileID: 2800000, guid: 23e41afd1cf7d3e418d8aeca78348daa, type: 3}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
@@ -3689,15 +3911,16 @@ MonoBehaviour:
   _litClueText: 
   _title: "\uBCC4\uAE09\uBB38\uAE30(\u5225\u7D66\u6587\u8A18)"
   _body: "\uBCF4\uB8CC \uBC11\uC5D0 \uAE54\uB824 \uC788\uB358 \uC885\uC774\uB2E4.
-    \uC544\uBC84\uC9C0\uAC00 \uC7AC\uC0B0\uC744 \uB118\uAE34 \uBB38\uC11C\uC778\uB370,
-    \uBC1B\uB294 \uC774\uAC00 '\uC885'\uC73C\uB85C \uC801\uD600 \uC788\uB2E4."
+    \uB3CC\uC544\uAC00\uC2E0 \uC544\uBC84\uC9C0\uC758 \uB73B\uC73C\uB85C \uC7AC\uC0B0\uC744
+    \uB530\uB85C \uB5BC\uC5B4 \uC900 \uBB38\uC11C\uC778\uB370, \uBC1B\uB294 \uC774\uAC00
+    '\uC885'\uC73C\uB85C \uC801\uD600 \uC788\uB2E4."
   _requiresMagnifier: 0
   _recordClue: 0
   _clueCase: 0
   _clueKey: J11
-  _clueText: "[J11] \uBCF4\uB8CC \uBC11\uC5D0 \uAE54\uB824 \uC788\uB358 \uC885\uC774\uB2E4.
-    \uC7AC\uC0B0\uC744 \uB118\uAE34\uB2E4\uB294 \uBB38\uC11C\uC778\uB370, \uBC1B\uB294
-    \uC774\uC758 \uC774\uB984\uC774 \uB0AF\uC124\uB2E4."
+  _clueText: "[J11] \uBCF4\uB8CC \uBC11\uC5D0 \uAE54\uB824 \uC788\uB358 \uBCC4\uAE09\uBB38\uAE30(\u5225\u7D66\u6587\u8A18)
+    \u2014 \uC7AC\uC0B0\uC744 \uB530\uB85C \uB5BC\uC5B4 \uC900\uB2E4\uB294 \uBB38\uC11C\uB2E4.
+    \uAD00\uC758 \uB3C4\uC7A5\uC774 \uCC0D\uD600 \uC788\uB2E4."
   _clueImage: {fileID: 0}
 --- !u!65 &1986024758
 BoxCollider:
@@ -3832,6 +4055,11 @@ MonoBehaviour:
     \uD568\uBD80\uB85C \uC5EC\uB294 \uBC95\uC774 \uC5B4\uB514 \uC788\uC18C."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: 
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!114 &2126368294
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3839,7 +4067,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2126368289}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f674140ae4598c145bcb5ce45fac3f8f, type: 3}
   m_Name: 
@@ -3914,12 +4142,18 @@ MonoBehaviour:
   _page: {fileID: 2800000, guid: 206fbec17bf1a9b48afc30a1eb992528, type: 3}
   _canOpen: 1
   _maxTouchDistance: 2.5
-  _fineText: "\uBC1B\uC744 \uACF3\uC774 \uC774 \uACE0\uC744\uC774 \uC544\uB2C8\uB2E4.
-    \uAC1A\uC740 \uC790\uCDE8\uB3C4 \uC801\uD600 \uC788\uC9C0 \uC54A\uB2E4."
+  _fineText: "\uBB34\uC7A5\uD604 \uBC15\uAC00\uC5D0\uAC8C \uB0B4\uC900 \uB3C8\uC744
+    \uC544\uC9C1 \uBC1B\uC9C0 \uBABB\uD588\uB2E4."
   _clueNeedsMagnifier: 1
+  _dimBehind: 1
+  _clueNoteAfterMagnify: "\uB3CB\uBCF4\uAE30\uB85C \uBCF4\uB2C8 \u2014 \uBB34\uC7A5\uD604
+    \uBC15\uAC00\uC5D0\uAC8C \uB0B4\uC900 \uB3C8\uC744 <b>\uC0BC \uB144\uC9F8 \uBABB
+    \uBC1B\uC558\uB2E4</b>\uB294 \uD45C\uB2E4."
   _model: {fileID: 0}
   _modelEuler: {x: 0, y: 0, z: 0}
-  _backPage: {fileID: 0}
+  _pageKo: {fileID: 2800000, guid: 747138e58da9d5d48a38ba20836c549a, type: 3}
+  _revealsPressed: {fileID: 0}
+  _backPage: {fileID: 2800000, guid: 8b49d5b0bc4966c40a0f6c33c072ad8f, type: 3}
   _litPage: {fileID: 0}
   _litText: 
   _clueNeedsLantern: 0
@@ -3928,16 +4162,13 @@ MonoBehaviour:
   _litClueOwnText: 
   _litClueText: 
   _title: "\uC218\uD45C(\u624B\u6A19)"
-  _body: "\uC7A5 \uC548\uC5D0 \uB530\uB85C \uB123\uC5B4 \uB454 \uC99D\uC11C\uB2E4.
-    \uB0A8\uC5D0\uAC8C \uAFB8\uC5B4 \uC900 \uB3C8\uC744 \uC544\uC9C1 \uBC1B\uC9C0
-    \uBABB\uD588\uB2E4\uB294 \uD45C\uB2E4."
+  _body: "\uC7A5 \uC548\uC5D0 \uB530\uB85C \uB123\uC5B4 \uB454 \uC218\uD45C(\u624B\u6A19)\uB2E4."
   _requiresMagnifier: 0
   _recordClue: 1
   _clueCase: 0
   _clueKey: J09
-  _clueText: "[J09] \uC7A5 \uC548\uC5D0 \uB123\uC5B4 \uB454 \uC218\uD45C. \uBB34\uC7A5\uD604(\u8302\u9577\u7E23)
-    \uBC15\uAC00\uC5D0\uAC8C \uC77C\uBC31 \uB0E5 \u2014 \uC0BC \uB144\uC774 \uB418\uB3C4\uB85D
-    \uB4E4\uC5B4\uC624\uC9C0 \uC54A\uC558\uB2E4."
+  _clueText: "[J09] \uC7A5 \uC548\uC5D0 \uB530\uB85C \uB123\uC5B4 \uB454 \uC218\uD45C(\u624B\u6A19)
+    \u2014 \uB3C8\uC744 \uB0B4\uC5B4 \uC8FC\uACE0 \uBC1B\uC544 \uB454 \uD45C\uB2E4."
   _clueImage: {fileID: 0}
 --- !u!65 &2142042068
 BoxCollider:
@@ -4049,6 +4280,11 @@ MonoBehaviour:
     \uB9C8\uC2DC\uC624."
   _cooldown: 2.5
   _onlyWhileSeated: 1
+  _lineAfter: 
+  _grantsClueKey: 
+  _grantsClueTitle: 
+  _grantsClueText: 
+  _grantsCase: 0
 --- !u!1001 &8546719454161316330
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4189,6 +4425,38 @@ PrefabInstance:
       propertyPath: m_Mesh
       value: 
       objectReference: {fileID: 4300000, guid: 2370eab576e308a419e1eebd0be8e615, type: 2}
+    - target: {fileID: 925931630067618410, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 9.212113
+      objectReference: {fileID: 0}
+    - target: {fileID: 925931630067618410, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -8.912486
+      objectReference: {fileID: 0}
+    - target: {fileID: 925931630067618410, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7066773
+      objectReference: {fileID: 0}
+    - target: {fileID: 925931630067618410, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.7066773
+      objectReference: {fileID: 0}
+    - target: {fileID: 925931630067618410, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.024641713
+      objectReference: {fileID: 0}
+    - target: {fileID: 925931630067618410, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.024641713
+      objectReference: {fileID: 0}
+    - target: {fileID: 925931630067618410, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: -90
+      objectReference: {fileID: 0}
+    - target: {fileID: 925931630067618410, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 3.994
+      objectReference: {fileID: 0}
     - target: {fileID: 947523527552926705, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_DirtyAABB
       value: 0
@@ -4304,6 +4572,10 @@ PrefabInstance:
     - target: {fileID: 1339061722925586088, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 2147483629
+      objectReference: {fileID: 0}
+    - target: {fileID: 1341201294553476933, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.968
       objectReference: {fileID: 0}
     - target: {fileID: 1395451518953075473, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -4441,6 +4713,14 @@ PrefabInstance:
       propertyPath: _soundStartAt
       value: 0.45
       objectReference: {fileID: 0}
+    - target: {fileID: 1732964990288682250, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: _leaves.Array.data[0].swingAngle
+      value: 85
+      objectReference: {fileID: 0}
+    - target: {fileID: 1732964990288682250, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: _leaves.Array.data[1].swingAngle
+      value: -85
+      objectReference: {fileID: 0}
     - target: {fileID: 1791563571096780778, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_DirtyAABB
       value: 0
@@ -4560,6 +4840,10 @@ PrefabInstance:
     - target: {fileID: 2538305799417792540, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 2147483629
+      objectReference: {fileID: 0}
+    - target: {fileID: 2610497883200148529, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 7.569
       objectReference: {fileID: 0}
     - target: {fileID: 2627421243786319421, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_Size.x
@@ -4910,6 +5194,10 @@ PrefabInstance:
       propertyPath: _soundStartAt
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4236757769515936506, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: _leaves.Array.data[1].swingAngle
+      value: -170
+      objectReference: {fileID: 0}
     - target: {fileID: 4244996026508564195, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_DirtyAABB
       value: 0
@@ -4938,6 +5226,22 @@ PrefabInstance:
       propertyPath: m_AABB.m_Extent.z
       value: 133.79144
       objectReference: {fileID: 0}
+    - target: {fileID: 4285092070192626499, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2.6029644
+      objectReference: {fileID: 0}
+    - target: {fileID: 4285092070192626499, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 5.7368765
+      objectReference: {fileID: 0}
+    - target: {fileID: 4285092070192626499, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.2937
+      objectReference: {fileID: 0}
+    - target: {fileID: 4285092070192626499, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -11.4884
+      objectReference: {fileID: 0}
     - target: {fileID: 4346210277851411545, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 2147483629
@@ -4945,6 +5249,10 @@ PrefabInstance:
     - target: {fileID: 4371150657279269142, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 2147483629
+      objectReference: {fileID: 0}
+    - target: {fileID: 4521557361543896409, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.972
       objectReference: {fileID: 0}
     - target: {fileID: 4525480550941752478, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -5058,6 +5366,10 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 2147483629
       objectReference: {fileID: 0}
+    - target: {fileID: 5114360558695249061, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.967
+      objectReference: {fileID: 0}
     - target: {fileID: 5251359046932696830, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 2147483629
@@ -5162,6 +5474,10 @@ PrefabInstance:
       propertyPath: _soundStartAt
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5429784911012665860, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: _leaves.Array.data[1].swingAngle
+      value: -170
+      objectReference: {fileID: 0}
     - target: {fileID: 5458362905678990428, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_LocalScale.y
       value: 2.794762
@@ -5237,6 +5553,14 @@ PrefabInstance:
     - target: {fileID: 5688115460962984534, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: _soundStartAt
       value: 0.45
+      objectReference: {fileID: 0}
+    - target: {fileID: 5688115460962984534, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: _leaves.Array.data[0].swingAngle
+      value: 85
+      objectReference: {fileID: 0}
+    - target: {fileID: 5688115460962984534, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: _leaves.Array.data[1].swingAngle
+      value: -85
       objectReference: {fileID: 0}
     - target: {fileID: 5760520950762928888, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_LocalScale.y
@@ -5402,6 +5726,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 2147483629
       objectReference: {fileID: 0}
+    - target: {fileID: 6619003965785033910, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -20.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 6619003965785033910, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -7.4
+      objectReference: {fileID: 0}
     - target: {fileID: 6652542469699527781, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_Size.x
       value: 0.05
@@ -5441,6 +5773,10 @@ PrefabInstance:
     - target: {fileID: 6807656281773585825, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: _soundStartAt
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6807656281773585825, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      propertyPath: _leaves.Array.data[1].swingAngle
+      value: -170
       objectReference: {fileID: 0}
     - target: {fileID: 6842061123798789018, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       propertyPath: m_LocalPosition.x
@@ -5982,6 +6318,9 @@ PrefabInstance:
     - {fileID: 1434874569225418622, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 4990836753538829919, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      insertIndex: 6
+      addedObject: {fileID: 104723625}
     - targetCorrespondingSourceObject: {fileID: 7031006257642310637, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: 15
       addedObject: {fileID: 712261231}
@@ -6027,6 +6366,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 178669844351573538, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1095863540}
+    - targetCorrespondingSourceObject: {fileID: 3572578994760909401, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1448632586}
+    - targetCorrespondingSourceObject: {fileID: 3930535650201625648, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 555557662}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 7592989009390585109, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: -1
@@ -6034,48 +6379,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5960532119415313919, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1690755724}
-    - targetCorrespondingSourceObject: {fileID: 2764417169022865645, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 514870029}
-    - targetCorrespondingSourceObject: {fileID: 4239325114264058313, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 939975644}
     - targetCorrespondingSourceObject: {fileID: 7979112629664038426, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1458143783}
-    - targetCorrespondingSourceObject: {fileID: 1382321809893530038, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 38713558}
-    - targetCorrespondingSourceObject: {fileID: 4349699332139647416, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 406098936}
-    - targetCorrespondingSourceObject: {fileID: 5506174140835626029, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1483726850}
     - targetCorrespondingSourceObject: {fileID: 7401410504871201945, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: -1
       addedObject: {fileID: 622068727}
-    - targetCorrespondingSourceObject: {fileID: 9143543124095007661, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1430125038}
-    - targetCorrespondingSourceObject: {fileID: 6978232280287980023, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 572987644}
-    - targetCorrespondingSourceObject: {fileID: 27588527977113643, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 683476191}
     - targetCorrespondingSourceObject: {fileID: 9022987785822996559, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1631878293}
-    - targetCorrespondingSourceObject: {fileID: 3762035054037107139, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 113341380}
-    - targetCorrespondingSourceObject: {fileID: 1492844550504105596, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 212822098}
-    - targetCorrespondingSourceObject: {fileID: 1442675864760634428, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1159323969}
     - targetCorrespondingSourceObject: {fileID: 1809209526279249495, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
       insertIndex: -1
       addedObject: {fileID: 413094060}
@@ -6151,6 +6463,21 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.6666665, y: 1, z: 2.6666665}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!4 &8546719454161316333 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3930535650201625648, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+  m_PrefabInstance: {fileID: 8546719454161316330}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8546719454161316334 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3572578994760909401, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+  m_PrefabInstance: {fileID: 8546719454161316330}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8546719454161316335 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4990836753538829919, guid: 6a7aae913180b8a4589351c85e887276, type: 3}
+  m_PrefabInstance: {fileID: 8546719454161316330}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

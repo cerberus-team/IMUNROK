@@ -76,7 +76,25 @@ namespace IMUNROK.Common
         /// <summary>자리를 권해 놓고 <b>기다리는</b> 중인가(방석을 누르거나 몸을 낮추기를).</summary>
         public bool Offered => _phase == Phase.Offered;
 
-        private void Awake() { Instance = this; }
+        private void Awake()
+        {
+            Instance = this;
+            _homeSpot = _seatSpot;
+            _homeLook = _lookAt;
+        }
+
+        private Transform _homeSpot, _homeLook;
+
+        /// <summary>
+        /// <b>인스펙터에 걸어 둔 자리로 되돌린다.</b> 판결 교의(<see cref="ReportDesk"/>)가 앉히면서
+        /// 제 자리·제 볼 곳으로 바꿔 두는데, 그 뒤 지도로 심문 자리에 가면 <see cref="Sit"/> 이
+        /// 바뀐 자리를 짚어 <b>판결 교의로 미끄러져 가 앉았다</b>.
+        /// </summary>
+        public void RestoreSeat()
+        {
+            if (_homeSpot != null) _seatSpot = _homeSpot;
+            if (_homeLook != null) _lookAt = _homeLook;
+        }
         private void OnDestroy() { if (Instance == this) Instance = null; }
 
         // ── 밖에서 부르는 신호 ──────────────────────
@@ -166,6 +184,19 @@ namespace IMUNROK.Common
         {
             if (spot != null) _seatSpot = spot;
             if (lookAt != null) _lookAt = lookAt;
+        }
+
+        /// <summary>
+        /// 연출 없이 곧장 일어선다.
+        ///
+        /// 지도로 딴 데에 옮겨 갈 때 쓴다 — 그때는 이미 몸이 저쪽에 가 있으므로
+        /// 일어서는 그림을 보일 자리가 없고, 잠가 둔 걸음만 풀면 된다.
+        /// </summary>
+        public void StandNow()
+        {
+            if (_phase == Phase.Standing) return;
+            Stand();
+            _t = _len;                      // 다음 Update 에서 곧바로 끝난다
         }
 
         /// <summary>연출 없이 곧장 앉힌다(씬을 켜자마자 앉아 있어야 할 때).</summary>

@@ -51,8 +51,54 @@ namespace IMUNROK.Common
         [Tooltip("씬이 바뀌어도 계속 흐르게 한다. 표제·어명처럼 씬을 넘어 이어지는 곡에만 켠다")]
         [SerializeField] private bool _keepAcrossScenes = false;
 
+        [Header("잠행")]
+        [Tooltip("<b>방을 뒤지는 동안</b>(甲 이 나가고 소리계가 켜진 뒤) 잦아든다. 노래가 흐르는 채로는 " +
+                 "「조용히 해야 한다」가 몸에 안 온다. 풀벌레 같은 밤소리는 꺼 둔다 — 그것은 남아야 " +
+                 "고요가 들린다")]
+        [SerializeField] private bool _hushWhileSneaking = true;
+        [Range(0f, 1f)]
+        [Tooltip("잠행 동안 남기는 크기(제 크기에 곱한다). 0 이면 완전히 멎는다")]
+        [SerializeField] private float _sneakLevel = 0f;
+
         private AudioSource _src;
         private Coroutine _fading;
+        private bool _hushed;
+
+        private static readonly System.Collections.Generic.List<SceneMusic> _all =
+            new System.Collections.Generic.List<SceneMusic>();
+
+        private void OnEnable() { if (!_all.Contains(this)) _all.Add(this); }
+        private void OnDisable() { _all.Remove(this); }
+
+        /// <summary>지금 이 소리의 「제 크기」 — 잠행 중이면 낮춘 크기.</summary>
+        private float Base => _hushed ? _volume * _sneakLevel : _volume;
+
+        /// <summary>
+        /// <b>잠행이 시작되고 끝날 때.</b> 노래가 천천히 잦아들어 방이 고요해진다 —
+        /// 그 고요가 「소리 내지 마라」는 말보다 먼저 온다.
+        /// </summary>
+        public static void Sneak(bool on, float seconds)
+        {
+            for (int i = 0; i < _all.Count; i++)
+            {
+                var m = _all[i];
+                if (m == null || !m._hushWhileSneaking || m._hushed == on) continue;
+                m._hushed = on;
+                if (m._src != null && m._src.isPlaying) m.FadeTo(m.Base, seconds);
+            }
+        }
+
+        /// <summary>씬의 소리를 한꺼번에 낮춘다(사람이 다가올 때). 잠행으로 낮춘 크기에서 더 낮춘다.</summary>
+        public static void DuckAll(float toward, float seconds)
+        {
+            for (int i = 0; i < _all.Count; i++) if (_all[i] != null) _all[i].Duck(toward, seconds);
+        }
+
+        /// <summary>한꺼번에 제 크기로 — 잠행 중이면 <b>잠행 크기로</b> 돌아간다(노래가 되살아나지 않는다).</summary>
+        public static void UnduckAll(float seconds)
+        {
+            for (int i = 0; i < _all.Count; i++) if (_all[i] != null) _all[i].Unduck(seconds);
+        }
 
         private void Awake()
         {
@@ -87,7 +133,7 @@ namespace IMUNROK.Common
                 return;
             }
             if (!_src.isPlaying) _src.Play();
-            FadeTo(_volume, _fadeIn);
+            FadeTo(Base, _fadeIn);
         }
 
         /// <summary>잦아들다 멎는다.</summary>
@@ -95,10 +141,10 @@ namespace IMUNROK.Common
 
         /// <summary>말소리가 깔릴 동안 잠시 낮춘다(심문·자막 때).</summary>
         public void Duck(float toward = 0.35f, float seconds = 0.6f)
-            => FadeTo(_volume * Mathf.Clamp01(toward), seconds);
+            => FadeTo(Base * Mathf.Clamp01(toward), seconds);
 
         /// <summary>낮췄던 것을 되돌린다.</summary>
-        public void Unduck(float seconds = 0.8f) => FadeTo(_volume, seconds);
+        public void Unduck(float seconds = 0.8f) => FadeTo(Base, seconds);
 
         /// <summary>음원을 바꿔 끼우고 다시 튼다(챕터마다 다른 곡을 쓸 때).</summary>
         public void SetClip(AudioClip clip)

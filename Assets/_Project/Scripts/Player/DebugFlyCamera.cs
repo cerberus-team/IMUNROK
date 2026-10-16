@@ -286,10 +286,10 @@ namespace IMUNROK.Common
                 // 광선을 발보다 _stepUp 만큼만 위에서 시작한다 — 그보다 높은 턱은 아예 안 보이므로
                 // 디딤돌을 밟고 담장 위로 기어오르는 일이 생기지 않는다.
                 float feetY = transform.position.y - _eyeHeight;
-                Vector3 origin = new Vector3(transform.position.x, feetY + _stepUp, transform.position.z);
-                if (Physics.Raycast(origin, Vector3.down, out var gh, _stepUp + _stepDown, ~0, QueryTriggerInteraction.Ignore))
+                float groundY;
+                if (Ground(feetY, out groundY))
                 {
-                    float targetY = gh.point.y + _eyeHeight;
+                    float targetY = groundY + _eyeHeight;
                     if (targetY - _walkY <= _stepUp + 0.01f)                    // 오를 수 있는 턱만
                         _walkY = Mathf.MoveTowards(_walkY, targetY, _stepSpeed * Time.deltaTime);
                 }
@@ -300,6 +300,51 @@ namespace IMUNROK.Common
             }
 #endif
         }
+
+        /// <summary>
+        /// <b>발밑을 다섯 군데 재어 가운뎃값을 딛는다.</b>
+        ///
+        /// 여태 발 한가운데에서 광선 하나만 아래로 쏘았다. 평평한 판때기 위에서는
+        /// 그것으로 넉넉했는데, 화성행궁의 <b>돌 깐 터앝</b>에 올라서면서 탈이 났다 —
+        /// 판석 하나하나가 따로 구운 그물이라 <b>이음매에 실틈</b>이 있고, 광선은
+        /// 그 틈으로 새어 나가 저 아래 것을 짚는다. 격자로 찍어 보니 대청은 스무 번에
+        /// 한 번, 아랫 터앝은 <b>일곱 번에 한 번꼴</b>로 새었다. 걸으면 그때마다
+        /// 바닥이 한 길 꺼졌다 올라오니, 발밑이 출렁이는 것처럼 느껴진다.
+        ///
+        /// 틈은 가늘고 <b>한 번에 하나</b>다. 그러니 발자국 넓이로 다섯 군데를 재어
+        /// <b>가운뎃값</b>을 쓰면, 하나가 새도 나머지 넷이 바로잡는다. 가장 높은 것을
+        /// 쓰면 터앝 가장자리에 섰을 때 윗단에 붙어 서게 되고, 가장 낮은 것을 쓰면
+        /// 틈이 그대로 이긴다 — 가운뎃값이라야 둘 다 안 된다.
+        ///
+        /// 재는 자리는 발보다 <b>좁게</b>(0.16m &lt; <see cref="_bodyRadius"/>) 잡는다.
+        /// 넓으면 층계 디딤(0.2~0.3m)에서 앞뒤 단을 같이 짚어 흔들린다.
+        /// </summary>
+        private bool Ground(float feetY, out float y)
+        {
+            y = 0f;
+            Vector3 c = transform.position;
+            float top = feetY + _stepUp, len = _stepUp + _stepDown;
+            int n = 0;
+            for (int i = 0; i < Probe.Length; i++)
+            {
+                var o = new Vector3(c.x + Probe[i].x, top, c.z + Probe[i].y);
+                RaycastHit h;
+                if (Physics.Raycast(o, Vector3.down, out h, len, ~0, QueryTriggerInteraction.Ignore))
+                    _probed[n++] = h.point.y;
+            }
+            if (n == 0) return false;
+            System.Array.Sort(_probed, 0, n);
+            y = _probed[n / 2];
+            return true;
+        }
+
+        private static readonly Vector2[] Probe =
+        {
+            Vector2.zero,
+            new Vector2( 0.16f, 0f), new Vector2(-0.16f, 0f),
+            new Vector2( 0f, 0.16f), new Vector2( 0f, -0.16f),
+        };
+        private readonly float[] _probed = new float[5];
 
         /// <summary>
         /// 한 걸음을 <b>몸으로 막고 벽을 따라 미끄러뜨린다</b>.

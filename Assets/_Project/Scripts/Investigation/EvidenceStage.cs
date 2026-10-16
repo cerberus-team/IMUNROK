@@ -53,6 +53,14 @@ namespace IMUNROK.Common
         {
             if (_stage != null) return;
 
+            // <b>지난 판의 무대를 걷는다.</b> 무대는 저장하지 않는(DontSave) 물건이라 재생을
+            // 멈춰도 에디터에 남고, 정적 참조만 비워진 채 다음 재생에서 새 무대가 또 선다.
+            // 같은 자리(−5000)에 무대가 겹겹이 서니 조명이 서너 벌 겹쳐 물건이 하얗게 날아가고,
+            // 지난번에 올린 팔과 자가 이번 그림에 비쳐 들었다(관아에서 실제로 그랬다).
+            foreach (var t in Resources.FindObjectsOfTypeAll<Transform>())
+                if (t != null && t.parent == null && t.name == "물증_무대")
+                    Object.DestroyImmediate(t.gameObject);
+
             var root = new GameObject("물증_무대") { hideFlags = HideFlags.DontSave };
             root.transform.position = StageOrigin;
             _stage = root.transform;
@@ -87,9 +95,39 @@ namespace IMUNROK.Common
             extra.requiresColorOption = CameraOverrideOption.Off;
             extra.requiresDepthOption = CameraOverrideOption.Off;
 
+            // <b>바깥 해를 무대에 들이지 않는다.</b> 방향광은 거리가 없어 −5000 에 선 무대까지
+            // 그대로 비춘다. 밤 마당에서는 티가 안 났지만 관아 한낮에는 무대 조명에 해가 겹쳐
+            // 팔이 하얗게 날아가 흉터가 안 보였다. 무대 카메라가 그리는 동안만 끈다.
+            UnityEngine.Rendering.RenderPipelineManager.beginCameraRendering -= HideSun;
+            UnityEngine.Rendering.RenderPipelineManager.endCameraRendering -= ShowSun;
+            UnityEngine.Rendering.RenderPipelineManager.beginCameraRendering += HideSun;
+            UnityEngine.Rendering.RenderPipelineManager.endCameraRendering += ShowSun;
+
             AddLight("키", new Vector3(-0.8f, 1.0f, -1.1f), new Color(1f, 0.96f, 0.88f), 6f);
             AddLight("필", new Vector3(1.1f, 0.2f, -0.7f), new Color(0.82f, 0.86f, 1f), 2.2f);
             AddLight("림", new Vector3(0.2f, 0.6f, 1.2f), new Color(1f, 0.88f, 0.72f), 3f);
+        }
+
+        private static readonly System.Collections.Generic.List<Light> _suns = new System.Collections.Generic.List<Light>();
+
+        private static void HideSun(UnityEngine.Rendering.ScriptableRenderContext ctx, Camera cam)
+        {
+            if (cam == null || cam != _cam) return;
+            _suns.Clear();
+            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+            {
+                if (l == null || !l.enabled || l.type != LightType.Directional) continue;
+                if (_stage != null && l.transform.IsChildOf(_stage)) continue;
+                l.enabled = false;
+                _suns.Add(l);
+            }
+        }
+
+        private static void ShowSun(UnityEngine.Rendering.ScriptableRenderContext ctx, Camera cam)
+        {
+            if (cam == null || cam != _cam) return;
+            for (int i = 0; i < _suns.Count; i++) if (_suns[i] != null) _suns[i].enabled = true;
+            _suns.Clear();
         }
 
         private static void AddLight(string name, Vector3 at, Color color, float intensity)
@@ -143,6 +181,13 @@ namespace IMUNROK.Common
         }
 
         /// <summary>끌어서 돌린다. 가로는 세로축을 돌리고, 세로는 눈높이를 넘긴다.</summary>
+        /// <summary>처음 크기를 정한다(1 = 물건 전체가 꽉 차게, 작을수록 다가선다).</summary>
+        public static void SetZoom(float zoom)
+        {
+            _zoom = Mathf.Clamp(zoom, 0.35f, 2.5f);
+            ApplyCamera();
+        }
+
         public static void Spin(Vector2 delta)
         {
             if (_pivot == null) return;
@@ -167,8 +212,39 @@ namespace IMUNROK.Common
         }
 
         /// <summary>무대를 비운다. 카메라도 끈다 — 안 보는 무대를 그릴 까닭이 없다.</summary>
+        private static GameObject _prop;
+
+        /// <summary>
+        /// <b>물건 곁에 딸린 것을 올린다</b> — 팔 위에 놓는 유척처럼.
+        /// 자리는 물건 프리팹의 뿌리 기준이라, 물건을 돌리면 함께 돈다.
+        /// </summary>
+        public static void ShowProp(GameObject prefab, Vector3 localPos, Quaternion localRot, Material mat = null)
+        {
+            ClearProp();
+            if (prefab == null || _model == null) return;
+            _prop = Object.Instantiate(prefab, _model.transform);
+            _prop.name = "무대_곁_" + prefab.name;
+            _prop.SetActive(true);
+            foreach (var c in _prop.GetComponentsInChildren<Collider>()) c.enabled = false;
+            foreach (var b in _prop.GetComponentsInChildren<MonoBehaviour>()) b.enabled = false;
+            if (mat != null) foreach (var r in _prop.GetComponentsInChildren<Renderer>()) r.sharedMaterial = mat;
+            _prop.transform.localPosition = localPos;
+            _prop.transform.localRotation = localRot;
+            // 뿌리의 배율을 물려받지 않게 — 한 자는 한 자다.
+            var s = _model.transform.lossyScale;
+            var own = prefab.transform.localScale;
+            _prop.transform.localScale = new Vector3(own.x / Mathf.Max(0.0001f, s.x), own.y / Mathf.Max(0.0001f, s.y), own.z / Mathf.Max(0.0001f, s.z));
+        }
+
+        public static void ClearProp()
+        {
+            if (_prop != null) Object.Destroy(_prop);
+            _prop = null;
+        }
+
         public static void Clear()
         {
+            ClearProp();
             if (_model != null) Object.Destroy(_model);
             _model = null;
             if (_cam != null) _cam.enabled = false;

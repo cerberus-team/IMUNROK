@@ -64,7 +64,7 @@ namespace IMUNROK.Common
         {
             _journal = Journal.Instance;
             _state = GameState.Instance;
-            if (_journal != null) _journal.OnClueAdded += OnClue;
+            if (_journal != null) { _journal.OnClueAdded += OnClue; _journal.OnClueChanged += OnClueChanged; }
             if (_state != null) _state.OnCaseChanged += OnCase;
             SceneManager.sceneLoaded += OnScene;
 
@@ -74,7 +74,7 @@ namespace IMUNROK.Common
 
         private void OnDisable()
         {
-            if (_journal != null) _journal.OnClueAdded -= OnClue;
+            if (_journal != null) { _journal.OnClueAdded -= OnClue; _journal.OnClueChanged -= OnClueChanged; }
             if (_state != null) _state.OnCaseChanged -= OnCase;
             _journal = null;
             _state = null;
@@ -82,6 +82,7 @@ namespace IMUNROK.Common
         }
 
         private void OnClue(ClueEntry _) => Mark();
+        private void OnClueChanged(CaseId c, string k) => Mark();
 
         private void OnCase(CaseId _) { if (Progressed()) _armed = true; Mark(); }
 
@@ -134,6 +135,7 @@ namespace IMUNROK.Common
         {
             GameState.Instance.ResetAll();
             Journal.Instance.ClearAll();
+            VerdictReport.ClearDrafts();
             if (_instance != null) { _instance._armed = false; _instance._dirty = false; }
             DevLog.Note("[자동저장] 처음부터 — 지금 판을 비웠습니다(저장 파일은 그대로).");
         }

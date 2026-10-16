@@ -10263,6 +10263,110 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1817450327502533966, guid: 367b6ed6051b8a44ba9bfc081ae89ddd, type: 3}
   m_PrefabInstance: {fileID: 107625380}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &111332598
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 111332600}
+  - component: {fileID: 111332599}
+  m_Layer: 0
+  m_Name: "_\uB9C8\uC9C0\uB9C9\uAC78\uC74C"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &111332599
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 111332598}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43327f60eaf7485c9b5bdf80556f7ee2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.HubEnding
+  _start: {fileID: 1604435967}
+  _path:
+  - {fileID: 584984610}
+  - {fileID: 2060843217}
+  - {fileID: 1786792971}
+  - {fileID: 823433952}
+  - {fileID: 1844880568}
+  _doors:
+  - {fileID: 119981292}
+  - {fileID: 1154928259}
+  _walkSpeed: 0.8
+  _eyeHeight: 1.6
+  _beforeWalk: 3.5
+  _lookUpPitch: -58
+  _lookUpSeconds: 7
+  _song: {fileID: 0}
+  _songVolume: 0.85
+  _songFadeIn: 4
+  _speaker: "\uC5B4\uBA85"
+  _secondsPerLine: 5.5
+  _openLine: "\uBCF5\uBA85(\u5FA9\u547D)\uC744 \uBC1B\uC558\uB2E4. \uC5B4\uC0AC,
+    \uC639\uC9C4\uD604\uC758 \uC77C\uC744 \uBCF4\uC558\uB178\uB77C."
+  _lineTruth: "\uADF8\uB300\uB294 \uC774\uC57C\uAE30\uB97C \uAC77\uC5B4\uB0B4\uACE0
+    \uC0AC\uC2E4\uB9CC\uC744 \uC887\uC558\uAD6C\uB098. \uB0C9\uC815\uD558\uB098,
+    \uADF8\uAC83\uC774 \uAD6D\uBC95\uC774\uB2E4."
+  _lineMercy: "\uADF8\uB300\uB294 \uBC95 \uC55E\uC5D0\uC11C\uB3C4 \uC0AC\uB78C\uC758
+    \uC0AC\uC815\uC744 \uBA3C\uC800 \uBCF4\uC558\uB2E4. \uBB34\uB974\uB098, \uC5B4\uC9C8\uB2E4
+    \uD558\uACA0\uB2E4."
+  _lineFake: "\uADF8\uB300\uB294 \uC124\uD654\uAC00 \uB36E\uC740 \uAC83\uC744 \uADF8\uB300\uB85C
+    \uB450\uC5C8\uB2E4. \uD3B8\uD558\uB098, \uADF8 \uC790\uB9AC\uC5D0 \uC9C4\uC2E4\uC740
+    \uC5C6\uB2E4."
+  _lineNone: "\uADF8\uB300\uC758 \uC7A5\uACC4\uB294 \uC544\uC9C1 \uB2FF\uC9C0 \uC54A\uC558\uB2E4.
+    \uADF8\uB798\uB3C4 \uBB38\uC744 \uB098\uC11C\uB77C."
+  _leaveLine: "\uC774\uC81C \uBB38\uC744 \uB098\uC11C\uB77C. \uADF8\uB300\uAC00 \uAC77\uC5B4\uB0B8
+    \uC774\uC57C\uAE30\uB4E4\uC774 \uC800 \uD558\uB298 \uC544\uB798 \uC544\uC9C1
+    \uB5A0\uB3C8\uB2E4."
+  _finalLine: "\uADF8\uB798\uC11C, \uADF8 \uC774\uC57C\uAE30\uB4E4\uC740 \uAC70\uC9D3\uC774\uC5C8\uB290\uB0D0."
+  _logo: {fileID: 2800000, guid: fe063d9b8b8639548bf82576bbd3be4c, type: 3}
+  _thanksLine: "\uD50C\uB808\uC774\uD574 \uC8FC\uC154\uC11C \uAC10\uC0AC\uD569\uB2C8\uB2E4."
+  _creditsLine: "\uC774\uBB38\uB85D (\u7570\u805E\u9304)\n\n\uD300\uC7A5  \uD568\uD55C\uC194     
+    \uC81C2\uC0AC\uAC74 \xB7 \uC11C\uCC9C\uAF43\uBC2D   \uC804\uCCB4 \uAC1C\uBC1C\n\uD300\uC6D0 
+    \uC774\uB958\uC9C4      \uC81C3\uC0AC\uAC74 \xB7 \uACAC\uC6B0\uC9C1\uB140   \uC804\uCCB4
+    \uAC1C\uBC1C\n\uD300\uC6D0  \uC815\uC218\uBBFC      \uC81C1\uC0AC\uAC74 \xB7
+    \uC639\uACE0\uC9D1\uC804   \uC804\uCCB4 \uAC1C\uBC1C \xB7 \uACF5\uD1B5 \uD30C\uD2B8"
+  _sourceLines:
+  - "\uC4F0\uC778 \uAC83\uB4E4"
+  - "\uD55C\uAD6D\uACF5\uC608\uB514\uC790\uC778\uBB38\uD654\uC9C4\uD765\uC6D0\nKCDF"
+  - "\uC6B4\uD604\uAD81 \uC18C\uC7A5\uD488 3D"
+  - "\uAD6D\uAC00\uC720\uC0B0\uCCAD \u2014 \uACBD\uBCF5\uAD81 3D\n\uACF5\uACF5\uB204\uB9AC
+    \uC81C1\uC720\uD615"
+  - "\uD55C\uAD6D\uC800\uC791\uAD8C\uC704\uC6D0\uD68C \uACF5\uC720\uB9C8\uB2F9\n\uC74C\uD5A5
+    \xB7 CC BY"
+  _creditsSeconds: 42
+  _afterScene: IntroScene
+  _playOnStartForTest: 0
+--- !u!4 &111332600
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 111332598}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 584984610}
+  - {fileID: 2060843217}
+  - {fileID: 1786792971}
+  - {fileID: 823433952}
+  - {fileID: 1844880568}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &111355697
 GameObject:
   m_ObjectHideFlags: 0
@@ -11302,6 +11406,7 @@ MonoBehaviour:
   _maxTouchDistance: 2.4
   _locked: 0
   _noise: 0.55
+  _creakAloud: 0
   _openSound: {fileID: 0}
   _closeSound: {fileID: 0}
   _pitchJitter: 0.08
@@ -25063,6 +25168,8 @@ MonoBehaviour:
   _range: 12
   _playOnStart: 1
   _keepAcrossScenes: 0
+  _hushWhileSneaking: 1
+  _sneakLevel: 0
 --- !u!82 &247628239
 AudioSource:
   m_ObjectHideFlags: 0
@@ -27007,7 +27114,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.02, g: 0.03, b: 0.06, a: 1}
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -27097,7 +27204,6 @@ MonoBehaviour:
   _moveSpeed: 3
   _lookSpeed: 0.12
   _sprintMultiplier: 3
-  _walkMode: 0
   _eyeHeight: 1.7
   _solid: 1
   _bodyRadius: 0.26
@@ -48499,10 +48605,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.ToolbeltHud
   _tools: []
   _leftHanded: 0
-  _forceLegacyGui: 0
-  _forceWorldPanel: 0
-  _autoCreateVrPanel: 1
-  _vrFont: {fileID: 0}
+  _font: {fileID: 0}
+  _useIcons: 0
+  _keepWhileTalking: lantern,yucheok
 --- !u!4 &516354669
 Transform:
   m_ObjectHideFlags: 0
@@ -55822,6 +55927,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 584907733}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &584984609
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 584984610}
+  m_Layer: 0
+  m_Name: "\uAE38_0"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &584984610
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 584984609}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 71.27329, y: 137, z: 285.53015}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 111332600}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &586199224
 GameObject:
   m_ObjectHideFlags: 0
@@ -55975,6 +56111,7 @@ MonoBehaviour:
   _maxTouchDistance: 2.4
   _locked: 0
   _noise: 0.55
+  _creakAloud: 0
   _openSound: {fileID: 0}
   _closeSound: {fileID: 0}
   _pitchJitter: 0.08
@@ -57133,6 +57270,7 @@ MonoBehaviour:
   _maxTouchDistance: 2.4
   _locked: 0
   _noise: 0.55
+  _creakAloud: 0
   _openSound: {fileID: 0}
   _closeSound: {fileID: 0}
   _pitchJitter: 0.08
@@ -66446,8 +66584,12 @@ MonoBehaviour:
     \u2014 \uD55C \uBC88 \uBE44\uB6A4\uAC8C \uCC0D\uACE0 \uADF8 \uC704\uC5D0 \uB2E4\uC2DC
     \uCC0D\uC5C8\uB2E4. \uAE09\uD788 \uAFB8\uBBFC \uBB38\uC11C\uB2E4."
   _clueNeedsMagnifier: 0
+  _dimBehind: 1
+  _clueNoteAfterMagnify: 
   _model: {fileID: 0}
   _modelEuler: {x: 0, y: 0, z: 0}
+  _pageKo: {fileID: 0}
+  _revealsPressed: {fileID: 0}
   _backPage: {fileID: 0}
   _litPage: {fileID: 0}
   _litText: 
@@ -76458,6 +76600,8 @@ MonoBehaviour:
   _range: 12
   _playOnStart: 1
   _keepAcrossScenes: 0
+  _hushWhileSneaking: 1
+  _sneakLevel: 0
 --- !u!82 &797531780
 AudioSource:
   m_ObjectHideFlags: 0
@@ -79593,6 +79737,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 823419319}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &823433951
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 823433952}
+  m_Layer: 0
+  m_Name: "\uAE38_3"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &823433952
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 823433951}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 66.28496, y: 137, z: 290.02606}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 111332600}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &823774753
 GameObject:
   m_ObjectHideFlags: 0
@@ -105096,6 +105271,7 @@ MonoBehaviour:
   _maxTouchDistance: 2.4
   _locked: 0
   _noise: 0.55
+  _creakAloud: 0
   _openSound: {fileID: 0}
   _closeSound: {fileID: 0}
   _pitchJitter: 0.08
@@ -111645,6 +111821,7 @@ MonoBehaviour:
   _maxTouchDistance: 2.4
   _locked: 0
   _noise: 0.55
+  _creakAloud: 0
   _openSound: {fileID: 0}
   _closeSound: {fileID: 0}
   _pitchJitter: 0.08
@@ -132381,6 +132558,7 @@ MonoBehaviour:
   _upPose: {x: 0, y: 0.26, z: 0.88}
   _raiseSpeed: 6
   _useCommonPose: 1
+  _hangFromHook: 1
 --- !u!114 &1346042039
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -163667,6 +163845,7 @@ MonoBehaviour:
   _maxTouchDistance: 2.4
   _locked: 0
   _noise: 0.55
+  _creakAloud: 0
   _openSound: {fileID: 0}
   _closeSound: {fileID: 0}
   _pitchJitter: 0.08
@@ -167968,16 +168147,53 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: -2.002
       objectReference: {fileID: 0}
+    - target: {fileID: 1031001820, guid: abc00000000012607220780888987366, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 4300000, guid: abc00000000003848443823401826040, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1031001818, guid: abc00000000012607220780888987366, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1726408820}
   m_SourcePrefab: {fileID: 100100000, guid: abc00000000012607220780888987366, type: 3}
 --- !u!4 &1726408818 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1031001819, guid: abc00000000012607220780888987366, type: 3}
   m_PrefabInstance: {fileID: 1726408817}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1726408819 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1031001818, guid: abc00000000012607220780888987366, type: 3}
+  m_PrefabInstance: {fileID: 1726408817}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1726408820
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1726408819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 923c2c6fa17b402a8988ff4015fa9c51, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IMUNROK.Common::IMUNROK.Common.BadukBoard
+  _halfX: 0.2127
+  _halfZ: 0.1951
+  _centre: {x: 0, y: 0}
+  _topY: 0
+  _stoneDiameter: 0.0212
+  _stoneHeight: 0.0085
+  _black: {r: 0.13, g: 0.13, b: 0.14, a: 1}
+  _white: {r: 0.93, g: 0.92, b: 0.88, a: 1}
+  _click: []
+  _maxTouchDistance: 2.6
+  _eyeUp: 0.55
+  _eyeBack: 0.3
+  _moveSeconds: 0.8
 --- !u!1001 &1727483545
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -172627,6 +172843,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3989784922600504913, guid: 7b6a09e6c02969d48854ce43721a12b8, type: 3}
   m_PrefabInstance: {fileID: 1786441301}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1786792970
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1786792971}
+  m_Layer: 0
+  m_Name: "\uAE38_2"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1786792971
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1786792970}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 68.128296, y: 137, z: 288.04788}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 111332600}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1786865375
 GameObject:
   m_ObjectHideFlags: 0
@@ -178815,6 +179062,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1844705595}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1844880567
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1844880568}
+  m_Layer: 0
+  m_Name: "\uAE38_4"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1844880568
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1844880567}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 64.42026, y: 137, z: 292.24747}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 111332600}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1846908694
 GameObject:
   m_ObjectHideFlags: 0
@@ -183892,6 +184170,7 @@ MonoBehaviour:
   _maxTouchDistance: 2.4
   _locked: 0
   _noise: 0.55
+  _creakAloud: 0
   _openSound: {fileID: 0}
   _closeSound: {fileID: 0}
   _pitchJitter: 0.08
@@ -198438,6 +198717,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2059984628}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &2060843216
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2060843217}
+  m_Layer: 0
+  m_Name: "\uAE38_1"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2060843217
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2060843216}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 70.34094, y: 137, z: 286.64087}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 111332600}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2061015201
 GameObject:
   m_ObjectHideFlags: 0
@@ -198613,6 +198923,7 @@ MonoBehaviour:
   _maxTouchDistance: 2.4
   _locked: 0
   _noise: 0.55
+  _creakAloud: 0
   _openSound: {fileID: 0}
   _closeSound: {fileID: 0}
   _pitchJitter: 0.08
@@ -205726,3 +206037,4 @@ SceneRoots:
   - {fileID: 1946590846}
   - {fileID: 737930815}
   - {fileID: 670586806}
+  - {fileID: 111332600}

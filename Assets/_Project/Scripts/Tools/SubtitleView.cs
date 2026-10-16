@@ -131,7 +131,14 @@ namespace IMUNROK.Common
         /// 한 번 티가 나야 지나쳐 버리지 않는다.
         /// </summary>
         public static void Show(string speaker, string line, string hint = null, bool key = false)
-            => Instance.ShowInternal(speaker, line, hint, key);
+        {
+            // <b>장계를 펴 놓은 동안에는 말이 끼어들지 않는다.</b> 자막판은 제 캔버스라
+            // <c>WorldHudAnchor.StowAll</c> 이 안 닿아, 마지막 글을 쓰는 화면 위에
+            // 서리의 인사말이 그대로 얹혔다. 판결 끝의 말은 자막이 아니라
+            // <see cref="WorldNotice"/> 로 뜨므로 여기서 걸러도 잃는 것이 없다.
+            if (VerdictReport.IsOpen) return;
+            Instance.ShowInternal(speaker, line, hint, key);
+        }
 
         /// <summary>자막을 감춘다.</summary>
         public static void Hide()
@@ -277,6 +284,23 @@ namespace IMUNROK.Common
             // 옛 Input 클래스를 쓰면 안 된다. 이 프로젝트는 입력을 Input System 으로
             // 넘겨 놓아서, 저것을 읽는 순간 예외가 난다 — 자막이 떠 있는 내내 매 프레임
             // 터졌고, 그래서 Esc 로 자막을 닫는 곁길이 여태 한 번도 듣지 않았다.
+            // <b>「×」는 손끝으로도 직접 본다.</b>
+            //
+            // 딱지는 UI 단추라 EventSystem 이 누름을 날라다 줘야 한다. 그런데 요에 누운 채
+            // 누르면 안 닫힌다는 말이 두 번 왔다 — 짚는 손(MouseRaySelector)·자리 잡는
+            // 칸·누운 자세의 카메라가 한꺼번에 도는 자리라, 그 가운데 어느 하나가 누름을
+            // 먼저 먹으면 단추까지 안 온다. 닫기는 <b>빠지면 안 되는 한 가지</b>이므로
+            // 단추에만 맡기지 않고, 누른 자리가 딱지(둘레 한 뼘 여유) 안이면 여기서 닫는다.
+            // 단추도 그대로 둔다 — 여기서 먼저 닫히면 딱지가 꺼져 두 번 닫힐 일은 없다.
+            var ms = UnityEngine.InputSystem.Mouse.current;
+            if (ms != null && ms.leftButton.wasPressedThisFrame && Closable
+                && _closeTab != null && _closeTab.activeInHierarchy
+                && OverCloseTab(ms.position.ReadValue()))
+            {
+                SetVisible(false, true);
+                return;
+            }
+
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb == null) return;
 
@@ -725,8 +749,23 @@ namespace IMUNROK.Common
             var slotBg = slot.gameObject.AddComponent<Image>();
             Skin(slotBg, _skin.Slot_, pal.slotBack);
 
-            _heardText = NewText("글", "", new Vector2(16f, 0f), new Vector2(slotW - 32f, h),
-                                 slot, st.input, pal.slotText);
+            // <b>글자리 — 글을 가두는 창.</b>
+            //
+            // TMP 의 칸은 글이 칸보다 길어지면 <b>커서를 따라 옆으로 굴려</b> 지금 치는 끝을
+            // 보여 준다. 다만 그러려면 글이 <b>창(textViewport) 안에 갇혀</b> 있어야 한다.
+            // 여태 창이 없어서 긴 글이 칸 밖으로 그대로 흘러 「묻 기」 단추 밑까지 깔렸고,
+            // 커서는 단추 너머에 앉았다 — 칸이 단추 뒤까지 이어진 것처럼 보였다.
+            // TMP 가 칸을 새로 만들 때 까는 꼴(글자리 + RectMask2D + 늘어난 글) 그대로 짓는다.
+            var area = NewRect("글자리", Vector2.zero, new Vector2(slotW, h), slot);
+            area.anchorMin = Vector2.zero;
+            area.anchorMax = Vector2.one;
+            area.offsetMin = new Vector2(16f, 0f);    // 안쪽 여백 — 글이 칸 테에 붙지 않게
+            area.offsetMax = new Vector2(-16f, 0f);
+            area.gameObject.AddComponent<RectMask2D>();
+
+            _heardText = NewText("글", "", Vector2.zero, new Vector2(slotW - 32f, h),
+                                 area, st.input, pal.slotText);
+            Stretch(_heardText.rectTransform);
             _heardText.alignment = TextAlignmentOptions.Left;
             // ⚠️ <b>여기를 끄면 한글 조합 밑줄이 글자로 찍힌다.</b>
             //    TMP 의 칸은 <b>조합 중</b>인 글자에 <c>&lt;u&gt;</c> 를 둘러 밑줄을 긋는다.
@@ -737,16 +776,33 @@ namespace IMUNROK.Common
             _heardText.richText = true;
             UiText.Wrap(_heardText, false);
 
-            _heardHint = NewText("안내글", "", new Vector2(16f, 0f), new Vector2(slotW - 32f, h),
-                                 slot, st.input, pal.slotHint);
+            _heardHint = NewText("안내글", "", Vector2.zero, new Vector2(slotW - 32f, h),
+                                 area, st.input, pal.slotHint);
+            Stretch(_heardHint.rectTransform);
             _heardHint.alignment = TextAlignmentOptions.Left;
             UiText.Wrap(_heardHint, false);
 
             _field = slot.gameObject.AddComponent<TMP_InputField>();
+            _field.textViewport = area;
             _field.textComponent = _heardText;
             _field.placeholder = _heardHint;
             _field.lineType = TMP_InputField.LineType.SingleLine;
-            _field.characterLimit = 120;
+
+            // <b>긴 물음도 끝까지 보이게 한다.</b>
+            //
+            // 두 가지가 물음을 잘라 먹고 있었다.
+            //   ① <b>120자 상한</b>. 「이 큰 저택을 스무 해나 홀로 건사하셨다니, 문서는
+            //      누가 맡아 보았소?」면 벌써 마흔 자다. 앞뒤를 붙여 묻는 사람은 120자를
+            //      금방 넘기는데, 넘긴 글자는 <b>아예 안 쳐진다</b> — 글쇠를 눌러도
+            //      아무 일이 없으니 칸이 고장난 것으로 읽힌다.
+            //   ② 칸보다 긴 글은 <b>칸 밖으로 밀려나</b> 앞머리가 안 보였다. 한 줄짜리
+            //      칸은 커서를 따라 옆으로 굴러가므로, 다 치고 나면 <b>내가 무엇을 썼는지</b>
+            //      를 볼 수가 없다. 던지기 전에 읽어 보는 것이 사람의 일이다.
+            //
+            // ②는 <b>글씨를 줄여서 풀면 안 됐다</b>. 한 번 그렇게 했더니 긴 글이 깨알만
+            // 해져 읽을 수가 없었고, 그러고도 칸 밖으로 흘렀다. 푸는 길은 위의 <b>글자리</b>다 —
+            // 창에 가두면 칸이 <b>지금 치는 끝</b>을 따라 옆으로 굴러간다. 글씨는 그대로다.
+            _field.characterLimit = 300;
             _field.customCaretColor = true;
             _field.caretColor = pal.slotText;     // 어두운 칸에서는 커서도 밝아야 보인다
             _field.selectionColor = UiLook.With(UiLook.Seal, 0.35f);
@@ -890,7 +946,31 @@ namespace IMUNROK.Common
             _closeTab.SetActive(false);
         }
 
+        /// <summary>누른 자리가 「×」 딱지 위(둘레로 딱지 높이의 절반만큼 넉넉히)인가.</summary>
+        private bool OverCloseTab(Vector2 screenPos)
+        {
+            var rt = (RectTransform)_closeTab.transform;
+            var canvas = rt.GetComponentInParent<Canvas>();
+            Camera cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                       ? canvas.worldCamera : null;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, screenPos, cam, out var local))
+                return false;
+            var r = rt.rect;
+            float pad = r.height * 0.5f;
+            return local.x >= r.xMin - pad && local.x <= r.xMax + pad
+                && local.y >= r.yMin - pad && local.y <= r.yMax + pad;
+        }
+
         // ── UI 만들기 헬퍼 ──
+
+        /// <summary>부모를 꽉 채운다 — 글자리 안의 글처럼, 창을 따라 늘고 줄어야 하는 것.</summary>
+        private static void Stretch(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
 
         private RectTransform NewRect(string name, Vector2 pos, Vector2 size, Transform parent)
         {

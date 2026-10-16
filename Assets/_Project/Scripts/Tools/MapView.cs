@@ -17,6 +17,12 @@ namespace IMUNROK.Common
 
         private bool _open;
         public bool IsOpen => _open;
+
+        /// <summary>
+        /// 지금 지도가 <b>펴져 있나</b>. 부르기 판이 이것을 보고 물러난다 —
+        /// 앉은 채로 M 을 누르면 지도와 사람 이름표가 화면 한가운데서 겹쳤다.
+        /// </summary>
+        public static bool AnyOpen { get; private set; }
         public void Toggle() => _open = !_open;
         public void Open() => _open = true;
         public void Close() => _open = false;
@@ -39,7 +45,11 @@ namespace IMUNROK.Common
 
         private void LateUpdate()
         {
-            bool want = _open && !JournalView.AnyOpen;   // 수첩을 펼치면 지도는 접는다
+            // 수첩·문서·심문 중에는 접는다. 읽거나 묻는 중에 지도가 겹치면
+            // 어느 쪽을 보라는 것인지가 없어진다.
+            bool want = _open && !JournalView.AnyOpen && !DocumentView.IsOpen
+                              && !InterrogationController.AnyOpen;
+            AnyOpen = want;
             if (want == _shown) return;
             _shown = want;
             if (want) WorldNotice.ShowImage("지도", _mapImage, -0.05f, _title);
