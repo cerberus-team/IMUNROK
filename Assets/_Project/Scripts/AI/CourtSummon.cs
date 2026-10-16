@@ -66,6 +66,13 @@ namespace IMUNROK.Common
                  "비우면 문 없이 드나든다 — 앞이 트인 대청이면 그래도 된다")]
         [SerializeField] private SwingDoor[] _doors;
 
+        [Header("일어서고 문 여닫기")]
+        [Tooltip("앉아 있다가 물러갈 때, 일어서는 그림이 끝나기를 기다리는 시간(초). " +
+                 "여태 일어서는 그림과 걷기를 한꺼번에 틀어 <b>일어나면서 미끄러져 나가는</b> 괴이한 꼴이 되었다")]
+        [SerializeField] private float _standSeconds = 1.5f;
+        [Tooltip("닫힌 문을 열고 나서 걸음을 떼기까지(초)")]
+        [SerializeField] private float _doorSeconds = 0.6f;
+
         [Header("그때")]
         [SerializeField] private UnityEvent _onArrivedFront;
         [SerializeField] private UnityEvent _onArrivedBack;
@@ -94,9 +101,13 @@ namespace IMUNROK.Common
         private Vector3 FrontAt => _frontSpot != null ? _frontSpot.position : _home;
 
         /// <summary>앞으로 나와 선다.</summary>
+        private bool _seated;
+        private Coroutine _leaving;
+
         public void StepForward()
         {
             if (_up) return;
+            if (_leaving != null) { StopCoroutine(_leaving); _leaving = null; }
             _up = true;
             // <b>문이 먼저 열린다.</b> 걷기 시작할 때 열어 두어야, 대여섯 걸음 걸어오는
             // 동안 문이 다 열려 있다. 다다라서 열면 코앞에서 문이 밀리는 꼴이 된다.
@@ -112,9 +123,34 @@ namespace IMUNROK.Common
         {
             if (!_up) return;
             _up = false;
-            SetBool(_sitBool, false);
+            _goal = null;
+            if (_leaving != null) StopCoroutine(_leaving);
+            _leaving = StartCoroutine(Leave());
+        }
+
+        /// <summary>
+        /// <b>물러간다 — 일어서고, 문이 닫혀 있으면 열고, 그다음에 걷는다.</b> (2026-09-14)
+        /// 여태 한 프레임에 앉기를 끄고 걷기를 켜서, 일어서는 그림이 도는 동안 몸은 벌써
+        /// 문 쪽으로 미끄러졌다.
+        /// </summary>
+        private System.Collections.IEnumerator Leave()
+        {
+            if (_seated)
+            {
+                _seated = false;
+                SetBool(_sitBool, false);
+                yield return new WaitForSeconds(_standSeconds);
+            }
+            bool closed = false;
+            if (_doors != null) foreach (var d in _doors) if (d != null && !d.IsOpen) closed = true;
+            if (closed)
+            {
+                Doors(true);
+                yield return new WaitForSeconds(_doorSeconds);
+            }
             SetBool(_walkBool, true);
             _leg = 0;
+            _leaving = null;
             Next();
         }
 
@@ -159,6 +195,8 @@ namespace IMUNROK.Common
         {
             _up = false;
             _goal = null;
+            _seated = false;
+            if (_leaving != null) { StopCoroutine(_leaving); _leaving = null; }
             _leg = int.MaxValue;
             SetBool(_walkBool, false);
             SetBool(_sitBool, false);
@@ -243,6 +281,9 @@ namespace IMUNROK.Common
                     if (look.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(look);
                 }
                 SetBool(_sitBool, true);
+                _seated = !string.IsNullOrEmpty(_sitBool);
+                // 들어와 앉으면 등 뒤의 문은 닫는다 — 열어 둔 채로 두면 뜰이 방 안에 들어온다
+                Doors(false);
                 _onArrivedFront?.Invoke();
                 return;
             }
@@ -256,9 +297,26 @@ namespace IMUNROK.Common
         }
 
         /// <summary>딸린 문을 다 여닫는다. 같은 칸의 다른 벌에게도 번지게 둔다.</summary>
+        private static readonly System.Collections.Generic.List<CourtSummon> All = new System.Collections.Generic.List<CourtSummon>();
+        private void OnEnable() { if (!All.Contains(this)) All.Add(this); }
+        private void OnDisable() { All.Remove(this); }
+
+        /// <summary>같은 문을 쓰는 다른 이가 드나드는 중인가 — 그러면 닫지 않는다(갈아 부를 때 문이 코앞에서 닫혔다).</summary>
+        private bool OthersUsingDoors()
+        {
+            foreach (var o in All)
+            {
+                if (o == null || o == this || o._doors == null) continue;
+                if (!(o.Walking || o._leaving != null) && !(o._up && !o._seated)) continue;
+                foreach (var d in o._doors) if (d != null && System.Array.IndexOf(_doors, d) >= 0) return true;
+            }
+            return false;
+        }
+
         private void Doors(bool open)
         {
             if (_doors == null) return;
+            if (!open && OthersUsingDoors()) return;
             foreach (var d in _doors)
                 if (d != null && d.IsOpen != open) d.SetOpen(open, true);
         }

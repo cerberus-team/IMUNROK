@@ -110,6 +110,7 @@ namespace IMUNROK.Common
                 _instance.BuildOrders();
                 _instance.BuildSeats();
             }
+            _instance.LayoutRows();
         }
 
         private static void Ensure()
@@ -193,7 +194,7 @@ namespace IMUNROK.Common
         /// </summary>
         private void ApplyPlacement()
         {
-            bool tall = InterrogationBench.Instance != null;     // 사람 줄이 붙는 씬인가
+            bool tall = OnBench();     // 사람 줄이 붙는 자리인가
             // 화면에 붙은 판이라 거리는 없다. 자막 바가 앉는 높이만 저쪽 셈으로 넘긴다.
             SubtitleView.SetReadingDistance(1.3f, tall ? -0.13f : -0.28f);
 
@@ -202,6 +203,17 @@ namespace IMUNROK.Common
             var rt = (RectTransform)transform;
             rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2(0f, tall ? -180f : -120f);
+        }
+
+        /// <summary>지금 판이 동헌 부르기 판의 것인가 — 이름표만 뜬 때이거나, 마주한 이가 그 판의 사람일 때.</summary>
+        private bool OnBench()
+        {
+            var bench = InterrogationBench.Instance;
+            if (bench == null || bench.Seats == null) return false;
+            if (_rosterOnly) return true;
+            foreach (var s in bench.Seats)
+                if (s != null && s.사람 != null && s.사람 == _owner) return true;
+            return false;
         }
 
         private void OpenInternal(InterrogationController owner)
@@ -220,6 +232,7 @@ namespace IMUNROK.Common
             RebuildChips(owner != null ? owner.Topics : null);
             BuildOrders();
             BuildSeats();
+            LayoutRows();
             SetVisible(true);
 
         }
@@ -233,8 +246,36 @@ namespace IMUNROK.Common
             RebuildChips(null);
             BuildOrders();
             BuildSeats();
+            LayoutRows();
             SetVisible(true);
 
+        }
+
+        /// <summary>
+        /// <b>빈 줄은 자리를 차지하지 않는다.</b>
+        ///
+        /// 세 줄(물음·명령·사람)이 −16 · −104 · −196 에 못 박혀 있었다. 그런데 2막에서
+        /// 추천 질문을 걷고 나니 위의 두 줄이 비었고, 사람 이름표만 저 혼자 −196 에
+        /// 남아 <b>자막 바 위에 걸터앉았다</b> — 지도를 펴면 그 위로 또 겹쳤다.
+        ///
+        /// 그래서 있는 줄만 위에서부터 차곡차곡 쌓는다. 빈 줄은 아예 끈다.
+        /// </summary>
+        private void LayoutRows()
+        {
+            float y = -16f;
+            y = StackRow(_chipRow,  y, 88f);
+            y = StackRow(_orderRow, y, 72f);
+            StackRow(_seatRow, y, 104f);
+        }
+
+        private float StackRow(RectTransform row, float y, float step)
+        {
+            if (row == null) return y;
+            bool on = row.childCount > 0;
+            if (row.gameObject.activeSelf != on) row.gameObject.SetActive(on);
+            if (!on) return y;
+            row.anchoredPosition = new Vector2(0f, y);
+            return y - step;
         }
 
         private void SetVisible(bool on)
@@ -357,7 +398,7 @@ namespace IMUNROK.Common
 
             var live = new List<InterrogationOrder>();
             foreach (var o in _owner.Orders)
-                if (o != null && o.enabled && o.Available) live.Add(o);
+                if (o != null && o.enabled && (o.Available || o.LockedReason != null)) live.Add(o);
             if (live.Count == 0) return;
 
             const float gap = 16f;
@@ -369,11 +410,16 @@ namespace IMUNROK.Common
                 var o = live[i];
                 var rt = NewRect($"명령{i}", new Vector2(x0 + i * (w + gap), 0f), new Vector2(w, 66f), _orderRow);
                 var bg = rt.gameObject.AddComponent<Image>();
-                Skin(bg, _skin.Wood_, _orderColor);
+                bool locked = !o.Available;
+                Skin(bg, _skin.Wood_, locked ? Color.Lerp(_orderColor, UiLook.Wood, 0.65f) : _orderColor);
                 var btn = rt.gameObject.AddComponent<Button>();
                 btn.targetGraphic = bg;
                 var captured = o;
-                btn.onClick.AddListener(() => _owner?.RunOrderFromUi(captured));
+                btn.onClick.AddListener(() =>
+                {
+                    if (captured.Available) _owner?.RunOrderFromUi(captured);
+                    else if (captured.LockedReason != null) SubtitleView.Show("", captured.LockedReason, "", false);
+                });
                 var label = NewText("라벨", o.Label, Vector2.zero, new Vector2(w - 24f, 66f), rt, _fontSize - 6);
                 UiText.Wrap(label, true);
                 _orderChips.Add(rt.gameObject);
@@ -391,6 +437,10 @@ namespace IMUNROK.Common
 
             var bench = InterrogationBench.Instance;
             if (bench == null || bench.Seats == null || bench.Seats.Count == 0) return;
+            // <b>부르기 판 사람이 아닌 이와 말할 때는 사람 줄을 안 그린다.</b> 관아에는 판이 있어
+            // 서리(문서고 앞에 서 있는 아전)에게 말을 걸어도 동헌의 다섯 이름표가 떴다 —
+            // 서리 앞에서 甲을 부르는 단추가 뜨니, 동헌에 온 것처럼 읽혔다.
+            if (!OnBench()) return;
 
             int n = bench.Seats.Count;
             const float gap = 14f;
@@ -436,7 +486,8 @@ namespace IMUNROK.Common
                     }
                 }
 
-                string label = !here ? s.이름 + " (아직)" : (up ? "▶ " + s.이름 : s.이름);
+                string who = s.부를이름;
+                string label = !here ? who + " (아직)" : (up ? "▶ " + who : who);
                 var lab = NewText("라벨", label, new Vector2(textX, 0f), new Vector2(textW, 96f), rt, _fontSize - 6);
                 if (here) lab.alignment = TextAlignmentOptions.Left;   // 얼굴 옆이면 왼쪽 맞춤
                 _seatChips.Add(rt.gameObject);

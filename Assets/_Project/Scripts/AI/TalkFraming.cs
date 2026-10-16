@@ -113,7 +113,43 @@ namespace IMUNROK.Common
                 yield return null;
             }
             Aim(cam, person, fromRot, fromFov, 1f);
+
+            // <b>다 돌고 나서도 얼굴을 따라간다</b>(2026-09-14). 불려 온 사람은 다 와서 서면 곧
+            // <b>앉는다</b> — 선 키로 겨눈 구도가 앉는 순간 턱 밑까지 내려가, 얼굴이 자막 판 뒤에
+            // 숨었다. 묻는 동안에는 머리를 천천히 좇아 늘 화면 위쪽 삼 할 자리에 둔다.
+            while (InterrogationController.AnyOpen && person != null && cam != null)
+            {
+                Vector3 head = HeadPoint(person);
+                Vector3 look = FramedLook(cam, head);
+                if (look.sqrMagnitude > 1e-4f)
+                    cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, Quaternion.LookRotation(look), 1f - Mathf.Exp(-4f * Time.deltaTime));
+                yield return null;
+            }
             _running = null;
+        }
+
+        /// <summary>머리뼈가 있으면 거기, 없으면 몸 높이의 팔 할 남짓.</summary>
+        private static Vector3 HeadPoint(Transform person)
+        {
+            var anim = person.GetComponentInChildren<Animator>(true);
+            if (anim != null && anim.isHuman)
+            {
+                var head = anim.GetBoneTransform(HumanBodyBones.Head);
+                if (head != null) return head.position + Vector3.up * 0.06f;
+            }
+            return ModelBounds.EyePoint(person, AimAt);
+        }
+
+        /// <summary>
+        /// 얼굴이 화면 한가운데가 아니라 <b>위쪽</b>에 오도록 겨눌 방향. 아래 사 할은 자막 판과
+        /// 조작판이 차지하므로, 한가운데에 두면 판 윗단에 걸린다. 얼굴보다 조금 아래를 보면 얼굴이 위로 올라간다.
+        /// </summary>
+        private static Vector3 FramedLook(Camera cam, Vector3 head)
+        {
+            Vector3 to = head - cam.transform.position;
+            float dist = to.magnitude;
+            float drop = dist * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * 0.36f;   // 화면 높이의 18% 만큼 위로
+            return (head - Vector3.up * drop) - cam.transform.position;
         }
 
         /// <summary>
@@ -123,11 +159,11 @@ namespace IMUNROK.Common
         /// </summary>
         private void Aim(Camera cam, Transform person, Quaternion fromRot, float fromFov, float k)
         {
-            Vector3 aim = ModelBounds.EyePoint(person, AimAt);
+            Vector3 aim = HeadPoint(person);
             Vector3 to = aim - cam.transform.position;
             if (to.sqrMagnitude < 1e-4f) return;
 
-            cam.transform.rotation = Quaternion.Slerp(fromRot, Quaternion.LookRotation(to), k);
+            cam.transform.rotation = Quaternion.Slerp(fromRot, Quaternion.LookRotation(FramedLook(cam, aim)), k);
 
             float dist = to.magnitude;
             float want = 2f * Mathf.Atan2(FrameHeight * 0.5f, Mathf.Max(0.2f, dist) * Fill) * Mathf.Rad2Deg;

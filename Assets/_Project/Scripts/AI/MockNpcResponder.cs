@@ -41,6 +41,12 @@ namespace IMUNROK.Common
         {
             string reply;
             var pool = req.identityRevealed ? DeflectionsAct2 : DeflectionsAct1;
+            // 인물마다 적어 둔 말투가 있으면 그것이 먼저다 — 양반 행세하는 甲 이 「소인」이라 하던 것
+            if (req.character != null)
+            {
+                var own = req.identityRevealed ? req.character.mockDeflectAct2 : req.character.mockDeflectAct1;
+                if (own != null && own.Length > 0) pool = own;
+            }
 
             if (req.isDeed)
             {
@@ -48,17 +54,19 @@ namespace IMUNROK.Common
                 // 팔을 빼려다 만다」 같은 <b>3인칭 서술</b>이라, 그대로 뱉으면 인물이 제 입으로
                 // 제 동작을 중계한다. Gemini 쪽은 이것을 [벌어진 일] 로 따로 일러 두는데
                 // (GeminiNpcResponder), 여기에는 그 갈래가 없으므로 <b>말을 잃은 반응</b>으로 받는다.
-                reply = req.canBreak ? "…어찌… 그것을…" : (req.stage >= 6 ? "……." : "무슨 짓이오.");
-            }
-            else if (!string.IsNullOrEmpty(req.justRevealedInfo))
-            {
-                // 결정적 증거를 제시받음 → 마지못해 실토(또는 발뺌 대사)
-                reply = req.justRevealedInfo;
+                string said = Spoken(req.justRevealedInfo);
+                reply = said ?? (req.canBreak ? "…어찌… 그것을…" : (req.stage >= 6 ? "……." : "무슨 짓이오."));
             }
             else if (!string.IsNullOrEmpty(req.scriptedAnswer))
             {
-                // 추천 질문의 정해진 답
+                // <b>사람 말이 먼저다</b>(2026-09-15). 여태 열린 사실(수첩 문구)을 먼저 보아, 인물이
+                // 「게장 이야기가 나오자 말이 막힌다」 같은 3인칭 서술을 제 입으로 읽었다.
                 reply = req.scriptedAnswer;
+            }
+            else if (!string.IsNullOrEmpty(req.justRevealedInfo))
+            {
+                // 수첩 문구에서 사람이 한 말(「」 안)만 꺼낸다. 없으면 말을 잃은 반응
+                reply = Spoken(req.justRevealedInfo) ?? (req.stage >= 6 ? "…그, 그것은……" : "……허.");
             }
             else if (req.isEvidence)
             {
@@ -72,6 +80,30 @@ namespace IMUNROK.Common
 
             // 목업은 즉시 대답(네트워크 없음)
             onReply?.Invoke(reply);
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex Quote =
+            new System.Text.RegularExpressions.Regex("「([^」]+)」");
+
+        /// <summary>
+        /// 적어 둔 문구 가운데 <b>사람이 입으로 한 말</b>. 「」 안이 있으면 그것을, 없으면 서술이 아닌
+        /// 말투(…오/…소/…다 로 끝나는 짧은 말)일 때만 그대로. 서술(걷는다·막힌다)이면 null.
+        /// </summary>
+        private static string Spoken(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            var ms = Quote.Matches(text);
+            if (ms.Count > 0)
+            {
+                var parts = new System.Collections.Generic.List<string>();
+                foreach (System.Text.RegularExpressions.Match m in ms) parts.Add(m.Groups[1].Value);
+                return string.Join(" ", parts.ToArray());
+            }
+            string t = text.Trim();
+            if (t.StartsWith("무너져 실토한다")) return null;
+            string[] narr = { "걷는다", "드러난다", "막힌다", "떨린다", "굳는다", "흐린다", "다문다", "숙인다", "있다.", "없다." };
+            foreach (var n in narr) if (t.Contains(n)) return null;
+            return t.Length <= 80 ? t : null;
         }
     }
 }

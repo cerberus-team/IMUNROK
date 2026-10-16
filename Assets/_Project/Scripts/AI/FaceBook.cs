@@ -116,6 +116,9 @@ namespace IMUNROK.Common
             return null;
         }
 
+        /// <summary>이름 조각 하나로 얼굴을 짚는다(씬에 사람이 없는 자리 — 장계의 카드).</summary>
+        public Entry FindByName(string name) { return ByName(name); }
+
         private Entry ByName(string name)
         {
             if (string.IsNullOrEmpty(name)) return null;

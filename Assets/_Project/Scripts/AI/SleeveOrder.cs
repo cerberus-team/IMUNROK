@@ -95,10 +95,29 @@ namespace IMUNROK.Common
             }
         }
 
+        public override string LockedReason
+        {
+            get
+            {
+                if (_bared || Available) return null;
+                return "소매를 걷게 할 근거가 아직 없다 — 관의 호적 원본에 무엇이 적혀 있는지부터 봐야 한다(문서고).";
+            }
+        }
+
+        /// <summary>「소매를 걷어라」「왼팔을 보이라」처럼 쳐도 이 명령으로 친다.</summary>
+        public override bool Matches(string said)
+        {
+            if (string.IsNullOrEmpty(said)) return false;
+            string t = said.Replace(" ", "");
+            bool part = t.Contains("소매") || t.Contains("팔");
+            bool act = t.Contains("걷") || t.Contains("보이") || t.Contains("보여") || t.Contains("내밀") || t.Contains("드러");
+            return part && act;
+        }
+
         public override void Run(InterrogationController who)
         {
             if (_bared) return;
-            string speaker = who != null && who.Character != null ? who.Character.characterName : name;
+            string speaker = who != null && who.Character != null ? who.Character.ShownName : name;
 
             // 아직 버틸 몫이 남았다. <b>버티는 것도 심문의 일부다</b> —
             // 한 번에 걷으면 무엇을 감췄는지가 아니라 무엇을 시켰는지만 남는다.
@@ -111,6 +130,8 @@ namespace IMUNROK.Common
             }
 
             if (who == null) return;   // 건넬 데가 없으면 걷지도 않는다
+            // 대답을 기다리는 중이면 걷지 않는다 — 소매만 걷히고 대화 기록에는 안 남았다(Offer 가 돌아 나감)
+            if (who.Busy) { SubtitleView.Show("", "(대답을 다 듣고 이르시오)", "", false); return; }
 
             _bared = true;
             if (_arm != null) _arm.SetActive(true);

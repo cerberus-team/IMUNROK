@@ -120,6 +120,60 @@ namespace IMUNROK.Common
         // 지금 열려 있는 심문(수첩에서 증거를 들이밀 대상)
         public static InterrogationController Active { get; private set; }
 
+        /// <summary>
+        /// 지금 마주 앉은 사람의 이름. 없으면 빈 글.
+        ///
+        /// <b>제 말을 제게 내밀지 못하게</b> 하려고 수첩이 물어본다 — 마을 사람에게서
+        /// 들은 말을 그 마을 사람 앞에 도로 꺼내 보이는 것은 증거를 대는 것이 아니다.
+        /// </summary>
+        /// <summary>
+        /// 지금 마주한 사람이 <b>이 단서를 기다리는 자리</b>가 있는가(이 막의 게이트). 있으면 수첩은
+        /// 말한 이·들이밀 수 있음을 따지지 않고 내밀게 둔다 — 甲이 1막에 흘린 자랑(J02)을 2막에서
+        /// 甲 앞에 되돌리는 것이 그 게이트의 뜻인데, 「제 말을 제게 내민다」로 막혔다.
+        /// </summary>
+        public static bool ActiveWants(string key)
+        {
+            var a = Active;
+            if (a == null || a._character == null || a._character.evidenceGates == null || string.IsNullOrEmpty(key)) return false;
+            foreach (var g in a._character.evidenceGates)
+                if (g != null && ActGate.Fits(g.act) && (g.clueKey == key || g.RequiredKeys().Contains(key))) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// <b>자백을 가른다.</b> 무너짐의 열쇠(breakOnClues)를 다 쥔 채, 자백 낱말로 찌르거나 열쇠 가운데
+        /// 하나를 들이밀면 — 수첩에 자백을 적고 단계를 끝까지 올린다. AI 에게는 「무너져 실토한다」로 건넨다.
+        /// </summary>
+        private string TryConfess(string say, string presented)
+        {
+            if (_character == null || string.IsNullOrEmpty(_character.confessClueKey)) return null;
+            var journal = Journal.Instance;
+            if (journal == null || journal.HasClue(_character.caseId, _character.confessClueKey)) return null;
+            var keys = _character.BreakKeys();
+            if (keys.Length == 0) return null;
+            foreach (var k in keys) if (!journal.HasClue(_character.caseId, k)) return null;
+
+            bool hit = presented != null
+                     ? System.Array.IndexOf(keys, presented) >= 0
+                     : !string.IsNullOrWhiteSpace(_character.confessKeywords) && TalkKeywords.Hit(say, _character.confessKeywords);
+            if (!hit) return null;
+
+            string text = string.IsNullOrEmpty(_character.confessClueText) ? _character.confessLine : _character.confessClueText;
+            _stageFloor = 10;
+            if (!_unlockedFacts.Contains(text)) _unlockedFacts.Add(text);
+            Record(_character.confessClueKey, text, true, null, _character.confessClueTitle);
+            _loosenedAnswer = _character.confessLine;
+            return "무너져 실토한다: " + text;
+        }
+
+        public static string ActiveName
+        {
+            get { return Active != null && Active._character != null ? Active._character.ShownName : ""; }
+        }
+
+        /// <summary>대답을 기다리는 중인가(이 사이에 벌어진 일은 건네지지 않는다).</summary>
+        public bool Busy => _busy;
+
         /// <summary>이 사람과 지금 마주 이야기하는 중인가. 돌아보기(FaceThePlayer)가 참고한다.</summary>
         public bool IsOpen => _active;
 
@@ -332,9 +386,12 @@ namespace IMUNROK.Common
             _everBegun = true;
 
             _responder = MakeResponder();
+            // 첫 대사도 <b>막을 가려</b> 고른다. 성격만 갈라 놓고 첫 대사를 한 벌로 두면,
+            // 어사 앞에 끌려 나온 사람이 1막의 인사말로 맞이한다.
             _npcLine = (!fresh && !string.IsNullOrEmpty(_character.recallLine))
-                     ? _character.recallLine : _character.openingLine;
-            _transcript.Add($"{_character.characterName}: {_npcLine}");
+                     ? _character.recallLine
+                     : _character.OpeningFor(ActGate.Revealed);
+            _transcript.Add($"{_character.ShownName}: {_npcLine}");
             _active = true;
             s_openCount++;
             Active = this;
@@ -376,6 +433,19 @@ namespace IMUNROK.Common
         // ── 클릭으로 인물을 고르면 심문 시작 ──
         public void OnHoverEnter() { }
         public void OnHoverExit() { }
+        [Header("부르는 자리에서만")]
+        [Tooltip("<b>켜면 이 사람은 직접 다가가 말을 걸 수 없다.</b> 동헌에서 불러야 한다. " +
+                 "2막의 뜰에 선 사람들에게 켠다. 1막처럼 찾아가 묻는 자리에서는 끈다")]
+        [SerializeField] private bool _onlyWhenCalled = false;
+
+        [TextArea(2, 3)]
+        [Tooltip("직접 말을 걸었을 때의 한 마디. 비우면 조용히 물러난다")]
+        [SerializeField] private string _callMeUpLine =
+            "…소인이 어찌 여기서 입을 열겠습니까. *동헌*으로 부르시면 나아가 아뢰겠습니다.";
+
+        /// <summary>이 사람을 지금 직접 붙잡고 물을 수 있나.</summary>
+        private bool DirectTalkAllowed => !_onlyWhenCalled;
+
         public void OnSelect()
         {
             if (_active || _locked) return;
@@ -384,6 +454,30 @@ namespace IMUNROK.Common
             // 그러면 코앞에 서 있어도 '멀다'로 막혀 말을 걸 수 없다(옹덕구가 그랬다).
             if (cam != null && ModelBounds.DistanceTo(transform, cam.transform.position) > _maxTalkDistance)
                 return;
+
+            // <b>뜰에서는 못 묻는다.</b>
+            //
+            // 어사가 관아에 들었으면 묻는 자리는 동헌이다. 뜰에 세워 둔 사람을 붙잡고
+            // 그 자리에서 캐물으면 그것은 심문이 아니라 실랑이고, 무엇보다 <b>부르기 판</b>이
+            // 있을 까닭이 없어진다 — 불러 세우는 절차가 곧 이 막의 뜻인데 걸어가서
+            // 누르면 같은 창이 열리니 절차가 장식이 된다.
+            //
+            // 다만 <b>아무 말 없이 안 열리면 고장으로 읽힌다</b>. 그래서 사람이 제 입으로
+            // 물린다 — 안 되는 까닭과 되는 길이 한 마디에 같이 있어야 한다.
+            if (!DirectTalkAllowed)
+            {
+                // <b>물리는 말은 저마다 다르다.</b> 인물에 적어 둔 것이 있으면 그것을 쓰고,
+                // 없을 때만 부품의 두루뭉술한 것으로 내려간다 — 다섯이 같은 문장으로
+                // 물리면 처지도 신분도 다 지워진다.
+                string line = _character != null && !string.IsNullOrWhiteSpace(_character.calledUpLine)
+                    ? _character.calledUpLine
+                    : _callMeUpLine;
+                if (!string.IsNullOrEmpty(line))
+                    SubtitleView.Show(_character != null ? _character.ShownName : "",
+                                      line, "", true);
+                return;
+            }
+
             Begin();
         }
 
@@ -405,13 +499,26 @@ namespace IMUNROK.Common
 
             // 돌아설 때 등 뒤로 던지는 한 마디.
             // 조작창은 닫고 자막만 잠깐 더 남긴다 — 무엇을 물었든 이건 반드시 듣게 된다.
-            if (_character != null && !string.IsNullOrEmpty(_character.closingLine))
+            string closing = _character != null ? _character.ClosingFor(ActGate.Revealed) : "";
+            if (!string.IsNullOrEmpty(closing))
             {
-                SubtitleView.Show(_character.characterName, _character.closingLine, "");
+                SubtitleView.Show(_character.ShownName, closing, "");
+                // <b>내보낸 다음에 적는다.</b> 자막에 뜨지도 않은 말을 「했다」고 적으면
+                // 한 번도 못 들은 귀띔이 그대로 사라진다.
+                _character.NoteClosingSaid();
                 CancelInvoke(nameof(HideClosingLine));
                 Invoke(nameof(HideClosingLine), _closingLineSeconds);
             }
             else SubtitleView.Hide();
+
+            // <b>말이 끝났으면 물러간다.</b>
+            //
+            // 여태 나가는 길이 없었다 — 「이만 마치겠소」를 눌러도 불려 온 이는 교의 앞에
+            // 그대로 앉아 있었고, 다른 이를 부를 때에야 비로소 일어섰다. 그래서 동헌에는
+            // 파한 사람이 하나씩 쌓였다. 부르는 것이 걸어 들어오는 일이면 파하는 것도
+            // 걸어 나가는 일이어야 한다 — 나가면서 문도 제 손으로 닫는다(<see cref="CourtSummon"/>).
+            var walk = GetComponent<CourtSummon>();
+            if (walk != null && walk.IsUp) walk.StepBack();
 
             _onClosed?.Invoke();
         }
@@ -443,7 +550,7 @@ namespace IMUNROK.Common
 
             // 단추를 안 눌렀다고 빈손으로 돌려보내지 않는다 — 같은 곳을 짚었으면 같은 것을 준다.
             _loosenedAnswer = null;
-            string loosened = Loosen(say);
+            string loosened = TryConfess(say, null) ?? Loosen(say);
             _lineIsKey = loosened != null;
 
             var req = new NpcRequest
@@ -503,11 +610,13 @@ namespace IMUNROK.Common
             // 「무너질 수 있는 자리」에 서 있다는 것은 태도에 배어야 한다.
             if (all) req.stage = Mathf.Max(req.stage, 8);
 
-            if (journal != null && _character != null)
+            // 1막의 과객은 쥔 것을 내보인 적이 없다 — 목록을 주면 사목·장부 이야기가 AI 입에서 샜다.
+            if (journal != null && _character != null && req.identityRevealed)
             {
                 var held = new System.Collections.Generic.List<string>();
                 foreach (var c in journal.GetClues(_character.caseId))
-                    if (c != null && !string.IsNullOrEmpty(c.text)) held.Add(c.text);
+                    if (c != null && !string.IsNullOrEmpty(c.text))
+                        held.Add(c.text.TrimStart().StartsWith("[") ? c.text : "[" + c.key + "] " + c.text);   // 성격이 번호로 조건을 건다
                 req.evidenceHeld = held;
             }
         }
@@ -522,6 +631,14 @@ namespace IMUNROK.Common
             if (string.IsNullOrWhiteSpace(Draft)) return;
             string say = Draft;
             Draft = "";
+            // <b>친 말이 명령이면 명령으로 한다</b> — 「소매를 걷어라」를 물음으로 넘기면 인물이 말로만 받고
+            // 소매는 안 걷혔다. 근거가 없으면 까닭을 이르고 물음으로도 넘기지 않는다.
+            foreach (var o in Orders)
+            {
+                if (o == null || !o.enabled || !o.Matches(say)) continue;
+                if (o.Available) { o.Run(this); InterrogationPanel.Refresh(); return; }
+                if (o.LockedReason != null) { SubtitleView.Show("", o.LockedReason, "", false); return; }
+            }
             Say(say);
         }
 
@@ -541,7 +658,7 @@ namespace IMUNROK.Common
             // 그 사실을 아는 채로 말하도록 밝혀진 것에 얹고, 수첩에 정황으로 적는다.
             // 적는 몫은 GrantTopic 이 진다.
             _lineIsKey = false;
-            if (!string.IsNullOrEmpty(t.grantsClueKey) && !_grantedTopics.Contains(t.grantsClueKey))
+            if (!string.IsNullOrEmpty(t.grantsClueKey) && !_grantedTopics.Contains(TopicId(t)))
             {
                 GrantTopic(t);
                 _lineIsKey = true;
@@ -566,18 +683,51 @@ namespace IMUNROK.Common
         }
 
         // ── 행동 ②: 증거 제시 ──
+        /// <summary>「[J01]」 처럼 코드가 붙인 이름표를 걷는다 — 사람에게 보일 말이 아니다.</summary>
+        private static string CleanClue(string t)
+        {
+            t = (t ?? "").Trim();
+            if (t.StartsWith("["))
+            {
+                int close = t.IndexOf(']');
+                if (close > 0 && close <= 6 && close + 1 < t.Length) t = t.Substring(close + 1).Trim();
+            }
+            return t.Replace("*", "");
+        }
+
+        /// <summary>칸 한 줄에 들어갈 만큼만.</summary>
+        private static string Shorten(string t, int room)
+        {
+            t = (t ?? "").Replace('\n', ' ');
+            return t.Length <= room ? t : t.Substring(0, room).TrimEnd() + "…";
+        }
+
         private void Present(ClueEntry clue)
         {
             if (_busy || clue == null) return;
-            _lastPlayerLine = $"(증거) {clue.text}";
+            // <b>내민 것은 「친 말」이 아니다.</b>
+            //
+            // 여태 글쇠 칸 자리에 「(증거) [J01] 온 마을이 甲을 주인으로 알고…」가 그대로
+            // 찍혔다. 두 가지가 어긋난다 — <c>[J01]</c> 은 <b>우리끼리 쓰는 이름표</b>지
+            // 어사가 입에 담는 말이 아니고, 물건을 내미는 짓이 <b>타자로 친 물음</b>처럼
+            // 보이면 두 행동이 한 자리에서 뭉갠다.
+            //
+            // 그러니 이름표를 걷고, 무엇을 어떻게 했는지로 적는다 —
+            // 종이는 <b>내밀고</b> 들은 말은 <b>짚는다</b>.
+            string plain = CleanClue(clue.text);
+            bool heard = !string.IsNullOrEmpty(clue.speaker);
+            _lastPlayerLine = heard
+                ? "▸ " + clue.speaker + "에게서 들은 말을 짚는다 — " + Shorten(plain, 42)
+                : "▸ " + Shorten(plain, 42) + " 을(를) 내민다";
             _lineIsKey = false;
-            _transcript.Add($"{PlayerTitle}(증거): {clue.text}");
+            _transcript.Add($"{PlayerTitle}(증거): {plain}");
 
             // 제시한 증거의 상황 그림을 잠깐 "탁" 띄운다
             InterrogationPanel.ShowEvidence(Journal.Instance.GetClueImage(_character.caseId, clue.key), 4.5f);
 
             // 이 증거가 여는 사실이 있으면 잠금 해제(발뺌 전용이면 말만 하고 기록 안 함)
-            string revealed = null;
+            string revealed = TryConfess(null, clue.key);
+            if (revealed == null)
             foreach (var gate in _character.evidenceGates)
             {
                 // 발뺌은 겹칠 것이 없다 — 그 종이 하나로 되받는 말이다.
@@ -654,7 +804,10 @@ namespace IMUNROK.Common
             _unlockedGateKeys.Add(GateId(gate));
             _unlockedFacts.Add(gate.revealsInfo);
             if (gate.stageAtLeast > _stageFloor) _stageFloor = gate.stageAtLeast;
-            Record(gate.grantsClueKey, gate.revealsInfo, false);
+            // 받아낸 말도 <b>남에게는</b> 들이밀 수 있다(2026-09-15) — 아내의 증언(G05)을 甲 앞에 짚는 것이
+            // 2막의 한 수인데, false 로 적어 두니 수첩이 막고 장계 증좌 칸에도 안 떴다.
+            // 말한 이 앞에 도로 내미는 것은 수첩(JournalPanel.CanPresent)이 따로 막는다.
+            Record(gate.grantsClueKey, gate.revealsInfo, true, null, gate.grantsClueTitle);
             return true;
         }
 
@@ -690,7 +843,7 @@ namespace IMUNROK.Common
                 {
                     if (t == null || string.IsNullOrEmpty(t.grantsClueKey)) continue;
                     if (!ActGate.Fits(t.act)) continue;
-                    if (_grantedTopics.Contains(t.grantsClueKey)) continue;
+                    if (_grantedTopics.Contains(TopicId(t))) continue;
                     if (!TalkKeywords.Hit(say, t.keywords)) continue;
 
                     GrantTopic(t);
@@ -701,7 +854,9 @@ namespace IMUNROK.Common
                     // 손으로 치면 <b>수첩 문구</b>를 내놓는다 — 「같은 곳을 짚었으면 같은
                     // 것을 준다」가 거기서만 깨진다.
                     _loosenedAnswer = t.mockAnswer;
-                    return string.IsNullOrEmpty(t.grantsClueText) ? t.question : t.grantsClueText;
+                    // AI 에게는 <b>사람이 할 말</b>을 흘리게 한다(2026-09-15). 여태 수첩 문구를 넘겨
+                    // 「필적이 둘로 갈린다 — 누가 대신 쓴 것이다」 같은 <b>어사의 결론</b>을 인물이 제 입으로 말했다.
+                    return !string.IsNullOrEmpty(t.mockAnswer) ? t.mockAnswer : t.question;
                 }
             }
 
@@ -723,12 +878,22 @@ namespace IMUNROK.Common
             return null;
         }
 
+        private static string TopicId(TopicQuestion t) { return t.grantsClueKey + "|" + t.keywords + "|" + t.question; }
+
         /// <summary>추천 질문으로 캐낸 것을 쥐여 준다 — 밝혀진 사실에 얹고, 수첩에 적는다.</summary>
         private void GrantTopic(TopicQuestion t)
         {
-            _grantedTopics.Add(t.grantsClueKey);
+            _grantedTopics.Add(TopicId(t));
             if (!string.IsNullOrEmpty(t.grantsClueText)) _unlockedFacts.Add(t.grantsClueText);
-            Record(t.grantsClueKey, t.grantsClueText, true, t.grantsClueImage);
+            var j = Journal.Instance;
+            string had = null;
+            if (j != null) foreach (var c in j.GetClues(_character.caseId)) if (c != null && c.key == t.grantsClueKey) { had = c.text; break; }
+            // 같은 열쇠를 나눠 가진 둘째 물음(마을 사람: 집주인 / 담 밖 사내)은 적힌 줄에 <b>덧붙인다</b>.
+            // 여태 열쇠로만 「물었다」를 세어, 한쪽을 물으면 다른 쪽은 영영 대답이 안 나왔다.
+            if (had != null && !string.IsNullOrEmpty(t.grantsClueText) && !had.Contains(t.grantsClueText))
+                j.UpgradeClue(_character.caseId, t.grantsClueKey, had + System.Environment.NewLine + System.Environment.NewLine + t.grantsClueText);
+            else
+                Record(t.grantsClueKey, t.grantsClueText, true, t.grantsClueImage, t.grantsClueTitle);
         }
 
         /// <summary>
@@ -743,7 +908,8 @@ namespace IMUNROK.Common
         /// <paramref name="presentable"/> 가 false 면 남되 들이밀 수는 없다 —
         /// 받아낸 실토를 그 사람에게 도로 내미는 일은 없다.
         /// </summary>
-        private void Record(string key, string text, bool presentable, Texture2D image = null)
+        private void Record(string key, string text, bool presentable, Texture2D image = null,
+                            string title = null)
         {
             if (string.IsNullOrEmpty(key) || _character == null) return;
             var journal = Journal.Instance;
@@ -756,8 +922,10 @@ namespace IMUNROK.Common
 
             journal.AddClue(_character.caseId, key,
                             string.IsNullOrEmpty(text) ? key : text,
-                            image, ClueKind.정황, presentable);
+                            image, ClueKind.정황, presentable, title);
             journal.SetSpeaker(_character.caseId, key, _character.characterName);
+            // 이미 적혀 있던 줄에는 AddClue 가 아무것도 안 한다 — 제목만 따로 채운다.
+            journal.SetTitle(_character.caseId, key, title);
         }
 
         // ── 행동 ④: 물건을 내밀거나 무엇을 하다 ──
@@ -792,7 +960,7 @@ namespace IMUNROK.Common
                 // 본 것은 남는다 — 다만 실토와 같아서 다시 들이밀 수는 없다.
                 Record(grantsClueKey,
                        string.IsNullOrWhiteSpace(grantsClueText) ? revealsInfo : grantsClueText,
-                       false);
+                       true);      // 남 앞에는 짚을 수 있다(말한 이 앞은 수첩이 막는다)
             }
             _lineIsKey = revealed != null;
 
@@ -827,11 +995,27 @@ namespace IMUNROK.Common
             // <b>남이 지은 글은 씻어서 받는다.</b> 인물의 대답에는 우리가 모르는 표시가
             // 섞여 온다(마크다운·제가 지어낸 꼬리표). 화면에 그대로 올리면 대사 한복판에
             // 태그가 글자로 찍혀, 그 순간 사람의 말이 아니라 기계의 출력이 된다.
-            text = Emphasis.OneBreath(Emphasis.Clean(text));
+            text = Emphasis.OneBreath(Emphasis.Clean(StripMetaAside(text)));
             _npcLine = text;
-            _transcript.Add($"{_character.characterName}: {text}");
+            _transcript.Add($"{_character.ShownName}: {text}");
             if (!_active) return;
             RefreshSubtitle();
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex MetaAside =
+            new System.Text.RegularExpressions.Regex(@"[(（][^()（）]*(답하라|하지\s*마라|말고|말라|지시|반응으로만|덧붙이지|대답하라|연기하라|규칙)[^()（）]*[)）]\s*");
+
+        /// <summary>
+        /// <b>인물이 제 대사에 지시문을 적어 올 때가 있다.</b> 우리가 벌어진 일을 「(왼 소매를 걷게 한다)」
+        /// 처럼 괄호로 건네자, 모형이 그 꼴을 흉내 내 「(질문과 무관한 … 반응으로만 답하라.)」 같은
+        /// <b>제게 내린 지시</b>를 대사 앞에 붙여 왔고 그것이 자막에 그대로 떴다(2026-09-14).
+        /// 괄호 안에 명령조 낱말이 든 토막만 걷는다 — 「(한숨)」 같은 몸짓은 남긴다.
+        /// </summary>
+        private static string StripMetaAside(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            string t = MetaAside.Replace(text, "").Trim();
+            return t.Length == 0 ? text : t;
         }
 
         private void OnError(string err)
@@ -858,7 +1042,7 @@ namespace IMUNROK.Common
             string hint = Controls.InterrogationHint;
             // 붉은 글씨는 말이 다 나온 뒤에만. 기다리는 동안의 "…" 까지 붉으면
             // 무엇이 붉은 것인지 흐려진다.
-            SubtitleView.Show(_character.characterName, line, hint, _lineIsKey && !_busy);
+            SubtitleView.Show(_character.ShownName, line, hint, _lineIsKey && !_busy);
         }
 
         private float _awayFor;
@@ -1008,8 +1192,19 @@ namespace IMUNROK.Common
         /// 손이 미끄러진 한 번에 심문이 영영 끝나 버린다. 끝낸 뒤에는 다시 잠가 둔다 —
         /// 물러가는 사람을 붙잡고 처음부터 다시 물을 수는 없다.
         /// </summary>
+        private float _finishAskUntil;
+
         public void FinishFromUi()
         {
+            if (_character != null && !string.IsNullOrWhiteSpace(_character.finishWarnAct1) && !_finished
+                && (GameState.Instance == null || !GameState.Instance.IdentityRevealed)
+                && Time.unscaledTime > _finishAskUntil)
+            {
+                _finishAskUntil = Time.unscaledTime + 5f;
+                SubtitleView.Show("", _character.finishWarnAct1, "(한 번 더 누르면 자리를 파한다)", true);
+                return;
+            }
+            _finishAskUntil = 0f;
             ClosePanel();
 
             // 되돌릴 수 없는 일은 한 번만. 이미 마친 사람이면 창만 닫는다.

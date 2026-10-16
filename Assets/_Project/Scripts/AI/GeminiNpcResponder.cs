@@ -22,7 +22,7 @@ namespace IMUNROK.Common
     {
         // 모델 이름이 틀리면 404가 난다. 쓸 수 있는 목록은 아래로 확인:
         //   https://generativelanguage.googleapis.com/v1beta/models  (헤더 x-goog-api-key 에 키)
-        private const int MaxOutputTokens = 120;
+        private const int MaxOutputTokens = 240;   // 120 으로는 두 문장째에서 잘렸다
 
         // flash-lite = 가장 싸고 빠른 등급. NPC 대답은 1~2문장(120토큰)뿐이라 상위 등급이 필요 없고,
         // 대화에서는 응답 속도가 품질보다 체감에 크게 작용한다.
@@ -81,12 +81,13 @@ namespace IMUNROK.Common
                 if (www.result != UnityWebRequest.Result.Success)
                 {
                     Debug.LogWarning($"[Gemini] 요청 실패: {www.responseCode} {www.error}\n{www.downloadHandler.text}");
-                    onError?.Invoke($"{www.responseCode} {www.error}");
+                    // <b>끊기면 목업으로 받는다</b>(2026-09-15) — 「(대답 오류: 0 Cannot resolve…)」가 대사 자리에 떴다.
+                    new MockNpcResponder().GetResponse(null, req, onReply, onError);
                     yield break;
                 }
 
                 string reply = ParseReply(www.downloadHandler.text);
-                if (string.IsNullOrEmpty(reply)) { onError?.Invoke("빈 응답(안전필터 등)"); yield break; }
+                if (string.IsNullOrEmpty(reply)) { new MockNpcResponder().GetResponse(null, req, onReply, onError); yield break; }
                 onReply?.Invoke(reply.Trim());
             }
         }
@@ -152,6 +153,17 @@ namespace IMUNROK.Common
             sb.AppendLine("[먼저 늘어놓지 마라] 묻는 말에만 답하라. 묻지 않은 자랑·해명·내력을 덧붙이지 마라. " +
                           "이미 한 말을 되풀이하지 마라 — 같은 자랑을 두 번 하면 그것은 자랑이 아니라 자백이다.");
 
+            // <b>되묻는 쪽이 될 때도 되풀이하지 마라.</b>
+            //
+            // 성격에 「네가 먼저 캔다」를 적어 둔 인물이 있다(1막의 甲). 그런데 물을 거리를
+            // 목록으로 적어 두면 이쪽은 <b>그 가운데 하나를 매번 다시</b> 묻는다 —
+            // 「어쩌다 이 골에 드셨소」를 대여섯 번 들으면 캐묻는 것이 아니라 <b>같은 자리에
+            // 걸린 축음기</b>가 된다. 사람은 대답을 듣고 나면 그 대답에 붙여 묻는다.
+            sb.AppendLine("[되물을 때] 네가 묻는 쪽이 될 때도 같은 물음을 두 번 하지 마라. " +
+                          "이미 물어 답을 들었으면 그 대답을 받아서 이어라 — 저쪽이 한 말에 붙여 " +
+                          "한 걸음만 더 들어가는 것이지, 처음 물음으로 돌아가는 것이 아니다. " +
+                          "물을 것이 떨어지면 캐묻기를 그만두고 묻는 말에 답하라.");
+
             // ── 무너짐은 두 겹으로 가른다 ──────────────────────────
             //
             // <b>열쇠는 게임이 쥐고, 정곡은 AI 가 읽는다.</b>
@@ -160,11 +172,18 @@ namespace IMUNROK.Common
             sb.AppendLine();
             sb.AppendLine("[지금 상태]");
             sb.AppendLine("- 막: " + (req.identityRevealed ? "2막 · 공개 조사(묻는 이가 어사임을 안다)"
-                                                          : "1막 · 잠행(묻는 이는 지나가는 과객으로 보인다)"));
+                                                          : "1막 · 밤(묻는 이는 하룻밤 묵어 가는 과객이다. 벼슬아치로 대하지 마라)"));
             sb.AppendLine("- 무너짐 단계: " + Mathf.Clamp(req.stage, 0, 10) + " / 10");
             sb.AppendLine("- 마지막 열쇠를 쥐었는가: " + (req.canBreak ? "예" : "아니오"));
-            sb.AppendLine("[단계별 태도] 0~2 태연히 부정, 살짝 비웃듯. 3~6 동요하고 변명이 궁색해진다. " +
-                          "7~9 거의 침묵, 짧은 부정과 한숨. 10 이면서 열쇠를 쥐었으면 무너져 실토한다.");
+            bool suspect = req.character != null && req.character.BreakKeys().Length > 0;
+            if (suspect)
+                sb.AppendLine("[단계별 태도] 0~2 태연히 부정, 살짝 비웃듯. 3~6 동요하고 변명이 궁색해진다. " +
+                              "7~9 거의 침묵, 짧은 부정과 한숨. 8 이상이면서 열쇠를 쥐었고 정곡을 찔리면 무너져 실토한다. " +
+                              "[방금 결정적 증거] 칸이 「무너져 실토한다」로 오면 반드시 제 입으로 실토하라.");
+            else
+                // 죄를 숨긴 사람이 아닌 이(안주인·하인·마을 사람·서리)에게 부정·비웃음·한숨을 시키면 사람이 이상해진다
+                sb.AppendLine("[단계별 태도] 너는 이 일의 범인이 아니다. 단계는 입이 풀리는 정도로만 읽어라 — " +
+                              "낮으면 조심스레 말을 아끼고, 높으면 아는 것을 조금 더 털어놓는다. 비웃거나 한숨 쉬며 부정하지 마라.");
             sb.AppendLine("[무너짐 판정] 묻는 이가 정곡을 뜻으로 찌르고 위 '마지막 열쇠'가 「예」이면 무너져라. " +
                           "정확한 낱말을 고집하지 마라 — 오타여도 반말이어도 뜻이 통하면 인정하라. " +
                           "「아니오」이면 같은 말을 들어도 절대 무너지지 마라. 부정하거나 비웃어라.");

@@ -124,6 +124,7 @@ namespace IMUNROK.Common
         public override void Run(InterrogationController who)
         {
             if (who == null) return;
+            if (who.Busy) { _pending = true; return; }     // 대답을 다 듣고 나서 벌어진 일로 건넨다
             _done = true;
             if (_prop != null) _prop.SetActive(true);
             who.Offer(_deedLine, _revealsInfo, _grantsClueKey, _grantsClueText, _stageAtLeast);
@@ -140,7 +141,23 @@ namespace IMUNROK.Common
         public void Trigger()
         {
             var who = GetComponent<InterrogationController>();
-            if (who == null || !who.IsOpen || !Allowed) return;
+            if (who == null || !Allowed) return;
+            // <b>창이 닫혀 있으면 미뤄 둔다</b>(2026-09-15). 팔을 무대에 올려 재는 동안 심문창이 닫혀 있을 수
+            // 있어, 여태 잰 뒤의 반응이 그냥 버려졌다. 다시 마주 앉으면 그때 건넨다.
+            if (!who.IsOpen || who.Busy) { _pending = true; return; }
+            Run(who);
+            InterrogationPanel.Refresh();
+        }
+
+        private bool _pending;
+
+        private void Update()
+        {
+            if (!_pending) return;
+            var who = GetComponent<InterrogationController>();
+            if (who == null || !who.IsOpen || who.Busy || DocumentView.IsOpen) return;
+            _pending = false;
+            if (!Allowed) return;
             Run(who);
             InterrogationPanel.Refresh();
         }
