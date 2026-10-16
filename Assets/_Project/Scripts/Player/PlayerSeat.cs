@@ -334,18 +334,39 @@ namespace IMUNROK.Common
             // 심문 중에는 그 자리에 상대의 대사가 와야 한다. "Space 일어서기"가 상대
             // 얼굴 위에 떠 있으면 지금 읽어야 할 것이 무엇인지 갈린다.
             // 키는 그대로 산다 — 안내만 물러난다.
-            bool busy = InterrogationController.AnyOpen || JournalView.AnyOpen || DocumentView.IsOpen;
-            if (busy) StatusPanel.Clear("앉음");
-            else if (!string.IsNullOrEmpty(_seatedLine)) StatusPanel.Set("앉음", 3, _seatedLine);
+            //
+            // <b>일어서기는 「자리를 뜬다」이지 「심문을 파한다」가 아니다</b>(2026-10-17).
+            // 동헌의 부르기 판은 「앉은 자리에서 일어서면 심문을 파한다」로 되어 있다(<see cref="InterrogationBench"/>).
+            // 그래서 마주 앉아 묻는 도중에 Space 를 한 번 잘못 누르면 — 글쇠 칸이 잡혀 있지 않은 때
+            // (걷힌 팔을 보는 동안 등) — 묻던 이가 그대로 물러가고 심문이 끝났다.
+            // 심문을 끝내는 길은 「이만 마치겠소」 하나로 둔다. 누가 마주 앉아 있거나 판(팔·문서·수첩·장계·지도)이
+            // 떠 있는 동안에는 일어서지 않는다. 아무도 안 불렀을 때만 Space 가 자리를 뜨는 키다.
+            // 불러 놓고 아직 오는 중인 사람도 마주 앉은 것으로 친다 — 부른 순간부터 그 자리는 묻는 자리다
+            var bench = InterrogationBench.Instance;
+            bool talking = InterrogationController.AnyOpen || (bench != null && bench.SomeoneCalled);
+            bool panel = JournalView.AnyOpen || DocumentView.IsOpen || VerdictReport.IsOpen || MapView.AnyOpen;
+            bool busy = talking || panel;
 
             var kb = Keyboard.current;
-            if (kb != null && !Typing.Now && kb[_riseKey].wasPressedThisFrame)
+            bool pressed = kb != null && !Typing.Now && kb[_riseKey].wasPressedThisFrame;
+            // 막혔다는 말은 자막이 아니라 안내판에 잠깐 건다 — 자막 바에는 마주 앉은 이의 말이 있다
+            if (pressed && talking && !panel) _refusedUntil = Time.unscaledTime + 3f;
+
+            if (Time.unscaledTime < _refusedUntil && talking)
+                StatusPanel.Set("앉음", 3, RefuseLine);
+            else if (busy) StatusPanel.Clear("앉음");
+            else if (!string.IsNullOrEmpty(_seatedLine)) StatusPanel.Set("앉음", 3, _seatedLine);
+
+            if (pressed && !busy)   // 판을 보는 중이면 그 판이 키를 쓴다(Esc 로 내려놓기 등)
             {
                 StatusPanel.Clear("앉음");
                 Stand();
             }
 #endif
         }
+
+        private const string RefuseLine = "불러 둔 이가 있는 동안에는 일어서지 않는다 — *「이만 마치겠소」* 로 파한다";
+        private float _refusedUntil = -1f;
 
         private bool _wasSeated;
 

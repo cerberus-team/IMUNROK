@@ -135,6 +135,9 @@ namespace IMUNROK.Common
                 return;
             }
             if (s.사람.IsOpen) return;      // 이미 저 사람과 이야기하는 중이다
+            // 누가 걸어 나오거나 물러가는 중이면 안 부른다 — 둘이 겹쳐 불려 나온다
+            if (_coming != null || InterrogationController.AnyOpen || AnyoneOut()) return;
+            InterrogationPanel.CloseRoster();   // 부른 순간 이름표를 걷는다
 
             var open = InterrogationController.Active;
             if (open != null && open != s.사람)
@@ -163,6 +166,35 @@ namespace IMUNROK.Common
             StartCoroutine(OpenWhenArrived(s.사람, come));
         }
 
+        /// <summary>
+        /// <b>누군가를 불러 두었나</b> — 걸어 나오는 중이든 다 와서 섰든. 파하고 물러가는 중은 아니다.
+        /// 이 동안에는 어사가 자리를 뜨지 않는다(<see cref="PlayerSeat"/>) — 불러 놓고 일어서면
+        /// 오던 이가 빈 자리 앞에 서게 된다.
+        /// </summary>
+        public bool SomeoneCalled
+        {
+            get
+            {
+                if (_coming != null) return true;
+                if (_seats == null) return false;
+                foreach (var s in _seats) if (IsUp(s)) return true;
+                return false;
+            }
+        }
+
+        /// <summary>뜰에서 누가 나와 있거나 오가는 중인가(부른 이·물러가는 이).</summary>
+        private bool AnyoneOut()
+        {
+            if (_seats == null) return false;
+            foreach (var s in _seats)
+            {
+                if (s == null || s.사람 == null) continue;
+                var c = s.사람.GetComponent<CourtSummon>();
+                if (c != null ? (c.IsUp || c.Walking) : s.사람.IsOpen) return true;
+            }
+            return false;
+        }
+
         /// <summary>지금 걸어 나오는 중인 사람. 도중에 딴 이를 부르면 이것이 바뀐다.</summary>
         private InterrogationController _coming;
 
@@ -175,7 +207,8 @@ namespace IMUNROK.Common
                 if (_coming != who) yield break;
                 yield return null;
             }
-            if (_coming != who || who == null || walk == null || !walk.IsUp) yield break;
+            // 다 못 오고 멎었으면 기다리던 것을 푼다 — 안 풀면 이름표가 영영 안 뜬다
+            if (_coming != who || who == null || walk == null || !walk.IsUp) { if (_coming == who) _coming = null; yield break; }
             _coming = null;
             who.CallUp();
         }
@@ -284,9 +317,12 @@ namespace IMUNROK.Common
             //
             // 그래서 한 번 접으면 접힌 채로 두고, 다시 부르고 싶을 때 편다.
             // 여는 열쇠는 아래 <see cref="_openKey"/>(기본 R) 와, 동헌에 갓 들어선 순간이다.
+            // <b>누가 나와 있는 동안은 펴지 않는다.</b> 부른 이가 걸어오는 동안·마주 앉은 동안·
+            // 파하고 물러가는 동안 — 이름표가 떠 있으면 그 사이에 또 불러 둘이 겹쳤다.
             if (!InterrogationController.AnyOpen)
             {
-                if (_wanted) InterrogationPanel.OpenRoster();
+                bool busy = _coming != null || AnyoneOut();
+                if (_wanted && !busy) InterrogationPanel.OpenRoster();
                 else InterrogationPanel.CloseRoster();
             }
         }

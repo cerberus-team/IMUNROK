@@ -17,8 +17,13 @@ namespace IMUNROK.Onggojip
     /// <b>결론은 안 적는다.</b> 「甲이 가짜다」가 아니라 「관의 호적 원본을 찾아 두 사람의 몸에서
     /// 확인한다」 — 어디를 보라는 안내이지 무엇이 나온다는 말이 아니다. 캐낸 줄에는 ● 가 붙는다.
     ///
-    /// 뜨는 때: 목록의 한 칸이 새로 채워질 때 · H. 들어서자마자는 안 뜬다.
+    /// 뜨는 때: <b>H 를 누를 때만</b>. 들어서자마자는 안 뜬다.
     /// 몇 초 머물다 저 혼자 진다 — 늘 떠 있는 안내는 창이 된다.
+    ///
+    /// <b>저절로는 한 줄만 띄운다</b>(2026-10-17). 여태 칸이 하나 채워질 때마다 목록 열두 줄을
+    /// 통째로 띄웠는데, 칸은 대개 심문 중에 채워지므로 「이만 마치겠소」를 누르면 그때마다
+    /// 위 안내창에 목록이 주르륵 쏟아졌다. 무엇이 왜 떴는지 알 길이 없었다.
+    /// 이제 심문을 파하면 「심문을 마쳤다」 한 줄, 칸이 찼으면 「살필 것 한 칸이 찼다」를 덧붙인다.
     /// </summary>
     public class Act2Brief : MonoBehaviour
     {
@@ -73,25 +78,43 @@ namespace IMUNROK.Onggojip
 
         [SerializeField] private float _holdSeconds = 12f;
 
+        [Header("저절로 뜨는 한 줄")]
+        [SerializeField] private string _closedLine = "심문을 마쳤다";
+        [SerializeField] private string _filledLine = "살필 것 한 칸이 찼다";
+        [SerializeField] private float _noticeSeconds = 3.5f;
+
         private const string Key = "살필것";   // 서리(GwanaUsher)의 「목표」 줄과 자리를 따로 쓴다
         private const CaseId ThisCase = CaseId.Case1_Onggojip;
         private float _showUntil = -1f;
         private int _lastDone = -1;
-        private bool _pending;
+        private bool _pending;        // 칸이 새로 찼다 — 창이 걷히면 알린다
+        private bool _wasTalking;     // 지난 프레임에 심문이 열려 있었나
+        private bool _closedTalk;     // 심문을 막 파했다 — 창이 걷히면 알린다
+        private string _notice;       // 저절로 띄우는 한 줄(null 이면 목록)
 
         private void Update()
         {
             var j = Journal.Instance;
             if (j == null) return;
 
-            bool busy = InterrogationController.AnyOpen || JournalView.AnyOpen || DocumentView.IsOpen
+            bool talking = InterrogationController.AnyOpen;
+            if (_wasTalking && !talking) _closedTalk = true;
+            _wasTalking = talking;
+
+            bool busy = talking || JournalView.AnyOpen || DocumentView.IsOpen
                      || VerdictReport.IsOpen || HubEnding.Playing;
 
             int done = CountDone(j);
             if (_lastDone < 0) _lastDone = done;
             if (done > _lastDone) { _lastDone = done; _pending = true; }   // 한 칸이 새로 채워졌다
             // 증좌는 대개 문서를 펴 둔 채 적힌다 — 그 프레임에 띄우면 곧바로 busy 로 지워졌다. 창이 걷히면 띄운다
-            if (_pending && !busy) { _pending = false; Show(); }
+            if ((_pending || _closedTalk) && !busy)
+            {
+                string line = _closedTalk ? _closedLine : "";
+                if (_pending) line = (line.Length > 0 ? line + "  ·  " : "") + _filledLine;
+                _pending = _closedTalk = false;
+                Notice(line + "  <size=70%>(H 살필 것)</size>");
+            }
 
             // 들어서자마자는 안 띄운다(2026-09-14) — 무엇을 할지도 모르는데 목록부터 뜨면 어색했다.
             // 처음 한 칸이 채워질 때, 또는 H 를 누를 때 뜬다.
@@ -100,16 +123,21 @@ namespace IMUNROK.Onggojip
             var kb = Keyboard.current;
             if (kb != null && !Typing.Now && kb.hKey.wasPressedThisFrame)
             {
-                if (_showUntil > Time.time) { _showUntil = -1f; StatusPanel.Clear(Key); }
+                // 한 줄 알림이 떠 있을 때 H 는 목록으로 바꿔 편다
+                if (_showUntil > Time.time && _notice == null) { _showUntil = -1f; StatusPanel.Clear(Key); }
                 else Show();
             }
 #endif
             if (_showUntil < 0f) return;
-            if (busy || Time.time >= _showUntil) { _showUntil = -1f; StatusPanel.Clear(Key); return; }
-            StatusPanel.Set(Key, 0, Text(j));
+            if (busy || Time.time >= _showUntil) { _showUntil = -1f; _notice = null; StatusPanel.Clear(Key); return; }
+            StatusPanel.Set(Key, 0, _notice ?? Text(j));
         }
 
-        private void Show() { _showUntil = Time.time + _holdSeconds; }
+        /// <summary>목록을 편다(H).</summary>
+        private void Show() { _notice = null; _showUntil = Time.time + _holdSeconds; }
+
+        /// <summary>한 줄만 잠깐 띄운다.</summary>
+        private void Notice(string line) { _notice = line; _showUntil = Time.time + _noticeSeconds; }
 
         private int CountDone(Journal j)
         {
