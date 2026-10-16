@@ -279,7 +279,9 @@ namespace IMUNROK.Common.EditorTools
                 var rise = so.FindProperty("_riseKey");
                 int idx = System.Array.IndexOf(rise.enumNames, "Space");
                 if (idx >= 0) rise.enumValueIndex = idx;
-                so.FindProperty("_seatedLine").stringValue = "교의에 앉았다.   (*Space* 일어서기)";
+                // <b>「교의」 라고 못 쓴다.</b> 이 한 줄을 심문 자리와 판결 평상이 같이 쓴다 —
+                // 평상에 올라앉고서 「교의에 앉았다」고 뜨면 앉은 것이 무엇인지 헷갈린다.
+                so.FindProperty("_seatedLine").stringValue = "앉았다.   (*Space* 일어서기)";
             });
         }
 

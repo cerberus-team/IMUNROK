@@ -31,6 +31,18 @@ namespace IMUNROK.Common.EditorTools
     {
         private bool _previewOpen;
 
+        /// <summary>
+        /// <b>지금 얼마나 열어 두고 보고 있나</b>(0 닫힘 ~ 1 열림).
+        ///
+        /// 「열어보기/닫아보기」는 <b>양 끝</b>만 보여 준다. 그런데 문이 이상해 보이는 것은
+        /// 대개 <b>도는 도중</b>에 드러난다 — 문설주를 파고들거나, 반대쪽 짝을 스치거나,
+        /// 열리다 말고 벽에 박히는 것은 다 중간 자세의 일이다. 끌어 가며 봐야 잡힌다.
+        /// </summary>
+        private float _scrub;
+
+        /// <summary>미리보기로 돌려 둔 만큼. 되돌릴 때 이만큼 반대로 돌린다.</summary>
+        private float[] _applied;
+
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector();
@@ -56,6 +68,33 @@ namespace IMUNROK.Common.EditorTools
             }
             EditorGUILayout.LabelField(_previewOpen ? "지금 '열린' 자세로 보고 있습니다" : "지금 '닫힌' 자세입니다",
                                        EditorStyles.miniLabel);
+
+            // ── 끌어 가며 보기 ──
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("열린 정도를 끌어 보십시오 (0 닫힘 · 1 활짝)", EditorStyles.miniBoldLabel);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                float v = EditorGUILayout.Slider(_scrub, 0f, 1f);
+                if (!Mathf.Approximately(v, _scrub)) Scrub(leaves, v);
+                if (GUILayout.Button("0", GUILayout.Width(30))) Scrub(leaves, 0f);
+                if (GUILayout.Button("½", GUILayout.Width(30))) Scrub(leaves, 0.5f);
+                if (GUILayout.Button("1", GUILayout.Width(30))) Scrub(leaves, 1f);
+            }
+
+            // ── 각도를 끌어 가며 맞추기 ──
+            EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField("짝마다 여는 각 (끌면 그 자리에서 보입니다)", EditorStyles.miniBoldLabel);
+            for (int i = 0; i < leaves.arraySize; i++)
+            {
+                var ang = leaves.GetArrayElementAtIndex(i).FindPropertyRelative("swingAngle");
+                float na = EditorGUILayout.Slider(i + "번 짝", ang.floatValue, -180f, 180f);
+                if (Mathf.Approximately(na, ang.floatValue)) continue;
+                float keep = _scrub;
+                Scrub(leaves, 0f);                       // 먼저 닫아 두고
+                ang.floatValue = na;                     // 각을 바꾸고
+                serializedObject.ApplyModifiedProperties();
+                Scrub(leaves, keep);                     // 보던 만큼 다시 연다
+            }
 
             EditorGUILayout.Space(6);
             for (int i = 0; i < leaves.arraySize; i++)
@@ -103,6 +142,35 @@ namespace IMUNROK.Common.EditorTools
         }
 
         // ── 미리보기 ──
+
+        /// <summary>
+        /// <b>끌어 가며 본다.</b> 지금 돌려 둔 만큼(<see cref="_applied"/>)을 기억해 두고,
+        /// 새 자리와의 <b>차이만큼만</b> 돌린다 — 그래야 여러 번 끌어도 각이 쌓이지 않고,
+        /// 0 으로 되돌리면 처음 자세로 정확히 돌아온다.
+        /// </summary>
+        private void Scrub(SerializedProperty leaves, float k)
+        {
+            k = Mathf.Clamp01(k);
+            if (_applied == null || _applied.Length != leaves.arraySize)
+                _applied = new float[leaves.arraySize];
+
+            for (int i = 0; i < leaves.arraySize; i++)
+            {
+                var el = leaves.GetArrayElementAtIndex(i);
+                var pivot = el.FindPropertyRelative("pivot").objectReferenceValue as Transform;
+                if (pivot == null) continue;
+                float want = el.FindPropertyRelative("swingAngle").floatValue * k;
+                float delta = want - _applied[i];
+                if (Mathf.Approximately(delta, 0f)) continue;
+                Undo.RecordObject(pivot, "문 끌어 보기");
+                pivot.localRotation = pivot.localRotation * Quaternion.Euler(0f, delta, 0f);
+                EditorUtility.SetDirty(pivot);
+                _applied[i] = want;
+            }
+            _scrub = k;
+            _previewOpen = k > 0.5f;
+            SceneView.RepaintAll();
+        }
 
         /// <summary>
         /// 지금 자세를 '닫힘'으로 삼고 각도만큼 돌려 본다. 되돌릴 때 같은 만큼 되돌리므로

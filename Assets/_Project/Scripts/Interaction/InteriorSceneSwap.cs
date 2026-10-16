@@ -87,6 +87,16 @@ namespace IMUNROK.Common
         [Tooltip("나설 때는 이만큼 더 나가야 '밖'이 된다(m). 문지방에 걸터서서 씬이 깜빡이는 것을 막는다")]
         [SerializeField] private float _leaveMargin = 0.55f;
 
+        [Tooltip("<b>방바닥 밖인데도 「안」으로 쳐야 하는 자리들</b> — 문간이다. " +
+                 "실내와 고택은 <b>같은 자리에 지은 두 채</b>지만 낱낱이 같지는 않다. " +
+                 "특히 <b>실내에만 있는 문</b> 앞에서 어긋난다. 서쪽 쪽문이 그 자리다: " +
+                 "· 방바닥 서쪽 끝은 x 4.48 이고, 들어섬은 그보다 _enterMargin(0.15) 앞인 x 4.33 에서 켜진다. " +
+                 "· 그런데 밖에 서 있는 동안은 고택 벽(SM_Wall01A, x 4.46~4.63)이 성해서 몸 반지름 0.26 을 두면 <b>x 4.20 에서 막힌다</b>. " +
+                 "· 4.20 은 4.33 에 못 미친다 — 그래서 <b>나간 사람은 그 문으로 다시 못 들어온다</b>. " +
+                 "문간 한 칸을 여기 적어 두면 그 칸에 들어서는 순간 「안」이 되어 벽이 비켜난다. " +
+                 "네모는 <b>세계 좌표</b>다(가운데·크기). 여러 개 둘 수 있다")]
+        [SerializeField] private Bounds[] _alsoInside;
+
         [Tooltip("방 위아래 여유(m). 마루에서 천장까지 넉넉히")]
         [SerializeField] private float _height = 3.2f;
 
@@ -161,8 +171,10 @@ namespace IMUNROK.Common
                     Debug.LogWarning($"[{name}] 씬 '{_sceneName}' 을 빌드 설정에서 못 찾았습니다.", this);
             }
             yield return null;
-            ShowInterior(false);
-            HideShellAroundRoom(false);
+            // 올리는 사이에 이미 「안」이 되었을 수 있다(첫 칸에 방 안에서 시작 · 조사를 곧장
+            // 연 경우). 늘 밖으로 맞추면 _inside 는 참인데 모양은 고택인 채로 굳는다.
+            ShowInterior(_inside);
+            HideShellAroundRoom(_inside);
         }
 
         private IEnumerator DropAtStart()
@@ -185,8 +197,39 @@ namespace IMUNROK.Common
             box.Expand(new Vector3(margin * 2f, 0f, margin * 2f));
 
             bool now = box.Contains(new Vector3(cam.transform.position.x, box.center.y, cam.transform.position.z));
+
+            // <b>문간도 안이다.</b> 방바닥 밖이어도 여기 적어 둔 칸에 서 있으면 「안」으로 친다 —
+            // 안 그러면 실내에만 있는 문으로 나간 사람이 <b>다시 못 들어온다</b>(위 _alsoInside 참고).
+            // 나설 때의 넉넉한 선(_leaveMargin)과 같은 뜻으로, 이 칸에서는 늘 안이다.
+            if (!now && _alsoInside != null)
+                for (int i = 0; i < _alsoInside.Length; i++)
+                    if (_alsoInside[i].size.sqrMagnitude > 0.0001f
+                        && _alsoInside[i].Contains(cam.transform.position)) { now = true; break; }
+
+            // <b>방을 뒤지는 동안은 멀리 나가도 「안」이다.</b>
+            //
+            // 실내 씬의 사랑채는 고택의 사랑채와 <b>같은 모양이 아니다</b>(쪽문·아궁이·기단이
+            // 실내에만 맞춰 지어졌다). 그래서 방을 뒤지다 쪽문으로 나가 몇 걸음 물러서면
+            // 모양이 고택으로 갈려 <b>없던 문이 생기고 아궁이 자리가 바뀌었다</b> — 방금 본 집이
+            // 딴 집이 된다. 조사가 열린 뒤(甲 이 방을 나간 뒤)로는 갈지 않고 실내 모양을 지킨다.
+            if (_held) now = true;
+
             if (now != _inside) StartCoroutine(Swap(now));
         }
+
+        private bool _held;
+
+        /// <summary>
+        /// 이제부터 어디에 서든 실내 모양을 지킨다. 조사를 여는 쪽(甲 이 방을 나간 뒤)이 부른다.
+        /// </summary>
+        public void HoldInside()
+        {
+            _held = true;
+            if (!_inside && !_busy) StartCoroutine(Swap(true));
+        }
+
+        /// <summary>자리대로 갈리는 원래 규칙으로 돌린다.</summary>
+        public void ReleaseInside() { _held = false; }
 
         /// <summary>
         /// 어둠으로 덮고, 한쪽을 내리고 다른 쪽을 올린 뒤 다시 밝힌다.
@@ -274,9 +317,30 @@ namespace IMUNROK.Common
             if (_shell == null) return;
             for (int i = 0; i < _shell.Length; i++)
                 if (_shell[i] != null) _shell[i].enabled = !hide;
+
+            // <b>몸도 함께 내린다.</b>
+            //
+            // 여태 렌더러만 껐다. 그러면 방 안에는 <b>보이지 않는 고택</b>이 그대로 서
+            // 있게 된다 — 벽도 문짝도 눈에는 없는데 몸은 막힌다. 같은 자리에 지은 벽이
+            // 있으니 대개는 드러나지 않지만, <b>실내에만 있는 문</b> 앞에서 통째로
+            // 드러났다: 서쪽 쪽문(z −11.73…−12.63)은 실내 씬이 낸 문간인데 고택에는
+            // 그 자리가 <b>벽</b>이다(SM_Wall01A, z −12.70…−9.90). 문을 열면 마당이
+            // 보이고, 걸어 나가려 하면 아무것도 없는 데서 막혔다 — 방에 갇힌다.
+            //
+            // 눈에 안 보이는 것이 길을 막으면 사람은 <b>까닭을 짚을 수가 없다</b>.
+            // 안 그려질 것이면 몸도 없어야 한다.
+            if (_shellCols == null) return;
+            for (int i = 0; i < _shellCols.Length; i++)
+                if (_shellCols[i] != null) _shellCols[i].enabled = !hide;
         }
 
         private Renderer[] _shell;
+
+        /// <summary>
+        /// 위 조각들이 지닌 콜라이더. 고르는 자리는 <see cref="_shell"/> 과 <b>같다</b> —
+        /// 따로 골라 두면 어느 날 두 목록이 어긋나고, 그러면 안 보이는 벽이 다시 생긴다.
+        /// </summary>
+        private Collider[] _shellCols;
 
         private void GatherShell()
         {
@@ -302,7 +366,17 @@ namespace IMUNROK.Common
                     found.Add(r);
                 }
             _shell = found.ToArray();
-            DevLog.Note($"[안팎] 방을 감싼 고택 조각 {_shell.Length}개를 찾았습니다.", this);
+
+            var cols = new System.Collections.Generic.List<Collider>();
+            for (int i = 0; i < _shell.Length; i++)
+            {
+                if (_shell[i] == null) continue;
+                foreach (var c in _shell[i].GetComponents<Collider>()) if (c != null) cols.Add(c);
+            }
+            _shellCols = cols.ToArray();
+
+            DevLog.Note($"[안팎] 방을 감싼 고택 조각 {_shell.Length}개" +
+                        $"(그 가운데 몸 있는 것 {_shellCols.Length}개)를 찾았습니다.", this);
         }
 
         /// <summary>
