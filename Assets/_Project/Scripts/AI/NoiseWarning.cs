@@ -60,7 +60,7 @@ namespace IMUNROK.Common
                  "부스럭거림이 <b>이어지는 것</b>이 사람을 부른다")]
         [SerializeField] private bool _useSustained = true;
         [Tooltip("이만큼 달아오르면 <b>한 번</b> 일러 준다 — '밖에서 발소리가 멎었다'")]
-        [Range(0.2f, 0.95f)] [SerializeField] private float _warnAt = 0.55f;
+        [Range(0.2f, 0.95f)] [SerializeField] private float _warnAt = 0.45f;
 
         /// <summary>지금까지 크게 들킨 횟수.</summary>
         public int Strikes { get; private set; }
@@ -68,6 +68,33 @@ namespace IMUNROK.Common
         private float _silentUntil;
         private bool _fired;
         private bool _warned;      // 이번 달아오름에서 이미 일렀나
+
+        /// <summary>
+        /// <b>우는 것은 하나뿐이다.</b>
+        ///
+        /// 달아오름(<see cref="NoiseMeter.Heat"/>)은 <b>게임에 하나</b>인데 이 부품은
+        /// 씬마다 하나씩 있었다 — 본 씬의 카메라에 하나, 사랑방을 덧씌우면 문 앞에 또 하나.
+        /// 방에 들어서는 순간 <b>둘이 같은 눈금을 보고 같이 울었다</b>: 자막이 두 번 뜨고
+        /// 들킨 횟수가 두 배로 쌓였다.
+        ///
+        /// 먼저 켜진 것 하나만 운다. 나머지는 조용히 물러난다 — 지우지 않는 까닭은
+        /// 씬마다 말투(<see cref="_noticedLine"/>)를 달리 두고 싶을 수 있어서다.
+        /// </summary>
+        private static NoiseWarning _voice;
+
+        private void Awake()
+        {
+            // 몸이 없는 귀다. <b>돌아보지 않는다</b> — 이 부품이 플레이어 카메라에 붙어
+            // 있으면 소리 한 번에 시선이 홱 돌아간다(<see cref="NoiseListener.DontTurn"/>).
+            var ear = GetComponent<NoiseListener>();
+            if (ear != null) ear.DontTurn();
+        }
+
+        private void OnEnable() { if (_voice == null) _voice = this; }
+        private void OnDisable() { if (_voice == this) _voice = null; }
+
+        /// <summary>지금 이 부품이 우는 쪽인가.</summary>
+        private bool Mine { get { return _voice == null || _voice == this; } }
 
         /// <summary>
         /// <b>이어지는 소리</b>를 지켜본다.
@@ -79,7 +106,7 @@ namespace IMUNROK.Common
         /// </summary>
         private void Update()
         {
-            if (!_useSustained) return;
+            if (!_useSustained || !Mine) return;
             float heat = NoiseMeter.Heat;
 
             if (heat <= 0.05f) { _warned = false; return; }
@@ -95,9 +122,12 @@ namespace IMUNROK.Common
             {
                 NoiseMeter.CoolDown();     // 한 번 왔으면 처음부터 다시 센다
                 _warned = false;
+                if (_summonServant) { ServantCheck.Summon(transform.position); return; }
+                // <b>하인을 부르는 귀는 들킴을 세지 않는다.</b> 부른 것만으로 셌더니 요에 누워
+                // 숨을 죽여 넘긴 밤도 목숨 하나로 쳤다 — 「요로 가라」는 경고가 거짓말이 된다.
+                // 셈은 하인이 와서 <b>깨어 있는 것을 볼 때</b> 한다(ServantCheck → StealthLives).
                 Strikes++;
-                if (_summonServant) ServantCheck.Summon(transform.position);
-                else Say(_alarmedLine);
+                Say(_alarmedLine);
                 if (_caughtAt > 0 && !_fired && Strikes >= _caughtAt) { _fired = true; _onCaught?.Invoke(); }
             }
         }
@@ -105,7 +135,7 @@ namespace IMUNROK.Common
         /// <summary>돌아볼 만큼 들렸다. 귀의 이벤트에 물린다.</summary>
         public void OnNoticed(Vector3 at)
         {
-            if (_useSustained) return;      // 이어지는 소리로 판단하는 동안에는 낱소리에 안 군다
+            if (_useSustained || !Mine) return;      // 이어지는 소리로 판단하는 동안에는 낱소리에 안 군다
             Say(_noticedLine);
             if (_summonServant) ServantCheck.Glance(at);
         }
@@ -113,10 +143,11 @@ namespace IMUNROK.Common
         /// <summary>다가올 만큼 들렸다. 귀의 이벤트에 물린다.</summary>
         public void OnAlarmed(Vector3 at)
         {
-            if (_useSustained) return;
+            if (_useSustained || !Mine) return;
             // 하인이 오면 그가 말한다. 두 목소리가 겹치지 않게 이쪽은 다문다.
-            if (_summonServant && !ServantCheck.Watching) ServantCheck.Summon(at);
-            else Say(_alarmedLine);
+            if (_summonServant && !ServantCheck.Watching) { ServantCheck.Summon(at); return; }
+            if (_summonServant) return;
+            Say(_alarmedLine);
             if (_caughtAt <= 0 || _fired) return;
             Strikes++;
             if (Strikes < _caughtAt) return;

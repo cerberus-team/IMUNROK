@@ -54,6 +54,10 @@ namespace IMUNROK.Common
         [TextArea(2, 3)]
         [Tooltip("누울 때 한 마디. 비우면 아무 말도 없다")]
         [SerializeField] private string _lieLine = "요에 몸을 뉜다. *숨을 죽인다*.";
+
+        [Header("여기서 밤을 끝낸다")]
+        [Tooltip("누워 있는 동안 「출도」 단추를 띄운다. 누르면 한 번 더 묻고, 두 번째에 마패를 내보인다(RoyalWarrant)")]
+        [SerializeField] private bool _offerReveal = true;
         [Tooltip("누워 있는 동안 소리 달아오름을 이만큼 빨리 식힌다(배수). " +
                  "가만히 누워 있으면 집도 곧 조용해진다")]
         [Range(1f, 8f)] [SerializeField] private float _coolFaster = 3f;
@@ -153,6 +157,8 @@ namespace IMUNROK.Common
 
         private void Update()
         {
+            ShowRevealButton(Hiding && !_moving && _offerReveal && NoiseMeter.Armed
+                             && RoyalWarrant.Instance != null && RoyalWarrant.Instance.CanRevealNow);
             if (!Hiding)
             {
                 if (_told) { _told = false; StatusPanel.Clear("눕기"); }
@@ -164,7 +170,16 @@ namespace IMUNROK.Common
             if (!_told)
             {
                 _told = true;
-                StatusPanel.Set("눕기", 3, "요에 누워 숨을 죽인다   (*" + RiseKeyName() + "* 일어나기)");
+                // <b>같은 말을 두 판에 적지 않는다.</b>
+                //
+                // 여기 「요에 누워 숨을 죽인다」라고 적어 두었더니, 자막의
+                // <see cref="_lieLine"/>(「요에 몸을 뉜다. 숨을 죽인다.」)와 <b>거의 같은
+                // 문장</b>이 위아래로 겹쳐 떴다. 그래서 자막의 「×」를 눌러 하나를 닫아도
+                // 남은 줄이 같은 말을 하고 있어, <b>눌러도 안 닫히는 것처럼</b> 보였다.
+                // 실제로 그렇게 보고되었다 — 「엑스표시 안 눌림」.
+                //
+                // 이 줄이 할 일은 <b>일어나는 법</b> 하나다. 그것은 자막이 못 하는 말이다.
+                StatusPanel.Set("눕기", 3, "*" + RiseKeyName() + "* — 일어난다");
             }
 
 #if ENABLE_INPUT_SYSTEM
@@ -189,6 +204,76 @@ namespace IMUNROK.Common
         }
 
         private bool _told;
+
+        // ── 「출도」 단추 ─────────────────────────
+        //
+        // 필수 단서를 다 모아야 마패를 꺼낼 수 있던 길을 걷고, <b>요에 누웠을 때</b> 여기서
+        // 밤을 끝낼지 고르게 했다. 누운 자리는 이미 몸을 숨기고 한숨 돌리는 자리라, 조사를
+        // 여기서 멈추겠다는 결정을 내리기에 알맞다. 되돌릴 수 없는 일이라 두 번 누르게 한다.
+
+        private GameObject _revealRoot;
+        private TMPro.TextMeshProUGUI _revealLabel;
+        private float _armedUntil;
+        private const float ConfirmWindow = 4f;
+        private const string AskLabel = "출도(出道)하기";
+        private const string SureLabel = "정말 출도한다 — 되돌릴 수 없다";
+        private readonly IMUNROK.Ui.InventorySkin _skin = new IMUNROK.Ui.InventorySkin();
+
+        private void ShowRevealButton(bool on)
+        {
+            if (!on)
+            {
+                if (_revealRoot != null && _revealRoot.activeSelf) _revealRoot.SetActive(false);
+                _armedUntil = 0f;
+                return;
+            }
+            if (_revealRoot == null) BuildRevealButton();
+            if (!_revealRoot.activeSelf) { _revealRoot.SetActive(true); _armedUntil = 0f; }
+            bool asking = Time.unscaledTime < _armedUntil;
+            string want = asking ? SureLabel : AskLabel;
+            if (_revealLabel.text != want) _revealLabel.text = want;
+        }
+
+        private void BuildRevealButton()
+        {
+            _revealRoot = new GameObject("출도_단추판", typeof(RectTransform));
+            ScreenPanel.Raise(_revealRoot, ScreenPanel.LayerBar + 5);
+            var btnRt = new GameObject("출도", typeof(RectTransform)).GetComponent<RectTransform>();
+            btnRt.SetParent(_revealRoot.transform, false);
+            btnRt.anchorMin = btnRt.anchorMax = new Vector2(0.5f, 0.5f);
+            btnRt.pivot = new Vector2(0.5f, 0.5f);
+            btnRt.anchoredPosition = new Vector2(0f, -120f);
+            btnRt.sizeDelta = new Vector2(560f, 92f);
+            var bg = btnRt.gameObject.AddComponent<UnityEngine.UI.Image>();
+            bg.sprite = _skin.Wood_;
+            bg.color = UiLook.With(UiLook.Seal, 0.94f);
+            var btn = btnRt.gameObject.AddComponent<UnityEngine.UI.Button>();
+            btn.targetGraphic = bg;
+            btn.onClick.AddListener(OnRevealPressed);
+            _revealLabel = UiText.New("글", AskLabel, Vector2.zero, btnRt.sizeDelta, btnRt, 40f,
+                                      TextAnchor.MiddleCenter, UiLook.SealText);
+            _revealLabel.raycastTarget = false;
+            _revealRoot.SetActive(false);
+        }
+
+        private void OnRevealPressed()
+        {
+            var warrant = RoyalWarrant.Instance;
+            if (warrant == null || !warrant.CanRevealNow) return;
+            if (Time.unscaledTime >= _armedUntil)
+            {
+                _armedUntil = Time.unscaledTime + ConfirmWindow;
+                string miss = RoyalWarrant.MissingNote != null ? RoyalWarrant.MissingNote() : null;
+                SubtitleView.Show("", "여기서 밤을 끝내고 *출도*하면 옹씨댁은 더 뒤질 수 없다. 한 번 더 누르면 마패를 내보인다." +
+                                      (string.IsNullOrEmpty(miss) ? "" : System.Environment.NewLine + miss), "");
+                return;
+            }
+            _armedUntil = 0f;
+            ShowRevealButton(false);
+            warrant.RevealNow();
+        }
+
+        private void OnDestroy() { if (_revealRoot != null) Destroy(_revealRoot); }
 
         private string RiseKeyName()
         {

@@ -105,6 +105,40 @@ namespace IMUNROK.Common
         [Tooltip("손을 떼면 이 배로 빨리 도로 들어간다. 넣는 것은 꺼내는 것보다 급하다")]
         [Range(1f, 5f)] [SerializeField] private float _tuckBackFaster = 2.2f;
 
+        [Header("어디서 내보이나")]
+        [Tooltip("<b>요에 누웠을 때 뜨는 「출도」 단추로만</b> 내보인다(2026-09-13).\n" +
+                 "필수 단서 넷을 채워야 품이 무거워지던 길은 걷었다 — 넷을 다 못 찾은 사람은 " +
+                 "들키는 것 말고는 밤을 끝낼 길이 없었다. 어디서나 F 로 꺼내는 길도 막는다: " +
+                 "F 는 도구를 드는 글쇠라 되돌릴 수 없는 출도가 손끝에 걸려 있으면 안 된다")]
+        [SerializeField] private bool _fromBedOnly = true;
+
+        /// <summary>씬에 하나 — 요의 단추가 부른다.</summary>
+        public static RoyalWarrant Instance { get; private set; }
+
+        /// <summary>사건이 채워 주는 「아직 못 챙긴 것」 한 줄(없으면 null). 요의 출도 확인이 덧붙인다.</summary>
+        public static System.Func<string> MissingNote;
+
+        private void OnEnable() { Instance = this; }
+
+        /// <summary>지금 내보일 수 있나(이미 드러났거나 내보이는 중이면 아니다).</summary>
+        public bool CanRevealNow
+        {
+            get
+            {
+                if (_done) return false;
+                var gs = GameState.Instance;
+                return gs == null || !gs.IdentityRevealed;
+            }
+        }
+
+        /// <summary><b>곧바로 내보인다</b> — 요의 「출도」 단추. 되돌릴 수 없다.</summary>
+        public void RevealNow()
+        {
+            if (!CanRevealNow) return;
+            if (_model != null) _model.SetActive(true);
+            StartCoroutine(Cry());
+        }
+
         [Header("낼 것이 있어야 한다")]
         [Tooltip("이 사건. 필수 단서를 다 챙겼는지 여기에 물어본다")]
         [SerializeField] private CaseId _case = CaseId.Case1_Onggojip;
@@ -173,19 +207,16 @@ namespace IMUNROK.Common
 
         private void Update()
         {
-            // <b>한 번 출도했으면 다시 없다.</b> 관아 씬에도 이 부품이 남아 있어, 맨손으로
-            // F 를 꾹 누르면 「암행어사 출도야」가 다시 울리고 관아가 통째로 다시 열렸다 —
-            // 소매·유척·문서궤 진행이 그 자리에서 날아간다. 신분이 이미 드러났으면 품 속
-            // 마패는 할 일이 없다(내보이는 마패는 도구띠의 것이 따로 맡는다).
-            {
-                var gs0 = GameState.Instance;
-                if (gs0 != null && gs0.IdentityRevealed) { StatusPanel.Clear(HintKey); return; }
-            }
-            if (_done) { StatusPanel.Clear(HintKey); return; }
-
             // 벨트가 들고 있으면 <b>다 꺼낸 자리에 그대로 둔다</b>.
             // 그냥 손만 떼면 모형이 품속 자리(-30cm)에 남아 눈 밑으로 내려가 버린다 —
             // 켜지긴 했는데 화면 밖에 있어, 골라도 안 보이는 것은 매한가지가 된다.
+            //
+            // <b>이 가지가 맨 앞에 와야 한다.</b> 아래의 「신분이 드러났으면 할 일 없다」
+            // 보다 뒤에 두었더니 2막에서 여기까지 오지를 못했다 — 2막은 들어서는 순간
+            // 신분이 드러난 상태이므로 늘 그 줄에서 되돌아갔고, 그러면 Awake 가
+            // Place(0f) 로 품에 넣어 둔 자리가 그대로 남는다. 벨트에서 마패를 골라도
+            // HeldToolModel 이 켜기만 할 뿐 몸은 눈에서 33cm 아래에 있어 <b>안 보인다</b>.
+            // 마패가 2막부터 도구띠에 늘 있어야 하는 물건이니, 벨트가 먼저다.
             if (OnTheBelt)
             {
                 StatusPanel.Clear(HintKey);
@@ -196,6 +227,18 @@ namespace IMUNROK.Common
                 }
                 return;
             }
+
+            // <b>한 번 출도했으면 다시 없다.</b> 관아 씬에도 이 부품이 남아 있어, 맨손으로
+            // F 를 꾹 누르면 「암행어사 출도야」가 다시 울리고 관아가 통째로 다시 열렸다 —
+            // 소매·유척·문서궤 진행이 그 자리에서 날아간다. 신분이 이미 드러났으면 품 속
+            // 마패는 할 일이 없다. 다만 <b>내보이는 마패는 위에서 이미 걸러 냈다</b> —
+            // 같은 모형을 도구띠가 쓰므로, 여기서 먼저 물러나면 그 몸이 품속 자리에 굳는다.
+            {
+                var gs0 = GameState.Instance;
+                if (gs0 != null && gs0.IdentityRevealed) { StatusPanel.Clear(HintKey); return; }
+            }
+            if (_done) { StatusPanel.Clear(HintKey); return; }
+            if (_fromBedOnly) { StatusPanel.Clear(HintKey); Move(false); return; }
 
             bool ready = Missing() == 0;
 
@@ -298,7 +341,7 @@ namespace IMUNROK.Common
             NoiseMeter.Disarm();
 
             var gs = GameState.Instance;
-            if (gs != null) gs.RevealIdentity(true);   // 이제 '나그네'가 아니라 '어사'다
+            if (gs != null) { gs.RevealIdentity(true); gs.SetCaughtInStealth(false); }   // 이제 '어사'다 — 지난 판에 붙들렸던 표시도 걷는다
 
             _onRevealed?.Invoke();
             yield return new WaitForSeconds(_beforeLeave);
@@ -334,6 +377,7 @@ namespace IMUNROK.Common
 
         private void OnDisable()
         {
+            if (Instance == this) Instance = null;
             _lastSaid = null;
             StatusPanel.Clear(HintKey);   // 꺼진 부품이 상태 줄을 붙들고 있으면 안 된다
         }

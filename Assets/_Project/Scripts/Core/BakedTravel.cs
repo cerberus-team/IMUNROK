@@ -75,9 +75,9 @@ namespace IMUNROK.Common
         /// 앞뒤로 새어 나간 만큼 되민다. <b>LateUpdate 에서</b> 부른다 —
         /// 애니메이터가 포즈를 다 쓴 뒤라야 그 칸의 어긋남을 잴 수 있다.
         /// </summary>
-        public void Cancel()
+        public float Cancel()
         {
-            if (_root == null || _skeleton == null || _bone == null) return;
+            if (_root == null || _skeleton == null || _bone == null) return 0f;
 
             // 먼저 제자리로 되돌린다. 안 그러면 <b>지난 칸에 되민 값이 섞여</b>
             // 재는 값이 제 꼬리를 물고 커진다.
@@ -85,6 +85,7 @@ namespace IMUNROK.Common
 
             float ahead = _root.InverseTransformPoint(_bone.position).z;
             _skeleton.localPosition = _rest - new Vector3(0f, 0f, ahead);
+            return ahead;
         }
     }
 }

@@ -55,9 +55,9 @@ namespace IMUNROK.Common
         [Tooltip("사람이 낸 실제 소리를 잰다. 마이크가 없거나 권한이 없으면 저절로 꺼진다")]
         [SerializeField] private bool _useMic = true;
         [Tooltip("이보다 작은 소리는 방 안의 잡음으로 보고 버린다(RMS). 숨소리·팬 소리를 거른다")]
-        [SerializeField] private float _micFloor = 0.012f;
+        [SerializeField] private float _micFloor = 0.015f;   // 0.008 은 노트북 팬 소리에도 눈금이 떴다
         [Tooltip("이만큼이면 눈금이 꽉 찬다(RMS). 작게 잡을수록 예민하다")]
-        [SerializeField] private float _micFull = 0.16f;
+        [SerializeField] private float _micFull = 0.09f;
         [Tooltip("마이크 눈금이 오르내리는 빠르기. 낮으면 뭉근하고 높으면 딱딱 붙는다")]
         [SerializeField] private float _micSmooth = 12f;
 
@@ -77,12 +77,14 @@ namespace IMUNROK.Common
         // 그래서 눈금 위에 <b>달아오름</b>을 하나 더 둔다. 아래 크기를 넘겨 소리를 내고
         // 있으면 달아오르고, 조용해지면 천천히 식는다. 다 달아오르면 사람이 온다.
         [Tooltip("이 크기를 넘겨 소리를 내고 있으면 <b>이어지는 소리</b>로 친다")]
-        [Range(0f, 1f)] [SerializeField] private float _heatFloor = 0.12f;
+        // 2026-09-13 — 「생각보다 예민하게 반응을 안 한다」. 0.12 로는 보료(0.25)·재(0.2)를 들춰도
+        // 거리로 잦아든 값이 문턱에 못 미쳐 눈금이 거의 안 찼다. 문턱을 낮추고 차는 시간을 줄였다.
+        [Range(0f, 1f)] [SerializeField] private float _heatFloor = 0.06f;
         [Tooltip("그만한 소리를 이만큼(초) 이어서 내면 다 달아오른다 — 그때 사람이 온다")]
-        [SerializeField] private float _heatSeconds = 4.0f;
+        [SerializeField] private float _heatSeconds = 2.6f;
         [Tooltip("조용해지면 초당 이만큼 식는다. 달아오르는 것보다 <b>느려야</b> 한다 — " +
                  "한 번 부스럭거린 집이 곧바로 조용한 집이 되지는 않는다")]
-        [SerializeField] private float _coolPerSecond = 0.18f;
+        [SerializeField] private float _coolPerSecond = 0.12f;
 
         /// <summary>얼마나 <b>이어서</b> 시끄러웠나(0~1). 1이면 사람이 올 때다.</summary>
         public static float Heat => Instance != null ? Instance._heat : 0f;
@@ -286,6 +288,7 @@ namespace IMUNROK.Common
             if (_armed == on) return;
             _armed = on;
             if (!on) { _act = 0f; _actWhat = null; }
+            SceneMusic.Sneak(on, on ? 6f : 3f);     // 노래가 천천히 멎는다 — 고요가 먼저 경고한다
             if (on && !_micReady) StartMic();
             DevLog.Note(on
                 ? "[소리계] 조사가 시작됐다 — 이제부터 소리가 무게를 가진다."
@@ -338,8 +341,25 @@ namespace IMUNROK.Common
             Ring(at, loudness, what);
         }
 
+        /// <summary>
+        /// <b>마이크를 끄고 켠다(N)</b>. 사람마다 방이 시끄럽거나 마이크를 쓰고 싶지 않을 수 있다 — 여태 끌 길이 없었다.
+        /// 고른 것은 PlayerPrefs 에 남는다. 꺼도 짓으로 낸 소리는 그대로 잰다.
+        /// </summary>
+        public static bool MicMuted
+        {
+            get { try { return PlayerPrefs.GetInt("이문록.마이크끔", 0) == 1; } catch { return false; } }
+            set { try { PlayerPrefs.SetInt("이문록.마이크끔", value ? 1 : 0); PlayerPrefs.Save(); } catch { } }
+        }
+
         private void Update()
         {
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null && kb.nKey.wasPressedThisFrame && !Typing.Now && !InterrogationController.AnyOpen && !DocumentView.IsOpen)
+            {
+                MicMuted = !MicMuted;
+                SubtitleView.Show("", MicMuted ? "마이크를 껐다 — 몸짓으로 낸 소리만 잰다. (N)" : "마이크를 켰다 — 입으로 낸 소리도 들린다. (N)", "");
+            }
+            if (MicMuted) { if (_micReady) StopMic(); _mic = 0f; }
             // <b>말을 알아듣는 쪽이 있으면 마이크를 내준다.</b> 창이 닫히면 도로 잡는다 —
             // 이 갈아타기는 사람 눈에 안 띈다.
             //
@@ -351,14 +371,14 @@ namespace IMUNROK.Common
 
             // 권한을 물어보고 온 참이면 여기서 다시 연다. 매 프레임 두드리면 안 된다 —
             // 장치 목록을 훑는 것도, 권한을 다시 묻는 것도 싼 일이 아니다.
-            if (_useMic && !_micReady && !talking && (_micAlwaysOn || _armed))
+            if (_useMic && !MicMuted && !_micReady && !talking && (_micAlwaysOn || _armed))
             {
                 _retry -= Time.deltaTime;
                 if (_retry <= 0f) { _retry = 1.5f; StartMic(); }
             }
 
             // ① 마이크 — 고리에서 지금 자리 앞쪽을 떠다 RMS 를 낸다
-            if (_micReady && _clip != null)
+            if (_micReady && _clip != null && !MicMuted)
             {
                 int pos = Microphone.GetPosition(_device) - _buf.Length;
                 if (pos >= 0)
@@ -500,7 +520,29 @@ namespace IMUNROK.Common
 
             StatusPanel.Set("소리", 1,
                 "지금 소리  " + bar + "\n" +
-                "하인 오기  " + heat + tail);
+                "하인 오기  " + heat + tail + "\n" +
+                "목숨      " + Lives() + "\n" +
+                (MicMuted ? "마이크 꺼짐 (N)" : "마이크 켜짐 (N)"));
+        }
+
+        /// <summary>
+        /// 「♥ ♥ ♥」 — 남은 목숨(<see cref="StealthLives"/>). 잃은 자리는 빈 하트.
+        /// 하인이 <b>오고 있는 동안</b>에는 잃게 될 하나가 깜빡인다 — 요에 누우면 그 하나를 지킨다.
+        /// </summary>
+        private static string Lives()
+        {
+            var sb = new System.Text.StringBuilder();
+            int left = StealthLives.Left;
+            bool atRisk = ServantCheck.Coming && !HidePlace.Hiding;
+            bool blinkOff = atRisk && Mathf.Repeat(Time.unscaledTime, 0.8f) > 0.4f;
+            for (int i = 0; i < StealthLives.Max; i++)
+            {
+                if (i > 0) sb.Append(' ');
+                bool alive = i < left;
+                if (alive && i == left - 1 && blinkOff) sb.Append('\u2661');
+                else sb.Append(alive ? '\u2665' : '\u2661');
+            }
+            return sb.ToString();
         }
 
         // 화면 구석에 OnGUI 로 그리던 눈금은 걷었다.

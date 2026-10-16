@@ -108,7 +108,7 @@ namespace IMUNROK.Common
             if (Time.time < _quietUntil || heard < _notice) return;
 
             _quietUntil = Time.time + _cooldown;
-            if (_log) DevLog.Note($"[귀] {name} 이(가) 들었다 — {what ?? "무언가"} {heard * 100f:F0}% ({d:F1}m)", this);
+            if (_log) DevLog.Note($"[귀] {Josa.IGa(name)} 들었다 — {what ?? "무언가"} {heard * 100f:F0}% ({d:F1}m)", this);
 
             if (_turnToward)
             {
@@ -123,6 +123,17 @@ namespace IMUNROK.Common
             if (heard >= _alarm) _onAlarmed?.Invoke(at);
             else _onNoticed?.Invoke(at);
         }
+
+        /// <summary>
+        /// <b>이 귀는 몸을 안 돌린다.</b>
+        ///
+        /// <see cref="NoiseWarning"/> 처럼 <b>몸이 없는 귀</b>가 부른다. 그런 귀는
+        /// 문밖의 기척을 대신하는 빈 것인데, 하필 그 하나가 <b>플레이어 카메라</b>에
+        /// 붙어 있었다 — <c>[RequireComponent]</c> 이 자동으로 달아 준 것이라
+        /// 아무도 값을 손보지 않았다. 그래서 서랍을 열 때마다 <b>내 시선이 서랍 쪽으로
+        /// 홱 돌아갔다</b>(실측: 소리 한 번에 카메라 yaw 0 → 90).
+        /// </summary>
+        public void DontTurn() { _turnToward = false; _lookUntil = 0f; }
 
         private Quaternion _lookAt;
         private float _lookUntil;

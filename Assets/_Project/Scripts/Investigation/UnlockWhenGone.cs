@@ -30,7 +30,7 @@ namespace IMUNROK.Common
             // 주인은 늦게 나타날 수 있다(씬을 갈아 끼우는 중). 찾을 때까지 매번 다시 본다.
             if (_owner == null)
             {
-                _owner = FindFirstObjectByType<BokdongController>();
+                _owner = FindFirstObjectByType<BokdongController>(FindObjectsInactive.Include);   // 甲이 이미 꺼진 뒤에도 찾는다
                 if (_owner == null) return;
             }
 

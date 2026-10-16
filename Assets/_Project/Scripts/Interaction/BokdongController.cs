@@ -202,6 +202,13 @@ namespace IMUNROK.Common
                  "보료 들추기, 플레이어 일어서기")]
         [SerializeField] private UnityEngine.Events.UnityEvent _onLeft;
 
+        [Tooltip("<b>문을 닫고 이만큼(초) 뒤에 조사를 연다.</b> 0 보다 작으면 안 쓴다 — " +
+                 "그때는 물러갈 자리까지 다 걸어간 뒤에야 열린다. 여태 뒤엣것뿐이었는데, " +
+                 "물러갈 자리는 <b>방에서 안 보일 만큼</b> 멀리 잡아 둔 데라 문이 닫히고도 " +
+                 "그가 마당을 다 건널 때까지 우두커니 기다려야 했다 — 방문이 닫히는 순간 " +
+                 "이미 방은 손님 혼자다")]
+        [SerializeField] private float _freeAfterDoor = 2f;
+
         private enum Phase
         {
             Idle, Greeting, Leading, Opening, GoingThrough, Arrived, SittingDown, Seated,
@@ -385,7 +392,12 @@ namespace IMUNROK.Common
         public void BindDoor(DoorController door) { if (door != null) _door = door; }
 
         /// <summary>지금 이 방을 떠났나(보료를 들출 수 있는가).</summary>
-        public bool HasLeft => _phase == Phase.Gone;
+        /// <remarks>
+        /// <b>문을 닫고 조사가 열리면 나간 것이다.</b> 여태 물러갈 자리(안채 쪽 끝)까지 다 걸어가
+        /// 모습을 감춰야 참이었다 — 그 길이 늘어난 뒤로 조사가 열리고도 <b>40초 남짓</b> 보료가
+        /// 「주인이 그 위에 앉아 있다」로 잠겨 있었다. 방 안에서 보면 이미 나간 사람이다.
+        /// </remarks>
+        public bool HasLeft => _phase == Phase.Gone || _freed;
 
         /// <summary>
         /// 다 앉은 뒤 한 번만 — 몸이 자리(보료 또는 마루)에 닿게 높이를 맞춘다.
@@ -882,6 +894,10 @@ namespace IMUNROK.Common
         {
             if (_leaveDoor != null && !_doorFired) { _leaveDoor.Close(); _doorFired = true; }
 
+            // 문이 닫혔다 — 방은 이제 손님 혼자다. 그가 마당을 다 건널 때까지
+            // 기다릴 것 없이 여기서 조사를 연다.
+            if (_freeAfterDoor >= 0f && !_freed) StartCoroutine(FreeSoon());
+
             bool hasPath = _leaveAwaySpot != null ||
                            (_leaveAwayWaypoints != null && _leaveAwayWaypoints.Length > 0);
             if (!hasPath) { HoldStand(); Delay(_hideDelay, DoLeaveGone); return; }
@@ -925,8 +941,27 @@ namespace IMUNROK.Common
         private void DoLeaveGone()
         {
             _phase = Phase.Gone;
-            _onLeft?.Invoke();
+            Free();
             if (_hideWhenGone) gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// <b>조사를 연다.</b> 두 군데서 불리므로(문 닫힘 · 다 물러남) 한 번만 먹는다.
+        /// </summary>
+        private void Free()
+        {
+            if (_freed) return;
+            _freed = true;
+            _onLeft?.Invoke();
+        }
+
+        private bool _freed;
+
+        /// <summary>문이 닫히고 <see cref="_freeAfterDoor"/> 뒤에 조사를 연다.</summary>
+        private System.Collections.IEnumerator FreeSoon()
+        {
+            yield return new WaitForSeconds(_freeAfterDoor);
+            Free();
         }
 
         /// <summary>
