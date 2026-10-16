@@ -75,7 +75,7 @@ namespace IMUNROK.Common
         public event Action OnChanged;
 
         /// <summary>지금 벨트를 감춰야 하는가(심문·수첩 중엔 숨긴다).</summary>
-        public bool Hidden => InterrogationController.AnyOpen || JournalView.AnyOpen || HubEnding.Playing || BadukBoard.Playing || VerdictReport.IsOpen;   // 마지막 걸음 동안에는 손에 쥘 것이 없다
+        public bool Hidden => !Limited && InterrogationController.AnyOpen || JournalView.AnyOpen || HubEnding.Playing || BadukBoard.Playing || VerdictReport.IsOpen;   // 마지막 걸음 동안에는 손에 쥘 것이 없다
 
         /// <summary>슬롯 i의 표시 이름("맨손" 포함).</summary>
         public string SlotName(int i)
@@ -113,10 +113,73 @@ namespace IMUNROK.Common
             return who != null && who.WantsTool(id);
         }
 
-        public void Next() => Select(_index + 1);
+        // ─────────────────────────────────────────────
+        //  고를 수 있는 것을 좁힌다
+        // ─────────────────────────────────────────────
+
+        private static string[] s_only;
+
+        /// <summary>지금 고를 수 있는 도구를 좁혀 두었나.</summary>
+        public static bool Limited => s_only != null;
+
+        /// <summary>
+        /// <b>이 도구들(과 맨손)만 고를 수 있게 한다</b> — 걷힌 팔 앞에서 돋보기·유척만 쓰게 하듯.
+        ///
+        /// 좁혀 둔 동안에는 <b>심문 중이어도</b> Q·휠로 갈아 들 수 있고 벨트도 보인다. 소매는
+        /// 심문 한복판에서 걷히는데, 심문 중에는 벨트가 숨고 손이 비워지므로 여태는 팔을 앞에
+        /// 두고도 무엇을 들었는지 볼 수 없었다. 그 밖의 도구는 손에서 내려놓는다.
+        /// <c>null</c> 이나 빈 목록을 주면 풀린다.
+        /// </summary>
+        public static void Only(params string[] ids)
+        {
+            s_only = ids != null && ids.Length > 0 ? ids : null;
+            if (Instance != null && !Allows(Instance.CurrentId)) Instance.Select(0);
+        }
+
+        /// <summary>좁혀 둔 것을 푼다.</summary>
+        public static void Unlimit() => s_only = null;
+
+        /// <summary>이 도구를 지금 고를 수 있나. 맨손은 늘 된다.</summary>
+        public static bool Allows(string id)
+            => s_only == null || string.IsNullOrEmpty(id) || Array.IndexOf(s_only, id) >= 0;
+
+        private string IdAt(int slot)
+            => (slot <= 0 || slot > _tools.Count || _tools[slot - 1] == null) ? "" : _tools[slot - 1].id;
+
+        /// <summary>고를 수 있는 다음 칸으로. 좁혀 두지 않았으면 바로 옆 칸이다.</summary>
+        private void Step(int dir)
+        {
+            int n = SlotCount;
+            for (int k = 1; k <= n; k++)
+            {
+                int s = (((_index + dir * k) % n) + n) % n;
+                if (Allows(IdAt(s))) { Select(s); return; }
+            }
+        }
+
+        // ── 휠은 <b>한 번 굴림에 한 칸</b> ──
+        //
+        // 여태 휠 값이 0 이 아닌 <b>프레임마다</b> 한 칸씩 넘겼다. 그런데 한 번 굴린 휠은 여러 프레임에
+        // 걸쳐 값을 내놓는다(부드러운 굴림·터치패드는 열 칸 넘게) — 한 번 굴렸는데 두세 칸을 건너뛰어
+        // 맨손→등불→돋보기→마패→유척 이 차례대로 안 짚히고 버벅이는 것처럼 보였다.
+        // 이제 굴림이 멎을 때까지(잠깐 쉼) 다음 칸으로 안 넘긴다.
+        private float _wheelQuietAt;   // 이 때까지 들어온 굴림은 같은 한 번으로 친다
+        private const float WheelGap = 0.18f;
+
+        private void Wheel(float sy)
+        {
+            if (Mathf.Abs(sy) < 0.01f) return;
+            float now = Time.unscaledTime;
+            bool fresh = now >= _wheelQuietAt;
+            _wheelQuietAt = now + WheelGap;      // 굴리는 동안 계속 미룬다
+            if (!fresh) return;
+            if (sy < 0f) Next(); else Prev();    // 내리면 목록도 내려간다
+        }
+
+        public void Next() => Step(+1);
 
         /// <summary>이전 도구로. UnityEvent 에 연결할 수 있다.</summary>
-        public void Prev() => Select(_index - 1);
+        public void Prev() => Step(-1);
 
         /// <summary>이 도구를 이미 들고 있는가.</summary>
         public bool Has(ToolDef def) => def != null && _tools.Contains(def);
@@ -198,6 +261,7 @@ namespace IMUNROK.Common
             int n = SlotCount;
             int next = ((slot % n) + n) % n;
             if (next == _index) return;
+            if (!Allows(IdAt(next))) return;   // 좁혀 둔 동안 벨트를 눌러 딴 것을 들 수 없다
             _index = next;
             _everSwitched = true;      // 한 번 갈아 들었으면 익힌 것이다 — 안내를 걷는다
             _howToUntil = Time.unscaledTime + HowToSeconds;   // 바꾼 그 순간부터 잠깐
@@ -242,6 +306,21 @@ namespace IMUNROK.Common
             // 밤에 얼굴을 보려면 불이 있어야 한다. 그래서 등불만 남기고 내려놓는다.
             // 잠그는 대신 <b>실제로 손을 비운다</b>: 벨트가 말하는 것과 손에 있는 것이
             // 어긋나지 않는 편이 낫다.
+            //
+            // <b>좁혀 두었으면 그것이 먼저다</b>(걷힌 팔 앞). 심문 중이어도 허락된 것끼리 갈아 든다.
+            // 판이 떠 있어도 휠은 벨트의 것이다 — 좁혀 둔 판은 돌리지도 당기지도 않는다.
+            if (Limited)
+            {
+                if (!Allows(CurrentId)) Select(0);
+#if ENABLE_INPUT_SYSTEM
+                var kbL = Keyboard.current;
+                var mouseL = Mouse.current;
+                if (kbL != null && !Typing.Now && kbL.qKey.wasPressedThisFrame) { Next(); return; }
+                if (mouseL != null) Wheel(mouseL.scroll.ReadValue().y);
+#endif
+                return;
+            }
+
             if (InterrogationController.AnyOpen)
             {
                 string held = CurrentId;
@@ -266,9 +345,7 @@ namespace IMUNROK.Common
                 // 그런데 휠을 <b>올릴</b> 때 그 차례로 내려갔다 — 손가락이 가는 쪽과 눈이
                 // 따라가는 쪽이 반대라, 한 칸 건너뛴 것처럼 읽히고 매번 되짚게 된다.
                 // 굴리는 쪽과 짚히는 쪽을 같게 둔다.
-                float sy = mouse.scroll.ReadValue().y;
-                if (sy < 0f) Next();
-                else if (sy > 0f) Prev();
+                Wheel(mouse.scroll.ReadValue().y);
             }
 #endif
         }

@@ -48,6 +48,9 @@ namespace IMUNROK.Common
         /// <summary>잰 뒤 수첩에 적을 열쇠.</summary>
         public string ClueKey => _clueKey;
 
+        /// <summary>잴 것이 <b>없는</b> 자리인가(乙 의 팔). 없다는 말을 적어 두었으면 그렇다.</summary>
+        public bool Bare => !string.IsNullOrEmpty(_nothingLine);
+
         /// <summary>어느 사건의 것인가.</summary>
         public CaseId Case => _case;
 

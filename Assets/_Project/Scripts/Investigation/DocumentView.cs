@@ -42,6 +42,8 @@ namespace IMUNROK.Common
 
         [Tooltip("앉아서 이 한 장만 뜯어보는 자리에서 종이를 이만큼 크게 편다(사건표·수첩에서 꺼낸 것)")]
         [SerializeField] private float _studySpan = 1.4f;
+        [Tooltip("못 박아 세운 물건(걷힌 팔)의 판 크기 — 종이 한 장(_pageSpan)의 몇 배인가")]
+        [SerializeField] private float _fixedStageSpan = 1.6f;
         [Tooltip("종이를 든 거리(m). 팔을 굽혀 든 만큼 — 돋보기(0.4m)보다 멀어야 그 너머로 보인다")]
         [SerializeField] private float _holdDistance = 0.6f;
         [Tooltip("집은 자리에서 이만큼(m) 멀어지면 <b>도로 내려놓는다</b>. " +
@@ -117,6 +119,7 @@ namespace IMUNROK.Common
         private bool _hasBackArt;
         private RawImage _stageImage;   // 종이가 아닌 것 — 무대에서 찍어 온 그림
         private static bool _onStage;   // 지금 무대에 물건이 올라 있는가
+        private static bool _stageFixed; // 무대의 물건을 돌리지 못하게 못 박았나(걷힌 팔)
         private Image _transPlate;   // 옮긴 글이 앉는 바탕 — 종이 위에 한 켜
         private TextMeshProUGUI _trans;         // 옮긴 글 — 한자 위에 얹히는 우리말
         private TextMeshProUGUI _litOnPage;     // 등불이 드러낸 글 — 종이 <b>안쪽</b>에서 배어 나온다
@@ -187,6 +190,157 @@ namespace IMUNROK.Common
         public static bool IsOpen { get; private set; }
 
         /// <summary>
+        /// <b>못 박은 물건(걷힌 팔)을 펴 두었나.</b> 이 동안은 그 하나만 보여야 한다 —
+        /// 심문 조작판·자막 바가 그 위를 가리고, 뒤에서 멀쩡히 소매를 내린 사람이 보이면
+        /// 무엇을 재는 중인지가 흐려진다. 화면 판들이 이것을 보고 물러난다.
+        /// </summary>
+        public static bool StageFixedOpen => IsOpen && _stageFixed;
+
+        /// <summary>눈에서 판까지의 거리(m). 판이 없으면 1.</summary>
+        public static float PanelDistance(Vector3 eye)
+            => _instance != null ? Vector3.Distance(eye, _instance.transform.position) : 1f;
+
+        /// <summary>못 박은 물건의 바탕 — 방을 지운다. 종이와 달리 「어디서 들고 있나」가 아니라 몸 하나를 보는 자리다.</summary>
+        // 다 칠하면 방이 통째로 사라져 「어디서 팔을 보고 있나」까지 지워진다 — 전의 어둠처럼 비치게 둔다
+        private static readonly Color FixedBackdrop = new Color(0.07f, 0.07f, 0.08f, 0.8f);
+        /// <summary>못 박은 물건(흰 살갗)의 조명 세기 — 물증용의 몇 배.</summary>
+        private const float FixedLight = 0.5f;
+        /// <summary>못 박은 물건의 긴 쪽이 화면 가로의 몇 할인가.</summary>
+        private const float FixedArmShare = 0.62f;
+        /// <summary>화면보다 얼마나 크게 덮나 — 돋보기로 끌어 옮겨도 가장자리가 안 드러나게.</summary>
+        private const float CoverMargin = 1.6f;
+
+        /// <summary>
+        /// <b>무대 그림이 화면을 통째로 덮게 키운다.</b>
+        ///
+        /// 판 뒤의 어둠(<see cref="_backdrop"/>)만으로는 방이 그대로 비쳤다 — 불려 온 이가 소매를 내린 채
+        /// 뒤에 앉아 있고, 그 앞에 팔만 떠 있었다. 그림 자체를 화면만 하게 키우고 바탕을 칠하면
+        /// 덮개가 따로 필요 없다. 돋보기도 이 판을 그대로 들여다본다(판은 세상 속에 있다).
+        /// 판이 서는 거리를 매 칸 재야 한다 — 펴는 그 칸에는 아직 자리를 못 잡았을 수 있다.
+        /// </summary>
+        /// <summary>
+        /// <b>글자판을 그림 위로 올린다</b>(못 박은 물건일 때). 글자판은 종이보다 먼저 지어져 종이 <b>밑</b>에
+        /// 깔린다 — 종이 둘레에 쓰니 겹칠 일이 없었다. 그런데 화면을 덮는 그림이 오면 「Esc — 내려놓기」와
+        /// 이름표가 통째로 그 밑에 묻혔다. 평소로 돌아가면 제자리(종이 밑)로 내린다.
+        /// </summary>
+        private void RaiseChrome(bool up)
+        {
+            if (_chrome == null || _hand == null) return;
+            var t = _chrome.transform;
+            if (up) t.SetAsLastSibling();
+            else if (t.GetSiblingIndex() > _hand.GetSiblingIndex()) t.SetSiblingIndex(_hand.GetSiblingIndex());
+
+            // 「내려놓기」는 <b>화면 귀퉁이</b>에 — 튜토리얼 넘기기와 같은 단추, 같은 자리(오른쪽 위).
+            // 판 위에 두었더니 그림 크기를 따라 엉뚱한 데 앉았다. 귀퉁이 단추는 화면 판이라 도구띠처럼 제자리다.
+            if (up && _canPutDown)
+            {
+                if (!_cornerOurs || !CornerButton.Up) { CornerButton.Show(PutDownLabel, Hide, 0.25f); _cornerOurs = true; }
+            }
+            else if (_cornerOurs) { CornerButton.Hide(); _cornerOurs = false; }
+            // 밑판은 더 쓰지 않는다 — 유리는 먼 평면으로 판 너머를 자른다(MagnifierLens.AimLensCamera)
+            if (_stageBacking != null) _stageBacking.enabled = false;
+        }
+
+        private const string PutDownLabel = "내려놓기  (Esc)";
+        private bool _cornerOurs;
+
+        // ── 돋보기에만 보이는 밑판 ──
+        // 걷힌 팔 그림은 바탕이 비친다(0.8). 눈으로 볼 때는 그게 좋은데, 돋보기 유리 안에서는 그 비친
+        // 바닥 무늬와 뒤의 사람이 함께 커져 팔 위에 겹쳐 보였다.
+        //
+        // 처음엔 유리 카메라가 찍는 그 순간에만 밑판을 켰다 껐다 했는데 <b>듣지 않았다</b> — 판의 그림은
+        // 카메라들이 찍기 <b>전에</b> 한꺼번에 지어지므로, 찍는 도중에 켠 것은 그 칸에 안 들어간다.
+        // 이제 밑판을 <b>제 캔버스</b>에 담아 「눌린 자국」 층(<see cref="PressedMarks.LayerName"/>)에 둔다.
+        // 그 층은 눈의 카메라가 안 보고 유리 카메라만 본다 — 늘 켜 두어도 눈에는 안 보이고 유리 안에만 깔린다.
+        private Image _stageBacking;
+
+        /// <summary>예전 길(찍는 동안 켜고 끄기)의 자리. 이제 밑판은 층으로 갈리므로 크기만 맞춘다.</summary>
+        public static void LensBacking(bool on)
+        {
+            if (_instance != null) _instance.SyncBacking();
+        }
+
+        private void SyncBacking()
+        {
+            if (_stageBacking == null || _stageImage == null) return;
+            var srt = _stageImage.rectTransform;
+            var brt = _stageBacking.rectTransform;
+            if (brt.sizeDelta != srt.sizeDelta) brt.sizeDelta = srt.sizeDelta;
+            if (brt.anchoredPosition != srt.anchoredPosition) brt.anchoredPosition = srt.anchoredPosition;
+        }
+
+        private Image EnsureBacking()
+        {
+            if (_stageBacking != null) return _stageBacking;
+            if (_stageImage == null) return null;
+            int lensOnly = LayerMask.NameToLayer(PressedMarks.LayerName);
+            if (lensOnly < 0) return null;   // 층이 없으면 밑판도 없다(유리에 비치는 채로 둔다)
+            var srt = _stageImage.rectTransform;
+            var rt = NewRect("무대_밑판", srt.anchoredPosition, srt.sizeDelta, srt.parent);
+            rt.SetSiblingIndex(srt.GetSiblingIndex());   // 그림 바로 밑
+            rt.gameObject.layer = lensOnly;
+            // 층으로 가르려면 <b>제 캔버스</b>가 있어야 한다 — 캔버스 하나는 통째로 한 층으로 그려진다
+            var cv = rt.gameObject.AddComponent<Canvas>();
+            cv.overrideSorting = false;
+            _stageBacking = rt.gameObject.AddComponent<Image>();
+            _stageBacking.color = new Color(FixedBackdrop.r, FixedBackdrop.g, FixedBackdrop.b, 1f);
+            _stageBacking.raycastTarget = false;
+            _stageBacking.enabled = false;
+            DrawOverRoom();
+            return _stageBacking;
+        }
+
+        /// <summary>
+        /// 화면의 한 점이 무대 그림의 어디(0~1)인가. 그림 밖이면 거짓.
+        /// 걷힌 팔에 유척을 대는 손이 이것으로 무대 안을 겨눈다.
+        /// </summary>
+        /// <summary>
+        /// 세상 속 선 하나(돋보기의 시선)가 무대 그림의 어디(0~1)를 지나나. 그림 밖이면 거짓.
+        /// 돋보기는 커서가 아니라 <b>유리 한가운데</b>로 본다 — 그 선이 판을 뚫는 자리가 들여다보는 자리다.
+        /// </summary>
+        public static bool StageViewportAtRay(Ray ray, out Vector2 uv)
+        {
+            uv = default;
+            if (_instance == null || _instance._stageImage == null || !_onStage) return false;
+            var rt = _instance._stageImage.rectTransform;
+            Vector3 n = rt.forward;
+            float denom = Vector3.Dot(n, ray.direction);
+            if (Mathf.Abs(denom) < 1e-5f) return false;
+            float t = Vector3.Dot(n, rt.position - ray.origin) / denom;
+            if (t < 0f) return false;
+            Vector3 local = rt.InverseTransformPoint(ray.GetPoint(t));
+            var r = rt.rect;
+            uv = new Vector2((local.x - r.xMin) / Mathf.Max(1f, r.width), (local.y - r.yMin) / Mathf.Max(1f, r.height));
+            return uv.x >= 0f && uv.x <= 1f && uv.y >= 0f && uv.y <= 1f;
+        }
+
+        public static bool StageViewportAt(Vector2 screen, out Vector2 uv)
+        {
+            uv = default;
+            if (_instance == null || _instance._stageImage == null || !_onStage) return false;
+            var rt = _instance._stageImage.rectTransform;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, screen, Camera.main, out var lp)) return false;
+            var r = rt.rect;
+            uv = new Vector2((lp.x - r.xMin) / Mathf.Max(1f, r.width), (lp.y - r.yMin) / Mathf.Max(1f, r.height));
+            return uv.x >= 0f && uv.x <= 1f && uv.y >= 0f && uv.y <= 1f;
+        }
+
+        private void CoverView()
+        {
+            var cam = Camera.main;
+            var img = _stageImage != null ? _stageImage.rectTransform : null;
+            if (cam == null || img == null) return;
+            float d = Vector3.Dot(img.position - cam.transform.position, cam.transform.forward);
+            float k = Mathf.Abs(img.lossyScale.y);
+            if (d <= 0.01f || k < 1e-6f) return;
+            float h = 2f * d * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) / k * CoverMargin;
+            var want = new Vector2(h * EvidenceStage.Aspect, h);
+            if ((img.sizeDelta - want).sqrMagnitude > 4f) img.sizeDelta = want;
+            SyncBacking();
+        }
+        private Color _backdropColor;   // 평소의 잿빛(지을 때 적어 둔다)
+
+        /// <summary>
         /// 문서를 손에 쥔다.
         /// </summary>
         /// <param name="page">종이 면(문서 텍스처)</param>
@@ -248,6 +402,8 @@ namespace IMUNROK.Common
         {
             EvidenceStage.Clear();   // 안 보는 무대를 그릴 까닭이 없다
             _onStage = false;
+            _stageFixed = false;
+            if (_instance != null) _instance.RaiseChrome(false);
             ReadingFocus.Release(ReadingFocus.Panel.Document);
             var back = OnPutDown;
             OnPutDown = null;
@@ -811,6 +967,12 @@ namespace IMUNROK.Common
         private void Update()
         {
             if (!IsOpen) return;
+            if (_onStage && _stageFixed)
+            {
+                CoverView();
+                // 돋보기를 들면 바탕을 다 막던 것은 걷었다 — 유리 안의 문살·바닥 무늬는 뒤가 비친 것이 아니라
+                // 살갗에 비친 반사였다(EvidenceStage.Matte). 바탕은 늘 어렴풋이 비친다.
+            }
 
             // ── 들여다보는 동안 종이를 <b>세워 둔다</b> ──
             //
@@ -838,7 +1000,9 @@ namespace IMUNROK.Common
 
             // 손에 든 것은 가만히 있지 않는다. 아주 조금 흔들려야 종이로 보인다.
             float t = Time.time;
-            float breathe = peering ? 0f
+            // 못 박은 물건(걷힌 팔)은 숨도 안 쉰다 — 판이 화면보다 커서 조금만 기울어도 팔 위의 자리가 미끄러져,
+            // 흉터에 대고 있던 유척이 한 칸씩 흉터 밖으로 튀었다(진단 줄: 가만히 있어도 0.005 → 0.062)
+            float breathe = peering || _stageFixed ? 0f
                           : Mathf.Sin(t * 0.9f) * 0.7f + Mathf.Sin(t * 2.3f) * 0.25f;
 
             // 끌면 <b>손에 쥔 채로 돌린다</b> — 앞뒤 어느 쪽이든 볼 수 있다.
@@ -859,7 +1023,9 @@ namespace IMUNROK.Common
 
             // <b>무대에 물건이 올라 있으면 손은 그쪽으로 간다.</b> 종이는 판을 돌리지만
             // 물건은 무대의 회전축을 돌린다 — 돌아가는 것이 다르므로 손도 갈린다.
-            if (_onStage)
+            // <b>못 박은 물건</b>(걷힌 팔)은 돌리지도 당기지도 않는다 — 대는 것만 된다.
+            // 휠은 도구띠의 것으로 돌려준다(돋보기 ↔ 유척).
+            if (_onStage && !_stageFixed)
             {
                 if (drag.sqrMagnitude > 0.0001f) EvidenceStage.Spin(drag * 0.4f);
 #if ENABLE_INPUT_SYSTEM
@@ -908,9 +1074,15 @@ namespace IMUNROK.Common
                 _pan = Vector2.Lerp(_pan, Vector2.zero, 6f * Time.deltaTime);
                 if (_pan.sqrMagnitude < 0.25f) _pan = Vector2.zero;
 
-                _spin.x -= drag.x;
-                _spin.y += drag.y;
-                _spin.y = Mathf.Clamp(_spin.y, -85f, 85f);
+                // <b>무대 그림은 판째 기울이지 않는다.</b> 물건은 무대의 회전축이 돌리는데
+                // 여기서 판까지 같이 기울면, 3D 로 찍은 그림이 비스듬한 종이 한 장이 되어
+                // <b>납작하게</b> 보였다(걷힌 팔에서 실제로 그랬다).
+                if (!_onStage)
+                {
+                    _spin.x -= drag.x;
+                    _spin.y += drag.y;
+                    _spin.y = Mathf.Clamp(_spin.y, -85f, 85f);
+                }
             }
 
             // 끌지 않는 동안에는 손목이 저 혼자 조금 흔들린다
@@ -1093,6 +1265,7 @@ namespace IMUNROK.Common
             // 덮는 것은 <b>눈을 종이로 모으려는</b> 것이지 방을 지우려는 것이 아니다.
             // 빛깔을 중립 잿빛으로 두고 짙기도 덜어, 뒤가 <b>가라앉되 남아 있게</b> 한다.
             _backdrop.color = new Color(0.17f, 0.17f, 0.18f, 0.72f);
+            _backdropColor = _backdrop.color;
             _backdrop.raycastTarget = false;
             _backdrop.enabled = false;
 
@@ -1372,19 +1545,49 @@ namespace IMUNROK.Common
         /// 종이 쪽을 <b>통째로</b> 끈다 — 앞면·뒷면·뒷그림까지. 반쯤 남겨 두면
         /// 마패 뒤로 한지가 비쳐 「종이에 그려진 마패」가 된다.
         /// </summary>
-        public static void SetStageModel(GameObject prefab, Vector3 euler)
+        public static void SetStageModel(GameObject prefab, Vector3 euler) => SetStageModel(prefab, euler, false);
+
+        /// <summary>
+        /// <paramref name="fixedPose"/> 면 <b>못 박아 세운다</b> — 끌어도 안 돌고 휠로 안 당겨진다.
+        /// 걷힌 팔처럼 「보여 줄 자세가 하나뿐인」 것에 쓴다. 돌려 볼 물건이 아니라 대어 볼 몸이고,
+        /// 돌리다 흉터가 뒤로 넘어가면 무엇을 재는지가 사라진다. 대신 판을 크게 편다.
+        /// </summary>
+        public static void SetStageModel(GameObject prefab, Vector3 euler, bool fixedPose)
         {
+            // 걷힌 팔이면 어디서 왔든(수첩·저장) 지금 자세로 못 박는다 — 수첩에 적힌 옛 자세를 믿지 않는다
+            if (ArmMeasure.TryPose(prefab, out var armPose)) { euler = armPose; fixedPose = true; }
             _onStage = prefab != null;
+            _stageFixed = _onStage && fixedPose;
             if (_instance == null) return;
+
+            // 걷힌 팔은 화면과 같은 비로, 바탕을 칠해서 찍는다 — 그 그림이 곧 화면이 된다
+            var camNow = Camera.main;
+            // 돋보기로 들여다볼 그림이라 촘촘히 찍는다 — 1024 로는 유리 안에서 계단이 졌다
+            if (_stageFixed) EvidenceStage.SetFrame(camNow != null ? camNow.aspect : 16f / 9f, FixedBackdrop, 2048);
+            else if (_onStage) EvidenceStage.SetFrame(1f, new Color(0f, 0f, 0f, 0f));
+            if (_onStage) EvidenceStage.SetLightScale(_stageFixed ? FixedLight : 1f);
+            _instance.RaiseChrome(_stageFixed);
 
             if (_onStage) EvidenceStage.Show(prefab, euler);
             else EvidenceStage.Clear();
+            if (_stageFixed) EvidenceStage.Matte();   // 살갗이 방을 비추지 않게
+            if (_stageFixed) EvidenceStage.FitWidth(FixedArmShare / CoverMargin);   // 그림이 화면의 1.6 배이므로
 
             if (_instance._stageImage != null)
             {
                 _instance._stageImage.texture = EvidenceStage.Texture;
                 _instance._stageImage.enabled = _onStage;
+                float span = _instance._pageSpan * (_stageFixed ? _instance._fixedStageSpan : 1f);
+                var size = new Vector2(span, span);
+                _instance._stageImage.rectTransform.sizeDelta = size;
+                if (_stageFixed) _instance.CoverView();          // 화면을 통째로 덮는다(매 칸 다시 잰다)
             }
+            if (_instance._backdrop != null && _instance._backdropColor.a > 0f)
+            {
+                _instance._backdrop.color = _stageFixed ? FixedBackdrop : _instance._backdropColor;
+                if (_stageFixed) _instance._backdrop.enabled = true;
+            }
+            if (_instance._hand != null && _onStage) _instance._spin = Vector2.zero;   // 판은 눈을 똑바로 본다
             if (_instance._page != null) _instance._page.enabled = !_onStage;
             // 종이 테두리도 함께 쉰다 — 안 끄면 물건 뒤에 반투명 나무빛 네모가 떠 있었다(팔을 올렸을 때).
             if (_instance._edge != null && _onStage) _instance._edge.enabled = false;

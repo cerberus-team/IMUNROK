@@ -61,6 +61,8 @@ namespace IMUNROK.Common
         private void Update()
         {
             bool want = ToolbeltHud.SelectedToolId == _toolId;
+            // 걷힌 팔 앞에서 유척은 <b>무대 위의 자</b>가 곧 손에 든 것이다 — 눈앞의 손 모형까지 뜨면 자가 둘이 된다
+            if (want && _toolId == "yucheok" && DocumentView.StageFixedOpen) want = false;
             if (_model == null) return;
 
             if (_model.activeSelf != want) _model.SetActive(want);

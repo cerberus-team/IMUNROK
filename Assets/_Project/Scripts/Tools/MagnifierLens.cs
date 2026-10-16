@@ -870,9 +870,11 @@ namespace IMUNROK.Common
                 if (_useProp) FindProp();
             }
 
+            // 심문 중에는 유리를 안 든다 — 사람 앞에 들이댈 것이 아니다. 다만 벨트를 좁혀 둔
+            // 동안(걷힌 팔 앞)은 그 팔을 들여다보라고 좁힌 것이므로 든다.
             bool want = ToolbeltHud.SelectedToolId == _toolId
                         && !JournalView.AnyOpen
-                        && !InterrogationController.AnyOpen;
+                        && (!InterrogationController.AnyOpen || ToolbeltHud.Limited);
             if (want != _held) { _held = want; SetShown(want); }
             if (!_held) return;
 
@@ -975,6 +977,15 @@ namespace IMUNROK.Common
             // 제 몸은 찍는 순간 <b>잠깐 감추면</b> 된다(Shoot). 창을 치우는 것과 같은 수법이다.
             var mainCam = _eye != null ? _eye.GetComponent<Camera>() : null;
             _lensCam.nearClipPlane = mainCam != null ? mainCam.nearClipPlane : 0.03f;
+
+            // <b>걷힌 팔 앞에서는 판 너머를 찍지 않는다.</b> 팔 그림은 바탕이 비치게(0.8) 깔려 있어,
+            // 유리가 그 너머의 방까지 찍으면 바닥 무늬와 뒤의 사람이 팔과 함께 커져 겹쳐 보였다.
+            // 밑판을 찍는 순간에만 깔았다가, 따로 층에 두었다가 했지만 둘 다 유리 안에서 안 먹었다.
+            // 가장 곧은 길은 <b>먼 평면을 판 바로 뒤로 당기는 것</b>이다 — 판보다 먼 것은 유리에 아예 안 든다.
+            float far = mainCam != null ? mainCam.farClipPlane : 1000f;
+            if (DocumentView.StageFixedOpen)
+                far = Mathf.Max(_lensCam.nearClipPlane + 0.05f, DocumentView.PanelDistance(eye) + 0.12f);
+            if (!Mathf.Approximately(_lensCam.farClipPlane, far)) _lensCam.farClipPlane = far;
 
             // <b>알은 테와 같은 평면에 눕는다.</b>
             //
@@ -1127,6 +1138,7 @@ namespace IMUNROK.Common
                 _hiddenCanvases.Add(c);
             }
             DocumentView.SetChromeVisible(false);
+            DocumentView.LensBacking(true);   // 걷힌 팔 그림의 비친 바탕을 유리 안에서는 막는다
 
             HideSelf(_holder != null ? _holder : _propRoot, _hiddenRenderers);
             if (_glass != null && _glass.enabled) { _glass.enabled = false; _hiddenRenderers.Add(_glass); }
@@ -1142,6 +1154,7 @@ namespace IMUNROK.Common
         {
             foreach (var r in _hiddenRenderers) if (r != null) r.enabled = true;
             _hiddenRenderers.Clear();
+            DocumentView.LensBacking(false);
             if (_hiddenCanvases.Count == 0) return;
             DocumentView.SetChromeVisible(true);
             foreach (var c in _hiddenCanvases) if (c != null) c.enabled = true;

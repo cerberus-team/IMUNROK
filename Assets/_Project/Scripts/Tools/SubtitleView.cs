@@ -275,8 +275,32 @@ namespace IMUNROK.Common
         // 화면이 곧 시야라 몇 미터 앞에 앉느냐로 정해지지 우리가 정할 수가 없다.
         // 여태 모니터에서도 이걸 돌려서 안내 줄 19가 35로 부풀어 있었다.
         // 이제 <see cref="StyleNow"/> 가 적어 둔 값이 그대로 그려진다.
+
+        // ── 걷힌 팔을 볼 때는 물러난다 ──
+        // 판을 통째로 끈다(캔버스). 제 짙기(_group)는 그대로 두므로, 물러난 사이에 들어온
+        // 말·단추도 잃지 않고 팔을 내려놓으면 그대로 다시 보인다.
+        private bool _veiled;
+        private void Veil()
+        {
+            bool v = DocumentView.StageFixedOpen;
+            // 글쇠 칸을 쥔 채로 물러나면 Q·F 가 글자로 들어가 도구를 못 든다 — 물러나 있는 내내 손을 놓는다.
+            var es = UnityEngine.EventSystems.EventSystem.current;
+            if (v && es != null && es.currentSelectedGameObject != null
+                && es.currentSelectedGameObject.transform.IsChildOf(transform))
+                es.SetSelectedGameObject(null);
+            if (v == _veiled) return;
+            _veiled = v;
+            var cv = GetComponent<Canvas>();
+            if (cv != null) cv.enabled = !v;
+        }
+
         private void Update()
         {
+            Veil();
+            // 물러나 있는 동안은 <b>아무것도 안 한다</b>. 여태 판만 꺼 두고 여기는 그대로 돌아,
+            // 매 칸 글쇠 칸을 다시 잡았다(아래 「칸을 늘 잡아 둔다」) — 그래서 걷힌 팔 앞에서
+            // F·Q 가 모두 글자로 들어가 돋보기도 유척도 안 들렸다.
+            if (_veiled) return;
             if (_group == null || _group.alpha < 0.5f) return;
             PaintHeard();
             TickConfirm();
