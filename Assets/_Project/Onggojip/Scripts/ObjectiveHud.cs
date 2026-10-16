@@ -33,8 +33,7 @@ namespace IMUNROK.Onggojip
         //    한 줄에 밀어 넣은 것이고, 그 곁에 사목 알림까지 겹치니 화면에 안내가 넉 줄이었다.
         //    말 거는 것은 사람이 눈앞에 서 있으면 저절로 알게 된다 — 모르는 것은 소지품 쪽이다.
         [TextArea] [SerializeField] private string _introSub = "소지품은 I 를 통해 볼 수 있다";
-        [TextArea] [SerializeField] private string _investigateLine = "밤이다. 몰래 집 안을 조사하라";
-        [TextArea] [SerializeField] private string _readyLine = "증거를 다 모았다 — 품속의 마패를 내보여라  (F 꾹 누르기)";
+        [TextArea] [SerializeField] private string _investigateLine = "밤이다. 몰래 집 안을 조사하라 — 끝낼 때는 요에 누워 *출도*한다";
 
         private const CaseId ThisCase = CaseId.Case1_Onggojip;
 
@@ -109,10 +108,35 @@ namespace IMUNROK.Onggojip
             }
 
             bool ready = have >= req;
-            // 도입 문구("지나는 이에게 말을 걸어보자")는 마을 어귀에서만 뜻이 있다.
-            // 아무에게도 안 묻고 담을 넘어 들어와 버렸다면 단서 수는 0이어도 이미 도입이 아니다.
-            bool intro = found == 0 && !_inside;
-            string main = ready ? _readyLine : (intro ? _introLine : _investigateLine);
+
+            // <b>「밤이다, 조사하라」는 조사가 <u>시작된 뒤</u>에 뜬다.</b>
+            //
+            // 여태 조건이 「단서를 하나라도 얻었나」였다. 그런데 마을 어귀에서 지나는
+            // 이에게 한 마디 물으면 그 자리에서 J01 이 들어온다 — <b>아직 담 밖에 서
+            // 있는데</b> 「밤이다. 몰래 집 안을 조사하라」가 떴다. 들어가지도 않은 집을
+            // 뒤지라 하니 안내가 아니라 헛말이다.
+            //
+            // 조사가 실제로 열리는 때는 <b>복동이 방을 나가는 순간</b>이고, 그때
+            // 소리계에 무게가 실린다(<see cref="NoiseMeter.Armed"/>). 그 하나면 된다 —
+            // 따로 표식을 둘 것 없이 이미 있는 신호를 읽는다.
+            bool searching = NoiseMeter.Armed;
+
+            // 도입 문구는 마을 어귀에서만 뜻이 있다. 담을 넘어 들어와 버렸다면
+            // 단서 수는 0이어도 이미 도입이 아니다.
+            bool intro = !_inside && !searching;
+
+            // 집에 들었으나 아직 주인과 마주 앉아 있는 동안에는 <b>아무 말도 안 한다</b>.
+            // 말을 나누는 자리에 목표를 띄우면 그것이 대화보다 먼저 읽힌다.
+            // 필수 넷을 채워야 뜨던 「마패를 내보여라」는 걷었다 — 출도는 이제 요에 누워
+            // 단추로 한다(HidePlace). 조사 중 안내 한 줄에 그 길을 적는다.
+            string main = searching ? _investigateLine
+                        : intro ? _introLine
+                        : "";
+            if (string.IsNullOrEmpty(main))
+            {
+                if (_lastMain != null) { StatusPanel.Clear("목표"); _lastMain = null; _lastSub = null; }
+                return;
+            }
             // <b>수를 안 적는다.</b> 「필수 단서 2/4 · 발견 5/12」는 참인 말이지만,
             // 그 순간 조사가 <b>모으기 놀이</b>가 된다 — 어사는 몇 개를 채우러 다니는
             // 사람이 아니고, 무엇이 남았는지 모르는 채 숫자만 오르는 것은 안내가 아니라
@@ -133,6 +157,20 @@ namespace IMUNROK.Onggojip
             // 말이 바뀐 <b>그때</b>부터 센다. 몇 초 뒤 저 혼자 진다 —
             // 늘 떠 있는 안내는 안내가 아니라 창이다.
             _until = _holdSeconds > 0f ? Time.time + _holdSeconds : -1f;
+
+            // <b>뒤지기가 처음 열리는 때 도구를 한 번 떠올려 준다</b>(2026-09-15). 조사청에서 익혔어도
+            // 사건 한복판에서는 잊는다 — 1막 어디에도 돋보기·등불을 다시 짚어 주는 말이 없었다.
+            if (searching && !_toolReminded)
+            {
+                _toolReminded = true;
+                SubtitleView.Show("", "조사청에서 익힌 것 — <b>돋보기</b>는 잔글씨를, <b>등불</b>은 종이 겹 사이를 드러낸다. " +
+                                      "소리를 이어 내면 하인이 온다. 발소리가 다가오면 요에 눕는다. (N — 마이크 끄고 켜기)", "", true);
+            }
         }
+
+        private static bool _toolReminded;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetReminder() { _toolReminded = false; }
     }
 }

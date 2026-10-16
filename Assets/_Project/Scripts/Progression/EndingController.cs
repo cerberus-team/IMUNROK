@@ -134,6 +134,11 @@ namespace IMUNROK.Common
                 Verdict v = gs.GetVerdict(id);
                 string line = $"{CaseTitle(id)}\n— 판결: {VerdictText(v)}.";
 
+                // 장계가 매긴 결이 있으면 그것으로 읽는다(판결 셋만으로는 「반」을 못 가른다)
+                string tag = gs.GetEndingTag(id);
+                if (!string.IsNullOrEmpty(tag))
+                    line = CaseTitle(id) + "\n— 판결: " + (tag == "참" ? "진실대로 고함" : tag == "자비" ? "정상을 참작함" : tag == "헛" ? "갑(甲)을 진짜로 인정함" : "절반만 밝힘") + ".";
+
                 // 제1사건은 갑리 처리 여부를 덧붙임(전용 데이터 활용)
                 if (id == CaseId.Case1_Onggojip)
                     line += gs.GapriHandled ? " 갑리는 처결되었다." : " 갑리의 처분은 기록되지 않았다.";

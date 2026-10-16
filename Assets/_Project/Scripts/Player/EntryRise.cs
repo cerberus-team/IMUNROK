@@ -98,6 +98,10 @@ namespace IMUNROK.Common
 
         private void Start()
         {
+            // 사건을 맺고 돌아와 마지막 걸음(HubEnding)을 틀 참이면 맞이하지 않는다 —
+            // 일어서는 몸짓이 엔딩의 눈을 빼앗아 가고 걸음을 도로 풀어 버렸다.
+            bool pending = HubEnding.Pending || (GameState.Instance != null && GameState.Instance.EndingPending);
+            if (pending || HubEnding.Playing) { _rose = true; Destroy(this); return; }
             if (_rose) { StartCoroutine(OpenEyesAtBoard()); return; }
             _rose = true;
             StartCoroutine(Run());

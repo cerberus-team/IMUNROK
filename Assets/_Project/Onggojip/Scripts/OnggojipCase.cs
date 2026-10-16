@@ -70,14 +70,27 @@ namespace IMUNROK.Onggojip
             // 신분이 바뀌므로, 편집기에서 2막 씬을 곧장 틀면 「2막 것」으로 적어 둔 물음·
             // 게이트·명령이 하나도 안 뜨고 AI 도 1막인 줄 안다 — 「2막이 비었다」로 보인다.
             // 2막에서 시작하는 씬이면 신분도 2막이어야 한다.
-            if (_startPhase == Phase.Revealed && !_gs.IdentityRevealed) _gs.RevealIdentity(true);
+            // 다만 <b>들켜서 붙들려 온 길</b>이면 서리 앞에서 마패를 꺼낼 때(GwanaUsher)까지 과객으로 둔다 —
+            // 여기서 곧장 드러내면 「자네는 누구길래」 하는 동안 호칭·물음이 이미 어사였다(2026-09-15).
+            if (_startPhase == Phase.Revealed && !_gs.IdentityRevealed && !_gs.CaughtInStealth) _gs.RevealIdentity(true);
+            // <b>1막으로 들어서면 과객으로 되돌린다</b>(2026-09-15). 조사청은 늘 1막을 여는데, 한 번 2막까지 갔던 판은
+            // 신분이 어사로 남아 요의 출도 단추가 안 떴다(1막을 끝낼 길이 들키는 것뿐이었다).
+            if (_startPhase == Phase.Stealth)
+            {
+                if (_gs.IdentityRevealed) _gs.RevealIdentity(false);
+                if (_gs.CaughtInStealth) _gs.SetCaughtInStealth(false);
+                StealthLives.ResetForNight();
+            }
+            RoyalWarrant.MissingNote = MissingNote;
         }
 
         private void Update()
         {
-            // F2: 흐름 디버그 패널 껐다 켜기(나중에 통째로 지워도 됨)
+            // F2: 흐름 디버그 패널 껐다 켜기 — 편집기·개발 빌드에서만(배포판에서 출도를 건너뛸 수 있었다)
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (Keyboard.current != null && Keyboard.current.f2Key.wasPressedThisFrame)
                 _showDebugPanel = !_showDebugPanel;
+#endif
 
             if (_pending != null)
             {
@@ -104,14 +117,19 @@ namespace IMUNROK.Onggojip
                 // <b>여기는 F2 판이 쓰는 표다.</b> 실제 잠금은 씬의 _needsClueKey 와 자료의
                 // alsoNeedsClueKeys 가 따로 건다(아래 CanDiscover 주석 참조). 그래도 두 벌이
                 // 어긋나면 F2 로 흐름을 짚어 보는 사람이 오진하므로 씬에 맞춰 적어 둔다.
-                case "G01": case "G02": case "G04": return Has("J06"); // 필적이 바뀐 것을 알아야 문서고에서 뭘 찾을지 안다
+                case "G01": case "G02": case "G04": case "G14": return true;   // 문서고 문서는 조건 없이 열린다(G01 만 팔 재기의 근거)
                 case "G05": return Has("J06");                          // 아내 추궁 — 필적을 들이밀어야 연다
                 case "G11": return Has("G03");                          // 입안대장을 쥐고 등불을 대야 지운 밑글이 뜬다
+                case "G12": return true;                                // 등경 · 동경 — 등불 놀이(LightBeam 등불 모드)
+                case "G13": return Has("J13") && Has("G03");            // 甲의 자백
+                case "G15": return Has("G09");                          // 乙에게 게장
+                case "G16": return Has("J08") || Has("G14");             // 乙의 갑리 인정
+                case "G17": return Has("J11") || Has("G05");             // 乙의 형제 인정
                 case "G06": return Has("J11");                          // 별급문기 → 늙은 하인 추궁(속량)
                 case "G07": return Has("G01");                          // 대장을 봐야 유척으로 견줄 수가 있다
                 case "G08": return Has("G01");                          // 저쪽 팔도 같은 자로 잰다
                 case "G09": return true;                                // 아내에게 묻기만 하면 된다
-                case "G10": return Has("G09") && Has("J07");            // 아내의 말과 물목기를 겹쳐야 나오는 자리
+                case "G10": return Has("G09");                          // 아내의 말을 쥐고 甲에게 게장을 권한다
                 default: return true;
             }
         }
@@ -127,6 +145,18 @@ namespace IMUNROK.Onggojip
             return true;
         }
 
+        /// <summary>요의 출도 확인에 덧붙는 한 줄 — 무엇을 아직 못 챙겼는지(결론 없이 갈래만).</summary>
+        private string MissingNote()
+        {
+            var miss = new System.Collections.Generic.List<string>();
+            if (!Has("J02")) miss.Add("주인에게서 들을 말");
+            if (!Has("J06")) miss.Add("장부의 손");
+            if (!Has("J11")) miss.Add("주인이 깔고 앉았던 자리");
+            if (!Has("J13")) miss.Add("관에 올린 신고");
+            if (!Has("J15")) miss.Add("잠긴 것");
+            return miss.Count == 0 ? null : "아직 살피지 못한 것 — " + string.Join(" · ", miss.ToArray());
+        }
+
         private string MissingRequired()
         {
             var list = new System.Collections.Generic.List<string>();
@@ -139,6 +169,7 @@ namespace IMUNROK.Onggojip
         {
             if (!CanReveal()) return;
             Debug.Log("[옹고집] 출도(出道) — 관아(2부)로 이동. 되돌릴 수 없음.");
+            NoiseMeter.Disarm();   // 소리계가 관아까지 따라갔다
 
             // <b>막을 넘긴다.</b> 여태 이 자리가 씬만 갈아 끼우고 신분은 그대로 두어,
             // F2 로 출도한 사람은 「2막 것」으로 적어 둔 물음·게이트·명령이 하나도 안 뜨는

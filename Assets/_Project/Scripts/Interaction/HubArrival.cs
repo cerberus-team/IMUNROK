@@ -50,6 +50,9 @@ namespace IMUNROK.Common
             if (GameState.Instance != null && GameState.Instance.InCase) yield break;
 
             yield return new WaitForSeconds(Mathf.Max(0f, _delay));
+            // 사건을 다 맺고 돌아와 마지막 걸음(HubEnding)이 도는 중이면 안내하지 않는다 —
+            // 어명 위에 「문서는 안에 펼쳐 두었소」가 덮였다.
+            if (HubEnding.Playing) yield break;
 
             _aim = PickAim();
             if (_aim == null) yield break;      // 가리킬 것이 없으면 아무 말도 안 한다

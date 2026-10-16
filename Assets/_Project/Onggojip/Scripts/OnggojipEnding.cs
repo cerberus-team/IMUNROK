@@ -56,7 +56,7 @@ namespace IMUNROK.Onggojip
         private const CaseId ThisCase = CaseId.Case1_Onggojip;
 
         /// <summary>
-        /// <b>진상의 결정타를 쥐었는가.</b> 필적이 바뀐 자국(J13)과 입안대장(G03)이
+        /// <b>진상의 결정타를 쥐었는가.</b> 甲이 자백했거나(G13), 호구단자 위조(J13)와 입안대장(G03)이
         /// 함께 있어야 「복동아」로 몰아붙일 수 있다 — <c>OnggojipCase.CanFinalPress</c>
         /// 와 같은 조건이다. 두 벌이 어긋나지 않게 여기 한 자리에 둔다.
         /// </summary>
@@ -66,7 +66,7 @@ namespace IMUNROK.Onggojip
             {
                 var j = Journal.Instance;
                 if (j == null) return false;
-                return j.HasClue(ThisCase, "J13") && j.HasClue(ThisCase, "G03");
+                return j.HasClue(ThisCase, "G13") || (j.HasClue(ThisCase, "J13") && j.HasClue(ThisCase, "G03"));
             }
         }
 
@@ -103,6 +103,15 @@ namespace IMUNROK.Onggojip
             {
                 var gs = GameState.Instance;
                 if (gs == null) return OnggojipEndingId.None;
+                // 장계가 매긴 결이 있으면 그것이 끝이다(2026-09-14) — 판결 셋만으로는
+                // 「사람은 맞혔으나 줄이 성글었다」를 가를 수 없다.
+                switch (gs.GetEndingTag(ThisCase))
+                {
+                    case "참": return OnggojipEndingId.Truth;
+                    case "반": return OnggojipEndingId.HalfTruth;
+                    case "자비": return OnggojipEndingId.Mercy;
+                    case "헛": return OnggojipEndingId.LegendStands;
+                }
                 return EndingFor(gs.GetVerdict(ThisCase));
             }
         }
