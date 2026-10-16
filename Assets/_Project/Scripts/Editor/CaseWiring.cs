@@ -8,9 +8,10 @@ namespace IMUNROK.Common.EditorTools
 {
     /// <summary>
     /// <b>어사가 받는 넷을 다 채워 준다.</b>
-    /// 메뉴: [이문록 ▸ 조사청 ▸ 사목 두기] · [이문록 ▸ 사건 ▸ 사건표 얹기]
+    /// 메뉴: [이문록 ▸ 사건 ▸ 사건표 얹기]
     ///
-    /// 고증으로는 봉서·사목·마패·유척 넷인데 이 게임에는 <b>사목만 없었다</b>.
+    /// 고증으로는 봉서·사목·마패·유척 넷이다. 사목은 한동안 조사청에 두었다가 걷었다 —
+    /// 아래에 그 까닭을 적어 두었다.
     /// 그리고 사건 씬은 아무것도 쥐여 주지 않고 시작해서, 봉서에 뭐라 적혀
     /// 있었는지 다시 볼 데가 없었다.
     ///
@@ -21,81 +22,11 @@ namespace IMUNROK.Common.EditorTools
         private const string HubPath = "Assets/_Project/Scenes/Core/HubScene.unity";
         private const string ScrollPrefab = "Assets/_Project/_Common/Prefabs/두루마리.prefab";
 
-        // ── 사목 ──────────────────────────────────────
-
-        [MenuItem("이문록/조사청/사목 두기")]
-        public static void PlaceSamok()
-        {
-            if (EditorApplication.isPlaying)
-            {
-                Debug.LogWarning("[사목] 재생을 멈추고 다시 누르십시오.");
-                return;
-            }
-
-            var scene = SceneManager.GetActiveScene();
-            if (scene.path != HubPath)
-            {
-                if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
-                scene = EditorSceneManager.OpenScene(HubPath, OpenSceneMode.Single);
-            }
-
-            var log = new System.Text.StringBuilder("[사목] 조사청에 두기\n");
-
-            var already = Object.FindFirstObjectByType<Samok>(FindObjectsInactive.Include);
-            if (already != null)
-            {
-                Debug.Log(log + "── 이미 있다: " + already.gameObject.name
-                        + " (자리는 " + already.transform.position.ToString("F2") + ")\n"
-                        + "   자리가 마음에 안 들면 인스펙터에서 옮기십시오 — 이 도구는 다시 안 놓습니다.");
-                return;
-            }
-
-            // <b>자리는 사건 문서 곁에서 뽑는다.</b> 조사청 배치는 손으로 맞춰 둔
-            // 것이라 방을 다시 짜면 안 된다. 이미 놓인 것을 기준 삼아 그 옆에
-            // 한 자리만 얻는다 — 사목은 봉서와 함께 받는 것이니 곁에 있는 것이 맞다.
-            var cubes = Object.FindObjectsByType<CaseCube>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            if (cubes == null || cubes.Length == 0)
-            {
-                Debug.LogWarning(log + "── 사건 문서를 못 찾아 자리를 못 잡는다.");
-                return;
-            }
-
-            Vector3 mid = Vector3.zero;
-            foreach (var c in cubes) mid += c.transform.position;
-            mid /= cubes.Length;
-
-            var host = new GameObject("사목");
-            EditorSceneManager.MoveGameObjectToScene(host, scene);
-            host.transform.position = mid + new Vector3(0f, -0.42f, 0f);
-            host.transform.rotation = cubes[0].transform.rotation;
-
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ScrollPrefab);
-            if (prefab != null)
-            {
-                var model = (GameObject)PrefabUtility.InstantiatePrefab(prefab, host.transform);
-                model.transform.localPosition = Vector3.zero;
-                model.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);   // 눕혀 둔다
-                model.transform.localScale = Vector3.one * 0.9f;
-                foreach (var c in model.GetComponentsInChildren<Collider>(true))
-                    Object.DestroyImmediate(c);       // 짚는 자리는 껍데기 하나여야 한다
-                log.AppendLine("── 두루마리를 얹었다");
-            }
-            else log.AppendLine("── 두루마리 프리팹이 없어 껍데기만 세웠다(아트는 공유 폴더)");
-
-            var box = host.AddComponent<BoxCollider>();
-            box.size = new Vector3(0.30f, 0.10f, 0.10f);
-
-            host.AddComponent<Samok>();
-
-            Selection.activeGameObject = host;
-            EditorUtility.SetDirty(host);
-            EditorSceneManager.MarkSceneDirty(scene);
-            EditorSceneManager.SaveScene(scene);
-            log.AppendLine("── 자리 " + host.transform.position.ToString("F2")
-                         + " (사건 문서 셋의 한가운데에서 42cm 아래)");
-            log.AppendLine("   마음에 안 들면 인스펙터에서 옮기십시오 — 다시 눌러도 안 옮깁니다.");
-            Debug.Log(log.ToString());
-        }
+        // <b>사목을 걷었다.</b> 고증으로는 어사가 봉서·사목·마패·유척 넷을 받으므로
+        // 조사청에 한 장 놓아 두었는데, 화면에서 하는 일이 없었다 — 집어 펴 볼 수는
+        // 있으나 거기 적힌 것이 조사에 쓰이지 않았고, 상 위에서 자리만 차지했다.
+        // 있어야 할 물건과 <b>일을 하는 물건</b>은 다르다.
+        // (도구를 익힐 때 쥐여 주는 「연습_사목」은 딴 것이다. 그것은 그대로 있다.)
 
         // ── 사건표 ────────────────────────────────────
 

@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// VR 기기 없이 에디터에서 GameState를 검증하기 위한 키보드 디버그 도구.
+    /// 에디터에서 GameState 를 검증하는 글쇠 도구.
     /// 빈 GameObject에 붙여 두고 Play 하면, 키 입력으로 사건 선택·판결 기록을 흉내낼 수 있음.
     /// 화면 좌상단에 현재 상태가 실시간으로 표시됨(OnGUI).
     ///
@@ -58,7 +58,7 @@ namespace IMUNROK.Common
 
 #if ENABLE_INPUT_SYSTEM
             var kb = Keyboard.current;
-            if (kb == null) return; // 키보드가 없으면(헤드셋 단독) 무시
+            if (kb == null) return; // 글쇠가 없으면 무시
 
             // 대상 사건 선택 + 그 사건에 "진입" 시뮬(수첩이 이 사건 단서를 보여줌)
             if (kb.digit1Key.wasPressedThisFrame) { _target = CaseId.Case1_Onggojip; GameState.Instance.EnterCase(_target); }

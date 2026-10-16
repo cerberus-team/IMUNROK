@@ -8,7 +8,7 @@ namespace IMUNROK.Common
     ///  · 마커(캡슐 등)에 붙이면, 그 마커가 곧 시작 위치가 된다.
     ///  · 시작할 때 이 오브젝트의 보이는 메시는 자동으로 꺼서 시야를 안 가린다.
     ///
-    /// VR 단계에서는 XR Rig을 이 지점에 스폰하도록 바꾸면 됨(지금은 카메라 기준).
+    /// 카메라를 이 지점에 세운다.
     /// </summary>
     public class PlayerStart : MonoBehaviour
     {

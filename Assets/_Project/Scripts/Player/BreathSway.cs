@@ -50,6 +50,14 @@ namespace IMUNROK.Common
         [Tooltip("보이는지 판단할 렌더러. 비우면 자식에서 찾는다")]
         [SerializeField] private Renderer _renderer;
 
+        [Tooltip("<b>클립이 돌아가는 중에도 숨을 얹는다.</b>\n\n" +
+                 "보통은 얼려 세워 둔 동안에만 하는 일이다 — 움직이는 몸에 숨을 더할 까닭이 없다. " +
+                 "그런데 <b>돌아가는데도 제자리인 클립</b>이 있다. 복동의 앉은쉼은 10.9초짜리인데 " +
+                 "그동안 손이 3mm 움직인다(되잡기가 한 장면만 구운 것이다). 애니메이터는 도는데 " +
+                 "사람은 인형처럼 굳어 있으니, 마주 앉아 한참을 묻는 동안 내내 그렇게 보인다.\n" +
+                 "그런 자리에만 켠다")]
+        [SerializeField] private bool _evenWhilePlaying = false;
+
         private void Awake()
         {
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
@@ -76,7 +84,8 @@ namespace IMUNROK.Common
             if (_animator == null || _bones == null || _bones.Length == 0) return;
 
             // 이미 움직이는 중이면 숨을 얹지 않는다. 얼려 세워 둔 동안만 하는 일이다.
-            if (_animator.speed != 0f) return;
+            // (제자리인 클립을 도는 중이라면 <see cref="_evenWhilePlaying"/> 로 연다.)
+            if (!_evenWhilePlaying && _animator.speed != 0f) return;
 
             // 화면 밖이면 손대지 않는다. 애니메이터 컬링이 CullUpdateTransforms 라
             // 보이지 않는 동안에는 자세를 다시 써 주지 않는데, 그때도 각도를 더하면

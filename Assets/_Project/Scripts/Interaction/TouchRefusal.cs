@@ -31,17 +31,62 @@ namespace IMUNROK.Common
         [Tooltip("끄면 앉아 있지 않아도 늘 막는다(끝내 못 만지는 것)")]
         [SerializeField] private bool _onlyWhileSeated = true;
 
+        [Tooltip("<b>보는 사람이 없을 때</b> 대신 뜨는 말. 비우면 그때는 막지 않는다(여태의 규칙). " +
+                 "말리는 사람이 가고 나면 이 물건은 <b>아무 대꾸도 없는 것</b>이 된다. " +
+                 "사랑방의 분합문이 그랬다 — 마당을 향한 넉 짝은 <b>일부러</b> 안 열리게 " +
+                 "해 두었는데(DoorController 의 「플레이어가 여닫기」를 끈 것), 甲이 나간 " +
+                 "뒤에는 말리는 말도 없어서 눌러도 <b>아무 일도 안 났다</b>. 막은 것과 " +
+                 "고장난 것이 구별되지 않으면 사람은 같은 자리를 열 번 더 누른다. " +
+                 "말리는 이가 없으니 여기는 <b>내 생각</b>으로 적는다 — 말한 이는 안 붙는다")]
+        [TextArea(2, 3)]
+        [SerializeField] private string _lineAfter = "";
+
+        [Header("말리면서 흘리는 것")]
+        [Tooltip("말리는 말이 곧 단서면 수첩에 적는다(정황, 말한 이는 위 _speaker). 甲 이 장부를 만지지 말라며 " +
+                 "「스무 해를 내 손으로 적었소」라 흘리는데, 여태 대사로만 지나가 수첩에 안 남았다(2026-09-15)")]
+        [SerializeField] private string _grantsClueKey = "";
+        [SerializeField] private string _grantsClueTitle = "";
+        [TextArea(2, 3)] [SerializeField] private string _grantsClueText = "";
+        [SerializeField] private CaseId _grantsCase = CaseId.Case1_Onggojip;
+
         private float _quiet;
+
+        /// <summary>
+        /// <b>지금 누가 보고 있나</b> — 마주 앉았거나 앉기를 권받았거나 말하는 중. 이때는 방의 물건을
+        /// 짚어도, 돋보기로 들여다봐도 수첩에 안 적힌다. 여태 말리는 부품이 붙은 물건만 막아서,
+        /// 甲 앞에 앉은 채로 부서진 자물쇠·빈 종이·돋보기 응시로 단서가 적혔다.
+        /// </summary>
+        public static bool WatchingNow => Watching;
 
         /// <summary>지금 이 손길을 막아야 하는가. 막았으면 참 — 부른 쪽은 하던 일을 그만둔다.</summary>
         public bool Refuse()
         {
-            if (_onlyWhileSeated && !Watching) return false;
+            bool watched = Watching;
+            string say = _line;
+            string who = _speaker;
+
+            if (_onlyWhileSeated && !watched)
+            {
+                // 말리는 사람이 없다. 적어 둔 혼잣말이 있으면 그것으로 대신한다.
+                if (string.IsNullOrWhiteSpace(_lineAfter)) return false;
+                say = _lineAfter;
+                who = "";       // 이름패 없이 — 내 생각이다
+            }
 
             if (_quiet <= 0f)
             {
-                SubtitleView.Show(_speaker, _line, "");
+                SubtitleView.Show(who, say, "");
                 _quiet = _cooldown;
+            }
+            if (watched && !string.IsNullOrEmpty(_grantsClueKey))
+            {
+                var j = Journal.Instance;
+                if (j != null && !j.HasClue(_grantsCase, _grantsClueKey))
+                {
+                    j.AddClue(_grantsCase, _grantsClueKey, string.IsNullOrEmpty(_grantsClueText) ? _line : _grantsClueText,
+                              null, ClueKind.정황, true, string.IsNullOrEmpty(_grantsClueTitle) ? null : _grantsClueTitle);
+                    if (!string.IsNullOrEmpty(_speaker)) j.SetSpeaker(_grantsCase, _grantsClueKey, _speaker);
+                }
             }
             return true;
         }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 namespace IMUNROK.Common
@@ -281,8 +282,8 @@ namespace IMUNROK.Common
 
             // ── ③ 어사가 물러난다 ────────────────────
             //
-            // 카메라가 아니라 <b>카메라가 달린 몸통</b>을 옮긴다. 헤드셋을 쓰면 머리의
-            // 자리를 매 프레임 XR 이 다시 쓰므로, 카메라를 직접 옮겨 봐야 한 프레임
+            // 카메라가 아니라 <b>카메라가 달린 몸통</b>을 옮긴다. 걸음이 머리의
+            // 자리를 매 프레임 도로 쓰므로, 카메라를 직접 옮겨 봐야 한 프레임
             // 만에 도로 제자리로 간다. 몸통(root)을 옮기면 둘 다 맞는다.
             var cam = Camera.main;
             if (cam != null && _recedeBy > 0.01f)
@@ -305,7 +306,7 @@ namespace IMUNROK.Common
                 // 몸이 펴지면 눈이 올라가고, 올려다보던 각이 저절로 <b>평평해진다</b>.
                 // 각을 손으로 적지 않고 <b>어좌를 겨눠</b> 뽑는다 — 어전을 다시 지어
                 // 자리가 달라져도 구도가 안 무너진다.
-                bool aim = body == cam.transform && _seat != null;   // 헤드셋 몸통이면 각은 XR 것이다
+                bool aim = body == cam.transform && _seat != null;
                 Quaternion rFrom = body.rotation;
                 Quaternion rTo = aim ? Quaternion.LookRotation(
                                           new Vector3(_seat.position.x, _seat.position.y + 0.36f,
@@ -368,7 +369,7 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// 제목. 월드 캔버스로 세운다 — 화면 붙박이(Overlay)는 헤드셋에서
+        /// 제목. 월드 캔버스로 세운다 — 화면 붙박이(Overlay)는 이 자리에서
         /// <b>아예 안 보인다</b>.
         ///
         /// <b>카메라에 매단다.</b> 앞서는 어좌 위 한자리에 못 박아 두었는데, 이제는
@@ -409,17 +410,15 @@ namespace IMUNROK.Common
             }
             else
             {
-                var txtGo = new GameObject("글", typeof(UnityEngine.UI.Text));
+                var txtGo = new GameObject("글", typeof(TextMeshProUGUI));
                 var trt = txtGo.GetComponent<RectTransform>();
                 trt.SetParent(rt, false);
                 trt.sizeDelta = rt.sizeDelta;
-                var txt = txtGo.GetComponent<UnityEngine.UI.Text>();
-                txt.font = UiFont.Resolve(null);
-                txt.fontSize = 150;
-                txt.alignment = TextAnchor.MiddleCenter;
-                txt.color = new Color(0.96f, 0.93f, 0.86f);
-                txt.horizontalOverflow = HorizontalWrapMode.Overflow;
-                txt.verticalOverflow = VerticalWrapMode.Overflow;
+                // 낡은 UI.Text 에서 TMP 로 옮겼다 — 견우 판과 같은 붓으로 그린다(UiText).
+                var txt = UiText.Dress(txtGo.GetComponent<TextMeshProUGUI>(),
+                                       150f, TextAnchor.MiddleCenter, Color.white);
+                txt.color = UiLook.Text;
+                UiText.Wrap(txt, false);
                 txt.text = _titleText;
             }
         }

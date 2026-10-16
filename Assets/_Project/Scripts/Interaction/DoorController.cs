@@ -9,9 +9,9 @@ namespace IMUNROK.Common
     /// 붙이는 법:
     ///  · 빈 오브젝트 "대문"을 만들고 그 밑에 문짝들(SM_Door01D_L, _R 등)을 넣는다.
     ///  · "대문"에 이 컴포넌트를 붙이고, _leaves에 각 문짝(또는 경첩 빈오브젝트)을 드래그.
-    ///  · 문짝에 Collider가 있어야 마우스/VR 레이로 집힌다(대개 Mesh Collider 있음).
+    ///  · 문짝에 Collider 가 있어야 마우스 레이로 집힌다(대개 Mesh Collider 있음).
     ///
-    /// 상호작용(ISelectable): 클릭/VR레이 →
+    /// 상호작용(ISelectable): 클릭 →
     ///  · 잠금(_locked)이면 열리지 않고 OnKnock 이벤트만 발생(대문 두드리기 시퀀스 훅).
     ///  · 잠금 아니면 열림/닫힘 토글.
     ///
@@ -54,6 +54,10 @@ namespace IMUNROK.Common
         [Tooltip("여닫을 때 나는 소리 크기(0~1). 잠행 중에 누가 듣는다(NoiseMeter). " +
                  "0이면 소리 안 난 것으로 친다. 나무 문은 0.55 남짓")]
         [Range(0f, 1f)] [SerializeField] private float _noise = 0.55f;
+        [Tooltip("<b>여닫는 소리를 실제로 틀까.</b> 기본은 끔.\n" +
+                 "꽂아 둔 삐걱·미닫이 표본이 죄 어색해 걷었다 — 나무가 우는 것이 아니라 " +
+                 "무엇이 튕기는 소리로 들린다. 크기(기척)는 꺼도 그대로 잰다")]
+        [SerializeField] private bool _creakAloud = false;
         [Tooltip("여는 소리. 비우면 소리 없이 크기만 잰다")]
         [SerializeField] private AudioClip _openSound;
         [Tooltip("닫는 소리. 비우면 여는 소리를 그대로 쓴다 — 미닫이는 여닫는 소리가 거의 같다")]
@@ -263,11 +267,29 @@ namespace IMUNROK.Common
             Creak(open ? "문 여는 소리" : "문 닫는 소리", !open);
         }
 
-        /// <summary>여닫는 소리를 낸다 — 잠행 중이면 누가 듣는다.</summary>
+        /// <summary>
+        /// 여닫는 <b>기척</b>을 낸다 — 잠행 중이면 누가 듣는다.
+        ///
+        /// <b>소리 파일은 안 튼다.</b> 문마다 꽂아 둔 삐걱·미닫이 소리가 죄 어색했다 —
+        /// 짧은 표본 하나를 높낮이만 흔들어 트니 나무가 우는 것이 아니라 <b>무엇이
+        /// 튕기는</b> 소리로 들리고, 중문처럼 모형이 큰 문에서는 그 어긋남이 더 드러난다.
+        /// 없는 편이 낫다: 밤의 마당은 원래 조용하고, 문이 열리는 것은 <b>눈으로</b> 본다.
+        ///
+        /// 다만 <b>크기는 그대로 잰다</b>(<see cref="NoiseMeter.Report"/>). 잠행은 소리에
+        /// 얽혀 있어서, 여기서 기척까지 걷으면 문을 아무리 여닫아도 아무도 안 깬다 —
+        /// 들리지 않는 것과 <b>나지 않은 것</b>은 다르다.
+        ///
+        /// 쓸 만한 소리를 구하면 <see cref="_creakAloud"/> 를 켜면 된다. 칸은 남겨 둔다.
+        /// </summary>
         private void Creak(string what, bool closing = false)
         {
             if (_noise <= 0f) return;
             Vector3 at = ModelBounds.TryGet(transform, out var b) ? b.center : transform.position;
+            if (!_creakAloud)
+            {
+                NoiseMeter.Report(at, _noise, what);   // 기척만 — 소리는 안 낸다
+                return;
+            }
             var clip = closing ? (_closeSound != null ? _closeSound : _openSound) : _openSound;
             float pitch = 1f + Random.Range(-_pitchJitter, _pitchJitter);
             NoiseMeter.Play(at, clip, _noise, what, pitch, _soundStartAt, _soundSeconds);
@@ -357,44 +379,64 @@ namespace IMUNROK.Common
         [Tooltip("한 번 칠 때 나는 소리. 비우면 소리 없이 울림만 온다")]
         [SerializeField] private AudioClip _knockOnce;
 
-        [Tooltip("몇 번 쳐야 안에서 사람이 나오나")]
-        [SerializeField] private int _knocksNeeded = 3;
+        [Tooltip("세 번 칠 때 사이 간격(초). 너무 좁으면 한 소리로 뭉치고, " +
+                 "너무 벌어지면 세 번이 아니라 세 사람이 친 것처럼 들린다")]
+        [SerializeField] private float _knockGap = 0.26f;
 
-        [Tooltip("이만큼(초) 안에 이어 쳐야 한 번의 두드림으로 친다")]
-        [SerializeField] private float _knockWindow = 1.6f;
-
-        private int _knocks;
-        private float _lastKnock;
-
-        /// <summary>손으로 칠 수 있는 문인가 — 잠긴 문만 두드린다.</summary>
-        public bool CanBeKnocked => _locked;
+        // <b>몇 번 쳤나를 세던 값들을 걷었다.</b> 세던 것은 손으로 직접 치는 길
+        // (KnockByHand) 하나뿐이었고 그것이 없어졌다. 짚어 누르는 길은 한 번에
+        // 세 번을 대신 쳐 주므로 셀 것이 없다.
 
         /// <summary>
-        /// <b>손이 한 번 쳤다.</b> 친 만큼만 울리고, 세 번이 차야 안에 이른다.
+        /// <b>똑·똑·똑</b> — 짚어 누른 한 번을 세 번의 소리로 낸다.
         ///
-        /// 한 번에 세 번을 대신 쳐 주면 한 번 쳤는데 세 번 소리가 난다.
-        /// 사람이 팔을 뻗어 치는 것이라 <b>친 횟수와 난 소리가 같아야</b> 한다.
+        /// 소리를 내던 자리가 <b>손짓</b>에 있었다. 손이 한 번 칠 때마다 한 번씩
+        /// 울렸으니, 손을 걷어내자 잠긴 문이 <b>소리 없이</b> 열리게 되었다.
         ///
-        /// 세다 만 것은 잊는다 — 두 번 치고 딴 데 갔다가 한참 뒤에 한 번 더 친 것을
-        /// 세 번으로 쳐 주면, 언제 문이 열릴지 사람이 못 짚는다.
+        /// 그렇다고 한 번만 울리면 안 된다. 짚어 누르는 길은 <b>한 번에 세 번을
+        /// 대신 쳐 주는</b> 길이고(위 OnSelect 참고), 세 번 쳤다면서 한 번 소리가
+        /// 나면 보는 것과 들리는 것이 어긋난다.
+        ///
+        /// <b>NoiseMeter 를 거친다.</b> 이 집에서 소리는 잠행과 얽혀 있다 — 문을
+        /// 여닫는 소리도 그리로 간다(<see cref="Creak"/>). 두드리는 소리만 곧장
+        /// 울리면 <b>아무도 못 듣는 소리</b>가 되어, 문 앞에서 마음껏 두드려도
+        /// 순라가 오지 않는다. 두드리는 것은 원래 <b>남 들으라고</b> 하는 짓이다.
+        ///
+        /// 높낮이를 세 번 다 흔든다 — 같은 파일을 세 번 그대로 틀면 소리가 아니라
+        /// <b>기계</b>로 들린다. 문 여닫는 소리가 이미 같은 까닭으로 흔들고 있다.
         /// </summary>
-        public void KnockByHand(UnityEngine.XR.XRNode hand)
+        /// <summary>
+        /// 한 번 두드리면 몇 번 울리나. <b>둘</b>이다 — 「쿵쿵」. 셋이면 「쿵쿵쿵」이 되어
+        /// 급한 사람이 문을 두들기는 소리가 된다. 하룻밤 청하러 온 과객은 그렇게 안 두드린다.
+        /// </summary>
+        private const int Knocks = 2;
+
+        /// <summary>
+        /// 이미 한 번 두드렸나. <b>두 번째부터는 소리가 안 난다.</b>
+        ///
+        /// 두드리는 것은 「안에 사람이 있소」를 알리는 짓이다. 한 번 알렸으면 그것으로
+        /// 끝이고, 그 뒤로는 안에서 대꾸가 오기를 <b>기다리는</b> 대목이다.
+        /// 그런데 문이 안 열리니 다들 두 번 세 번 더 눌렀고, 그때마다 쿵쿵이 다시 울려
+        /// 「쿵쿵 쿵쿵 쿵쿵」이 되었다 — 급한 사람이 문을 두들기는 소리다.
+        /// 하룻밤 청하러 온 과객은 그렇게 안 두드린다.
+        /// (두드림 <b>신호</b>는 그대로 간다 — 시퀀스가 제 안에서 한 번만 받는다.)
+        /// </summary>
+        private bool _knocked;
+
+        private System.Collections.IEnumerator KnockAloud()
         {
-            if (!_locked) return;
-
-            if (Time.time - _lastKnock > _knockWindow) _knocks = 0;
-            _lastKnock = Time.time;
-            _knocks++;
-
-            Haptics.TapOn(hand, 0.85f, 0.07f);
-            if (_knockOnce != null) AudioSource.PlayClipAtPoint(_knockOnce, transform.position, 0.9f);
-
-            if (_knocks < _knocksNeeded) return;
-            _knocks = 0;
-            OnKnock?.Invoke();
+            if (_knockOnce == null || _noise <= 0f || _knocked) yield break;
+            _knocked = true;
+            Vector3 at = ModelBounds.TryGet(transform, out var b) ? b.center : transform.position;
+            for (int i = 0; i < Knocks; i++)
+            {
+                float pitch = 1f + Random.Range(-_pitchJitter, _pitchJitter);
+                NoiseMeter.Play(at, _knockOnce, _noise, "문 두드리는 소리", pitch, _soundStartAt, _soundSeconds);
+                if (i < Knocks - 1) yield return new WaitForSeconds(Mathf.Max(0.05f, _knockGap));
+            }
         }
 
-        // ── ISelectable(클릭/VR 레이) ──
+        // ── ISelectable(짚어 누르기) ──
         public void OnHoverEnter() { }   // 나중에 하이라이트 붙일 자리
         public void OnHoverExit() { }
 
@@ -409,10 +451,10 @@ namespace IMUNROK.Common
 
             if (_locked)
             {
-                // 광선으로 짚어 두드린 것 — 책상에서 쓰는 길이다. 여기서는 한 번에
-                // 세 번을 대신 쳐 준다. 헤드셋에서는 손이 직접 세 번 치므로 이리로
-                // 안 들어온다(KnockByHand).
-                Haptics.Knock();
+                // 광선으로 짚어 두드린 것. 한 번에 세 번을 대신 쳐 준다 —
+                // 예전에는 손이 직접 세 번 치는 길(KnockByHand)이 따로
+                // 있었는데 그 길을 걷어냈으므로, 이제 두드리는 길은 여기 하나뿐이다.
+                StartCoroutine(KnockAloud());
                 OnKnock?.Invoke();   // 두드리기 → 시퀀스가 받아 처리
                 return;
             }

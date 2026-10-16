@@ -44,6 +44,25 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
+        /// <b>얼굴께.</b> 몸 경계의 가로 한가운데, 높이로는 위에서 조금 내려온 자리.
+        ///
+        /// 사람을 쳐다보라고 이를 때 <c>transform.position</c> 을 주면 <b>발</b>을 본다 —
+        /// 캐릭터의 피벗은 대개 발밑이고, 옹덕구처럼 몸에서 멀리 떨어진 것도 있다.
+        /// 말을 걸고 나서 고개를 되돌렸더니 상대의 발치를 보고 있던 것이 그 까닭이다.
+        ///
+        /// 정수리가 아니라 <b>0.86</b> 께다. 머리 꼭대기를 보면 상대를 올려다보는
+        /// 꼴이 되어, 눈을 맞추는 것이 아니라 갓을 보게 된다.
+        /// 렌더러가 없으면 피벗 위 1.5m 로 물러선다(사람 키의 어림).
+        /// </summary>
+        public static Vector3 EyePoint(Transform root, float t = 0.86f)
+        {
+            if (root == null) return Vector3.zero;
+            if (TryGet(root, out Bounds b))
+                return new Vector3(b.center.x, Mathf.Lerp(b.min.y, b.max.y, t), b.center.z);
+            return root.position + Vector3.up * 1.5f;
+        }
+
+        /// <summary>
         /// 어떤 지점에서 이 오브젝트의 "몸"까지의 거리.
         /// 피벗이 아니라 몸 표면 기준이라, 피벗이 어디 있든 사람이 느끼는 거리와 일치한다.
         /// 렌더러가 없으면 피벗까지의 거리로 물러선다.

@@ -230,7 +230,8 @@ namespace IMUNROK.Seocheon.Editor
             EditorUtility.DisplayDialog("Seocheon", $"동헌 v11 임포트+배치 완료.\n정면 rotY {rotY:F0}° · 여유 다리→정면 {bridgeToFront:F1}m.\n정면 틀리면 Flip Front 180. Console/렌더 확인.","확인");
         }
 
-        [MenuItem("Tools/Seocheon/Donheon/Flip Front 180")]
+        // 같은 경로를 SeocheonDonheonPlace 도 쓰고 있어 하나가 등록에 실패했다 — 이쪽 이름을 v11 로 밝힌다.
+        [MenuItem("Tools/Seocheon/Donheon/Flip Front 180 (v11)")]
         public static void FlipFront()
         {
             var scene=EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);

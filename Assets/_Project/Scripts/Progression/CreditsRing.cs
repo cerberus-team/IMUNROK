@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,7 +13,7 @@ namespace IMUNROK.Common
     /// 앞서 크레딧을 한지 한 장에 적어 눈앞에 띄웠다. 그릇은 맞았는데 <b>크기가
     /// 틀렸다</b> — 만든 사람 셋과 빌려 온 것 여남은 줄이 손바닥만 한 종이 한 장에
     /// 다 들어가니, 끝을 맺는 것이 아니라 <b>쪽지 한 장 읽고 마는</b> 것이 됐다.
-    /// 게다가 헤드셋을 쓰면 그 종이 하나 말고는 온 사방이 텅 비어 있다.
+    /// 게다가 그 종이 하나 말고는 온 사방이 텅 비어 있다.
     ///
     /// 그래서 <b>눈앞</b>이 아니라 <b>둘레</b>에 적는다.
     ///
@@ -20,7 +21,7 @@ namespace IMUNROK.Common
     /// 떠오른다. 두 가지가 한꺼번에 풀린다:
     ///   · <b>가만히 서 있어도 다 읽힌다</b> — 고리가 한 바퀴를 도는 동안 모든 글이
     ///     한 번씩 정면을 지난다. 뒤에 있어서 못 본 것이 없다.
-    ///   · <b>둘러보면 더 보인다</b> — 헤드셋에서 고개를 돌리면 지나간 것과 올 것이
+    ///   · <b>둘러보면 더 보인다</b> — 시선을 돌리면 지나간 것과 올 것이
     ///     사방에 걸려 있다. 화면 한 장짜리 크레딧에는 없는 값이다.
     ///
     /// <b>한 바퀴와 한 번 떠오름을 같은 시간에 맞춘다.</b> 둘이 어긋나면 어떤 글은
@@ -46,7 +47,7 @@ namespace IMUNROK.Common
         ///
         /// <b>높이를 좁게 잡는다.</b> 처음에 -1.9 에서 +2.7 까지 올렸더니, 마지막 판들이
         /// 정면을 지날 때 고개를 <b>40도나 젖혀야</b> 보였다 — 화면에서는 위가 잘리고
-        /// 헤드셋에서는 목이 아프다. 정면을 지나는 높이가 대략 눈에서 위아래 25도 안에
+        /// 너무 높거나 낮으면 읽기 나쁘다. 정면을 지나는 높이가 대략 눈에서 위아래 25도 안에
         /// 들도록 좁혔다. 「떠오른다」는 느낌은 그만큼으로 충분하다.
         /// </summary>
         private const float FromY = -1.45f;
@@ -100,7 +101,7 @@ namespace IMUNROK.Common
             if (cam == null) { if (_then != null) _then(); Destroy(gameObject); yield break; }
 
             // 고리의 한가운데는 <b>지금 사람이 선 자리</b>다. 카메라를 따라다니게 하면
-            // 헤드셋에서 고개를 돌릴 때 글이 같이 돌아 <b>영영 못 읽는다</b>.
+            // 시선을 돌릴 때 글이 같이 돌면 <b>영영 못 읽는다</b>.
             _hub = cam.transform.position;
             _eyeY = _hub.y;
             _hub.y = 0f;
@@ -178,21 +179,20 @@ namespace IMUNROK.Common
                 rt.sizeDelta = new Vector2(900f, 520f);
                 rt.localScale = Vector3.one * Scale;
 
-                var txtGo = new GameObject("줄", typeof(Text));
+                var txtGo = new GameObject("줄", typeof(TextMeshProUGUI));
                 var trt = txtGo.GetComponent<RectTransform>();
                 trt.SetParent(rt, false);
                 trt.sizeDelta = rt.sizeDelta;
 
-                var txt = txtGo.GetComponent<Text>();
-                txt.font = font;
-                txt.fontSize = 44;
-                txt.lineSpacing = 1.35f;
-                txt.alignment = TextAnchor.MiddleCenter;
+                var txt = txtGo.GetComponent<TextMeshProUGUI>();
+                // 낡은 UI.Text 에서 TMP 로 옮겼다(UiText). 줄 간격은 낡은 판이 <b>배수</b>,
+                // TMP 는 <b>백분율 여분</b>이라 환산이 있어야 한다 — 1.35 → 35.
+                UiText.Dress(txt, 44f, TextAnchor.MiddleCenter, txt.color);
+                txt.lineSpacing = IMUNROK.Ui.UiSkin.LineSpacing(1.35f);
                 // 어둠 위의 글씨다. 순백은 눈을 찌르고, 붉은 것은 경고문으로 읽힌다 —
                 // 앞서 엔딩이 통째로 붉어 그 꼴이 났다. 한지빛으로 둔다.
-                txt.color = new Color(0.95f, 0.91f, 0.82f);
-                txt.horizontalOverflow = HorizontalWrapMode.Wrap;
-                txt.verticalOverflow = VerticalWrapMode.Overflow;
+                txt.color = UiLook.Text;
+                UiText.Wrap(txt, true);
                 txt.text = _blocks[i];
 
                 _groups.Add(go.GetComponent<CanvasGroup>());

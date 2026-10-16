@@ -21,8 +21,8 @@ namespace IMUNROK.Common
     /// 되돌아 나올 수 없어 아궁이를 보러 마당에 나갔을 때 집이 상자인 채였기 때문이다.
     /// 그건 증상이고 원인은 늘 삼각형이었다. 드나드는 횟수에 제한이 없는 것은 그대로다.
     ///
-    /// <b>바꾸는 순간은 어둠으로 덮는다</b>: 씬을 진짜로 불러오면 틈이 생긴다. VR 에서
-    /// 눈앞의 세상이 뒤늦게 나타나면 멀미가 나므로 <see cref="ScreenFade"/> 로 암전한다 —
+    /// <b>바꾸는 순간은 어둠으로 덮는다</b>: 씬을 진짜로 불러오면 틈이 생긴다. 그 틈에
+    /// 세상이 뒤늦게 나타나는 것이 보이므로 <see cref="ScreenFade"/> 로 암전한다 —
     /// 순간이동에 이미 쓰는 방식이라 손에 익은 연출이다.
     ///
     /// <b>방 넓이를 미리 재어 둔다</b>(<see cref="_roomBox"/>): 안팎을 가르는 선은 방바닥이
@@ -41,6 +41,28 @@ namespace IMUNROK.Common
     /// 방은 32만 삼각형에 드로우 280 이라 잘라 낼 것도 없다. 그러니 들어설 때 끄고
     /// 나설 때 켠다. 굽는 쪽을 손보는 길도 있지만, 안팎이 같은 자리를 나눠 쓰는 한
     /// 한 벌로 두 상태를 다 맞출 수는 없다.
+    ///
+    /// <b>2026-09-08 — 헤드셋이 없어졌으므로 씬을 오르내릴 까닭도 없어졌다.</b>
+    ///
+    /// 위에 적힌 삼각형 셈은 전부 퀘스트 예산(한 프레임 20~50만)에 맞추려던 것이다.
+    /// 그 예산이 사라졌다 — 책상 위의 그래픽카드에게 350만은 아무 일도 아니다.
+    /// 그런데 그 셈 때문에 치른 값은 컸다: 방에 들면 <b>마당이 통째로 없어져</b>
+    /// 문을 열어도 밖이 없고, 드나들 때마다 암전이 끼었다.
+    ///
+    /// 그래서 이제 <b>두 씬을 다 올려 둔다</b>(<see cref="_bothLoaded"/>).
+    /// 오르내리는 대신 <b>보이고 안 보이고</b>만 바꾼다:
+    ///   · 마당에 서면 — 실내 뿌리를 끄고, 고택은 그대로 둔다.
+    ///   · 방에 들면 — 실내를 켜고, <b>고택 가운데 이 방과 겹치는 조각만</b> 끈다.
+    ///
+    /// <b>왜 겹치는 조각만인가</b>: 사랑방 씬에는 제 <b>구조</b>가 따로 들어 있다
+    /// (기둥·마루·벽·문·서까래, 9,300 삼각형). 고택에도 같은 자리에 같은 것이 있으므로
+    /// (215,049 삼각형) 둘을 함께 켜면 벽이 두 겹으로 서서 서로 깜빡인다. 방을 감싸는
+    /// 그 한 덩이만 내리면 나머지 마당은 그대로 남아, <b>문 너머로 마당이 보인다.</b>
+    ///
+    /// 불러오는 일이 없으니 <b>암전도 없다</b>. 문지방을 넘는 그 자리에서 갈리므로
+    /// 갈리는 순간은 문틀에 가려 거의 안 보인다.
+    ///
+    /// 옛길(씬째로 오르내리기)은 그대로 둔다 — <see cref="_bothLoaded"/> 를 끄면 된다.
     /// </summary>
     public class InteriorSceneSwap : MonoBehaviour
     {
@@ -65,6 +87,16 @@ namespace IMUNROK.Common
         [Tooltip("나설 때는 이만큼 더 나가야 '밖'이 된다(m). 문지방에 걸터서서 씬이 깜빡이는 것을 막는다")]
         [SerializeField] private float _leaveMargin = 0.55f;
 
+        [Tooltip("<b>방바닥 밖인데도 「안」으로 쳐야 하는 자리들</b> — 문간이다. " +
+                 "실내와 고택은 <b>같은 자리에 지은 두 채</b>지만 낱낱이 같지는 않다. " +
+                 "특히 <b>실내에만 있는 문</b> 앞에서 어긋난다. 서쪽 쪽문이 그 자리다: " +
+                 "· 방바닥 서쪽 끝은 x 4.48 이고, 들어섬은 그보다 _enterMargin(0.15) 앞인 x 4.33 에서 켜진다. " +
+                 "· 그런데 밖에 서 있는 동안은 고택 벽(SM_Wall01A, x 4.46~4.63)이 성해서 몸 반지름 0.26 을 두면 <b>x 4.20 에서 막힌다</b>. " +
+                 "· 4.20 은 4.33 에 못 미친다 — 그래서 <b>나간 사람은 그 문으로 다시 못 들어온다</b>. " +
+                 "문간 한 칸을 여기 적어 두면 그 칸에 들어서는 순간 「안」이 되어 벽이 비켜난다. " +
+                 "네모는 <b>세계 좌표</b>다(가운데·크기). 여러 개 둘 수 있다")]
+        [SerializeField] private Bounds[] _alsoInside;
+
         [Tooltip("방 위아래 여유(m). 마루에서 천장까지 넉넉히")]
         [SerializeField] private float _height = 3.2f;
 
@@ -77,6 +109,15 @@ namespace IMUNROK.Common
 
         [Tooltip("방에 있는 동안 오클루전을 끈다. 마당 기준으로 구운 판정이 방을 통째로 지우기 때문이다")]
         [SerializeField] private bool _dropOcclusionInside = true;
+
+        [Header("두 씬을 다 올려 두기")]
+        [Tooltip("켜면 씬을 오르내리지 않고 보이고 안 보이고만 바꾼다 — 방 안에서 문 너머로 마당이 보이고 암전이 없다. " +
+                 "끄면 예전처럼 씬째로 갈아 끼운다(헤드셋 시절의 길)")]
+        [SerializeField] private bool _bothLoaded = true;
+
+        [Tooltip("방에 들었을 때 내릴 고택 조각을 고르는 범위. 방 넓이를 이만큼 넓혀 잡는다(m). " +
+                 "너무 작으면 벽이 두 겹으로 깜빡이고, 너무 크면 옆 건물까지 사라진다")]
+        [SerializeField] private float _hideMargin = 1.4f;
 
         [Header("방에 든 동안만 켤 것")]
         [Tooltip("문을 열었을 때 발밑에 있어야 할 간이 마당 바닥. 마당 씬을 통째로 내리므로 " +
@@ -108,9 +149,32 @@ namespace IMUNROK.Common
             ApplyOcclusion(false);
 
             // 껍데기 씬만 올라온 채로 시작할 수 있다(허브에서 곧장 들어온 경우).
-            // 마당을 올려 두고, 혹시 편집 중에 같이 열려 있던 실내 씬은 내린다.
             if (!IsLoaded(_yardScene)) SceneManager.LoadScene(_yardScene, LoadSceneMode.Additive);
-            if (IsLoaded(_sceneName)) StartCoroutine(DropAtStart());
+
+            if (_bothLoaded) StartCoroutine(LiftBothAtStart());
+            else if (IsLoaded(_sceneName)) StartCoroutine(DropAtStart());
+        }
+
+        /// <summary>
+        /// 두 씬을 다 올려 두고 <b>밖에 선 꼴</b>로 맞춘다.
+        ///
+        /// 실내를 미리 올려 두는 까닭: 문지방을 넘는 그 순간에 불러오면 아무리 작은
+        /// 씬이라도 한 프레임이 튄다. 30만 삼각형을 꺼 둔 채 들고 있는 값이 그보다 싸다.
+        /// </summary>
+        private IEnumerator LiftBothAtStart()
+        {
+            if (!IsLoaded(_sceneName))
+            {
+                if (Application.CanStreamedLevelBeLoaded(_sceneName))
+                    yield return SceneManager.LoadSceneAsync(_sceneName, LoadSceneMode.Additive);
+                else
+                    Debug.LogWarning($"[{name}] 씬 '{_sceneName}' 을 빌드 설정에서 못 찾았습니다.", this);
+            }
+            yield return null;
+            // 올리는 사이에 이미 「안」이 되었을 수 있다(첫 칸에 방 안에서 시작 · 조사를 곧장
+            // 연 경우). 늘 밖으로 맞추면 _inside 는 참인데 모양은 고택인 채로 굳는다.
+            ShowInterior(_inside);
+            HideShellAroundRoom(_inside);
         }
 
         private IEnumerator DropAtStart()
@@ -133,8 +197,39 @@ namespace IMUNROK.Common
             box.Expand(new Vector3(margin * 2f, 0f, margin * 2f));
 
             bool now = box.Contains(new Vector3(cam.transform.position.x, box.center.y, cam.transform.position.z));
+
+            // <b>문간도 안이다.</b> 방바닥 밖이어도 여기 적어 둔 칸에 서 있으면 「안」으로 친다 —
+            // 안 그러면 실내에만 있는 문으로 나간 사람이 <b>다시 못 들어온다</b>(위 _alsoInside 참고).
+            // 나설 때의 넉넉한 선(_leaveMargin)과 같은 뜻으로, 이 칸에서는 늘 안이다.
+            if (!now && _alsoInside != null)
+                for (int i = 0; i < _alsoInside.Length; i++)
+                    if (_alsoInside[i].size.sqrMagnitude > 0.0001f
+                        && _alsoInside[i].Contains(cam.transform.position)) { now = true; break; }
+
+            // <b>방을 뒤지는 동안은 멀리 나가도 「안」이다.</b>
+            //
+            // 실내 씬의 사랑채는 고택의 사랑채와 <b>같은 모양이 아니다</b>(쪽문·아궁이·기단이
+            // 실내에만 맞춰 지어졌다). 그래서 방을 뒤지다 쪽문으로 나가 몇 걸음 물러서면
+            // 모양이 고택으로 갈려 <b>없던 문이 생기고 아궁이 자리가 바뀌었다</b> — 방금 본 집이
+            // 딴 집이 된다. 조사가 열린 뒤(甲 이 방을 나간 뒤)로는 갈지 않고 실내 모양을 지킨다.
+            if (_held) now = true;
+
             if (now != _inside) StartCoroutine(Swap(now));
         }
+
+        private bool _held;
+
+        /// <summary>
+        /// 이제부터 어디에 서든 실내 모양을 지킨다. 조사를 여는 쪽(甲 이 방을 나간 뒤)이 부른다.
+        /// </summary>
+        public void HoldInside()
+        {
+            _held = true;
+            if (!_inside && !_busy) StartCoroutine(Swap(true));
+        }
+
+        /// <summary>자리대로 갈리는 원래 규칙으로 돌린다.</summary>
+        public void ReleaseInside() { _held = false; }
 
         /// <summary>
         /// 어둠으로 덮고, 한쪽을 내리고 다른 쪽을 올린 뒤 다시 밝힌다.
@@ -144,6 +239,8 @@ namespace IMUNROK.Common
         /// </summary>
         private IEnumerator Swap(bool goInside)
         {
+            if (_bothLoaded) { SwapVisible(goInside); yield break; }
+
             _busy = true;
 
             ScreenFade.To(1f, _fadeOut);
@@ -172,6 +269,114 @@ namespace IMUNROK.Common
             _busy = false;
 
             if (goInside) _onEntered?.Invoke(); else _onLeft?.Invoke();
+        }
+
+        /// <summary>
+        /// <b>불러오지 않고 갈아 끼운다.</b> 둘 다 올라와 있으니 켜고 끄면 끝이다 —
+        /// 기다릴 것이 없으므로 암전도 없다.
+        /// </summary>
+        private void SwapVisible(bool goInside)
+        {
+            ShowInterior(goInside);
+            HideShellAroundRoom(goInside);
+            if (_groundWhileInside != null) _groundWhileInside.SetActive(false);   // 마당이 그대로 있다
+            ApplyOcclusion(goInside);
+            _inside = goInside;
+            if (goInside) _onEntered?.Invoke(); else _onLeft?.Invoke();
+        }
+
+        /// <summary>실내 씬의 뿌리를 켜고 끈다.</summary>
+        private void ShowInterior(bool on)
+        {
+            var root = FindInteriorRoot();
+            if (root != null && root.activeSelf != on) root.SetActive(on);
+        }
+
+        private GameObject FindInteriorRoot()
+        {
+            var s = SceneManager.GetSceneByName(_sceneName);
+            if (!s.IsValid() || !s.isLoaded) return null;
+            foreach (var go in s.GetRootGameObjects())
+                if (go.name == _interiorRootName) return go;
+            return null;
+        }
+
+        /// <summary>
+        /// <b>방을 감싼 고택 한 덩이만 내린다.</b>
+        ///
+        /// 사랑방 씬이 제 기둥·벽·마루를 따로 들고 있으므로, 같은 자리의 고택 조각을
+        /// 안 내리면 벽이 두 겹으로 서서 깜빡인다. 반대로 마당을 통째로 내리면 문
+        /// 너머가 없어진다 — 그 사이가 여기다.
+        ///
+        /// 고를 것은 <b>한 번만</b> 찾아 적어 둔다. 고택은 조각이 2천 개가 넘어
+        /// 드나들 때마다 훑으면 그 자체가 한 프레임이다.
+        /// </summary>
+        private void HideShellAroundRoom(bool hide)
+        {
+            if (_shell == null) GatherShell();
+            if (_shell == null) return;
+            for (int i = 0; i < _shell.Length; i++)
+                if (_shell[i] != null) _shell[i].enabled = !hide;
+
+            // <b>몸도 함께 내린다.</b>
+            //
+            // 여태 렌더러만 껐다. 그러면 방 안에는 <b>보이지 않는 고택</b>이 그대로 서
+            // 있게 된다 — 벽도 문짝도 눈에는 없는데 몸은 막힌다. 같은 자리에 지은 벽이
+            // 있으니 대개는 드러나지 않지만, <b>실내에만 있는 문</b> 앞에서 통째로
+            // 드러났다: 서쪽 쪽문(z −11.73…−12.63)은 실내 씬이 낸 문간인데 고택에는
+            // 그 자리가 <b>벽</b>이다(SM_Wall01A, z −12.70…−9.90). 문을 열면 마당이
+            // 보이고, 걸어 나가려 하면 아무것도 없는 데서 막혔다 — 방에 갇힌다.
+            //
+            // 눈에 안 보이는 것이 길을 막으면 사람은 <b>까닭을 짚을 수가 없다</b>.
+            // 안 그려질 것이면 몸도 없어야 한다.
+            if (_shellCols == null) return;
+            for (int i = 0; i < _shellCols.Length; i++)
+                if (_shellCols[i] != null) _shellCols[i].enabled = !hide;
+        }
+
+        private Renderer[] _shell;
+
+        /// <summary>
+        /// 위 조각들이 지닌 콜라이더. 고르는 자리는 <see cref="_shell"/> 과 <b>같다</b> —
+        /// 따로 골라 두면 어느 날 두 목록이 어긋나고, 그러면 안 보이는 벽이 다시 생긴다.
+        /// </summary>
+        private Collider[] _shellCols;
+
+        private void GatherShell()
+        {
+            var s = SceneManager.GetSceneByName(_yardScene);
+            if (!s.IsValid() || !s.isLoaded) return;
+
+            var box = _roomBox;
+            box.size = new Vector3(box.size.x, _height, box.size.z);
+            box.center = new Vector3(box.center.x, box.center.y + _height * 0.4f, box.center.z);
+            box.Expand(_hideMargin * 2f);
+
+            var found = new System.Collections.Generic.List<Renderer>();
+            foreach (var go in s.GetRootGameObjects())
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                {
+                    // <b>겹친다고 다 방의 벽은 아니다.</b> 겉넓이가 상자끼리 닿기만 하면
+                    // 걸리므로, 62×64 짜리 마당 바닥도 방을 지난다고 나온다 — 그것을
+                    // 내렸더니 <b>마당 흙이 통째로 사라져</b> 밑에 깔린 들풀이 드러났다.
+                    // 방을 감싸는 것은 <b>방 안에 가운데를 둔, 방만 한 것</b>이다.
+                    if (!box.Contains(r.bounds.center)) continue;
+                    var sz = r.bounds.size;
+                    if (sz.x > box.size.x * 2f || sz.z > box.size.z * 2f) continue;
+                    found.Add(r);
+                }
+            _shell = found.ToArray();
+
+            var cols = new System.Collections.Generic.List<Collider>();
+            for (int i = 0; i < _shell.Length; i++)
+            {
+                if (_shell[i] == null) continue;
+                foreach (var c in _shell[i].GetComponents<Collider>()) if (c != null) cols.Add(c);
+            }
+            _shellCols = cols.ToArray();
+
+            DevLog.Note($"[안팎] 방을 감싼 고택 조각 {_shell.Length}개" +
+                        $"(그 가운데 몸 있는 것 {_shellCols.Length}개)를 찾았습니다.", this);
         }
 
         /// <summary>

@@ -80,15 +80,28 @@ namespace IMUNROK.Common
         public void OnMagnifiedGaze(float progress)
         {
             if (progress < 1f || _recorded) return;
+            if (TouchRefusal.WatchingNow && (GameState.Instance == null || !GameState.Instance.IdentityRevealed)) return;
             _recorded = true;
 
             if (_recordClue && !string.IsNullOrEmpty(_clueKey) && Journal.Instance != null)
             {
                 // 이미 그 단서가 있으면 <b>줄을 늘리지 않고 고쳐 적는다</b>.
                 // 필적이 다르다는 것과 그 두 줄을 연습한 자국이 있다는 것은 한 가지 일이다.
-                if (!Journal.Instance.UpgradeClue(_clueCase, _clueKey, _clueText))
-                    Journal.Instance.AddClue(_clueCase, _clueKey, _clueText);
-                if (_cluePage != null)
+                // <b>덧붙인다</b>(2026-09-15) — 여태 줄을 통째로 갈아, 전조기를 돋보기로 읽고 붙은 한 줄이 사라졌다.
+                string had = null;
+                foreach (var c in Journal.Instance.GetClues(_clueCase)) if (c != null && c.key == _clueKey) { had = c.text; break; }
+                string add = System.Text.RegularExpressions.Regex.Replace(_clueText ?? "", @"^\s*\[[A-Z]\d+\]\s*", "");
+                if (had == null)
+                    Journal.Instance.AddClue(_clueCase, _clueKey, _clueText, null, ClueKind.물증, true, string.IsNullOrEmpty(_title) ? null : _title);
+                else if (!had.Contains(add.Trim()))
+                    Journal.Instance.UpgradeClue(_clueCase, _clueKey, had + System.Environment.NewLine + System.Environment.NewLine + add.Trim());
+                // <b>남의 이름을 빼앗지 않는다.</b>
+                //
+                // 여기서 그냥 걸어 두면 수첩의 그 칸이 <b>이 물건의 이름</b>으로 바뀐다 —
+                // 「전조기」였던 카드가 「눌린 자국」이 됐다. 열쇠가 같다고 물건까지 같은
+                // 것은 아니다: J06 은 <b>장부</b>고, 이 자국은 그 맞은편 백지다.
+                // 장부가 이미 걸려 있으면 그것이 그 칸의 얼굴이다.
+                if (_cluePage != null && Journal.Instance.GetDocument(_clueCase, _clueKey) == null)
                     Journal.Instance.AttachDocument(_clueCase, _clueKey, _cluePage, _title, _clueText, _readOut);
             }
 

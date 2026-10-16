@@ -20,11 +20,27 @@ namespace IMUNROK.Common
     /// </summary>
     public abstract class InterrogationOrder : MonoBehaviour
     {
+        [Tooltip("<b>어느 막의 명령인가.</b> 소매를 걷으라는 말은 어사라야 설 수 있는 말이다 — " +
+                 "하룻밤 청한 과객이 남의 팔을 잡을 수는 없다")]
+        [SerializeField] protected ActWhen _act = ActWhen.두막다;
+
+        /// <summary>지금 막에 설 수 있는 명령인가.</summary>
+        public bool FitsAct => ActGate.Fits(_act);
+
         /// <summary>단추에 뜨는 말.</summary>
         public abstract string Label { get; }
 
         /// <summary>지금 이 명령을 내릴 수 있나. 거짓이면 단추가 아예 안 뜬다.</summary>
         public abstract bool Available { get; }
+
+        /// <summary>
+        /// <b>아직 못 시키는 까닭</b>. null 이 아니면 단추는 흐리게 뜨고, 누르면 이 말이 나온다.
+        /// 여태 근거가 없으면 단추가 <b>아예 안 떠서</b> 「그런 명령이 있는 줄」도 알 수 없었다.
+        /// </summary>
+        public virtual string LockedReason => null;
+
+        /// <summary>플레이어가 친 말이 이 명령을 뜻하는가(예: 「소매를 걷어라」). 기본은 아니다.</summary>
+        public virtual bool Matches(string said) => false;
 
         /// <summary>눌렸다. 자막이든 연출이든 각자 알아서 한다.</summary>
         public abstract void Run(InterrogationController who);

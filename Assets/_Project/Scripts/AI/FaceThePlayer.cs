@@ -73,8 +73,31 @@ namespace IMUNROK.Common
             _left = Mathf.Max(_left, _holdSeconds);
         }
 
-        /// <summary>돌아보기를 그만둔다(자리를 뜰 때).</summary>
+        /// <summary>돌아보기를 그만둔다(자리를 뜰 때). 제자리로는 돌아간다.</summary>
         public void StopFacing() { _left = 0f; }
+
+        /// <summary>
+        /// <b>몸을 놓아 준다</b> — 돌아보기도 그만두고, <b>제자리로 되돌리지도 않는다</b>.
+        ///
+        /// <see cref="StopFacing"/> 만으로는 부족했다. 그것은 「이쪽 보기」만 끝낼 뿐,
+        /// <see cref="_returnAfter"/> 가 켜져 있으면 다음 프레임부터 <b>돌아섰던 자리로
+        /// 되돌리는</b> 일이 시작된다. 그런데 그 일을 하는 자리가 <c>LateUpdate</c> 라,
+        /// 같은 프레임 <c>Update</c> 에서 길 쪽으로 몸을 튼 <see cref="RoadWalker"/> 의
+        /// 회전을 매번 <b>덮어썼다</b>.
+        ///
+        /// 그 결과가 이랬다: 걷는 이는 등지고 있는 동안 나아가지 않으므로(옆걸음질을
+        /// 막는 규칙) 자리가 안 바뀌고, 자리가 안 바뀌니 이쪽은 「서 있다」로 보아
+        /// 도로 돌려세우고, 그래서 영영 못 돈다 — <b>말을 한 번 걸고 나면</b> 그 사람이
+        /// 제자리에서 어정거리거나 엉뚱한 쪽을 보고 걷는 것으로 보였다.
+        ///
+        /// 길을 가진 사람은 제 갈 길이 곧 제자리다. 되돌릴 자리를 잊게 한다.
+        /// </summary>
+        public void Release()
+        {
+            _left = 0f;
+            _homeKnown = false;
+            HoldRootMotion(false);
+        }
 
         private void LateUpdate()
         {

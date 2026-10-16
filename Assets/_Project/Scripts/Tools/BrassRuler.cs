@@ -44,6 +44,9 @@ namespace IMUNROK.Common
         {
             if (ToolbeltHud.SelectedToolId != _toolId) { _at = null; _dwell = 0f; return; }
 
+            // 판(물증 보는 자리)이 떠 있으면 거기서 잰다(ArmMeasure). 판 뒤의 세상을 겨누면
+            // 같은 팔을 두 군데서 재는 말이 겹친다.
+            if (DocumentView.IsOpen) { _at = null; _dwell = 0f; return; }
             var cam = Camera.main;
             if (cam == null) return;
 
@@ -52,8 +55,20 @@ namespace IMUNROK.Common
                 hit = info.collider.GetComponentInParent<Measurable>();
 
             if (hit != _at) { _at = hit; _dwell = 0f; }
-            if (_at == null) { Say(_idleLine, false); return; }
-            if (_at.Measured) { Say(_at.ResultLine(), true); return; }
+
+            // <b>마주 선 사람의 말을 덮지 않는다.</b> 관아에서는 심문 중에도 유척이 손에
+            // 남는데(드러난 팔을 재야 하므로), 그동안 겨눈 것이 없으면 이 자가 매 프레임
+            // 「놋쇠 자다. 잴 것에 대어 본다」로 인물의 대사를 지웠다. 자막은 한 사람 몫이다.
+            bool talking = InterrogationController.AnyOpen;
+
+            // <b>겨눈 것이 없으면 아무 말도 안 한다.</b>
+            //
+            // 여태는 빈 데를 보고 있어도 「놋쇠 자다. 잴 것에 대어 본다」를 띄웠다.
+            // 자를 손에 든 내내 자막판이 서 있는 셈이라, 정작 잴 것을 만났을 때
+            // 뜨는 말과 구별이 안 되고 화면 아래가 늘 가려졌다. 손에 무엇을 들었는지는
+            // 도구띠가 이미 말하고 있다 — 자가 제 이름을 다시 댈 까닭이 없다.
+            if (_at == null) { _last = null; return; }
+            if (_at.Measured) { if (!talking) Say(_at.ResultLine(), true); return; }
 
             _dwell += Time.deltaTime;
             if (_dwell < _measureSeconds)
@@ -62,7 +77,11 @@ namespace IMUNROK.Common
                 return;
             }
             _at.Measure();
-            Say(_at.ResultLine(), true);
+            // 재는 동안은 눈금이 차오르는 것을 보여야 하지만, 잰 <b>결과</b>는 다르다.
+            // 마주 선 자리에서는 그 사람이 반응하는 것이 결과다(Measurable 의 잰 뒤 자리).
+            // 여기서 한 줄을 더 띄우면 그 반응을 덮는다.
+            if (!talking) Say(_at.ResultLine(), true);
+            else _last = null;
         }
 
         private string _last;
@@ -76,99 +95,4 @@ namespace IMUNROK.Common
         private void OnDisable() { _last = null; }
     }
 
-    /// <summary>
-    /// <b>잴 수 있는 것.</b> 유척을 대면 치수가 나온다.
-    ///
-    /// 치수는 <b>치(寸)</b> 로 적는다. 한 치는 약 3.03cm 다. 미터로 적으면 조선의 물건이
-    /// 아니라 실험 기구가 된다 — "두 치 남짓"이라야 호적대장의 그 문장과 겹친다.
-    ///
-    /// 견줄 값(<see cref="_expected"/>)을 적어 두면 잰 값과 맞는지까지 말한다. 그것이
-    /// 이 장치의 요지다 — 재는 것이 목적이 아니라 <b>대조</b>가 목적이다.
-    /// </summary>
-    public class Measurable : MonoBehaviour, IInspectable
-    {
-        [Tooltip("무엇을 재는가 — '왼팔 안쪽 흉터', '되', '말'")]
-        [SerializeField] private string _what = "흉터";
-        [Tooltip("실제 치수(치). 한 치 ≈ 3.03cm")]
-        [SerializeField] private float _chi = 2.1f;
-
-        [Header("견줄 것")]
-        [Tooltip("문서에 적혀 있던 값(치). 0이면 견주지 않고 치수만 말한다")]
-        [SerializeField] private float _expected = 0f;
-        [Tooltip("이 안쪽이면 '맞다'고 본다(치). 두 치 남짓의 '남짓'이 이만큼이다")]
-        [SerializeField] private float _tolerance = 0.35f;
-
-        [Tooltip("<b>잴 것이 아예 없을 때</b>의 말. 채워 두면 치수 대신 이 말이 나온다.\n" +
-                 "흉터가 없는 팔이 그렇다 — '영 치'는 치수가 아니라 <b>없다</b>는 뜻인데, " +
-                 "숫자로 적으면 잰 것처럼 보인다. 없는 것은 없다고 말해야 그것도 하나의 답이 된다")]
-        [TextArea(2, 3)] [SerializeField] private string _nothingLine = "";
-        [Tooltip("견줄 문서를 아직 못 봤으면 대조하지 않는다. 비우면 늘 대조한다")]
-        [SerializeField] private string _needsClueKey = "";
-        [SerializeField] private CaseId _case = CaseId.Case1_Onggojip;
-
-        [Header("잰 뒤 수첩에")]
-        [SerializeField] private string _clueKey = "";
-        [TextArea(2, 3)] [SerializeField] private string _clueText = "";
-        [Tooltip("치수가 맞아떨어진 순간 한 번")]
-        [SerializeField] private UnityEvent _onMatched;
-
-        /// <summary>이미 쟀나.</summary>
-        public bool Measured { get; private set; }
-
-        /// <summary>무엇을 재는 것인가.</summary>
-        public string What => _what;
-
-        /// <summary>잰 값이 문서와 맞는가. 아직 안 쟀으면 거짓.</summary>
-        public bool Matched { get; private set; }
-
-        private bool HasCompare =>
-            _expected > 0f &&
-            (string.IsNullOrEmpty(_needsClueKey) ||
-             (Journal.Instance != null && Journal.Instance.HasClue(_case, _needsClueKey)));
-
-        public void Measure()
-        {
-            if (Measured) return;
-            Measured = true;
-            Matched = HasCompare && Mathf.Abs(_chi - _expected) <= _tolerance;
-
-            if (!string.IsNullOrEmpty(_clueKey) && Journal.Instance != null)
-                Journal.Instance.AddClue(_case, _clueKey,
-                    string.IsNullOrEmpty(_clueText) ? ResultLine() : _clueText);
-
-            if (Matched) _onMatched?.Invoke();
-        }
-
-        /// <summary>잰 결과를 사람 말로.</summary>
-        public string ResultLine()
-        {
-            string size = Chi(_chi);
-            if (!Measured) return $"{_what} — 아직 재지 않았다.";
-            // 없는 것은 없다고 말한다. 이것도 대답이다 — 乙의 팔이 그렇다.
-            if (!string.IsNullOrEmpty(_nothingLine)) return _nothingLine;
-            if (!HasCompare) return $"{_what}, {size}.";
-            return Matched
-                ? $"{_what}, {size}. 적힌 것과 <b>같다</b>."
-                : $"{_what}, {size}. 적힌 것은 {Chi(_expected)}였다 — <b>어긋난다</b>.";
-        }
-
-        /// <summary>치수를 조선 말로 적는다. 2.1 → "두 치 남짓".</summary>
-        private static string Chi(float chi)
-        {
-            string[] n = { "영", "한", "두", "석", "넉", "닷", "엿", "일곱", "여덟", "아홉" };
-            int whole = Mathf.FloorToInt(chi);
-            float frac = chi - whole;
-            string head = whole < n.Length ? n[whole] : whole.ToString();
-            if (frac < 0.12f) return head + " 치";
-            if (frac < 0.4f) return head + " 치 남짓";
-            if (frac < 0.7f) return head + " 치 반";
-            return (whole + 1 < n.Length ? n[whole + 1] : (whole + 1).ToString()) + " 치에 조금 못 미친다";
-        }
-
-        // ── 가리키면 ──
-        public string GetInspectTitle() => _what;
-        public string GetInspectBody() =>
-            Measured ? ResultLine() : $"{_what}. 눈으로는 가늠이 안 된다.\n(유척을 대어 본다)";
-        public void OnInspected() { }
-    }
 }

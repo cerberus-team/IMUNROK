@@ -73,7 +73,7 @@ namespace IMUNROK.Common
 
             if (_teleport != null) _teleport.BindRequiredDoor(door);
             if (_gap != null) _gap.BindDoor(door);
-            Debug.Log($"[마당 잇기] '{_doorName}' 을 이었습니다.", this);
+            DevLog.Note($"[마당 잇기] '{_doorName}' 을 이었습니다.", this);
         }
     }
 }

@@ -48,6 +48,23 @@ namespace IMUNROK.Common
         [SerializeField] private bool _turnToward = true;
         [Tooltip("돌아서는 빠르기(초당 도). 홱 도는 것과 천천히 도는 것은 딴 사람이다")]
         [SerializeField] private float _turnSpeed = 160f;
+        [Tooltip("<b>실제로 돌릴 것.</b> 비우면 이 부품이 붙은 오브젝트를 돌린다.\n\n" +
+                 "그 오브젝트 밑에 <b>길잡이 표식</b>(경유점·설 자리·앉을 자리)을 매달아 둔 " +
+                 "인물에게는 반드시 <b>몸</b>을 지목해야 한다. 아니면 소리 한 번에 " +
+                 "표식이 통째로 딸려 돌아, 그 사람이 걸어갈 자리가 매번 딴 곳이 된다")]
+        [SerializeField] private Transform _turn;
+
+        /// <summary>
+        /// 돌릴 몸. <see cref="_turn"/> 을 비워 두면 제 오브젝트다.
+        ///
+        /// <b>이 갈래가 왜 필요한가.</b> 마름은 제 오브젝트 밑에 경유점·설 자리·앉을
+        /// 자리를 자식으로 달고 있다. 여기서 제 오브젝트를 돌리면 그 표식들이 함께
+        /// 돌아 <b>세계 좌표가 통째로 바뀐다</b> — 문을 두드리는 소리 한 번에 축이
+        /// 274도 돌아가, 앉을 자리가 마루에서 1.4m 떨어진 마당 한복판으로 옮겨 갔다.
+        /// 게다가 몸 자신도 자식이라 그 축을 중심으로 <b>휩쓸려 날아간다</b>.
+        /// (<see cref="FaceThePlayer"/> 가 같은 까닭으로 이미 이 갈래를 두고 있다.)
+        /// </summary>
+        private Transform Body { get { return _turn != null ? _turn : transform; } }
         [Tooltip("돌아본 채로 이만큼(초) 있다가 하던 대로 돌아간다")]
         [SerializeField] private float _turnHold = 2.0f;
 
@@ -91,11 +108,11 @@ namespace IMUNROK.Common
             if (Time.time < _quietUntil || heard < _notice) return;
 
             _quietUntil = Time.time + _cooldown;
-            if (_log) Debug.Log($"[귀] {name} 이(가) 들었다 — {what ?? "무언가"} {heard * 100f:F0}% ({d:F1}m)", this);
+            if (_log) DevLog.Note($"[귀] {Josa.IGa(name)} 들었다 — {what ?? "무언가"} {heard * 100f:F0}% ({d:F1}m)", this);
 
             if (_turnToward)
             {
-                Vector3 flat = at - transform.position; flat.y = 0f;
+                Vector3 flat = at - Body.position; flat.y = 0f;
                 if (flat.sqrMagnitude > 0.0004f)
                 {
                     _lookAt = Quaternion.LookRotation(flat.normalized, Vector3.up);
@@ -107,6 +124,17 @@ namespace IMUNROK.Common
             else _onNoticed?.Invoke(at);
         }
 
+        /// <summary>
+        /// <b>이 귀는 몸을 안 돌린다.</b>
+        ///
+        /// <see cref="NoiseWarning"/> 처럼 <b>몸이 없는 귀</b>가 부른다. 그런 귀는
+        /// 문밖의 기척을 대신하는 빈 것인데, 하필 그 하나가 <b>플레이어 카메라</b>에
+        /// 붙어 있었다 — <c>[RequireComponent]</c> 이 자동으로 달아 준 것이라
+        /// 아무도 값을 손보지 않았다. 그래서 서랍을 열 때마다 <b>내 시선이 서랍 쪽으로
+        /// 홱 돌아갔다</b>(실측: 소리 한 번에 카메라 yaw 0 → 90).
+        /// </summary>
+        public void DontTurn() { _turnToward = false; _lookUntil = 0f; }
+
         private Quaternion _lookAt;
         private float _lookUntil;
 
@@ -114,17 +142,30 @@ namespace IMUNROK.Common
         private void Update()
         {
             if (!_turnToward || Time.time >= _lookUntil) return;
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, _lookAt, _turnSpeed * Time.deltaTime);
+            var body = Body;
+            body.rotation = Quaternion.RotateTowards(body.rotation, _lookAt, _turnSpeed * Time.deltaTime);
         }
 
-        /// <summary>소리와 나 사이에 벽이 있나. 사람은 벽이 아니다.</summary>
+        /// <summary>
+        /// 소리와 나 사이에 벽이 있나.
+        ///
+        /// <b>사람은 벽이 아니다.</b> 이 말은 처음부터 여기 적혀 있었는데 코드는
+        /// <b>아무 콜라이더나</b> 벽으로 세고 있었다. 사람에게 몸이 없던 동안에는
+        /// 그래도 맞았지만(<see cref="PersonBody"/> 를 달면서 몸이 생겼다), 이제는
+        /// 마름이 앞을 지나간다고 서랍 소리가 안 들리는 일이 난다. 그래서 걸린 것을
+        /// 하나하나 보고 <b>사람의 몸은 건너뛴다</b>.
+        /// </summary>
         private bool Blocked(Vector3 at)
         {
             Vector3 ear = transform.position + Vector3.up * 1.4f;
             Vector3 to = at - ear;
             float dist = to.magnitude;
             if (dist < 0.05f) return false;
-            return Physics.Raycast(ear, to / dist, dist, _wallMask, QueryTriggerInteraction.Ignore);
+
+            var hits = Physics.RaycastAll(ear, to / dist, dist, _wallMask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < hits.Length; i++)
+                if (!PersonBody.Is(hits[i].collider)) return true;
+            return false;
         }
 
 #if UNITY_EDITOR

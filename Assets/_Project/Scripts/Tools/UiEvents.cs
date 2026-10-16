@@ -7,41 +7,55 @@ using UnityEngine.InputSystem.UI;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 씬에 <b>EventSystem</b> 이 없으면 하나 세운다.
+    /// <b>어느 씬에서든 화면 UI 가 손을 받게 한다.</b>
     ///
-    /// <b>왜 이것이 필요한가</b>: 유니티에서 UI 단추는 <c>onClick</c> 을 걸어 두는 것만으로는
-    /// 눌리지 않는다. 화면의 어느 지점이 어느 단추 위인지 짚어 주는 EventSystem 이 씬에
-    /// 하나 있어야 하고, <b>없으면 아무 일도 안 일어나되 오류도 안 난다.</b>
-    /// 단추는 그려지고, 손도 얹히고, 눌러도 조용하다.
+    /// 조사청에서 자막의 「✕ 닫기」가 안 눌렸다. 단추는 멀쩡했다 — 활성이고,
+    /// <c>interactable</c> 이고, 그 자리를 짚으면 레이캐스트에 <b>닫기</b>가 맨 먼저
+    /// 맞았고, <c>onClick</c> 을 직접 부르면 자막이 닫혔다. 그런데 눌러도 아무 일이 없었다.
     ///
-    /// 조사청(HubScene)이 딱 그 꼴이었다. 문서의 <b>내려놓기</b>도, 사건판의
-    /// <b>물러나기</b>도, 그 씬의 모든 단추가 통째로 죽어 있었다. 옹고집전 본편과
-    /// 표제 씬에는 EventSystem 이 들어 있어서 거기서는 멀쩡했고, 그래서 "증거마다
-    /// 내려놓기가 안 된다"로 보였다 — 증거의 문제가 아니라 <b>방의 문제</b>였다.
+    /// 까닭은 <b>씬에 <see cref="EventSystem"/> 이 하나도 없었다</b>는 것이다.
+    /// 그것이 없으면 눌림을 UI 로 나르는 것이 없어 <b>모든 단추가 통째로 죽는다</b> —
+    /// 어느 한 단추가 잘못된 것이 아니라 화면 전체가 손을 못 받는 상태다.
+    /// 그런데 화면에는 단추가 멀쩡히 그려져 있으므로, 원인을 단추에서 찾게 된다.
     ///
-    /// 씬마다 손으로 놓게 두지 않는다. 씬은 앞으로도 늘어날 것이고, 늘어날 때마다
-    /// 잊는 씬이 반드시 하나 생긴다. 게임이 시작될 때 저 혼자 서고 씬을 넘어가도
-    /// 살아 있게 한다. 씬에 이미 있으면 그것을 쓴다.
+    /// <b>같은 일이 전에도 있었다</b>(27e040d — 「조사청에 EventSystem 이 없어 단추가
+    /// 통째로 죽어 있었다」). 씬마다 손으로 챙기는 물건은 <b>반드시 한 씬에서 빠진다</b>.
+    /// 씬을 새로 짜거나 통째로 다시 지으면 그때 사라지고, 사라진 것은 눈에 안 띈다.
     ///
-    /// 입력 모듈은 <b>새 Input System</b> 쪽을 붙인다. 이 프로젝트는 입력을 그쪽으로
-    /// 넘겨 놓았으므로, 옛 StandaloneInputModule 을 붙이면 그것대로 조용히 죽는다.
+    /// 그래서 씬에 두지 않고 게임이 보장한다. 이미 있으면 아무 일도 하지 않는다 —
+    /// 두 개가 서 있으면 유니티가 경고를 내고 하나는 저절로 꺼진다.
     /// </summary>
     public static class UiEvents
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void Install()
+        private static void Hook()
         {
-            if (EventSystem.current != null) return;
-            if (Object.FindFirstObjectByType<EventSystem>() != null) return;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+            Ensure();
+        }
+
+        private static void OnSceneLoaded(UnityEngine.SceneManagement.Scene sc,
+                                          UnityEngine.SceneManagement.LoadSceneMode mode)
+        {
+            Ensure();
+        }
+
+        /// <summary>없으면 세운다. 있으면 손대지 않는다.</summary>
+        public static void Ensure()
+        {
+            if (Object.FindFirstObjectByType<EventSystem>(FindObjectsInactive.Exclude) != null) return;
 
             var go = new GameObject("_UI이벤트");
             go.AddComponent<EventSystem>();
 #if ENABLE_INPUT_SYSTEM
+            // 이 프로젝트는 입력을 Input System 으로 넘겨 놓았다. 낡은
+            // StandaloneInputModule 을 붙이면 「옛 입력이 꺼져 있다」며 예외가 난다.
             go.AddComponent<InputSystemUIInputModule>();
 #else
             go.AddComponent<StandaloneInputModule>();
 #endif
-            Object.DontDestroyOnLoad(go);
+            DevLog.Note("[UI] 이 씬에 EventSystem 이 없어 새로 세웠습니다 — 없으면 단추가 통째로 죽습니다.", go);
         }
     }
 }

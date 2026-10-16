@@ -26,7 +26,8 @@ namespace IMUNROK.Gyeonu.EditorTools
         const string Folder = "Assets/IMUNROK_UI/Sample";
         const string ScenePath = Folder + "/UI_Sample.unity";
 
-        [MenuItem("Tools/이문록/UI 예제 씬 만들기", false, 430)]
+        // 메뉴 자리를 견우 쪽으로 옮긴다 — 같은 경로를 꾸러미(IMUNROK_UI)도 쓰고 있어 둘 중 하나가 등록에 실패했다.
+        [MenuItem("Tools/이문록/견우/UI 예제 씬 만들기", false, 430)]
         public static void Build()
         {
             if (EditorApplication.isPlaying)

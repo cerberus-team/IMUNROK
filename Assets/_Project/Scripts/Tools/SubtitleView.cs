@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -9,7 +11,7 @@ namespace IMUNROK.Common
     ///
     /// 프로젝트 안에서 이 모양이 네 곳에 거의 똑같이 반복된다
     /// (대문 앞 대사 · 심문 자막 · 복명 낭독 · 인트로).
-    /// OnGUI는 헤드셋에 렌더링되지 않으므로 그 넷을 전부 여기로 모은다.
+    /// 그 넷을 전부 여기로 모은다.
     ///
     /// 쓰는 법 — 씬에 미리 둘 필요 없다. 어디서든:
     ///   SubtitleView.Show("마름", "이 야심한 밤에… 뉘시오?", "(계속)");
@@ -22,7 +24,8 @@ namespace IMUNROK.Common
     public class SubtitleView : MonoBehaviour
     {
         [Header("모양")]
-        [SerializeField] private Font _font;
+        // 낡은 판 시절의 글꼴 칸을 걷었다 — 글씨는 이제 꾸러미의 TMP 에셋 하나뿐이다
+        // (UiText ▸ UiSkin.Font). 판마다 달리 꽂을 것이 없다.
         [SerializeField] private int _lineFontSize = 58;
         [SerializeField] private int _nameFontSize = 40;
         [SerializeField] private int _hintFontSize = 30;
@@ -33,12 +36,12 @@ namespace IMUNROK.Common
                  "우리에게 없는 판은 부품째 받고, 있는 판은 <b>디자인만</b> 맞추기로 한 그 갈래다. " +
                  "자막 바는 물증 제시·자막 흐름과 얽혀 있어 통째로 못 갈아 끼운다")]
         [SerializeField] private bool _useCommonLook = true;
-        [SerializeField] private Color _panelColor = new Color(0.03f, 0.035f, 0.05f, 0.86f);
-        [SerializeField] private Color _nameplateColor = new Color(0.62f, 0.14f, 0.11f, 0.95f);
-        [SerializeField] private Color _textColor = new Color(0.98f, 0.96f, 0.92f);
-        [SerializeField] private Color _hintColor = new Color(1f, 0.85f, 0.5f, 0.75f);
+        [SerializeField] private Color _panelColor = UiLook.Panel;
+        [SerializeField] private Color _nameplateColor = UiLook.Seal;
+        [SerializeField] private Color _textColor = UiLook.Text;
+        [SerializeField] private Color _hintColor = UiLook.Dim;
         [Tooltip("새로 알아낸 것을 말할 때의 글빛. 수첩에 안 적히는 말이라 여기서 한 번 눈에 박혀야 한다")]
-        [SerializeField] private Color _keyColor = new Color(0.95f, 0.34f, 0.28f);
+        [SerializeField] private Color _keyColor = UiLook.Lit(UiLook.Seal, 0.35f);
 
         /// <summary>
         /// 꾸러미의 <b>결(무늬)</b>. 한지·나뭇결·칸을 코드로 그려 들고 있다.
@@ -54,10 +57,11 @@ namespace IMUNROK.Common
 
         private static SubtitleView _instance;
         private CanvasGroup _group;
-        private WorldHudAnchor _anchor;
-        private Text _nameText, _lineText, _hintText;
+        /// <summary>바탕 판. 화면 아래에 눕히는 자리를 여기에 준다.</summary>
+        private RectTransform _panel;
+        private TextMeshProUGUI _nameText, _lineText, _hintText;
         private RectTransform _nameplate;
-        private NoticeCloseTab _closeTab;
+        private GameObject _closeTab;
 
         /// <summary>
         /// <b>닫을 수 있는 자막인가.</b>
@@ -80,6 +84,23 @@ namespace IMUNROK.Common
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetClosable() { Closable = true; }
 
+        /// <summary>
+        /// <b>닫는 길을 그 자리에서 열고 닫는다.</b>
+        ///
+        /// <see cref="Closable"/> 를 그냥 바꾸면 <b>이미 떠 있는</b> 판의 딱지는 그대로다 -
+        /// 딱지를 여닫는 곳이 <see cref="SetVisible"/> 한 군데뿐이라, 다음에 판이 한 번
+        /// 접혔다 펴져야 말이 먹힌다. 심문은 자막이 <b>떠 있는 동안</b> 열리므로
+        /// 그때까지 「✕」가 남아 있게 된다. 그래서 값과 딱지를 함께 옮긴다.
+        /// </summary>
+        public static void SetClosable(bool on)
+        {
+            Closable = on;
+            var v = _instance;                       // 없으면 만들지 않는다 - 끄러 온 길이다
+            if (v == null || v._closeTab == null) return;
+            bool shown = v._group != null && v._group.alpha > 0.5f;
+            v._closeTab.SetActive(on && shown);
+        }
+
         /// <summary>자막이 닫힐 때 알린다. 도구 익히기처럼 자막에 얹혀 도는 것이 참고한다.</summary>
         public static event System.Action OnClosed;
 
@@ -93,8 +114,8 @@ namespace IMUNROK.Common
                     _instance = FindFirstObjectByType<SubtitleView>();
                     if (_instance == null)
                     {
-                        var go = new GameObject("VR_자막", typeof(Canvas));
-                        go.AddComponent<WorldHudAnchor>().Configure(WorldHudAnchor.Placement.Front);
+                        var go = new GameObject("자막", typeof(Canvas),
+                                                typeof(CanvasScaler), typeof(GraphicRaycaster));
                         _instance = go.AddComponent<SubtitleView>();
                     }
                 }
@@ -110,7 +131,14 @@ namespace IMUNROK.Common
         /// 한 번 티가 나야 지나쳐 버리지 않는다.
         /// </summary>
         public static void Show(string speaker, string line, string hint = null, bool key = false)
-            => Instance.ShowInternal(speaker, line, hint, key);
+        {
+            // <b>장계를 펴 놓은 동안에는 말이 끼어들지 않는다.</b> 자막판은 제 캔버스라
+            // <c>WorldHudAnchor.StowAll</c> 이 안 닿아, 마지막 글을 쓰는 화면 위에
+            // 서리의 인사말이 그대로 얹혔다. 판결 끝의 말은 자막이 아니라
+            // <see cref="WorldNotice"/> 로 뜨므로 여기서 걸러도 잃는 것이 없다.
+            if (VerdictReport.IsOpen) return;
+            Instance.ShowInternal(speaker, line, hint, key);
+        }
 
         /// <summary>자막을 감춘다.</summary>
         public static void Hide()
@@ -119,7 +147,7 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// 읽기 거리를 실행 중에 바꾼다. 헤드셋을 쓰고 직접 보며 맞추는 용도 —
+        /// 읽기 거리를 실행 중에 바꾼다. 직접 보며 맞추는 용도 —
         /// 편한 거리는 사람마다 다르고 모니터로는 판단이 안 된다.
         ///   SubtitleView.SetReadingDistance(1.0f, -0.22f);
         /// </summary>
@@ -129,15 +157,11 @@ namespace IMUNROK.Common
             // 익히기는 물건이 떠오르기 <b>전에</b> 자리를 잡아 둔다 — 그 사이에는
             // _instance 가 없어서 여기서 조용히 돌아 나갔고, 그렇게 잡아 둔 자리는
             // 없던 일이 되었다. 아무 말도 안 나오니 고쳐도 그대로인 것처럼 보인다.
-            _wantDistance = distance; _wantDrop = verticalOffset; _hasWantDistance = true;
-            if (_instance == null || _instance._anchor == null) return;   // 없으면 만들지 않는다
-            _instance._anchor.SetDistance(distance, verticalOffset);
+            // <b>이제 아무 일도 하지 않는다.</b> 판이 화면에 붙었으므로 「눈에서 몇 m」가
+            // 없다. 부르는 자리(심문판·도구 익히기)를 다 고치는 대신 여기서 받아만 두는
+            // 까닭은, 저 자리들이 <b>무엇을 바라는지</b>가 이름에 남아 있어서다 —
+            // 「읽기 좋은 자리에 두어라」. 화면에서는 그 자리가 늘 같으므로 시킬 것이 없다.
         }
-
-        // 자막판이 생기기 전에 미리 시켜 둔 것들. 태어날 때 이대로 받아 든다.
-        private static bool _wantPinned;
-        private static bool _hasWantDistance;
-        private static float _wantDistance = 1.3f, _wantDrop = -0.28f;
 
         /// <summary>
         /// 자막을 <b>눈앞에 붙박는다</b> — 고개를 어디로 돌리든 늘 시야 한가운데.
@@ -148,10 +172,7 @@ namespace IMUNROK.Common
         /// </summary>
         public static void SetPinned(bool on)
         {
-            _wantPinned = on;                                             // 없어도 적어 둔다(위 참조)
-            if (_instance == null || _instance._anchor == null) return;
-            _instance._anchor.Pinned = on;
-            if (on) _instance._anchor.Recenter();
+            // 화면에 붙은 판은 <b>늘 붙박여 있다</b>. 시킬 것이 없어졌다(위 참조).
         }
 
         /// <summary>지금 자막이 떠 있는가(다른 UI가 겹치지 않게 참고).</summary>
@@ -161,11 +182,8 @@ namespace IMUNROK.Common
         /// </summary>
         public static void KeepInFrontOf(Transform target)
         {
-            // Instance 를 쓰면 안 된다 — 없을 때 새로 만들어 버린다.
-            // 심문이 끝날 때(OnDisable) 풀어주는데, 그 순간이 씬이 닫히는 중일 수 있다.
-            // 그러면 "닫는 중에 오브젝트가 새로 생겼다"고 유니티가 경고한다.
-            if (_instance == null || _instance._anchor == null) return;
-            _instance._anchor.KeepInFrontOf(target);
+            // 화면에 붙은 판은 <b>상대 몸에 가릴 수가 없다</b> — 세상보다 앞에 그려진다.
+            // 이 부탁이 막으려던 일 자체가 없어졌다.
         }
 
         public static bool IsShowing => _instance != null && _instance._group != null && _instance._group.alpha > 0.5f;
@@ -174,11 +192,7 @@ namespace IMUNROK.Common
         {
             if (_instance != null && _instance != this) { Destroy(gameObject); return; }
             _instance = this;
-            _anchor = GetComponent<WorldHudAnchor>();
-            if (_anchor == null) _anchor = gameObject.AddComponent<WorldHudAnchor>();
-            // 태어나기 전에 시켜 둔 것을 받아 든다
-            if (_hasWantDistance) _anchor.SetDistance(_wantDistance, _wantDrop);
-            _anchor.Pinned = _wantPinned;
+            SitOnScreen();
             Build();
             SetVisible(false);
         }
@@ -188,8 +202,31 @@ namespace IMUNROK.Common
             if (_instance == this) _instance = null;
         }
 
+        /// <summary>
+        /// <b>몇 번째 말인가.</b> 한 마디 띄울 때마다 하나씩 오른다.
+        ///
+        /// 자막판은 하나인데 <b>쓰는 사람이 여럿</b>이다 — 조사청 안내, 도구 익히기,
+        /// 심문, 사건표. 그중에는 「몇 초 뒤에 내 말을 지워라」고 <b>미리 걸어 두는</b>
+        /// 것이 있는데, 그 사이에 다른 이가 제 말을 띄우면 그 예약이 <b>남의 말을 지운다</b>.
+        ///
+        /// 실제로 그랬다: 조사청에 들어서면 「조사청이오」가 4.5초짜리 지우기를 걸어 두는데,
+        /// 그 안에 돋보기를 누르면 익히기 첫 마디가 그 지우기에 맞아 사라졌다. 글은
+        /// 판에 적혀 있는데 판이 안 보이니, 눌러도 아무 일이 없는 것으로 읽힌다.
+        ///
+        /// 그래서 띄울 때 번호를 받아 두고, 지울 때 <b>그 번호가 그대로인지</b> 본다.
+        /// </summary>
+        public static int Generation { get; private set; }
+
+        /// <summary>내가 띄운 말이 아직 그대로면 지운다. 아니면 손대지 않는다.</summary>
+        public static void HideIfUnchanged(int generation)
+        {
+            if (generation != Generation) return;
+            Hide();
+        }
+
         private void ShowInternal(string speaker, string line, string hint, bool key = false)
         {
+            Generation++;
             bool wasHidden = _group.alpha < 0.5f;
 
             bool hasName = !string.IsNullOrEmpty(speaker);
@@ -205,8 +242,6 @@ namespace IMUNROK.Common
             if (_inputRow != null) _inputRow.gameObject.SetActive(InterrogationController.AnyOpen);
 
             SetVisible(true);
-            // 숨겨져 있다가 다시 뜰 땐 눈앞으로 바로 가져온다(감쇠 때문에 옆에서 날아오지 않게)
-            if (wasHidden && _anchor != null) _anchor.Recenter();
         }
 
         /// <summary>
@@ -228,96 +263,59 @@ namespace IMUNROK.Common
             bool was = _group.alpha > 0.5f;
             _group.alpha = on ? 1f : 0f;
             _group.blocksRaycasts = on;
-            // 안 보이는 동안에는 닫기 표의 콜라이더도 꺼야 한다. 켜 둔 채로 두면
-            // 눈앞에 보이지 않는 판이 남아 뒤쪽 물건으로 가는 레이를 가로챈다.
-            if (_closeTab != null)
-            {
-                // <b>둘을 따로 꺼야 한다.</b> NoticeCloseTab.SetActive 는 짚는
-                // 콜라이더만 여닫는다 — 그것만 꺼 두면 <b>글씨는 그대로 남아</b>
-                // 「닫기 ✕」가 눌리지도 않으면서 화면에 붙어 있다.
-                // 엔딩에서 실제로 그렇게 됐다.
-                _closeTab.SetActive(on && Closable);
-                _closeTab.gameObject.SetActive(on && Closable);
-            }
+            // 딱지는 통째로 여닫는다. 콜라이더를 따로 여닫던 시절에는 그것만 꺼 두면
+            // <b>글씨가 그대로 남아</b> 눌리지도 않는 「✕」가 화면에 붙어 있었다
+            // (엔딩에서 실제로 그렇게 됐다). 이제 UI 단추 하나라 그럴 일이 없다.
+            if (_closeTab != null) _closeTab.SetActive(on && Closable);
             if (was && !on && byUser) OnClosed?.Invoke();
         }
 
-        /// <summary>
-        /// 눈앞의 말을 치운다. 헤드셋에는 Esc 가 없으니 <b>보이는 표</b>가 본길이고,
-        /// 키는 모니터로 시험할 때 쓰는 곁길이다.
-        /// </summary>
-        private bool _fitted;
-
-        /// <summary>
-        /// <b>글씨가 하한(1.30도) 밑으로 안 내려가게 한 번 재서 키운다.</b>
-        ///
-        /// 재 보니 안내 줄이 30단위로 <b>1.29도</b>였다 — 하한에서 0.01도 모자란다.
-        /// 눈으로는 못 가리는 차이인데, 그런 자리가 헤드셋에서 「읽히긴 하는데 눈이
-        /// 피로한」 것이 된다.
-        ///
-        /// <b>지을 때 재면 안 된다.</b> 처음에 Build 에서 쟀더니 아무것도 안 커졌다 —
-        /// 그때는 판이 아직 제자리에 안 가 있어 배율이 1 이고, 1단위가 37도로 잡혀
-        /// 「넉넉하다」는 답이 나온다. 앵커가 판을 옮기고 줄인 <b>뒤</b>에 재야 한다.
-        /// 그래서 첫 칸이 아니라 <b>자리를 잡은 첫 칸</b>에 한 번 한다.
-        /// </summary>
-        private void FitToEye()
-        {
-            if (_fitted || _lineText == null) return;
-
-            // <b>이것은 헤드셋의 규칙이다.</b> 1.30도 하한은 「눈에서 몇 도로 보이나」를
-            // 따지는 값인데, 모니터에서는 그 물음이 성립하지 않는다 — 화면이 곧 시야라
-            // 몇 미터 앞에 앉느냐로 정해지지 우리가 정할 수가 없다.
-            //
-            // 그런데 여태 모니터에서도 이걸 돌리고 있었다. 재 보니 1.5m·0.001배에서
-            // 1단위가 0.038도라 안내 줄 <b>19가 35로</b>, 이름 32가 35로 부풀었다.
-            // 저쪽 PC판은 19·32 그대로다 — 판 치수를 한 픽셀까지 맞춰 놓고
-            // <b>글씨만 두 배로 키워</b> 놓고 있었던 것이다.
-            if (!VRRig.Active) { _fitted = true; return; }
-            float scale = transform.lossyScale.y;
-            if (scale > 0.5f) return;              // 아직 앵커가 안 줄였다
-            var cam = Camera.main;
-            if (cam == null) return;
-            float dist = Vector3.Distance(cam.transform.position, transform.position);
-            if (dist < 0.05f || dist > 20f) return;   // 아직 제자리가 아니다
-
-            _fitted = true;
-            Bump(_lineText, ref _lineFontSize, scale, dist);
-            Bump(_nameText, ref _nameFontSize, scale, dist);
-            Bump(_hintText, ref _hintFontSize, scale, dist);
-            // 닫기 딱지의 글씨도 안내 줄과 같은 크기로 짓는다 — 같이 키운다
-            if (_closeTab != null)
-                foreach (var t in _closeTab.GetComponentsInChildren<Text>(true))
-                    if (t.fontSize < _hintFontSize) t.fontSize = _hintFontSize;
-        }
-
-        private void Bump(Text t, ref int size, float scale, float dist)
-        {
-            if (t == null) return;
-            int want = UiLook.AtLeast(size, scale, dist);
-            if (want == size) return;
-            size = want;
-            t.fontSize = want;
-        }
-
+        // <b>눈각 맞추기(FitToEye)를 걷어냈다.</b> 1.30도 하한은 「눈에서 몇 도로
+        // 보이나」를 따지는 월드 판의 규칙인데, 화면에 붙은 판에는 그 물음이 성립하지 않는다 —
+        // 화면이 곧 시야라 몇 미터 앞에 앉느냐로 정해지지 우리가 정할 수가 없다.
+        // 여태 모니터에서도 이걸 돌려서 안내 줄 19가 35로 부풀어 있었다.
+        // 이제 <see cref="StyleNow"/> 가 적어 둔 값이 그대로 그려진다.
         private void Update()
         {
-            FitToEye();
-            SitNow();
             if (_group == null || _group.alpha < 0.5f) return;
             PaintHeard();
-            PaintMic();
             TickConfirm();
 #if ENABLE_INPUT_SYSTEM
             // 옛 Input 클래스를 쓰면 안 된다. 이 프로젝트는 입력을 Input System 으로
             // 넘겨 놓아서, 저것을 읽는 순간 예외가 난다 — 자막이 떠 있는 내내 매 프레임
             // 터졌고, 그래서 Esc 로 자막을 닫는 곁길이 여태 한 번도 듣지 않았다.
+            // <b>「×」는 손끝으로도 직접 본다.</b>
+            //
+            // 딱지는 UI 단추라 EventSystem 이 누름을 날라다 줘야 한다. 그런데 요에 누운 채
+            // 누르면 안 닫힌다는 말이 두 번 왔다 — 짚는 손(MouseRaySelector)·자리 잡는
+            // 칸·누운 자세의 카메라가 한꺼번에 도는 자리라, 그 가운데 어느 하나가 누름을
+            // 먼저 먹으면 단추까지 안 온다. 닫기는 <b>빠지면 안 되는 한 가지</b>이므로
+            // 단추에만 맡기지 않고, 누른 자리가 딱지(둘레 한 뼘 여유) 안이면 여기서 닫는다.
+            // 단추도 그대로 둔다 — 여기서 먼저 닫히면 딱지가 꺼져 두 번 닫힐 일은 없다.
+            var ms = UnityEngine.InputSystem.Mouse.current;
+            if (ms != null && ms.leftButton.wasPressedThisFrame && Closable
+                && _closeTab != null && _closeTab.activeInHierarchy
+                && OverCloseTab(ms.position.ReadValue()))
+            {
+                SetVisible(false, true);
+                return;
+            }
+
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb == null) return;
 
-            // <b>치는 동안에는 Backspace 를 먹지 않는다.</b> 여기가 자막을 닫는 자리인데,
-            // 글을 고치려고 한 글자 지운 순간 판이 통째로 닫히면 무슨 일인지 알 수가 없다.
-            if (kb.escapeKey.wasPressedThisFrame
-                || (kb.backspaceKey.wasPressedThisFrame && !Typing.Now))
+            // <b>닫을 수 있는 판일 때만 닫는다.</b>
+            //
+            // <see cref="Closable"/> 는 여태 <b>「✕」 딱지를 그릴지</b>만 정했다. 그래서
+            // 심문 중(닫을 수 없다고 해 둔 자리)에도 Esc 는 그대로 먹어서, 딱지도 없는
+            // 판이 글쇠로만 사라졌다 — 심문은 그대로인데 상대의 말만 없어진다.
+            // 닫을 수 없다고 했으면 <b>어느 길로도</b> 닫히지 않아야 한다.
+            //
+            // <b>치는 동안에는 Backspace 를 먹지 않는다.</b> 글을 고치려고 한 글자
+            // 지운 순간 판이 통째로 닫히면 무슨 일인지 알 수가 없다.
+            if (Closable
+                && (kb.escapeKey.wasPressedThisFrame
+                    || (kb.backspaceKey.wasPressedThisFrame && !Typing.Now)))
                 SetVisible(false, true);        // 이것도 사람이 닫은 것이다
 
             // ── Enter — 묻기 ──
@@ -327,7 +325,18 @@ namespace IMUNROK.Common
             // ⚠️ <c>InputField.onSubmit</c> 을 쓰지 않는다. 칸이 선택을 잃을 때도 함께
             //    울리는 자리라, 늘 잡아 두는 규칙과 부딪힌다. 글쇠를 바로 보면 규칙이
             //    하나로 단순해진다 (저쪽이 같은 까닭으로 같은 선택을 했다).
-            if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) AskNow();
+            // <b>한 칸 늦게 던진다 — 한글 때문이다.</b>
+            //
+            // 한글은 글쇠를 눌러도 곧바로 글자가 되지 않는다. 「안녕」을 치는 동안 마지막
+            // 「녕」은 아직 <b>조합 중</b>이라 칸의 글(<c>text</c>)에 안 들어가 있고,
+            // 운영체제의 입력기가 들고 있다. 그 상태에서 Enter 를 누르면 입력기가 그
+            // Enter 로 <b>조합을 끝맺는데</b>, 우리는 같은 프레임에 칸을 읽으므로
+            // <b>끝맺기 전</b>의 글을 가져간다 — 마지막 글자가 빠진 채로 날아간다.
+            //
+            // 한 칸을 기다렸다 읽으면 그때는 조합이 끝나 칸에 들어와 있다.
+            // 사람 눈에는 한 프레임이므로 늦었다는 느낌이 없다.
+            if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) _askNextFrame = true;
+            else if (_askNextFrame) { _askNextFrame = false; AskNow(); }
 #endif
         }
 
@@ -338,16 +347,6 @@ namespace IMUNROK.Common
         /// 비었으면 <b>방금 던진 말이 묽게</b>, 그것마저 없으면 무엇을 누르라는 안내가 온다.
         /// 던진 말을 지워 버리면 무엇으로 전해졌는지 확인할 데가 없어진다.
         /// </summary>
-        /// <summary>듣고 있는 동안 마이크가 <b>주칠로 물든다</b> — 저쪽이 하는 것과 같다.
-        /// 단추가 눌린 것만으로는 정말 듣고 있는지 알 수가 없다.</summary>
-        private void PaintMic()
-        {
-            if (_micIcon == null) return;
-            bool listening = MicInput.Instance != null && MicInput.Instance.IsListening;
-            var want = listening ? UiLook.Seal : UiLook.Paper;
-            if (_micIcon.color != want) _micIcon.color = want;
-        }
-
         /// <summary>되물은 뒤 이만큼 지나면 없던 일로 한다 — 잘못 눌렀을 때 그냥 두면 된다.</summary>
         private void TickConfirm()
         {
@@ -375,27 +374,26 @@ namespace IMUNROK.Common
 
             if (_heardHint != null)
             {
-                string want = VRRig.Active
-                            ? Controls.SpeakPrompt
-                            : "묻고 싶은 것을 치거나, " + Controls.SpeakPrompt;
+                // <b>칸이 비면 방금 던진 말이 묽게 남는다.</b> 이 자리의 머리말이 여태
+                // 그리 약속해 두고 정작 하지는 않았다 — 던지고 나면 칸이 비어, 무엇으로
+                // 전해졌는지 확인할 데가 없었다. 잘못 알아들은 채 답을 받으면 그 답이
+                // 이상한 것인지 내 물음이 이상했던 것인지 알 수가 없다.
+                string last = a != null ? a.LastPlayerLine : "";
+                string want = string.IsNullOrEmpty(last) ? Controls.AskPrompt : last;
                 if (_heardHint.text != want) _heardHint.text = want;
             }
 
-            // ── 헤드셋에서는 칠 수 없다 ──
-            //
-            // 저쪽 주석 그대로: 칸을 통째로 감춰 봤더니 <b>받아 적힌 말이 어디에도
-            // 안 보였다</b> — 무엇으로 전해지는지 확인하지 못한 채 던지게 된다.
-            // 그래서 칸은 남기되 못 치게만 한다.
-            bool canType = !VRRig.Active;
-            if (_field.interactable != canType) _field.interactable = canType;
-            if (_field.readOnly == canType) _field.readOnly = !canType;
+            // 칸은 늘 칠 수 있다. 한동안 여기서 못 치게 막아 두었다 —
+            // 쥘 손이 없어서였다. 이제 막을 까닭이 없다.
+            if (!_field.interactable) _field.interactable = true;
+            if (_field.readOnly) _field.readOnly = false;
 
             // ── 칸을 늘 잡아 둔다 ──
             //
             // 빈 곳을 한 번 누르면 선택이 풀린다. 그러면 치던 사람이 <b>아무 일도
             // 안 일어나는 것</b>을 겪는다. 심문하는 동안에는 늘 잡혀 있어야 한다.
             // (저쪽도 같은 까닭으로 같은 일을 한다)
-            if (canType && _inputRow != null && _inputRow.gameObject.activeSelf
+            if (_inputRow != null && _inputRow.gameObject.activeSelf
                 && !_field.isFocused && EventSystem.current != null)
                 _field.ActivateInputField();
         }
@@ -404,6 +402,9 @@ namespace IMUNROK.Common
         /// 칸에 있는 글을 던진다. <b>칸이 임자다</b> — 받아 적힌 말이든 손으로 친 말이든
         /// 지금 칸에 보이는 그것이 전해진다. 눈에 보이는 것과 전해지는 것이 달라서는 안 된다.
         /// </summary>
+        /// <summary>Enter 를 받았고, 다음 칸에 던진다(위 주석 참고).</summary>
+        private bool _askNextFrame;
+
         private void AskNow()
         {
             var a = InterrogationController.Active;
@@ -414,7 +415,7 @@ namespace IMUNROK.Common
             _draftSeen = "";
             a.SetDraft(say);
             a.AskDraft();
-            if (!VRRig.Active) _field.ActivateInputField();
+            _field.ActivateInputField();
         }
 
         /// <summary>
@@ -425,27 +426,13 @@ namespace IMUNROK.Common
         /// 이것은 방에 놓인 물건이 아니라 <b>눈앞에 든 글</b>이므로 무엇에도 가리면
         /// 안 된다. 문서의 어둠판이 이미 같은 까닭으로 같은 일을 한다.
         /// </summary>
-        private void DrawOnTop(Graphic g)
-        {
-            if (g == null) return;
-            var src = g.material != null ? g.material : g.defaultMaterial;
-            if (src == null) return;
-            var m = new Material(src) { name = src.name + "_앞에", hideFlags = HideFlags.HideAndDontSave };
-            m.SetInt("unity_GUIZTestMode", (int)UnityEngine.Rendering.CompareFunction.Always);
-            g.material = m;
-        }
-
-        private void AllOnTop()
-        {
-            foreach (var g in GetComponentsInChildren<Graphic>(true)) DrawOnTop(g);
-        }
 
         /// <summary>
         /// <b>꾸러미 하단바의 치수 한 벌.</b> 이름과 뜻을 저쪽 <c>BottomStyle</c> 에서 그대로 가져왔다.
         ///
-        /// ⚠ <b>베껴 온 것이다.</b> 색을 쥔 <c>Palette()</c> 는 공개라 물어 오는데,
-        ///   치수를 쥔 <c>StyleOf</c> 는 비공개다. 그것이 열리면 이 구조체를 지우고
-        ///   그쪽을 부르면 된다 — 팀원께 열어 달라고 청해 둘 것.
+        /// <b>이제 베끼지 않는다.</b> 색을 쥔 <c>Palette()</c> 도, 치수를 쥔 <c>StyleOf</c> 도
+        ///   저쪽에 물어 온다. 이 구조체는 그 답을 담는 그릇으로만 남는다 —
+        ///   저쪽 <c>BottomStyle</c> 과 칸 이름이 달라 그대로 쓸 수가 없어서다.
         /// </summary>
         private struct BarStyle
         {
@@ -471,33 +458,52 @@ namespace IMUNROK.Common
         }
 
         /// <summary>
-        /// <b>PC 와 VR 은 치수가 다르다.</b> 그것을 몰라 여태 VR 값만 넣어 두었고,
-        /// 그래서 화면으로 보면 안내줄이 팀원 것(19단위)보다 배 가까이 컸다.
+        /// <b>저쪽 꾸러미에는 치수가 두 벌 있었다.</b> 그것을 몰라 여태 큰 쪽만 넣어
+        /// 두었고, 그래서 화면으로 보면 안내줄이 팀원 것(19단위)보다 배 가까이 컸다.
         ///
-        /// VR 값이 큰 데는 까닭이 있다 — 저쪽 주석 그대로다:
-        /// 「1.5m 앞에서 19단위 안내줄은 <b>0.73도</b>인데 헤드셋 하한이 1.30도다.
-        ///  그래서 작은 글씨부터 키웠다: 안내 19→34, 입력 28→34, 이름 32→36, 대사 42→46.」
+        /// 큰 쪽은 판을 멀찍이 세워 두고 보던 시절의 값이라 작은 글씨부터 키워 둔 것이다
+        /// (안내 19→34, 입력 28→34, 이름 32→36, 대사 42→46). 화면에 붙인 지금은
+        /// 작은 쪽이 맞다 — 판 높이로 재 보면 461 이 나온다.
         ///
-        /// 셈을 그대로 돌려 보면 저쪽이 적어 둔 판 높이가 나온다 —
-        /// PC 461 · VR 535. 같은 값이 나오면 베낀 것이 맞게 옮겨진 것이다.
+        /// <b>다만 대사와 이름은 키웠다</b> — 대사 42→56, 이름 32→56. 베낀 값을 그대로
+        /// 두었더니 화면에서 대사가 <b>화면 높이의 2.4%</b>(42÷1732)밖에 안 돼, 판은
+        /// 널찍한데 글씨만 작아 보였다. 56 이면 3.2% 다. 이름패도 대사와 같은 크기로
+        /// 두어, 누가 말하는지가 그 말과 같은 무게로 읽히게 한다
+        /// (이름패 너비는 <c>st.name * 7</c> 이라 220 에서 392 로 따라 넓어진다).
+        ///
+        /// 그러면 판 높이가 따라 늘어 <b>461 이 아니라 550</b> 이 된다 — 위의 「PC 461」
+        /// 은 이제 맞춰 볼 수 없는 수다. 베낀 것이 맞는지 재던 잣대를 잃는 셈이지만,
+        /// 읽히지 않는 자막보다는 낫다. 나머지 치수(이름 32 · 입력 28 · 안내 19)는
+        /// 저쪽 그대로 두었으니, 어긋난 것은 대사와 이름 둘뿐임을 여기 적어 둔다.
         /// </summary>
         private static BarStyle StyleNow()
         {
-            if (VRRig.Active)
-                return new BarStyle {
-                    w = 1500f, line = 46, name = 36, input = 34, foot = 34, inputH = 76f,
-                    padX = 60f, padTop = 18f, nameToRule = 12f, ruleH = 3f, ruleToLine = 28f,
-                    lineToInput = 40f, inputToFoot = 26f, footToEdge = 24f, footH = 36f };
+            // <b>이제 저쪽에 물어본다.</b> 위 주석이 「그것이 열리면 이 구조체를 지우고
+            // 그쪽을 부르면 된다 — 팀원께 열어 달라고 청해 둘 것」이라 적어 둔 그 자리다.
+            // 청할 것도 없었다: 견우 사건 코드 쪽 사본에는 이미 열려 있었고 꾸러미만
+            // 안 따라와 있었다. 꾸러미를 열어 두 벌을 같은 데로 모았다.
+            var st = IMUNROK.Ui.DialogueUI.StyleOf(IMUNROK.Ui.DialogueLayout.하단바_확정);
 
             return new BarStyle {
-                w = 2900f, line = 42, name = 32, input = 28, foot = 19, inputH = 62f,
-                padX = 90f, padTop = 14f, nameToRule = 10f, ruleH = 3f, ruleToLine = 24f,
-                lineToInput = 34f, inputToFoot = 22f, footToEdge = 19f, footH = 24f };
+                w = 2900f,                       // 저쪽 BarGeom 이 이 배치에 주는 폭
+                // <b>대사와 이름만 우리 값이다.</b> 어긋난 자리는 이 둘뿐이고, 그 까닭은
+                // 위에 적어 두었다. 나머지는 한 자도 안 적는다 — 저쪽이 고치면 따라온다.
+                line = ScreenPanel.LineSize, name = ScreenPanel.LineSize,
+
+                // <b>묻는 칸도 우리 값이다.</b> 저쪽 28·62 는 판을 눈앞 1.5m 에 세우고
+                // 보던 셈이라, 화면에 붙인 우리 판에서는 칸이 대사(56)의 절반이라
+                // <b>「여기에 친다」로 안 읽힌다</b> — 실제로 「너무 작다」는 말을 들었다.
+                // 대사보다는 작되 곁말(19)보다는 확실히 큰 자리로 올린다.
+                //   글자 28 → 40   ·   칸 높이 62 → 84
+                input = 40, inputH = 84f, foot = st.footSize,
+                padX = st.padX, padTop = st.padTop, nameToRule = st.nameToRule,
+                ruleH = st.ruleH, ruleToLine = st.ruleToLine,
+                lineToInput = st.lineToInput, inputToFoot = st.inputToFoot,
+                footToEdge = st.footToEdge, footH = st.footH };
         }
 
         private void Build()
         {
-            _font = UiFont.Resolve(_font);
             _group = gameObject.GetComponent<CanvasGroup>();
             if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
 
@@ -512,11 +518,17 @@ namespace IMUNROK.Common
             var pal = IMUNROK.Ui.DialogueUI.Palette();
             if (_useCommonLook)
             {
-                _panelColor = pal.back;          // 먹빛 65%
+                // <b>먹빛은 저쪽 것을 쓰되 진하기만 올린다.</b>
+                //
+                // 꾸러미 바는 알파 0.65 다. 저쪽 화면에서는 그것이 맞는데, 어전은
+                // <b>밝은 전돌바닥</b> 위에 바가 눕는다 — 0.65 면 돌 무늬가 글씨 사이로
+                // 그대로 올라와 어디까지가 판이고 어디부터가 바닥인지 알 수 없다.
+                // 빛깔은 저쪽 것 그대로 두고 진하기만 올린다. 색을 한 벌로 모은 것은
+                // 지키면서 읽히기는 하는 자리를 찾는 셈이다.
+                _panelColor = UiLook.With(pal.back, 0.88f);
                 _textColor = pal.text;
                 _hintColor = pal.dim;
                 _nameplateColor = UiLook.Seal;   // 주칠
-                _lineFontSize = 46; _nameFontSize = 36; _hintFontSize = 34;
             }
 
             // ── 치수는 모드에 따라 갈린다 ──────────────
@@ -533,18 +545,33 @@ namespace IMUNROK.Common
             float w = st.w;
 
             var panel = NewRect("바탕", Vector2.zero, new Vector2(w, h), transform);
+            _panel = panel;
             panel.gameObject.AddComponent<Image>().color = _panelColor;
             Edge(panel, w, h, pal.border);
 
             float top = h * 0.5f;
             float y = top - st.padTop;
 
-            // 이름패 — 판 안 왼쪽 위(저쪽과 같은 자리). 나뭇결 위에 주칠.
+            // 이름패 — 판 안 왼쪽 위(저쪽과 같은 자리).
+            //
+            // <b>왜 나뭇결을 걷었나.</b> 여기와 단추가 둘 다 <c>UiLook.Seal</c>(주칠)에
+            // 알파도 1인데 화면에서는 이름패가 <b>한 켜 깊게</b> 나왔다 —
+            // (0.184, 0.019, 0.006) 대 (0.667, 0.220, 0.165). 까닭은 겹침이 아니라
+            // <b>그림이 빛깔을 곱한다</b>는 데 있었다. <c>Image.color</c> 는 스프라이트를
+            // <b>곱하는</b> 값이므로, 어떤 그림에 얹느냐에 따라 같은 주칠이 딴 빛깔이 된다.
+            //
+            //   나뭇결(<c>Wood_</c>) 평균 ≈ (0.309, 0.221, 0.153)  — 어두운 나무
+            //   주칠 x 나뭇결          ≈ (0.206, 0.049, 0.025)  ← 잰 값과 맞는다
+            //   단추는 <c>Slot_</c>(한지빛)에 얹혀 있어 주칠이 거의 그대로 나온다
+            //
+            // 되살릴 길이 없다 — 곱해서 어두워진 것을 밝히려면 주칠을 2.2배 해야 하는데
+            // 그러면 붉은 기가 흰빛으로 날아간다. 그래서 <b>단추와 같은 바탕</b>에 얹는다.
+            // 결이 아주 없어지는 것은 아니다(<c>Slot_</c> 에도 얕은 결이 있다).
             float nameW = Mathf.Max(220f, st.name * 7f);
             _nameplate = NewRect("이름판",
                 new Vector2(-w * 0.5f + st.padX + nameW * 0.5f, y - nameH * 0.5f),
                 new Vector2(nameW, nameH), panel);
-            Skin(_nameplate.gameObject.AddComponent<Image>(), _skin.Wood_, _nameplateColor);
+            Skin(_nameplate.gameObject.AddComponent<Image>(), _skin.Slot_, _nameplateColor);
             _nameText = NewText("이름", "", Vector2.zero, new Vector2(nameW, nameH),
                                 _nameplate, _nameFontSize,
                                 _useCommonLook ? UiLook.SealText : _textColor);
@@ -558,9 +585,13 @@ namespace IMUNROK.Common
             _lineText = NewText("대사", "", new Vector2(0f, y - lineBoxH * 0.5f),
                                 new Vector2(w - st.padX * 2f, lineBoxH),
                                 panel, _lineFontSize, _textColor);
-            _lineText.alignment = TextAnchor.UpperLeft;
-            _lineText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _lineText.verticalOverflow = VerticalWrapMode.Truncate;
+            _lineText.alignment = TextAlignmentOptions.TopLeft;
+            UiText.Wrap(_lineText, true);
+            // ⚠️ 여기 <c>Truncate</c> 를 두면 안 된다. TMP 는 상자에 <b>온전히 안 들어가는
+            //    줄을 통째로 버린다</b> — 조선궁서체는 줄 높이가 글자의 1.25배라, 낡은 판
+            //    시절 숫자로 잡아 둔 대사 상자에서 마지막 줄이 통째로 사라진다.
+            //    넘치는 대사는 굴려 읽는 것이 이미 있다(Roll).
+            _lineText.overflowMode = TextOverflowModes.Overflow;
             y -= lineBoxH + st.lineToInput;
 
             BuildInputRow(panel, w, y, st);
@@ -569,11 +600,13 @@ namespace IMUNROK.Common
             _hintText = NewText("힌트", "", new Vector2(0f, y - st.footH * 0.5f),
                                 new Vector2(w - st.padX * 2f, st.footH),
                                 panel, _hintFontSize, _hintColor);
-            _hintText.alignment = TextAnchor.MiddleCenter;
+            _hintText.alignment = TextAlignmentOptions.Center;
 
             BuildCloseTab(panel, w, h, st);
             SitLikeTheBar(w, h);
-            AllOnTop();
+            // <b>앞에 그리라는 손질은 더 안 한다.</b> 화면에 붙인 판은 세상보다 뒤에
+            // 그려질 수가 없다. 재질을 스물두 장 복제해 깊이 검사를 끄던 일도,
+            // 그 값이 도로 0 으로 돌아가는지 매 칸 살피던 일도 함께 없어졌다.
         }
 
         /// <summary>
@@ -590,12 +623,11 @@ namespace IMUNROK.Common
         /// 화각을 60으로 못 박지 않고 <b>지금 카메라에서 뽑는다</b> — 60이 아닌 날에도 맞는다.
         /// </summary>
         private float _barH;
-        private float _sitFov = -1f;
 
         /// <summary>
         /// 캔버스 1단위 = 1mm. 저쪽과 같다.
         /// </summary>
-        private const float BarScale = 0.001f;
+        private const float BarScale = 0.001f;   // 월드에 세우던 시절의 값. 셈의 내력으로 남긴다
 
         /// <summary>
         /// <b>화면 반높이를 단위로 적은 것.</b> 1.5m 앞, 세로 화각 60°에서
@@ -605,65 +637,68 @@ namespace IMUNROK.Common
         /// 1732단위 높이」로 치고, 그렇게 되도록 <b>거리를 바꾼다</b>.
         /// 그러면 바가 차지하는 화면 비율이 변하지 않는다.
         /// </summary>
-        private const float RefHalfHeight = 866f;
+        private const float RefHalfHeight = ScreenPanel.RefHeight * 0.5f;
+
+        /// <summary>
+        /// <b>자막판을 월드에서 떼어 화면에 붙인다.</b>
+        ///
+        /// 이 판은 오래도록 눈앞 허공에 세워 두고 고개를 따라오게 했다.
+        /// 그러느라 치른 값이 셋이다 —
+        ///
+        ///   · <b>바닥 밑으로 사라진다.</b> 판이 눈높이보다 아래 눕는데 어전에서는
+        ///     그 자리가 바닥 밑이라, 깊이 검사를 끄지 않으면 전돌에 통째로 잠겼다.
+        ///     그 끈 값이 유니티에 도로 되돌려지는 함정까지 딸려 있었다.
+        ///   · <b>화각을 좇아야 했다.</b> 심문이 60°에서 42°로 당기면 같은 자리의 바가
+        ///     1.5배로 부풀어 양옆이 잘렸다. 그래서 매 칸 거리를 다시 재고 있었다.
+        ///   · <b>떠다닌다.</b> 고개를 돌리면 뒤따라 흔들린다.
+        ///
+        /// 셋 다 「화면에 적힌 말을 세상 속에 세워 둔」 데서 나온 것이고, 화면에 붙이면
+        /// 한꺼번에 없어진다. 화면으로 보는 물건을 세상에 세워 둘 까닭이 없다.
+        ///
+        /// 치수는 그대로다. 이 판의 셈은 애초에 <b>화면 반높이를 866단위로 치는</b>
+        /// 것이었으므로(<see cref="RefHalfHeight"/>), 그 값을 기준 해상도로 넘기기만
+        /// 하면 폭 2900(=94%)도 아래 여백 46도 뜻을 지킨다.
+        /// </summary>
+        private void SitOnScreen()
+        {
+            // 세우는 여덟 줄은 <see cref="ScreenPanel"/> 이 쥔다 — 자막·단추·수첩이
+            // 저마다 같은 줄을 적고 있었고, 기준 세로를 적는 법까지 셋으로 갈려 있었다.
+            ScreenPanel.Raise(gameObject, ScreenPanel.LayerBar);
+        }
 
         private void SitLikeTheBar(float w, float h)
         {
             _barH = h;
-            _sitFov = -1f;
-            // 넓고 아래에 눕는 판이라 <b>화면과 나란히</b> 서야 한다 — 눈을 마주 보게
-            // 눕히면 사다리꼴로 일그러진다(재 보니 좌우 귀퉁이가 화면에서 0.04 어긋났다).
-            if (_anchor != null) _anchor.SetScreenParallel(true);
-            SitNow();
+            // <b>화면 아래 끝에서 46단위 띄워 눕힌다.</b> 저쪽 셈 그대로다 —
+            // 화면 반높이를 866단위로 치므로, 중심 y = −(866 − 높이/2 − 46).
+            //
+            // 여태 이 값을 <b>거리</b>로 풀었다. 월드에 세운 판이라 화각이 바뀌면
+            // 화면에서 차지하는 몫이 달라져서, 화각을 좇아 판을 앞뒤로 옮겨야
+            // 그 몫이 지켜졌다(심문이 열리면 60°에서 42°로 당긴다). 화면에 붙인
+            // 뒤로는 그럴 일이 없다 — 화각은 화면 UI 를 건드리지 않는다.
+            if (_panel != null)
+                _panel.anchoredPosition = new Vector2(0f, -(RefHalfHeight - h * 0.5f - 46f));
         }
 
-        /// <summary>
-        /// <b>바가 앉는 자리를 매 칸 다시 잡는다.</b>
-        ///
-        /// 여태는 <see cref="Build"/> 에서 <b>한 번만</b> 쟀다. 그 순간의 화각으로 재고
-        /// 끝냈으니, 화각이 그대로인 동안에는 맞았다.
-        ///
-        /// 그런데 이 게임은 <b>심문이 열리면 화각을 좁힌다</b> —
-        /// <see cref="ConversationView"/> 가 60°에서 42°로 당긴다(인물에 초점을 준다).
-        /// 화각이 좁아지면 화면이 확대되는 것이라, 같은 자리에 선 바가 <b>1.5배로 부푼다</b>.
-        /// 재 보니 화면 폭의 94%였던 것이 <b>141%</b>가 되어 양옆이 잘려 나갔다.
-        /// 「자막이 너무 크다」와 「인물에 너무 당겨진다」가 <b>같은 하나였다</b>.
-        ///
-        /// 그래서 화각을 좇는다. 화면 높이를 늘 <see cref="RefHalfHeight"/>×2 단위로 치고
-        /// 그렇게 되는 거리에 바를 세우면, 당기든 물러나든 <b>화면에서 차지하는 자리가
-        /// 그대로</b>다. 42°에서는 1.5m 가 아니라 2.26m 에 선다.
-        ///
-        /// ⚠️ 헤드셋에서는 <c>cam.fieldOfView</c> 를 읽으면 안 된다 — HMD 투영이 덮어써
-        ///    뜻을 잃는다(저쪽 <c>UiTuning</c> 주석에 같은 경고가 있다). VR은 저쪽처럼
-        ///    1.5m 에 못 박고 −16°로 눕힌다.
-        /// </summary>
-        private void SitNow()
-        {
-            if (!_useCommonLook || _anchor == null || _barH <= 0f) return;
-            var cam = Camera.main;
-            if (cam == null) return;
+        // <b>SitNow 를 걷었다.</b> 화각을 좇아 바를 앞뒤로 옮기던 자리다 —
+        // 심문이 60°에서 42°로 당기면 같은 자리의 바가 1.5배로 부풀어(폭 94% → 141%)
+        // 양옆이 잘려 나갔고, 그것을 거리로 되받고 있었다. 화면에 붙인 판은 화각이
+        // 어떻든 차지하는 몫이 그대로라, 좇을 것이 없어졌다.
 
-            if (VRRig.Active)
-            {
-                const float vrDist = 1.5f, vrUpDeg = -16f;
-                if (_sitFov > 0f) return;                       // VR은 한 번이면 된다
-                _sitFov = 1f;
-                _anchor.SetDistance(vrDist, vrDist * Mathf.Tan(vrUpDeg * Mathf.Deg2Rad));
-                return;
-            }
-
-            float fov = cam.fieldOfView;
-            if (Mathf.Abs(fov - _sitFov) < 0.05f) return;       // 안 바뀌었으면 손대지 않는다
-            _sitFov = fov;
-
-            float dist = RefHalfHeight * BarScale / Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad);
-            float y = -(RefHalfHeight - _barH * 0.5f - 46f);    // 아래 끝에서 46단위 — 이건 안 변한다
-            _anchor.SetDistance(dist, y * BarScale);
-        }
 
         private RectTransform _inputRow;
-        private Text _heardText, _heardHint;
-        private InputField _field;
+        private TextMeshProUGUI _heardText, _heardHint;
+
+        /// <summary>
+        /// 치는 칸. <b>낡은 <c>InputField</c> 에서 <c>TMP_InputField</c> 로 옮겼다.</b>
+        ///
+        /// 칸만 낡은 판으로 두면 <b>친 글씨만</b> 딴 글꼴로 나온다 — 바로 위 대사는
+        /// 조선궁서체인데 내가 치는 말은 맑은 고딕인 꼴이다. 저쪽(견우) 바도 TMP 칸이다.
+        ///
+        /// ⚠️ 한글 조합은 여전히 UGUI 가 대신 처리한다. 직접 글쇠를 읽는 방식으로
+        ///    바꾸면 한글을 못 치게 된다 — 칸을 쓰는 까닭이 그것이다.
+        /// </summary>
+        private TMP_InputField _field;
         private string _draftSeen = "";
 
         /// <summary>
@@ -686,14 +721,17 @@ namespace IMUNROK.Common
             float h = st.inputH;
 
             // 폭 배분도 저쪽 셈 그대로다 (DialogueUI.InputRowBottom):
-            //   말하기는 정사각(낮은 바에서 가장 안 튄다), 묻기 10.5%, 증거 제시 16.5%, 사이 16.
+            //   묻기 10.5%, 증거 제시 16.5%, 사이 16.
             // 「마치 기」 하나만 우리가 더한다 — 아래 주석 참고.
+            //
+            // <b>「말하기」 칸이 여기 있었다.</b> 정사각으로 한 자리를 차지했는데,
+            // 말로 묻는 길을 걷어냈으므로 그 자리를 <b>글쇠 칸에 준다</b> — 이제 묻는
+            // 길이 치는 것 하나뿐이니 칠 자리가 넓은 편이 맞다.
             const float gap = 16f;
-            float micW  = h;
             float askW  = Mathf.Max(120f, inner * 0.105f);
             float presW = Mathf.Max(180f, inner * 0.165f);
             float endW  = Mathf.Max(180f, inner * 0.165f);
-            float slotW = inner - micW - askW - presW - endW - gap * 4f;
+            float slotW = inner - askW - presW - endW - gap * 3f;
 
             float x = -inner * 0.5f;
 
@@ -711,43 +749,66 @@ namespace IMUNROK.Common
             var slotBg = slot.gameObject.AddComponent<Image>();
             Skin(slotBg, _skin.Slot_, pal.slotBack);
 
-            _heardText = NewText("글", "", new Vector2(16f, 0f), new Vector2(slotW - 32f, h),
-                                 slot, st.input, pal.slotText);
-            _heardText.alignment = TextAnchor.MiddleLeft;
-            _heardText.supportRichText = false;   // 조합 중인 한글에 태그가 새지 않게
+            // <b>글자리 — 글을 가두는 창.</b>
+            //
+            // TMP 의 칸은 글이 칸보다 길어지면 <b>커서를 따라 옆으로 굴려</b> 지금 치는 끝을
+            // 보여 준다. 다만 그러려면 글이 <b>창(textViewport) 안에 갇혀</b> 있어야 한다.
+            // 여태 창이 없어서 긴 글이 칸 밖으로 그대로 흘러 「묻 기」 단추 밑까지 깔렸고,
+            // 커서는 단추 너머에 앉았다 — 칸이 단추 뒤까지 이어진 것처럼 보였다.
+            // TMP 가 칸을 새로 만들 때 까는 꼴(글자리 + RectMask2D + 늘어난 글) 그대로 짓는다.
+            var area = NewRect("글자리", Vector2.zero, new Vector2(slotW, h), slot);
+            area.anchorMin = Vector2.zero;
+            area.anchorMax = Vector2.one;
+            area.offsetMin = new Vector2(16f, 0f);    // 안쪽 여백 — 글이 칸 테에 붙지 않게
+            area.offsetMax = new Vector2(-16f, 0f);
+            area.gameObject.AddComponent<RectMask2D>();
 
-            _heardHint = NewText("안내글", "", new Vector2(16f, 0f), new Vector2(slotW - 32f, h),
-                                 slot, st.input, pal.slotHint);
-            _heardHint.alignment = TextAnchor.MiddleLeft;
+            _heardText = NewText("글", "", Vector2.zero, new Vector2(slotW - 32f, h),
+                                 area, st.input, pal.slotText);
+            Stretch(_heardText.rectTransform);
+            _heardText.alignment = TextAlignmentOptions.Left;
+            // ⚠️ <b>여기를 끄면 한글 조합 밑줄이 글자로 찍힌다.</b>
+            //    TMP 의 칸은 <b>조합 중</b>인 글자에 <c>&lt;u&gt;</c> 를 둘러 밑줄을 긋는다.
+            //    richText 를 끄면 그 태그가 그려지는 대신 <b>글자로</b> 나와,
+            //    「안녀&lt;u&gt;ㅇ&lt;/u&gt;」처럼 치는 족족 태그가 섞였다.
+            //    켜 두면 밑줄로 제대로 그려진다. 사람이 태그를 쳐 넣어도 대답은
+            //    <see cref="Emphasis.Clean"/> 을 거치므로 새 나갈 자리가 없다.
+            _heardText.richText = true;
+            UiText.Wrap(_heardText, false);
 
-            _field = slot.gameObject.AddComponent<InputField>();
+            _heardHint = NewText("안내글", "", Vector2.zero, new Vector2(slotW - 32f, h),
+                                 area, st.input, pal.slotHint);
+            Stretch(_heardHint.rectTransform);
+            _heardHint.alignment = TextAlignmentOptions.Left;
+            UiText.Wrap(_heardHint, false);
+
+            _field = slot.gameObject.AddComponent<TMP_InputField>();
+            _field.textViewport = area;
             _field.textComponent = _heardText;
             _field.placeholder = _heardHint;
-            _field.lineType = InputField.LineType.SingleLine;
-            _field.characterLimit = 120;
+            _field.lineType = TMP_InputField.LineType.SingleLine;
+
+            // <b>긴 물음도 끝까지 보이게 한다.</b>
+            //
+            // 두 가지가 물음을 잘라 먹고 있었다.
+            //   ① <b>120자 상한</b>. 「이 큰 저택을 스무 해나 홀로 건사하셨다니, 문서는
+            //      누가 맡아 보았소?」면 벌써 마흔 자다. 앞뒤를 붙여 묻는 사람은 120자를
+            //      금방 넘기는데, 넘긴 글자는 <b>아예 안 쳐진다</b> — 글쇠를 눌러도
+            //      아무 일이 없으니 칸이 고장난 것으로 읽힌다.
+            //   ② 칸보다 긴 글은 <b>칸 밖으로 밀려나</b> 앞머리가 안 보였다. 한 줄짜리
+            //      칸은 커서를 따라 옆으로 굴러가므로, 다 치고 나면 <b>내가 무엇을 썼는지</b>
+            //      를 볼 수가 없다. 던지기 전에 읽어 보는 것이 사람의 일이다.
+            //
+            // ②는 <b>글씨를 줄여서 풀면 안 됐다</b>. 한 번 그렇게 했더니 긴 글이 깨알만
+            // 해져 읽을 수가 없었고, 그러고도 칸 밖으로 흘렀다. 푸는 길은 위의 <b>글자리</b>다 —
+            // 창에 가두면 칸이 <b>지금 치는 끝</b>을 따라 옆으로 굴러간다. 글씨는 그대로다.
+            _field.characterLimit = 300;
             _field.customCaretColor = true;
             _field.caretColor = pal.slotText;     // 어두운 칸에서는 커서도 밝아야 보인다
-            _field.selectionColor = new Color(0.667f, 0.216f, 0.161f, 0.35f);
+            _field.selectionColor = UiLook.With(UiLook.Seal, 0.35f);
             _field.targetGraphic = slotBg;
             _field.transition = Selectable.Transition.None;
             x += slotW + gap;
-
-            // ── 말하기 ──
-            //
-            // 여태 이 자리에는 <b>그림만</b> 있었다. 마이크처럼 생긴 것을 그려 놓고
-            // 누를 수는 없게 두었으니, 실제로 말하려면 옛 심문 판의 「눌러서 말하기」를
-            // 눌러야 했다 — <b>같은 일이 두 판에 나뉘어</b> 있었다.
-            // 저쪽은 이 단추를 「왼쪽 Ctrl 을 누른 것과 똑같이」 친다. 그대로 한다:
-            // <b>누르고 있는 동안</b> 듣는다. 한 번 눌러 켜는 방식으로 하면 끄는 것을
-            // 잊은 채 돌아다니다 엉뚱한 혼잣말이 인물에게 날아간다.
-            _micRt = NewRect("말하기", new Vector2(x + micW * 0.5f, 0f), new Vector2(micW, h), _inputRow);
-            _micBg = _micRt.gameObject.AddComponent<Image>();
-            Skin(_micBg, _skin.Wood_, UiLook.Wood);
-            var micIcon = NewRect("그림", Vector2.zero, new Vector2(h * 0.56f, h * 0.56f), _micRt);
-            _micIcon = micIcon.gameObject.AddComponent<Image>();
-            Skin(_micIcon, _skin.Mic_, UiLook.Paper);
-            PushToTalk(_micRt);
-            x += micW + gap;
 
             // ── 묻 기 ── 저쪽은 이것만 주칠이다. 한 줄에서 <b>지금 할 일</b>이 그것이라서다.
             Chip(_inputRow, "묻기", "묻 기", new Vector2(x + askW * 0.5f, 0f), new Vector2(askW, h),
@@ -773,15 +834,21 @@ namespace IMUNROK.Common
             // 따로 배워야 하지만, 되묻는 말은 그 자리에서 읽힌다. (옛 판이 쓰던 규약 그대로)
             _endChip = Chip(_inputRow, "마치기", EndWord, new Vector2(x + endW * 0.5f, 0f),
                             new Vector2(endW, h), st.input, UiLook.Wood, OnEndPressed);
-            _endLabel = _endChip.GetComponentInChildren<Text>();
+            _endLabel = _endChip.GetComponentInChildren<TextMeshProUGUI>();
             _endBg = _endChip.GetComponent<Image>();
 
             _inputRow.gameObject.SetActive(false);
         }
 
-        private RectTransform _micRt, _endChip;
-        private Image _micBg, _micIcon, _endBg;
-        private Text _endLabel;
+        private RectTransform _endChip;
+        private Image _endBg;
+        /// <summary>
+        /// 「이만 마치겠소」 딱지의 글. <b>TMP 로 옮기며 놓칠 뻔한 자리다</b> —
+        /// 여기만 낡은 형으로 두면 <c>GetComponentInChildren&lt;Text&gt;</c> 가 아무것도
+        /// 못 찾아 <b>조용히 null</b> 이 되고, 세 초 되묻기(「정말 마치겠소?」)가
+        /// 글자를 못 바꾼 채 그냥 안 뜬다. 오류도 안 난다.
+        /// </summary>
+        private TextMeshProUGUI _endLabel;
 
         private const string EndWord = "이만 마치겠소";
         private const string EndAsk  = "정말 마치겠소?";
@@ -807,45 +874,13 @@ namespace IMUNROK.Common
             if (_endBg != null && _endBg.color != UiLook.Wood) _endBg.color = UiLook.Wood;
         }
 
-        /// <summary>
-        /// <b>누르고 있는 동안 듣는다.</b> 마우스든 VR 광선이든 같은 이벤트로 들어온다 —
-        /// <c>Button</c> 은 「눌렀다 뗐다」만 알려 주므로 쓰지 않고 눌림·뗌을 직접 받는다.
-        /// </summary>
-        private void PushToTalk(RectTransform rt)
-        {
-            var trig = rt.gameObject.AddComponent<EventTrigger>();
-            var down = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
-            down.callback.AddListener(delegate { if (MicInput.Instance != null) MicInput.Instance.StartListening(); });
-            var up = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
-            up.callback.AddListener(delegate { if (MicInput.Instance != null) MicInput.Instance.StopListening(); });
-            // 단추 밖에서 손을 떼도 녹음이 안 끊기면 영원히 듣고 있게 된다.
-            var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
-            exit.callback.AddListener(delegate {
-                if (MicInput.Instance != null && MicInput.Instance.IsListening) MicInput.Instance.StopListening();
-            });
-            trig.triggers.Add(down);
-            trig.triggers.Add(up);
-            trig.triggers.Add(exit);
-
-            // <b>판정면을 따로 깔면 안 된다.</b> 한 번 그렇게 했다가 판이 통째로 안 떴다 —
-            // <c>Graphic</c> 은 <c>DisallowMultipleComponent</c> 라 이 물건에 이미 붙어
-            // 있는 나뭇결 위에 <c>Image</c> 를 하나 더 붙이면 <b>null 이 돌아오고</b>,
-            // 거기에 색을 칠하려다 터져서 <b>그 아래로 짓던 것이 전부 없던 일이 된다</b>
-            // (안내 줄도, 닫기 딱지도, 바 자리 잡기까지). 오류 한 줄만 나고 화면은
-            // 그냥 「입력이 안 되는」 것으로 보인다.
-            //
-            // 이미 있는 나뭇결이 판정면 노릇을 한다. 광선을 받게만 켜 준다.
-            var bg = rt.GetComponent<Image>();
-            if (bg != null) bg.raycastTarget = true;
-        }
-
         private RectTransform Chip(RectTransform parent, string name, string label, Vector2 at, Vector2 size,
                                    int fontSize, Color back, System.Action onClick)
         {
             var rt = NewRect(name, at, size, parent);
             var im = rt.gameObject.AddComponent<Image>();
             Skin(im, _skin.Wood_, back);
-            NewText("글", label, Vector2.zero, size, rt, fontSize, IMUNROK.Ui.DialogueUI.Palette().text);
+            NewText("글", label, Vector2.zero, size, rt, fontSize, UiLook.Text);
             var btn = rt.gameObject.AddComponent<Button>();
             btn.targetGraphic = im;
             btn.onClick.AddListener(() => { if (onClick != null) onClick(); });
@@ -892,15 +927,50 @@ namespace IMUNROK.Common
                 size, panel);
             // 이 딱지 색도 손으로 정하지 않는다. 꾸러미의 <b>글쇠 칸</b> 색을 쓴다 —
             // 저쪽에서 「눌러도 되는 자리」를 알리는 데 쓰는 색이라 뜻이 맞는다.
-            Skin(rt.gameObject.AddComponent<Image>(), _skin.Slot_, IMUNROK.Ui.DialogueUI.Palette().slotBack);
-            NewText("글", "✕", Vector2.zero, size, rt, _hintFontSize, _hintColor);
+            Skin(rt.gameObject.AddComponent<Image>(), _skin.Slot_, UiLook.Slot);
+            // ⚠️ <b>「✕」(U+2715) 는 두 글꼴 어디에도 없다.</b> 낡은 판에서는 운영체제가
+            //    딴 글꼴에서 주워다 그려 주어 멀쩡해 보였는데, TMP 는 아틀라스에 없는 글자를
+            //    <b>네모 한 칸</b>으로 그린다. 견우 꾸러미 문서에도 없는 글자 목록에
+            //    이것이 적혀 있다 — 화면용은 곱셈표 「×」다.
+            NewText("글", "×", Vector2.zero, size, rt, _hintFontSize, _hintColor);
 
-            _closeTab = rt.gameObject.AddComponent<NoticeCloseTab>();
-            _closeTab.Bind(() => SetVisible(false, true), new Vector3(size.x, size.y, 8f));
+            // <b>UI 단추로 받는다.</b> 여태 이 딱지는 <see cref="NoticeCloseTab"/> 이었다 —
+            // 콜라이더를 달고 세상의 광선(<see cref="MouseRaySelector"/>)에 짚히는 물건.
+            // 판이 월드에 있을 때는 그것이 맞았지만, 화면에 붙인 뒤로는 콜라이더가
+            // <b>화면 픽셀 좌표를 세계 좌표로 들고</b> 엉뚱한 데 서 있게 된다.
+            // 화면에 그려지는 것은 화면의 손으로 받아야 한다.
+            var closeBtn = rt.gameObject.AddComponent<Button>();
+            closeBtn.targetGraphic = rt.GetComponent<Image>();
+            closeBtn.onClick.AddListener(() => SetVisible(false, true));
+            _closeTab = rt.gameObject;
             _closeTab.SetActive(false);
         }
 
+        /// <summary>누른 자리가 「×」 딱지 위(둘레로 딱지 높이의 절반만큼 넉넉히)인가.</summary>
+        private bool OverCloseTab(Vector2 screenPos)
+        {
+            var rt = (RectTransform)_closeTab.transform;
+            var canvas = rt.GetComponentInParent<Canvas>();
+            Camera cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                       ? canvas.worldCamera : null;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, screenPos, cam, out var local))
+                return false;
+            var r = rt.rect;
+            float pad = r.height * 0.5f;
+            return local.x >= r.xMin - pad && local.x <= r.xMax + pad
+                && local.y >= r.yMin - pad && local.y <= r.yMax + pad;
+        }
+
         // ── UI 만들기 헬퍼 ──
+
+        /// <summary>부모를 꽉 채운다 — 글자리 안의 글처럼, 창을 따라 늘고 줄어야 하는 것.</summary>
+        private static void Stretch(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
 
         private RectTransform NewRect(string name, Vector2 pos, Vector2 size, Transform parent)
         {
@@ -913,19 +983,15 @@ namespace IMUNROK.Common
             return rt;
         }
 
-        private Text NewText(string name, string content, Vector2 pos, Vector2 size,
-                             Transform parent, int fontSize, Color color)
+        /// <summary>
+        /// 글 한 줄. <b>낡은 판에서 TMP 로 옮겼다</b>(<see cref="UiText"/>).
+        /// 낡은 판은 안 접는 것이 기본이라 여기서도 안 접는다 — 접을 자리에서 다시 켠다.
+        /// </summary>
+        private TextMeshProUGUI NewText(string name, string content, Vector2 pos, Vector2 size,
+                                        Transform parent, float fontSize, Color color)
         {
-            var rt = NewRect(name, pos, size, parent);
-            var t = rt.gameObject.AddComponent<Text>();
-            t.font = _font;
-            t.fontSize = fontSize;
-            t.color = color;
-            t.alignment = TextAnchor.MiddleCenter;
-            t.horizontalOverflow = HorizontalWrapMode.Overflow;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
-            t.raycastTarget = false;
-            t.text = content;
+            var t = UiText.New(name, content, pos, size, parent, fontSize, TextAnchor.MiddleCenter, color);
+            UiText.Wrap(t, false);
             return t;
         }
     }

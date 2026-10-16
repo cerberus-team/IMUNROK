@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -38,7 +39,7 @@ namespace IMUNROK.Common
 
         private Transform _target;
         private Camera _cam;
-        private Text _text;
+        private TextMeshProUGUI _text;
         private CanvasGroup _group;
 
         /// <summary>표를 세운다. 이미 서 있으면 그것을 걷고 새로 세운다.</summary>
@@ -84,22 +85,13 @@ namespace IMUNROK.Common
             prt.SetParent(rt, false);
             prt.sizeDelta = rt.sizeDelta;
             // 고르는 창의 단추와 같은 낙관빛. 안내가 저마다 다른 색이면 안내로 안 읽힌다.
-            plate.GetComponent<Image>().color = new Color(0.58f, 0.10f, 0.09f, 0.92f);
+            plate.GetComponent<Image>().color = UiLook.With(UiLook.Seal, 0.92f);
             plate.GetComponent<Image>().raycastTarget = false;   // 가리키는 것이지 누르는 것이 아니다
 
-            var txtGo = new GameObject("글", typeof(Text));
-            var trt = txtGo.GetComponent<RectTransform>();
-            trt.SetParent(prt, false);
-            trt.sizeDelta = rt.sizeDelta;
-            _text = txtGo.GetComponent<Text>();
-            _text.font = UiFont.Resolve(null);
-            _text.fontSize = 32;
-            _text.alignment = TextAnchor.MiddleCenter;
-            _text.color = new Color(0.98f, 0.94f, 0.86f);
-            _text.raycastTarget = false;
-            _text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            _text.verticalOverflow = VerticalWrapMode.Overflow;
-            _text.text = label;
+            // 낡은 UI.Text 에서 TMP 로 옮겼다 — 견우 판과 같은 붓으로 그린다(UiText).
+            _text = UiText.New("글", label, Vector2.zero, rt.sizeDelta, prt,
+                               32f, TextAnchor.MiddleCenter, UiLook.Text);
+            UiText.Wrap(_text, false);
             _label = label;
 
             Place();

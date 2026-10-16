@@ -29,8 +29,15 @@ namespace IMUNROK.Common
         /// <summary>이 판이 쓰는 알림판 이름표. 다른 알림과 안 겹치게 한 군데로 모은다.</summary>
         private const string Key = "상태";
 
-        /// <summary>눈높이에서 이만큼 위(m). 앞을 가리지 않을 만큼만 올린다.</summary>
-        private const float Height = 0.42f;
+        /// <summary>
+        /// 눈높이에서 이만큼 위(m).
+        ///
+        /// <b>화면 위쪽으로 올렸다.</b> 0.42 는 눈높이 바로 위라 사람의 얼굴과 겹치는
+        /// 자리였다 — 지나가는 한 마디가 마주 선 사람 위에 겹쳐 뜨면 둘 다 안 읽힌다.
+        /// 1.6m 앞에서 화면 세로의 절반은 0.92m 이므로, 0.66 은 <b>위쪽 여백</b>께다.
+        /// 방문(榜文)이 붙는 자리가 눈앞이 아니라 문 위인 것과 같다.
+        /// </summary>
+        private const float Height = 0.66f;
 
         private struct Line
         {
@@ -40,6 +47,44 @@ namespace IMUNROK.Common
 
         private static readonly Dictionary<string, Line> _lines = new Dictionary<string, Line>();
         private static string _shown;
+
+        /// <summary>
+        /// <b>종이를 읽는 동안에는 급한 것만 남긴다.</b>
+        ///
+        /// 문서를 펴 들면 방은 어두워지고 눈은 종이에 붙는다. 그 위에 「소리 ■■■···」
+        /// 같은 줄이 계속 떠 있으면 <b>읽을 것과 살필 것이 한 화면에서 다툰다</b> —
+        /// 둘 다 제대로 안 읽힌다. 그러니 형편을 알리는 줄은 물러난다.
+        ///
+        /// 다만 <b>다 물릴 수는 없다.</b> 「하인이 오고 있다」는 알리는 말이 아니라
+        /// <b>지금 움직이라는 말</b>이다. 종이를 보느라 그것을 못 보고 붙잡히면
+        /// 그건 연출이 아니라 함정이다. 그래서 급한 줄은 읽는 동안에도 남는다.
+        /// </summary>
+        private static bool _quiet;
+
+        /// <summary>읽는 동안에도 남아야 하는 줄들 — 반응해야 하는 것.</summary>
+        private static readonly HashSet<string> Urgent = new HashSet<string> { "인기척", "눕기" };
+
+        /// <summary>종이·수첩을 펴고 접을 때 부른다. 켜면 형편 줄이 물러난다.</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void HookScenes()
+        {
+            // 씬을 갈아 들어가면(Single) 지난 씬의 안내 줄을 걷는다 — 누운 채 출도하면 「Space — 일어난다」가,
+            // 붙들리면 「하인과 마주쳤다」가 관아까지 따라왔다(2026-09-15). 덧불러오기(Additive)는 그대로 둔다.
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private static void OnSceneLoaded(UnityEngine.SceneManagement.Scene s, UnityEngine.SceneManagement.LoadSceneMode mode)
+        {
+            if (mode == UnityEngine.SceneManagement.LoadSceneMode.Single) HideAll();
+        }
+
+        public static void Quiet(bool on)
+        {
+            if (_quiet == on) return;
+            _quiet = on;
+            Redraw();
+        }
 
         /// <summary>한 줄을 적는다. 같은 임자가 다시 적으면 그 줄만 바뀐다.</summary>
         public static void Set(string owner, int order, string text)
@@ -79,7 +124,10 @@ namespace IMUNROK.Common
             }
 
             // 줄이 몇 개 안 되므로 그때그때 골라 쓴다 — 목록을 따로 들고 있을 것 없다
-            var sorted = new List<KeyValuePair<string, Line>>(_lines);
+            var sorted = new List<KeyValuePair<string, Line>>();
+            foreach (var kv in _lines)
+                if (!_quiet || Urgent.Contains(kv.Key)) sorted.Add(kv);
+            if (sorted.Count == 0) { _shown = null; WorldNotice.Hide(Key); return; }
             sorted.Sort((a, b) => a.Value.order.CompareTo(b.Value.order));
 
             var sb = new System.Text.StringBuilder();
@@ -91,7 +139,11 @@ namespace IMUNROK.Common
             string joined = sb.ToString();
             if (joined == _shown) return;
             _shown = joined;
-            WorldNotice.Show(Key, joined, Height);
+            // <b>바탕 없이 금물 글씨만.</b> 한지 종잇조각으로 두었더니 그것도 결국
+            // 네모라, 「마을 어귀에 닿았다」 한 줄에 판때기가 하나 붙어 나왔다.
+            // 창은 닫아야 하는 것이고, 이 판은 읽고 흘려보낼 한 마디다 —
+            // 글씨만 떴다 지면 그 말이 세상 위에 잠깐 얹힌 것으로 읽힌다.
+            WorldNotice.Show(Key, joined, Height, WorldNotice.Look.Gold);
         }
     }
 }

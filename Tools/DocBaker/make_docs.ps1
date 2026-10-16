@@ -14,6 +14,14 @@
 #            Fields: title, entries [{ text, hand 0|1, mark true|false }]
 #   burnt  - charred fragment on transparent background (half-burned letter).
 #            Fields: columns (text runs off where the paper is gone)
+#   file   - case file (사목): what the county clerk wrote down and could not settle.
+#            Korean and horizontal on purpose - it is read, not admired. The plea,
+#            the two men, the household, the question the office failed to answer,
+#            and a 未決 stamp struck across the foot. It carries NO method: what the
+#            answer hangs on is for the player to find.
+#            Fields: title, subtitle, filed, seal, stamp, cards [{mark,role,lines[]}],
+#                    tie [], pleaLabel, plea [], rosterLabel, roster [], rosterNote,
+#                    asksLabel, asks [], clerkNote
 param(
     [string]$ProjectRoot
 )
@@ -24,6 +32,49 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $ProjectRoot) { $ProjectRoot = (Resolve-Path (Join-Path $here '..\..')).Path }
 
 $docs = Get-Content (Join-Path $here 'docs.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+
+# ---------------------------------------------------------------------------
+# The same sheet, read out in Hangul.
+#
+# The player is handed a page of hanja and cannot read it. Printing a Korean
+# line underneath turns the document into a subtitle, and writing Korean ON the
+# paper wrecks it as a Joseon document. So we bake the sheet TWICE - once in
+# hanja and once, in exactly the same layout, in Korean - and the game shows the
+# Korean twin only through the magnifier. Look through the glass and the column
+# you are over turns into Korean; take the glass away and the hanja is back.
+#
+# A twin is baked for any document whose entries carry "ko" (and/or "titleKo").
+# Everything else about it - the ruling, the seal, the marks - is drawn by the
+# same code from the same fields, so the two sheets line up character-cell for
+# character-cell without anybody keeping two layouts in step by hand.
+$koDocs = @()
+foreach ($d in $docs) {
+    $hasKo = $false
+    if ($d.PSObject.Properties.Name -contains 'titleKo'    -and $d.titleKo)    { $hasKo = $true }
+    if ($d.PSObject.Properties.Name -contains 'columnsKo'  -and $d.columnsKo)  { $hasKo = $true }
+    if ($d.PSObject.Properties.Name -contains 'entries'    -and $d.entries) {
+        foreach ($e in $d.entries) {
+            if ($e.PSObject.Properties.Name -contains 'ko' -and $e.ko) { $hasKo = $true }
+        }
+    }
+    if (-not $hasKo) { continue }
+
+    $c = $d | ConvertTo-Json -Depth 12 | ConvertFrom-Json
+    $c.file = $d.file + '_ko'
+    if ($d.PSObject.Properties.Name -contains 'titleKo'   -and $d.titleKo)   { $c.title = $d.titleKo }
+    if ($d.PSObject.Properties.Name -contains 'columnsKo' -and $d.columnsKo) { $c.columns = $d.columnsKo }
+    if ($c.PSObject.Properties.Name -contains 'entries' -and $c.entries) {
+        for ($i = 0; $i -lt @($c.entries).Count; $i++) {
+            $src = @($d.entries)[$i]
+            if ($src.PSObject.Properties.Name -contains 'ko' -and $src.ko) { @($c.entries)[$i].text = $src.ko }
+        }
+    }
+    $koDocs += $c
+}
+if ($koDocs.Count -gt 0) {
+    Write-Host ("  hangul twins: {0}" -f $koDocs.Count)
+    $docs = @($docs) + $koDocs
+}
 
 # Where a document lands depends on whether it belongs to one case or to everybody.
 # No "case" field  -> shared props (the three petition sheets on the 조사청 board).
@@ -105,6 +156,41 @@ foreach ($d in $docs) {
     if ($d.PSObject.Properties.Name -contains 'entries' -and $d.entries) {
         foreach ($e in $d.entries) { $allText += $e.text }
     }
+    # the case file keeps its words in fields of its own - gather those too, or the
+    # face is chosen without ever seeing them and the sheet bakes full of tofu boxes.
+    foreach ($f in @('subtitle','filed','stamp','pleaLabel','rosterLabel','rosterNote','asksLabel','clerkNote')) {
+        if ($d.PSObject.Properties.Name -contains $f -and $d.$f) { $allText += $d.$f }
+    }
+    foreach ($f in @('roster','asks','tie','plea')) {
+        if ($d.PSObject.Properties.Name -contains $f -and $d.$f) { $allText += $d.$f }
+    }
+    if ($d.PSObject.Properties.Name -contains 'cards' -and $d.cards) {
+        foreach ($cd in $d.cards) { $allText += $cd.mark; $allText += $cd.role; $allText += $cd.lines }
+    }
+}
+
+# The two brushes never draw Hangul.
+#
+# The hands sign the LEDGER ENTRIES, and those are hanja from end to end. The Hangul
+# in this pile belongs to the case sheets, which are print and are drawn by $fontName.
+# Testing a brush against all of it therefore asks it for letters it will never be
+# handed - and every brush face here was cut for Chinese, so it carries no Hangul at
+# all. It fails on the first syllable, HCR Batang covers everything, and the picker
+# hands Deok-gu's brush to the same face that prints the office ledgers.
+#
+# Which quietly ate the clue. J06 is "the hand changes a month ago"; if the trained
+# hand and the printed hand are one font, the sheet has nothing to show. So the
+# brushes are measured against the hanja only.
+$handText = @()
+foreach ($t in $allText) {
+    $sb = New-Object System.Text.StringBuilder
+    foreach ($ch in $t.ToCharArray()) {
+        $c = [int]$ch
+        if ($c -ge 0xAC00 -and $c -le 0xD7A3) { continue }   # 가~힣
+        if ($c -ge 0x3130 -and $c -le 0x318F) { continue }   # ㄱ~ㅣ
+        [void]$sb.Append($ch)
+    }
+    if ($sb.Length -gt 0) { $handText += $sb.ToString() }
 }
 
 # Which of those characters a face cannot draw. Repo fonts were read straight from
@@ -179,10 +265,10 @@ function Pick-Face($cands, $texts, $exclude, $mustCoverAll) {
 $fontName = Pick-Face @('tkFangSong','LXGW WenKai KR','LXGW WenKai TC','Ma Shan Zheng','HCR Batang','Batang','Gungsuh') $allText $null $false
 if (-not $fontName) { $fontName = 'Batang' }
 
-$fontHand = Pick-Face @('Bakudai','LXGW WenKai KR','Ma Shan Zheng','HCR Batang','Batang') $allText $null $false
+$fontHand = Pick-Face @('Bakudai','LXGW WenKai KR','Ma Shan Zheng','HCR Batang','Batang') $handText $null $false
 if (-not $fontHand) { $fontHand = $fontName }
 
-$fontAlt = Pick-Face @('AbbrFesFont','Long Cang','Liu Jian Mao Cao','Zhi Mang Xing','Yuji Mai','LXGW WenKai TC','BatangChe') $allText $fontHand $false
+$fontAlt = Pick-Face @('AbbrFesFont','Long Cang','Liu Jian Mao Cao','Zhi Mang Xing','Yuji Mai','LXGW WenKai TC','BatangChe') $handText $fontHand $false
 if (-not $fontAlt) {
     $fontAlt = $fontName
     Write-Host "  ! only one face draws every character - the two hands will differ by wobble alone."
@@ -208,7 +294,59 @@ Report-MissingGlyphs $fontName $allText
 if ($fontHand -ne $fontName) { Report-MissingGlyphs $fontHand $allText }
 if ($fontAlt -ne $fontName -and $fontAlt -ne $fontHand) { Report-MissingGlyphs $fontAlt $allText }
 
+# ---------------------------------------------------------------------------
+# The same two hands, in Hangul.
+#
+# The hanja brushes (Bakudai, AbbrFesFont) were cut for Chinese and carry no Hangul
+# at all. On the Korean twin every glyph therefore fell back to ONE substitute face -
+# so the forged stretch and the master's stretch came out in the same letters, and the
+# whole clue of J06 ("the hand changes a month ago") was invisible exactly where the
+# player can finally read the sheet.
+#
+# The wobble still differed (size, drift, watery ink, double-stamping), but wobble
+# alone on identical letters reads as "badly printed", not as "a different person".
+#
+# So the Korean twin gets its own three faces, chosen against Hangul:
+#   ko print    - the office's own book. Even, set, no wobble.
+#   ko Deok-gu  - a brush face (Gungsuh is 궁서: a writing-brush hand).
+#   ko Bok-dong - a DIFFERENT face from Deok-gu's, whatever else is on the machine.
+#                 Paired with the wobble it already gets, two people now show.
+$koText = @()
+foreach ($t in $allText) {
+    $sb = New-Object System.Text.StringBuilder
+    foreach ($ch in $t.ToCharArray()) {
+        $c = [int]$ch
+        if (($c -ge 0xAC00 -and $c -le 0xD7A3) -or ($c -ge 0x3130 -and $c -le 0x318F) -or $c -lt 0x80) {
+            [void]$sb.Append($ch)
+        }
+    }
+    if ($sb.Length -gt 0) { $koText += $sb.ToString() }
+}
+# NOTE: font family names come back LOCALISED. On this Korean Windows the collection
+# reports 궁서 / 바탕체 / 함초롬바탕 - never Gungsuh / BatangChe / HCR Batang. Listing
+# only the English spellings found nothing, every pick fell through to the print face,
+# and the twin came out in one hand again. Both spellings are listed; Pick-Face skips
+# whatever is not installed, so the same list works on either machine.
+# The office face is 궁서 too. 조선100년체 read as a typeface - even, geometric, a
+# sign-painter's letter - and on a deed title (별급문기) it stood out as "a font" rather
+# than as brushwork. 궁서 is the palace brush script the office would actually have used.
+$script:fontNameKo = Pick-Face @('궁서','Gungsuh','조선100년체','Chosun Centennial','함초롬바탕','HCR Batang','바탕','Batang') $koText $null $false
+if (-not $script:fontNameKo) { $script:fontNameKo = $fontName }
+
+# Deok-gu: 궁서 is a writing-brush face - twenty years of a trained hand.
+$script:fontHandKo = Pick-Face @('궁서','Gungsuh','조선100년체','Chosun Centennial','바탕','Batang') $koText $null $false
+if (-not $script:fontHandKo) { $script:fontHandKo = $script:fontNameKo }
+
+# Bok-dong: a plain block serif, not a brush. He never had a scholar's schooling, and
+# it is the wobble (size, drift, watery ink) that finishes the difference.
+$script:fontAltKo = Pick-Face @('바탕체','BatangChe','함초롬바탕','HCR Batang','조선100년체','굴림체','Gulim') $koText $script:fontHandKo $false
+if (-not $script:fontAltKo) {
+    $script:fontAltKo = $script:fontHandKo
+    Write-Host "  ! only one Hangul face here - the two hands on the Korean twin differ by wobble alone."
+}
+
 Write-Host "print: $fontName   Deok-gu: $fontHand   Bok-dong: $fontAlt"
+Write-Host ("ko   : {0}   Deok-gu: {1}   Bok-dong: {2}" -f $script:fontNameKo, $script:fontHandKo, $script:fontAltKo)
 Write-Host "out : $sharedDir  (+ per-case folders)"
 
 $px = [System.Drawing.GraphicsUnit]::Pixel
@@ -369,6 +507,9 @@ function Paint-Seal($g, $seal, $sx, $sy, $size, $fontName, $rng) {
 # ---------------------------------------------------------------- kinds
 
 function Draw-Doc($g, $doc, $w, $h, $fontName, $rng) {
+    # The hanja faces carry no Hangul. Without this the Korean twin of a deed fell back to
+    # whatever sans face GDI+ found (a plain gothic), so 별급문기 printed like a signboard.
+    if ($doc.file -like '*_ko') { $fontName = $script:fontNameKo }
     $ink     = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(238, 38, 30, 24))
     $inkSoft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(210, 52, 42, 32))
 
@@ -467,9 +608,195 @@ function Draw-Pressed($g, $doc, $w, $h, $fontName, $rng) {
     $bodyFont.Dispose(); $shade.Dispose(); $glint.Dispose()
 }
 
+# A case file (사목) - and it matters WHO wrote it.
+#
+# The clerk of the county office did. He took the plea, stood the two men side by
+# side, failed to tell them apart, stamped the sheet 未決 and sent it up. That is
+# the whole of what this paper knows, and the stamp is the reason the inspector is
+# standing here at all.
+#
+# The draft before this one had grown into a solution: it listed the household
+# slave by name, and it told the reader that the answer lay in the documents and in
+# marks on the body. Both of those are things the player is supposed to FIND. A
+# briefing that hands over the method is not a briefing, it is the ending read out
+# in advance. So this sheet carries only the plea, the two claims, what the office
+# could see with its own eyes, and the question it could not answer.
+#
+# Fields: title, subtitle, filed, seal, stamp,
+#         cards [{mark, role, lines[]}], tie[],
+#         pleaLabel, plea[],
+#         rosterLabel, roster[], rosterNote,
+#         asksLabel, asks[], clerkNote
+function Draw-File($g, $doc, $w, $h, $fontName, $rng) {
+    $ink     = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(240, 36, 28, 22))
+    $inkSoft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(206, 68, 56, 42))
+    $inkFar  = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(158, 94, 78, 60))
+    $red     = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(226, 150, 44, 34))
+    $rule    = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(180, 54, 42, 30), 3)
+    $hair    = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(108, 84, 68, 50), 2)
+
+    $M = 84
+    $inner = $w - $M * 2
+    $kor = $script:fallbackName
+
+    function Line($text, $font, $brush, $x, $y) {
+        if (-not $text) { return }
+        $g.DrawString($text, $font, $brush, $x, $y)
+    }
+    function Mid($text, $font, $brush, $cx, $y) {
+        if (-not $text) { return }
+        $s = $g.MeasureString($text, $font)
+        $g.DrawString($text, $font, $brush, ($cx - $s.Width / 2), $y)
+    }
+    function Right($text, $font, $brush, $rx, $y) {
+        if (-not $text) { return }
+        $s = $g.MeasureString($text, $font)
+        $g.DrawString($text, $font, $brush, ($rx - $s.Width), $y)
+    }
+
+    # ---- head ---------------------------------------------------------
+    $titleFont = New-Face $fontName 84 ([System.Drawing.FontStyle]::Regular)
+    Mid $doc.title $titleFont $ink ($w / 2) 42
+
+    $subFont = New-Face $kor 32 ([System.Drawing.FontStyle]::Regular)
+    Mid (Get-Field $doc 'subtitle' '') $subFont $inkSoft ($w / 2) 160
+
+    $g.DrawLine($rule, $M, 218, ($w - $M), 218)
+    $smallFont = New-Face $kor 25 ([System.Drawing.FontStyle]::Regular)
+    Right (Get-Field $doc 'filed' '') $smallFont $inkFar ($w - $M) 226
+
+    # ---- the two men ---------------------------------------------------
+    $cards = Get-Field $doc 'cards' @()
+    $cardW = 388; $cardH = 236
+    $cardY = 274
+    $gapX  = $inner - $cardW * 2
+    $markFont = New-Face $fontName 58 ([System.Drawing.FontStyle]::Regular)
+    $roleFont = New-Face $kor 26 ([System.Drawing.FontStyle]::Bold)
+    $cardFont = New-Face $kor 28 ([System.Drawing.FontStyle]::Regular)
+
+    for ($i = 0; $i -lt $cards.Count -and $i -lt 2; $i++) {
+        $x = $M + $i * ($cardW + $gapX)
+        $g.DrawRectangle($hair, $x, $cardY, $cardW, $cardH)
+        $cx = $x + $cardW / 2
+        Mid $cards[$i].mark $markFont $ink $cx ($cardY + 8)
+        Mid (Get-Field $cards[$i] 'role' '') $roleFont $red $cx ($cardY + 88)
+        $ly = $cardY + 130
+        foreach ($ln in $cards[$i].lines) {
+            Mid $ln $cardFont $inkSoft $cx $ly
+            $ly += 42
+        }
+    }
+
+    $tie = Get-Field $doc 'tie' @()
+    $g.DrawLine($hair, ($M + $cardW), ($cardY + $cardH / 2), ($M + $cardW + $gapX), ($cardY + $cardH / 2))
+    $tieY = $cardY + $cardH + 20
+    $tieFont  = New-Face $kor 33 ([System.Drawing.FontStyle]::Regular)
+    $tieFont2 = New-Face $kor 28 ([System.Drawing.FontStyle]::Regular)
+    if ($tie.Count -gt 0) { Mid $tie[0] $tieFont $ink ($w / 2) $tieY }
+    if ($tie.Count -gt 1) { Mid $tie[1] $tieFont2 $inkSoft ($w / 2) ($tieY + 42) }
+
+    # ---- the plea, in the man's own words ---------------------------------
+    # Set in from the margin and closed with quotation marks, because this is the one
+    # block on the sheet the office did not write - it only wrote it down.
+    $headFont = New-Face $kor 31 ([System.Drawing.FontStyle]::Bold)
+    $py = 632
+    Line (Get-Field $doc 'pleaLabel' '') $headFont $ink $M $py
+    $g.DrawLine($hair, $M, ($py + 44), ($w - $M), ($py + 44))
+    $pFont = New-Face $kor 30 ([System.Drawing.FontStyle]::Regular)
+    $ly = $py + 62
+    foreach ($q in (Get-Field $doc 'plea' @())) {
+        Line $q $pFont $inkSoft ($M + 46) $ly
+        $ly += 44
+    }
+    # a quiet vertical stroke down the left of the quotation
+    $g.DrawLine($hair, ($M + 20), ($py + 68), ($M + 20), ($ly - 8))
+
+    # ---- who is in the house -------------------------------------------
+    $ry = 830
+    Line (Get-Field $doc 'rosterLabel' '') $headFont $ink $M $ry
+    $g.DrawLine($hair, $M, ($ry + 44), ($w - $M), ($ry + 44))
+    $roster = Get-Field $doc 'roster' @()
+    $rFont = New-Face $kor 32 ([System.Drawing.FontStyle]::Regular)
+    if ($roster.Count -gt 0) {
+        $step = $inner / $roster.Count
+        for ($i = 0; $i -lt $roster.Count; $i++) {
+            Mid $roster[$i] $rFont $inkSoft ($M + ($i + 0.5) * $step) ($ry + 60)
+        }
+    }
+    $noteFont = New-Face $kor 26 ([System.Drawing.FontStyle]::Regular)
+    Mid (Get-Field $doc 'rosterNote' '') $noteFont $inkFar ($w / 2) ($ry + 112)
+
+    # ---- what the office could not answer ---------------------------------
+    $ay = 1010
+    Line (Get-Field $doc 'asksLabel' '') $headFont $ink $M $ay
+    $g.DrawLine($rule, $M, ($ay + 44), ($w - $M), ($ay + 44))
+    $aFont = New-Face $kor 33 ([System.Drawing.FontStyle]::Regular)
+    $ly = $ay + 64
+    foreach ($a in (Get-Field $doc 'asks' @())) {
+        Line $a $aFont $ink ($M + 12) $ly
+        $ly += 52
+    }
+
+    $clerkFont = New-Face $kor 26 ([System.Drawing.FontStyle]::Regular)
+    Line (Get-Field $doc 'clerkNote' '') $clerkFont $inkFar ($M + 12) ($ly + 12)
+
+    # ---- the stamp -------------------------------------------------------
+    # 未決 - not settled. The county magistrate could not tell them apart, so the
+    # paper went up. This one mark is why an inspector is standing in the village.
+    # Struck askew and a shade off-register, the way a hand stamps a hundred of these.
+    $stamp = Get-Field $doc 'stamp' ''
+    if ($stamp) {
+        $state = $g.Save()
+        $g.TranslateTransform(724, 1176)
+        $g.RotateTransform(-9.5)
+        $size = 196
+        $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(212, 168, 46, 36), 11)
+        $g.DrawRectangle($pen, 0, 0, $size, $size)
+        $inner2 = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(150, 168, 46, 36), 3)
+        $g.DrawRectangle($inner2, 14, 14, ($size - 28), ($size - 28))
+        $sf = New-Face $fontName 96 ([System.Drawing.FontStyle]::Bold)
+        $sb2 = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(220, 168, 46, 36))
+        $i2 = 0
+        foreach ($ch in $stamp.ToCharArray()) {
+            $s = [string]$ch
+            $cs = $g.MeasureString($s, $sf)
+            $g.DrawString($s, $sf, $sb2, ($size / 2 - $cs.Width / 2), (12 + $i2 * 90))
+            $i2++
+        }
+        # ink does not take evenly on hanji - eat holes out of it
+        for ($i = 0; $i -lt 240; $i++) {
+            $r = $rng.Next(2, 10)
+            $c = [System.Drawing.Color]::FromArgb($rng.Next(40, 120), 231, 217, 186)
+            $br = New-Object System.Drawing.SolidBrush($c)
+            $g.FillEllipse($br, $rng.Next(-6, $size), $rng.Next(-6, $size), $r, $r)
+            $br.Dispose()
+        }
+        $g.Restore($state)
+        $pen.Dispose(); $inner2.Dispose(); $sf.Dispose(); $sb2.Dispose()
+    }
+
+    Paint-Seal $g (Get-Field $doc 'seal' '') ($M + 8) 1300 112 $fontName $rng
+
+    $titleFont.Dispose(); $subFont.Dispose(); $smallFont.Dispose()
+    $markFont.Dispose(); $roleFont.Dispose(); $cardFont.Dispose()
+    $tieFont.Dispose(); $tieFont2.Dispose(); $headFont.Dispose()
+    $pFont.Dispose(); $rFont.Dispose(); $noteFont.Dispose(); $aFont.Dispose(); $clerkFont.Dispose()
+    $ink.Dispose(); $inkSoft.Dispose(); $inkFar.Dispose(); $red.Dispose()
+    $rule.Dispose(); $hair.Dispose()
+}
+
 # Account book. Entries run right to left, one per ruled column.
 # hand 1 is a different font, size and jitter - that difference IS the clue.
 function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontHand, $fontAlt, $rng) {
+    # The Korean twin is drawn by the same code from the same fields - only the three
+    # faces change. Swapping here (and not at the call) keeps the ruling, the column
+    # steps and the marks identical between the two sheets, which is what lets the
+    # magnifier lay one over the other.
+    if ($doc.file -like '*_ko') {
+        $fontName = $script:fontNameKo
+        $fontHand = $script:fontHandKo
+        $fontAlt  = $script:fontAltKo
+    }
     $ink     = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(238, 38, 30, 24))
     $inkSoft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(210, 52, 42, 32))
     # Bok-dong writes with a thinner, waterier brush than the master's - it is not
@@ -493,6 +820,10 @@ function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontHand, $fontAlt, $rng) {
     foreach ($e in $entries) { $texts += $e.text }
     $maxUnits = Measure-Units $texts
     $charStep = [Math]::Min(66.0, ($gridBottom - $gridTop - 90) / $maxUnits)
+    # Bok-dong's hand steps 1.10x wider (below). Fit the grid to HIS pace when he wrote
+    # any of it, or his longest column runs out through the bottom rule - the Korean
+    # twin of the household return did exactly that once 본관 was added to the head line.
+    foreach ($e in $entries) { if ((Get-Field $e 'hand' 0) -eq 1) { $charStep = $charStep / 1.10; break } }
     $fontSize = [Math]::Max(16.0, $charStep * 0.80)
     Write-Host ("  {0}: ledger, {1} entries, charStep {2:N1}, font {3:N1}" -f $doc.file, $count, $charStep, $fontSize)
 
@@ -612,8 +943,20 @@ foreach ($doc in $docs) {
     if ($kind -eq 'ledger') { $W = 1448; $H = 1024 }
     elseif ($kind -eq 'burnt') { $W = 1024; $H = 1024 }
     elseif ($kind -eq 'pressed') { $W = 1024; $H = 1024 }
-    else { $W = 1024; $H = 1448 }
-    $OUT = 1024
+    else { $W = 1024; $H = 1448 }        # doc, file - A3 portrait
+
+    # Keep the shape it was drawn at.
+    #
+    # This used to squeeze every sheet into a 1024 square, and DocumentView sizes the
+    # quad from the TEXTURE - so an A3 petition came out 30% shorter than it was drawn
+    # and a ledger spread came out 30% narrower. The view already means to preserve the
+    # proportion ("a landscape document stretched to a square makes the writing
+    # unreadable" is written right there); it was the bake that took it away.
+    #
+    # Not a power of two any more, but both sides stay multiples of four, which is all
+    # DXT needs. 1024x1448 and 1448x1024 both qualify.
+    $OUTW = $W
+    $OUTH = $H
 
     $canvas = New-Canvas $W $H
     $bmp = $canvas.bmp
@@ -626,6 +969,9 @@ foreach ($doc in $docs) {
     }
     elseif ($kind -eq 'pressed') {
         Draw-Pressed $g $doc $W $H $fontName $rng
+    }
+    elseif ($kind -eq 'file') {
+        Draw-File $g $doc $W $H $fontName $rng
     }
     elseif ($kind -eq 'burnt') {
         # Body only - a scrap torn out of the middle of a letter has no title block.
@@ -654,6 +1000,19 @@ foreach ($doc in $docs) {
 
     # burnt: keep only what is inside the fragment outline, and scorch the rim.
     if ($kind -eq 'burnt') {
+        # <b>The outline must be the same sheet on every pass.</b>
+        #
+        # New-FragmentPath draws from the running rng, and how many draws have happened
+        # by now depends on how much text this page had. So the front, its Korean twin
+        # and its BACK each got a different tear - flip the scrap over and the hole was
+        # somewhere else, which reads as two pieces of paper rather than two sides of one.
+        #
+        # Seed from the base name (with _ko / _back taken off) so every face of one
+        # scrap tears the same way.
+        $baseName = $doc.file -replace '_(ko|back)$', ''
+        $seed = 0
+        foreach ($ch in $baseName.ToCharArray()) { $seed = ($seed * 31 + [int]$ch) % 2147483647 }
+        $rng = New-Object System.Random($seed)
         $path = New-FragmentPath $W $H $rng
         $frag = New-Object System.Drawing.Bitmap($W, $H)
         $fg   = [System.Drawing.Graphics]::FromImage($frag)
@@ -705,12 +1064,12 @@ foreach ($doc in $docs) {
     $docDir = Get-OutDir $doc
     if (-not (Test-Path $docDir)) { New-Item -ItemType Directory -Force $docDir | Out-Null }
     $outPath = Join-Path $docDir ($doc.file + '.png')
-    $pot = New-Object System.Drawing.Bitmap($OUT, $OUT)
+    $pot = New-Object System.Drawing.Bitmap($OUTW, $OUTH)
     $pg  = [System.Drawing.Graphics]::FromImage($pot)
     $pg.Clear([System.Drawing.Color]::Transparent)
     $pg.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
     $pg.PixelOffsetMode   = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-    $pg.DrawImage($bmp, (New-Object System.Drawing.Rectangle(0, 0, $OUT, $OUT)))
+    $pg.DrawImage($bmp, (New-Object System.Drawing.Rectangle(0, 0, $OUTW, $OUTH)))
     $pot.Save($outPath, [System.Drawing.Imaging.ImageFormat]::Png)
     $pg.Dispose(); $pot.Dispose()
     Write-Host "  wrote $outPath"

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 #if ENABLE_INPUT_SYSTEM
@@ -41,6 +42,11 @@ namespace IMUNROK.Common
 
             [Tooltip("이 거리(m) 안에 있으면 '여기'로 보고 흐리게 그린다")]
             public float 여기 = 6f;
+
+            [Tooltip("<b>가자마자 앉는다.</b> 심문 자리처럼 「가서 앉는 것」이 한 짓인 데에 켠다 — " +
+                     "내려 놓고 다시 앉을 데를 찾게 하면, 가는 것과 앉는 것이 두 일이 되어 " +
+                     "무엇을 하러 왔는지가 흐려진다")]
+            public bool 앉힌다 = false;
         }
 
         public static TravelBoard Instance { get; private set; }
@@ -56,11 +62,16 @@ namespace IMUNROK.Common
         [Tooltip("옮겨 갈 때 눈을 감았다 뜨는 시간(초)")]
         [SerializeField] private float _blink = 0.45f;
 
-        [SerializeField] private Font _font;
+        // 낡은 판 시절의 글꼴 칸을 걷었다 — 글씨는 이제 꾸러미의 TMP 에셋 하나뿐이다
+        // (UiText ▸ UiSkin.Font). 인스펙터에 꽂아 두어도 아무 데도 안 쓰이는 칸이라,
+        // 남겨 두면 「여기서 글꼴을 바꿀 수 있다」는 거짓말이 된다.
         [SerializeField] private string _title = "어디로 가시겠소";
 
         private bool _unlocked;
         private bool _open;
+
+        /// <summary>오갈 판이 펴져 있나. 부르기 판이 이것을 보고 물러난다.</summary>
+        public bool IsOpen { get { return _open; } }
         private Canvas _canvas;
         private CanvasGroup _group;
         private WorldHudAnchor _anchor;
@@ -83,11 +94,27 @@ namespace IMUNROK.Common
         public void Open()
         {
             if (!_unlocked) return;
-            if (PlayerSeat.Instance != null && PlayerSeat.Instance.Seated)
-            {
-                SubtitleView.Show("", "앉은 채로는 못 간다. *일어서야* 한다.", "", false);
-                return;
-            }
+
+            // <b>앉았으면 일어서면서 편다.</b>
+            //
+            // 여태 여기서 「앉은 채로는 못 간다, 일어서야 한다」고 물렸다. 규칙으로는
+            // 맞는 말인데, 하는 사람 쪽에서 보면 <b>같은 뜻의 손짓을 두 번</b> 하는 일이다 —
+            // 딴 데로 가겠다고 지도를 폈으면 그것이 곧 일어서겠다는 말이다. 물려 놓고
+            // 스페이스를 누르게 하면 「지도가 안 열린다」로 읽힌다.
+            //
+            // 그래서 물리지 않고 <b>일으켜 세운 뒤</b> 편다. 앉는 것은 자리의 일이지
+            // 사람에게 붙어 다니는 것이 아니다.
+            //
+            // 2026-09-13 — <b>펴는 것으로는 안 일어난다. 옮겨 갈 때 일어난다</b>(<see cref="Go"/>).
+            // 펴자마자 일으켰더니, 심문 도중에 M 을 누르면 몸이 먼저 일어서고 — 심문창이 떠
+            // 있으면 지도는 그 프레임에 도로 접혀서 — 어디에도 안 갔는데 <b>앉음만 사라졌다</b>.
+            // 지도를 폈다가 그냥 접으면 그 자리에 그대로 앉아 있어야 한다.
+            //
+            // 묻던 중이면 창만 접는다. 불려 나온 사람은 그대로 서 있어서, 지도를 접고
+            // 이름표를 다시 누르면 곧바로 이어 묻는다(옮겨 가면 그때 물러간다).
+            var talking = InterrogationController.Active;
+            if (talking != null) talking.CloseFromUi();
+
             _open = true;
             Build();
             SetVisible(true);
@@ -133,6 +160,19 @@ namespace IMUNROK.Common
                 rig.position = s.자리.position + Vector3.up * eye;
                 rig.rotation = Quaternion.Euler(0f, s.자리.eulerAngles.y, 0f);
                 Physics.SyncTransforms();
+
+                // <b>앉는 자리는 가는 것으로 앉는다.</b> 어사가 심문 자리에 간다는 것은
+                // 곧 교의에 앉는다는 뜻이지, 그 앞에 서 본다는 뜻이 아니다.
+                // <b>앉은 채로 딴 데로 가지 않는다.</b>
+                //
+                // 심문 자리는 앉아서 가는 데지만, 거기서 문서고로 옮기면 앉은 몸 그대로
+                // 옮겨졌다 — 걸음이 잠긴 채라 서가 앞에 서서 스페이스를 눌러야 비로소
+                // 움직였다. 자리는 <b>그 자리의 것</b>이지 사람에게 붙어 다니는 것이 아니다.
+                if (PlayerSeat.Instance != null)
+                {
+                    if (s.앉힌다) { PlayerSeat.Instance.RestoreSeat(); PlayerSeat.Instance.Sit(); }
+                    else PlayerSeat.Instance.StandNow();
+                }
             });
         }
 
@@ -157,16 +197,15 @@ namespace IMUNROK.Common
         {
             if (_canvas == null)
             {
-                var go = new GameObject("VR_오갈데", typeof(Canvas));
+                var go = new GameObject("오갈데_판", typeof(Canvas));
                 _anchor = go.AddComponent<WorldHudAnchor>();
                 _anchor.Configure(WorldHudAnchor.Placement.Front);
                 _anchor.SetDistance(1.3f, -0.10f);
                 _canvas = go.GetComponent<Canvas>();
                 _group = go.AddComponent<CanvasGroup>();
-                _font = UiFont.Resolve(_font);
                 _row = NewRect("줄", new Vector2(0f, -40f), new Vector2(1200f, 110f), go.transform);
                 var t = NewText("제목", _title, new Vector2(0f, 70f), new Vector2(1200f, 70f), go.transform, 34);
-                t.color = new Color(0.98f, 0.96f, 0.92f);
+                t.color = UiLook.Text;
             }
 
             foreach (var c in _chips) if (c != null) Destroy(c);
@@ -186,7 +225,8 @@ namespace IMUNROK.Common
 
                 var rt = NewRect("갈곳" + i, new Vector2(x0 + i * (w + gap), 0f), new Vector2(w, 100f), _row);
                 var bg = rt.gameObject.AddComponent<Image>();
-                bg.color = here ? new Color(0.09f, 0.09f, 0.09f, 0.5f) : new Color(0.16f, 0.13f, 0.10f, 0.93f);
+                bg.color = here ? UiLook.With(UiLook.Panel, 0.50f)
+                                : UiLook.With(UiLook.Deep(UiLook.Wood, 0.35f), 0.93f);
                 var btn = rt.gameObject.AddComponent<Button>();
                 btn.targetGraphic = bg;
                 var captured = s;
@@ -207,18 +247,15 @@ namespace IMUNROK.Common
             return rt;
         }
 
-        private Text NewText(string name, string content, Vector2 pos, Vector2 size, Transform parent, int fs)
+        /// <summary>
+        /// 글 한 줄. <b>낡은 UI.Text 에서 TMP 로 옮겼다</b>(<see cref="UiText"/>) —
+        /// 견우 판과 같은 붓으로 그려야 한 게임의 화면으로 읽힌다.
+        /// </summary>
+        private TextMeshProUGUI NewText(string name, string content, Vector2 pos, Vector2 size,
+                                        Transform parent, float fs)
         {
-            var rt = NewRect(name, pos, size, parent);
-            var t = rt.gameObject.AddComponent<Text>();
-            t.font = _font;
-            t.fontSize = fs;
-            t.color = new Color(0.98f, 0.96f, 0.92f);
-            t.alignment = TextAnchor.MiddleCenter;
-            t.horizontalOverflow = HorizontalWrapMode.Overflow;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
-            t.raycastTarget = false;
-            t.text = content;
+            var t = UiText.New(name, content, pos, size, parent, fs, TextAnchor.MiddleCenter, UiLook.Text);
+            UiText.Wrap(t, false);
             return t;
         }
     }

@@ -22,7 +22,7 @@ namespace IMUNROK.Ui
         /// <summary>씬에서 멀찍이 떨어진 무대 자리. 본 카메라 far(≤3000)보다 멀다.</summary>
         public static readonly Vector3 StageOrigin = new Vector3(5000f, 5000f, 5000f);
 
-        const int RtSize = 1024;   // 전체 화면 조사에서 크게 띄우므로 넉넉히 (2026-08-25)
+        public const int RtSize = 1024;   // 전체 화면 조사에서 크게 띄우므로 넉넉히 (2026-08-25)
 
         Transform stage;      // 무대 뿌리 (조명·카메라·모델의 부모)
         Transform pivot;      // 모델이 매달리는 회전 축 — 드래그가 이걸 돌린다
@@ -175,7 +175,7 @@ namespace IMUNROK.Ui
         }
 
         // ── 목록 칸에 붙일 작은 그림 ──────────────────────────
-        const int ThumbSize = 256;
+        public const int ThumbSize = 256;
         readonly System.Collections.Generic.Dictionary<IUiItem, Texture2D> thumbs =
             new System.Collections.Generic.Dictionary<IUiItem, Texture2D>();
 

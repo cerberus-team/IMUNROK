@@ -41,6 +41,10 @@ namespace IMUNROK.Common.Editor
             ("T_Doc_Case2_Seocheon", false, SharedFolder),   // 제2사건 · 서천꽃밭 — 첩보(牒報)
             ("T_Doc_Case3_Gyeonu",   false, SharedFolder),   // 제3사건 · 견우직녀 — 전령(傳令)
 
+            // 제1사건 사건 파일 — 현장에 들어서며 받는 한 장(事目).
+            // 봉서는 "왜 왔는가"고 이것은 "무엇을 밝히는가"다. 사건 전용이라 옹고집 폴더로.
+            ("T_Doc_Case1_Field",    false, OnggojipFolder),  // 제1사건 · 사목(事目) — 두 얼굴·집안·살필 것
+
             // 제1사건 잠행 단서 — 옹고집 전용
             ("T_Doc_J06_Jangbu",   false, OnggojipFolder),   // J06 전조기 — 최근 두 줄만 필적이 다르다
             ("T_Doc_J07_Mulmok",   false, OnggojipFolder),   // J07 물목기 — 최근 두 줄에만 수결(押)
@@ -48,6 +52,10 @@ namespace IMUNROK.Common.Editor
             ("T_Doc_J09_Jeungseo", false, OnggojipFolder),   // J09 수표 — 미회수, 다른 고을
             ("T_Doc_J11_Byeolgeup",false, OnggojipFolder),   // J11 별급문기 — '오래 부린 종 복동에게'
             ("T_Doc_J10_Seochal",  true,  OnggojipFolder),   // J10 타다 만 서찰 조각 — 가장자리가 뚫려 있다
+            // <b>뒷면도 굽는다.</b> 앞이 타서 없어진 조각인데 뒤가 백지면 종이 두 장이 된다.
+            // 언간은 접어 겉에 갈 곳만 적으므로 여기서 새로 알 것은 없다 — 뒤집어 보는
+            // 손에 「그래도 뒤가 있다」를 돌려주는 것이 이 한 장의 몫이다.
+            ("T_Doc_J10_Seochal_back", true, OnggojipFolder), // J10 뒤 — 겉에 적힌 갈 곳
             ("T_Doc_J12_Hojeok",   false, OnggojipFolder),   // J12 호적대장 — 관리의 손. 복동이 살아 있다
             ("T_Doc_J13_Hogu",     false, OnggojipFolder),   // J13 호구단자 — 집안 사람의 손. 복동이 죽었다
             ("T_Doc_J06_Yeonseup", false, OnggojipFolder),   // J06 보강 — 위조를 연습한 눌린 자국. 돋보기로만 보인다
@@ -60,6 +68,28 @@ namespace IMUNROK.Common.Editor
             ("T_Doc_G02_Hogu_Wonbon",   false, OnggojipFolder),  // G02 관아가 받은 호구단자 — 집 것과 같은 손
             ("T_Doc_G03_Ipan",          false, OnggojipFolder),  // G03 입안대장 — 별급문기 사본, 면천 기록 없음
             ("T_Doc_G04_Hwansang",      false, OnggojipFolder),  // G04 환상대장 — 한 달간 소작료 인하
+            ("T_Doc_G12_Myeoncheon",    false, OnggojipFolder),  // G12 면천 입안 — 입안대장에서 뜯겨 서가 뒤에 숨은 장
+            ("T_Doc_G14_Soji",          false, OnggojipFolder),  // G14 소지 — 옹당촌 백성들이 갑리를 호소한 것
+
+            // <b>종이의 뒷면</b> — Tools/DocBaker/make_backs.py 가 앞면에서 굽는다.
+            // 한지는 얇아 뒤집으면 앞글이 거울에 비친 채 흐리게 배어난다. 민 한지빛 한 장을
+            // 보이면 종이가 아니라 판자다(수첩의 「눌러서 뒤집는다」가 그랬다).
+            // 앞면을 다시 구웠으면 make_backs.py 도 다시 돌린다.
+            ("T_Doc_Case1_Field_back",       false, OnggojipFolder),
+            ("T_Doc_J06_Jangbu_back",        false, OnggojipFolder),
+            ("T_Doc_J06_Yeonseup_back",      false, OnggojipFolder),
+            ("T_Doc_J07_Mulmok_back",        false, OnggojipFolder),
+            ("T_Doc_J08_Chayong_back",       false, OnggojipFolder),
+            ("T_Doc_J09_Jeungseo_back",      false, OnggojipFolder),
+            ("T_Doc_J11_Byeolgeup_back",     false, OnggojipFolder),
+            ("T_Doc_J12_Hojeok_back",        false, OnggojipFolder),
+            ("T_Doc_J13_Hogu_back",          false, OnggojipFolder),
+            ("T_Doc_G01_Hojeok_Wonbon_back", false, OnggojipFolder),
+            ("T_Doc_G02_Hogu_Wonbon_back",   false, OnggojipFolder),
+            ("T_Doc_G03_Ipan_back",          false, OnggojipFolder),
+            ("T_Doc_G04_Hwansang_back",      false, OnggojipFolder),
+            ("T_Doc_G12_Myeoncheon_back",    false, OnggojipFolder),
+            ("T_Doc_G14_Soji_back",          false, OnggojipFolder),
         };
 
         /// <summary>
@@ -67,6 +97,43 @@ namespace IMUNROK.Common.Editor
         /// 그림은 Tools/DocBaker/make_tool_icons.ps1 이 그리고, 결과는 ToolDef 에셋에 이미 연결돼 있다.
         /// 문서와 달리 UI라서 PNG도 git에 들어간다(작고, 팀원이 굽지 않아도 보여야 한다).
         /// </summary>
+        /// <summary>
+        /// <b>단서 그림 표(ClueArtIndex)를 채운다</b> — 이어하기가 수첩 카드의 종이·그림·모형을 이름으로 되찾는 표.
+        /// 문서를 새로 구우면 한 번 더 누른다(굽기 메뉴 끝에서도 부른다).
+        /// </summary>
+        [MenuItem("이문록/수첩/단서 그림 표 채우기")]
+        public static void FillClueArtIndex()
+        {
+            const string path = "Assets/Resources/" + IMUNROK.Common.ClueArtIndex.ResourceName + ".asset";
+            var idx = AssetDatabase.LoadAssetAtPath<IMUNROK.Common.ClueArtIndex>(path);
+            if (idx == null)
+            {
+                idx = ScriptableObject.CreateInstance<IMUNROK.Common.ClueArtIndex>();
+                AssetDatabase.CreateAsset(idx, path);
+            }
+            var tex = new System.Collections.Generic.List<Texture2D>();
+            foreach (var g in AssetDatabase.FindAssets("t:Texture2D", new[] { "Assets/_Project" }))
+            {
+                string p = AssetDatabase.GUIDToAssetPath(g);
+                string n = Path.GetFileNameWithoutExtension(p);
+                if (!(n.StartsWith("T_Doc_") || n.StartsWith("T_Thumb_") || n.StartsWith("T_Clue_"))) continue;
+                var t = AssetDatabase.LoadAssetAtPath<Texture2D>(p);
+                if (t != null) tex.Add(t);
+            }
+            var models = new System.Collections.Generic.List<GameObject>();
+            foreach (var n in new[] { "복동_왼팔", "옹덕구_왼팔", "부서진자물쇠" })
+                foreach (var g in AssetDatabase.FindAssets(n + " t:Prefab"))
+                {
+                    var go = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(g));
+                    if (go != null && go.name == n) { models.Add(go); break; }
+                }
+            idx.그림 = tex.ToArray();
+            idx.모형 = models.ToArray();
+            EditorUtility.SetDirty(idx);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[단서 그림 표] 그림 " + tex.Count + " · 모형 " + models.Count);
+        }
+
         [MenuItem("이문록/에셋: 도구 아이콘 굽기")]
         public static void BakeToolIcons()
         {
@@ -167,8 +234,12 @@ namespace IMUNROK.Common.Editor
         }
 
         /// <summary>
-        /// VR용 임포트 설정. 1024 정사각(POT)이라 블록압축이 걸린다.
-        /// 알파가 필요한 것(타다 만 조각)은 DXT5/ASTC, 나머지는 절반 용량인 DXT1.
+        /// 임포트 설정. 알파가 필요한 것(타다 만 조각)은 DXT5/ASTC, 나머지는 절반 용량인 DXT1.
+        ///
+        /// <b>1024 로 조이지 않는다.</b> 문서는 그린 비율 그대로(세로 1024×1448,
+        /// 가로 1448×1024) 떨어진다 — 긴 변이 1448 이라 1024 로 조이면 유니티가
+        /// 724×1024 로 줄여 버려, 비율을 지키려고 한 일이 해상도만 깎고 끝난다.
+        /// 두 변 다 4의 배수라 이 크기 그대로 블록압축이 걸린다.
         /// </summary>
         private static bool ApplyImportSettings(string path, bool needsAlpha)
         {
@@ -188,14 +259,14 @@ namespace IMUNROK.Common.Editor
             ti.anisoLevel = 4;
             ti.wrapMode = TextureWrapMode.Clamp;
             ti.npotScale = TextureImporterNPOTScale.None;
-            ti.maxTextureSize = 1024;
+            ti.maxTextureSize = 2048;
             ti.textureCompression = TextureImporterCompression.Compressed;
 
             foreach (string platform in new[] { "Standalone", "Android" })
             {
                 var ps = ti.GetPlatformTextureSettings(platform);
                 ps.overridden = true;
-                ps.maxTextureSize = 1024;
+                ps.maxTextureSize = 2048;
                 ps.format = platform == "Android"
                     ? TextureImporterFormat.ASTC_6x6                                     // ASTC는 알파를 같이 담는다
                     : (needsAlpha ? TextureImporterFormat.DXT5 : TextureImporterFormat.DXT1);

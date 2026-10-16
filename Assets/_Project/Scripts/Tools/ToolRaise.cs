@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.XR;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -28,9 +27,8 @@ namespace IMUNROK.Common
     /// 여기서는 <b>지금 들어 올리고 있는가</b>만 답한다. 무엇이 어떻게 움직일지는
     /// 도구마다 제가 정한다.
     ///
-    /// <b>오른쪽 단추는 종이를 쥐고 있을 때만</b> 이 손짓이 된다. 평소에는 시점
-    /// 회전이 물고 있어서, 둘이 겹치면 도구를 올리려다 화면이 같이 돌아간다.
-    /// 종이를 쥔 동안에는 어차피 걷지도 방을 짚지도 않으므로 겹칠 일이 없다.
+    /// <b>오른쪽 단추로는 올리지 않는다.</b> 평소엔 시점 회전이 물고 있고, 종이를 쥔
+    /// 동안에만 내주던 것도 거뒀다 — 원치 않을 때 돋보기가 튀어나왔다.
     /// </summary>
     public static class ToolRaise
     {
@@ -42,12 +40,10 @@ namespace IMUNROK.Common
         {
             get
             {
-                if (Vr()) return true;
                 if (Typing.Now) return false;   // 치는 동안에는 도구가 안 올라온다
 #if ENABLE_INPUT_SYSTEM
-                var mouse = Mouse.current;
-                if (mouse != null && mouse.rightButton.isPressed && DocumentView.IsOpen) return true;
-
+                // 오른쪽 단추는 <b>안 쓴다</b>. 종이를 쥔 동안만 내주었는데, 종이를 돌려 보다
+                // 손이 스치면 돋보기가 불쑥 올라왔다. 들어 올리는 손짓은 F 하나다.
                 var kb = Keyboard.current;
                 if (kb != null)
                 {
@@ -59,30 +55,5 @@ namespace IMUNROK.Common
             }
         }
 
-        /// <summary>
-        /// <b>헤드셋에서는 이 손짓이 아예 없었다.</b> 돋보기를 손에 들 수는 있는데
-        /// 눈에 댈 길이 없어, 들어 봐야 아무 일도 안 나는 물건이었다 — F 키와
-        /// 오른쪽 마우스 단추가 유일한 길이었고 헤드셋을 쓰면 그 둘을 누를 손이 없다.
-        /// "돋보기를 어떻게 쓰는지 모르겠다"는 말이 이것이었다.
-        ///
-        /// <b>오른손 스틱을 누른다</b> — 왼손 스틱 누름이 일어서기이므로 짝이 맞고,
-        /// 아무도 안 쓰던 자리라 다투지 않는다.
-        ///
-        /// <b>종이를 쥐고 있을 때는 방아쇠로도 된다</b>. 책상에서 오른쪽 마우스 단추에
-        /// 걸어 둔 규칙과 같은 자리다 — 종이를 편 동안에는 방을 짚을 일이 없으니
-        /// 방아쇠가 놀고 있다. 다만 <b>단추를 겨누고 있을 때는 아니다</b>. 그 방아쇠는
-        /// 단추를 누르러 당긴 것이고, 그 김에 유리까지 올라오면 화면이 통째로 바뀐다.
-        /// </summary>
-        private static bool Vr()
-        {
-            var hand = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
-            if (!hand.isValid) return false;
-
-            bool v;
-            if (hand.TryGetFeatureValue(UnityEngine.XR.CommonUsages.primary2DAxisClick, out v) && v) return true;
-            if (DocumentView.IsOpen && !VRUiRay.AnyOnUi
-                && hand.TryGetFeatureValue(UnityEngine.XR.CommonUsages.triggerButton, out v) && v) return true;
-            return false;
-        }
     }
 }

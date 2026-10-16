@@ -5,7 +5,7 @@ namespace IMUNROK.Common
     /// <summary>
     /// 복동(가짜 옹덕구 甲) — 안내 NPC:
     ///   [문 앞/안쪽]에 서있기 → (맞이 대사 순번) → (뜸) 사랑방으로 앞장서 Walking → 도착해 서있기
-    /// 플레이어는 강제 이동 없이 알아서 따라감(VR 안전).
+    /// 플레이어는 강제 이동 없이 알아서 따라간다 — 걸음을 뺏지 않는다.
     ///
     /// 위치 규칙(WYSIWYG): 복동을 둔 자리 = 시작(맞이) 자리. _arriveSpot = 사랑방 도착 자리.
     /// _waypoints = 도착 전 순서대로 지날 길목(모서리 돌 때).
@@ -202,6 +202,13 @@ namespace IMUNROK.Common
                  "보료 들추기, 플레이어 일어서기")]
         [SerializeField] private UnityEngine.Events.UnityEvent _onLeft;
 
+        [Tooltip("<b>문을 닫고 이만큼(초) 뒤에 조사를 연다.</b> 0 보다 작으면 안 쓴다 — " +
+                 "그때는 물러갈 자리까지 다 걸어간 뒤에야 열린다. 여태 뒤엣것뿐이었는데, " +
+                 "물러갈 자리는 <b>방에서 안 보일 만큼</b> 멀리 잡아 둔 데라 문이 닫히고도 " +
+                 "그가 마당을 다 건널 때까지 우두커니 기다려야 했다 — 방문이 닫히는 순간 " +
+                 "이미 방은 손님 혼자다")]
+        [SerializeField] private float _freeAfterDoor = 2f;
+
         private enum Phase
         {
             Idle, Greeting, Leading, Opening, GoingThrough, Arrived, SittingDown, Seated,
@@ -385,7 +392,12 @@ namespace IMUNROK.Common
         public void BindDoor(DoorController door) { if (door != null) _door = door; }
 
         /// <summary>지금 이 방을 떠났나(보료를 들출 수 있는가).</summary>
-        public bool HasLeft => _phase == Phase.Gone;
+        /// <remarks>
+        /// <b>문을 닫고 조사가 열리면 나간 것이다.</b> 여태 물러갈 자리(안채 쪽 끝)까지 다 걸어가
+        /// 모습을 감춰야 참이었다 — 그 길이 늘어난 뒤로 조사가 열리고도 <b>40초 남짓</b> 보료가
+        /// 「주인이 그 위에 앉아 있다」로 잠겨 있었다. 방 안에서 보면 이미 나간 사람이다.
+        /// </remarks>
+        public bool HasLeft => _phase == Phase.Gone || _freed;
 
         /// <summary>
         /// 다 앉은 뒤 한 번만 — 몸이 자리(보료 또는 마루)에 닿게 높이를 맞춘다.
@@ -882,6 +894,10 @@ namespace IMUNROK.Common
         {
             if (_leaveDoor != null && !_doorFired) { _leaveDoor.Close(); _doorFired = true; }
 
+            // 문이 닫혔다 — 방은 이제 손님 혼자다. 그가 마당을 다 건널 때까지
+            // 기다릴 것 없이 여기서 조사를 연다.
+            if (_freeAfterDoor >= 0f && !_freed) StartCoroutine(FreeSoon());
+
             bool hasPath = _leaveAwaySpot != null ||
                            (_leaveAwayWaypoints != null && _leaveAwayWaypoints.Length > 0);
             if (!hasPath) { HoldStand(); Delay(_hideDelay, DoLeaveGone); return; }
@@ -925,8 +941,27 @@ namespace IMUNROK.Common
         private void DoLeaveGone()
         {
             _phase = Phase.Gone;
-            _onLeft?.Invoke();
+            Free();
             if (_hideWhenGone) gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// <b>조사를 연다.</b> 두 군데서 불리므로(문 닫힘 · 다 물러남) 한 번만 먹는다.
+        /// </summary>
+        private void Free()
+        {
+            if (_freed) return;
+            _freed = true;
+            _onLeft?.Invoke();
+        }
+
+        private bool _freed;
+
+        /// <summary>문이 닫히고 <see cref="_freeAfterDoor"/> 뒤에 조사를 연다.</summary>
+        private System.Collections.IEnumerator FreeSoon()
+        {
+            yield return new WaitForSeconds(_freeAfterDoor);
+            Free();
         }
 
         /// <summary>
@@ -1030,12 +1065,28 @@ namespace IMUNROK.Common
             transform.position = new Vector3(transform.position.x, y, transform.position.z);
         }
 
+        /// <summary>
+        /// <b>걷기가 끊기지 않게 붙든다 — 다만 반복 클립은 건드리지 않는다.</b>
+        ///
+        /// 이 자리가 마름을 <b>제자리 걸음</b>으로 만들고 있었다.
+        ///
+        /// <c>normalizedTime</c> 은 <b>반복 클립에서도 계속 자란다</b>(1.0 에서 0 으로
+        /// 돌아가지 않는다 — 2.7 은 세 바퀴째 한복판이라는 뜻이다). 그래서 「1 을 넘었으면
+        /// 다시 틀어라」는 규칙은, 걷기 클립이 <b>Loop 로 들어온 순간</b> 한 바퀴째가
+        /// 끝난 뒤로 <b>매 프레임</b> 참이 된다. 매 프레임 첫 프레임으로 되감기니
+        /// 다리는 첫 자세에서 부들거리고 몸만 미끄러진다.
+        ///
+        /// 새 뼈대(Mareum_v2·Villager)를 들일 때 걷기 클립에 Loop 를 켠 것이 이것을
+        /// 깨웠다. Loop 가 켜진 클립은 애니메이터가 알아서 잇는다 — <b>붙들 까닭이 없다</b>.
+        /// 붙드는 것은 Loop 가 아닌 클립이 끝에서 멎어 버릴 때뿐이다.
+        /// </summary>
         private void KeepWalking()
         {
             if (_animator == null) return;
             if (_animator.IsInTransition(0)) return;   // 전환(블렌드) 중엔 안 건드림 → CrossFade 안 끊김
             var st = _animator.GetCurrentAnimatorStateInfo(0);
-            if (_animator.speed == 0f || !st.IsName(_walkState) || st.normalizedTime >= 1f)
+            bool ended = !st.loop && st.normalizedTime >= 1f;
+            if (_animator.speed == 0f || !st.IsName(_walkState) || ended)
             {
                 float keep = _animator.speed;                 // 늦추던 속도를 잃지 않게
                 Play(_walkState);

@@ -65,7 +65,15 @@ namespace IMUNROK.Common
             foreach (var t in _tools)
                 if (belt.Grant(t)) any = true;
 
-            if (any && !string.IsNullOrEmpty(_line)) SubtitleView.Show(_speaker, _line, "", true);
+            if (!any || string.IsNullOrEmpty(_line)) yield break;
+
+            // <b>한 틱 쉬고 말한다.</b> 이 부품은 대개 남의 이벤트에 얹혀 불린다 —
+            // 서리의 인사가 끝나는 그 자리다. 그런데 부르는 쪽은 제 일을 마치며
+            // <c>SubtitleView.Hide()</c> 로 판을 걷는데, 그 걷는 일과 이쪽의 말이
+            // <b>같은 프레임</b>에 겹치면 방금 띄운 말이 그대로 지워진다
+            // (유척 지급 말이 안 뜨던 까닭이 이것이었다).
+            yield return null;
+            SubtitleView.Show(_speaker, _line, "", true);
         }
     }
 }

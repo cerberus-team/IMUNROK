@@ -6,21 +6,21 @@ using UnityEngine.InputSystem;
 namespace IMUNROK.Common
 {
     /// <summary>
-    /// 에디터/비-VR 테스트용 카메라. 두 모드(비행/걷기)를 Tab으로 전환.
+    /// <b>걷는 사람.</b> 늘 바닥을 딛는다.
     ///
-    ///  ● 비행(Fly) — 자유롭게 날며 둘러보기(배치 확인용)
-    ///  ● 걷기(Walk) — 사람처럼 눈높이 고정, 수평으로만 이동(잠행 동선 테스트용)
+    /// <b>2026-09-08 — 나는 갈래를 걷어냈다.</b> 두 모드를 Tab 으로 오갔는데, 이 게임에
+    /// 나는 일이 없다. 게다가 나는 동안 <b>Q 가 하강</b>이었다 — 도구를 갈아 드는 그 Q 다.
+    /// 한 키가 두 일을 하니 날면서 도구를 고를 수가 없었고, 걷기로 돌아오는 것을 잊으면
+    /// 사람이 아니라 새가 되어 담을 넘어 다녔다. 이제 <b>처음부터 끝까지 걷는다</b>.
     ///
     /// [조작] — 마우스 오른쪽 버튼(RMB)을 "누르고 있는 동안"만 이동/회전
-    ///   Tab            : 비행 ↔ 걷기 전환
-    ///   G              : "바로 아래 바닥으로 내려서기" → 그 바닥을 걷는 높이로 잡음(걷기모드 자동 전환)
     ///   RMB + 마우스   : 시점 회전
     ///   RMB + W/A/S/D  : 이동
-    ///   RMB + E / Q    : (비행 모드만) 위 / 아래
     ///   RMB + Shift    : 빠르게
+    ///   G              : 바로 아래 바닥으로 내려선다 — 어쩌다 공중에 남았을 때의 구멍
     ///
-    /// 화면 좌하단에 현재 모드/높이가 표시된다. RMB를 떼면 멈춘다(좌클릭 선택과 안 겹침).
-    /// ※ G(바닥 내려서기)는 바닥에 Collider가 있어야 작동. 집 부품엔 대부분 Mesh Collider가 있음.
+    /// RMB를 떼면 멈춘다(좌클릭 선택과 안 겹침).
+    /// ※ G 는 바닥에 Collider가 있어야 작동.
     /// </summary>
     public class DebugFlyCamera : MonoBehaviour
     {
@@ -29,9 +29,7 @@ namespace IMUNROK.Common
         [SerializeField] private float _lookSpeed = 0.12f;
         [Tooltip("Shift로 빨라지는 배수")]
         [SerializeField] private float _sprintMultiplier = 3f;
-        [Tooltip("걷기 모드로 시작할지")]
-        [SerializeField] private bool _walkMode = false;
-        [Tooltip("걷기/바닥내려서기 시 눈높이(바닥으로부터). 선 사람의 눈높이다 — " +
+        [Tooltip("걷는 눈높이(바닥으로부터). 선 사람의 눈높이다 — " +
                  "몸으로 막는 캡슐도 이 값에서 나오므로, 이것만 맞으면 눈과 몸이 어긋나지 않는다")]
         [SerializeField] private float _eyeHeight = 1.7f;
 
@@ -202,7 +200,6 @@ namespace IMUNROK.Common
         /// </summary>
         public void StandAtFloor(float floorY)
         {
-            _walkMode = true;
             _walkY = floorY + _eyeHeight;
             Vector3 p = transform.position; p.y = _walkY; transform.position = p;
         }
@@ -239,31 +236,11 @@ namespace IMUNROK.Common
             // 부르는 쪽이 따로 알려 줄 필요가 없다.
             if (Quaternion.Angle(transform.rotation, _applied) > 0.05f) SyncAngles();
 
-            // Tab: 비행 ↔ 걷기 (현재 높이를 눈높이로 고정)
-            if (!MoveLocked && kb.tabKey.wasPressedThisFrame)
-            {
-                _walkMode = !_walkMode;
-                // 걷기로 들어설 때는 <b>바닥에 내려선다</b>.
-                //
-                // 여태 그때의 높이를 그대로 눈높이로 삼았다. 날아다니던 높이가 곧
-                // 걷는 높이가 되니, Tab 을 누른 자리에 따라 사람 키가 매번 달랐다 —
-                // 서 있는 높이와 걷는 높이가 어긋난다던 것이 이것이다.
-                // 걷는다는 것은 바닥을 딛는 일이므로 바닥에서 눈높이만큼 위가 맞다.
-                if (_walkMode && Physics.Raycast(transform.position + Vector3.up * 0.2f, Vector3.down,
-                                                 out var floor, 200f, ~0, QueryTriggerInteraction.Ignore))
-                {
-                    _walkY = floor.point.y + _eyeHeight;
-                    Vector3 q = transform.position; q.y = _walkY; transform.position = q;
-                }
-                else _walkY = transform.position.y;
-            }
-
-            // G: 바로 아래 바닥으로 내려서서 그 높이를 걷는 눈높이로
+            // G: 바로 아래 바닥으로 내려선다. 어쩌다 공중에 뜬 채로 남았을 때의 구멍이다.
             if (!MoveLocked && kb.gKey.wasPressedThisFrame)
             {
                 if (Physics.Raycast(transform.position + Vector3.up * 0.2f, Vector3.down, out var hit, 200f))
                 {
-                    _walkMode = true;
                     _walkY = hit.point.y + _eyeHeight;
                     Vector3 p0 = transform.position; p0.y = _walkY; transform.position = p0;
                 }
@@ -283,7 +260,6 @@ namespace IMUNROK.Common
 
             float speed = _moveSpeed * (kb.leftShiftKey.isPressed ? _sprintMultiplier : 1f);
 
-            if (_walkMode)
             {
                 // 남이 나를 옮겼으면(순간이동) 그 높이를 받아들인다.
                 // 이걸 안 하면 다음 줄에서 _walkY 로 되돌려 놓아, 마루로 올라간 순간
@@ -310,10 +286,10 @@ namespace IMUNROK.Common
                 // 광선을 발보다 _stepUp 만큼만 위에서 시작한다 — 그보다 높은 턱은 아예 안 보이므로
                 // 디딤돌을 밟고 담장 위로 기어오르는 일이 생기지 않는다.
                 float feetY = transform.position.y - _eyeHeight;
-                Vector3 origin = new Vector3(transform.position.x, feetY + _stepUp, transform.position.z);
-                if (Physics.Raycast(origin, Vector3.down, out var gh, _stepUp + _stepDown, ~0, QueryTriggerInteraction.Ignore))
+                float groundY;
+                if (Ground(feetY, out groundY))
                 {
-                    float targetY = gh.point.y + _eyeHeight;
+                    float targetY = groundY + _eyeHeight;
                     if (targetY - _walkY <= _stepUp + 0.01f)                    // 오를 수 있는 턱만
                         _walkY = Mathf.MoveTowards(_walkY, targetY, _stepSpeed * Time.deltaTime);
                 }
@@ -322,19 +298,53 @@ namespace IMUNROK.Common
                 p.y = _walkY;
                 transform.position = p;
             }
-            else
-            {
-                Vector3 dir = Vector3.zero;
-                if (kb.wKey.isPressed) dir += Vector3.forward;
-                if (kb.sKey.isPressed) dir += Vector3.back;
-                if (kb.aKey.isPressed) dir += Vector3.left;
-                if (kb.dKey.isPressed) dir += Vector3.right;
-                if (kb.eKey.isPressed) dir += Vector3.up;
-                if (kb.qKey.isPressed) dir += Vector3.down;
-                transform.Translate(dir.normalized * speed * Time.deltaTime, Space.Self);
-            }
 #endif
         }
+
+        /// <summary>
+        /// <b>발밑을 다섯 군데 재어 가운뎃값을 딛는다.</b>
+        ///
+        /// 여태 발 한가운데에서 광선 하나만 아래로 쏘았다. 평평한 판때기 위에서는
+        /// 그것으로 넉넉했는데, 화성행궁의 <b>돌 깐 터앝</b>에 올라서면서 탈이 났다 —
+        /// 판석 하나하나가 따로 구운 그물이라 <b>이음매에 실틈</b>이 있고, 광선은
+        /// 그 틈으로 새어 나가 저 아래 것을 짚는다. 격자로 찍어 보니 대청은 스무 번에
+        /// 한 번, 아랫 터앝은 <b>일곱 번에 한 번꼴</b>로 새었다. 걸으면 그때마다
+        /// 바닥이 한 길 꺼졌다 올라오니, 발밑이 출렁이는 것처럼 느껴진다.
+        ///
+        /// 틈은 가늘고 <b>한 번에 하나</b>다. 그러니 발자국 넓이로 다섯 군데를 재어
+        /// <b>가운뎃값</b>을 쓰면, 하나가 새도 나머지 넷이 바로잡는다. 가장 높은 것을
+        /// 쓰면 터앝 가장자리에 섰을 때 윗단에 붙어 서게 되고, 가장 낮은 것을 쓰면
+        /// 틈이 그대로 이긴다 — 가운뎃값이라야 둘 다 안 된다.
+        ///
+        /// 재는 자리는 발보다 <b>좁게</b>(0.16m &lt; <see cref="_bodyRadius"/>) 잡는다.
+        /// 넓으면 층계 디딤(0.2~0.3m)에서 앞뒤 단을 같이 짚어 흔들린다.
+        /// </summary>
+        private bool Ground(float feetY, out float y)
+        {
+            y = 0f;
+            Vector3 c = transform.position;
+            float top = feetY + _stepUp, len = _stepUp + _stepDown;
+            int n = 0;
+            for (int i = 0; i < Probe.Length; i++)
+            {
+                var o = new Vector3(c.x + Probe[i].x, top, c.z + Probe[i].y);
+                RaycastHit h;
+                if (Physics.Raycast(o, Vector3.down, out h, len, ~0, QueryTriggerInteraction.Ignore))
+                    _probed[n++] = h.point.y;
+            }
+            if (n == 0) return false;
+            System.Array.Sort(_probed, 0, n);
+            y = _probed[n / 2];
+            return true;
+        }
+
+        private static readonly Vector2[] Probe =
+        {
+            Vector2.zero,
+            new Vector2( 0.16f, 0f), new Vector2(-0.16f, 0f),
+            new Vector2( 0f, 0.16f), new Vector2( 0f, -0.16f),
+        };
+        private readonly float[] _probed = new float[5];
 
         /// <summary>
         /// 한 걸음을 <b>몸으로 막고 벽을 따라 미끄러뜨린다</b>.
@@ -382,6 +392,20 @@ namespace IMUNROK.Common
                 {
                     if (h.collider == null) continue;
                     if (h.collider.transform.IsChildOf(transform)) continue;   // 손에 든 것
+
+                    // <b>이미 파묻힌 채로 시작한 쓸기는 믿을 수 없다.</b>
+                    //
+                    // 캡슐이 처음부터 무언가와 겹쳐 있으면 유니티는 거리 0 에
+                    // <b>진행 방향의 반대</b>를 법선으로 돌려준다. 그 법선에 걸음을
+                    // 눕히면 어느 쪽으로 가도 0 이 되어 — <b>한 번 벽에 끼면 영영
+                    // 못 나온다</b>. 낙안읍성 담과 초가가 죄 오목한 메시 콜라이더라
+                    // 모서리에서 이 일이 잘 났고, 빠져나올 길이 없었다.
+                    //
+                    // 파묻힌 동안에는 막지 않는다. <b>나가는 길을 막는 것은 벽이
+                    // 아니다.</b> 벽에 제대로 부딪히는 경우에는 걸음이 벽 앞에서
+                    // 멈추므로 파묻힐 일이 없다 — 이 갈래는 잘못 끼었을 때만 탄다.
+                    if (h.distance <= 0f) continue;
+
                     // 바닥·천장은 걸음을 막지 않는다. 막는 것은 <b>서 있는 면</b>이다.
                     Vector3 n = h.normal; n.y = 0f;
                     if (n.sqrMagnitude < 0.04f) continue;
@@ -403,10 +427,10 @@ namespace IMUNROK.Common
         /// 「카메라: 걷기 (Tab 전환 · G 바닥내려서기)」는 조선 후기 옹당촌에 있을 글이
         /// 아니고, 영상을 찍으면 그 줄이 그대로 남는다.
         ///
-        /// 헤드셋에서는 애초에 안 보인다(<c>OnGUI</c> 는 HMD에 렌더링되지 않는다).
+        /// 개발용이므로 빌드에서 보일 일은 없다.
         /// 그러니 이 줄이 보이는 자리는 <b>모니터로 찍는 화면</b>뿐이었다.
         /// </summary>
-        [Tooltip("만드는 동안만 켠다. 켜면 화면 왼쪽 아래에 걷기/비행과 눈높이가 뜬다")]
+        [Tooltip("만드는 동안만 켠다. 켜면 화면 왼쪽 아래에 눈높이가 뜬다")]
         [SerializeField] private bool _showHud;
 
         private void OnGUI()
@@ -415,8 +439,8 @@ namespace IMUNROK.Common
             if (_hud == null)
                 _hud = new GUIStyle(GUI.skin.label) { fontSize = 13, richText = true };
             string mode = MoveLocked ? "<color=#fc8>앉음</color>"
-                        : _walkMode ? "<color=#8f8>걷기</color>" : "<color=#8cf>비행</color>";
-            string keys = MoveLocked ? "(앉아 있는 동안은 둘러보기만)" : "(Tab 전환 · G 바닥내려서기)";
+                        : "<color=#8f8>걷기</color>";
+            string keys = MoveLocked ? "(앉아 있는 동안은 둘러보기만)" : "(G 바닥내려서기)";
             GUI.Label(new Rect(12, Screen.height - 46, 520, 22),
                 $"카메라: {mode}  {keys}  y={transform.position.y:0.0}", _hud);
         }

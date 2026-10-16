@@ -103,6 +103,14 @@ namespace IMUNROK.Common
             public CaseId id;
             public CaseStatus status = CaseStatus.NotStarted;
             public Verdict verdict = Verdict.None;
+
+            /// <summary>
+            /// 장계가 매긴 <b>끝의 결</b>(사건마다 뜻을 정한다 — 옹고집은 참·반·자비·헛).
+            /// 판결 셋(Truth/Mercy/AcceptFake)만으로는 「사람은 맞혔으나 증좌가 성글었다」를
+            /// 담을 데가 없어 따로 둔다. 옛 저장에는 없다 — 빈 채로 온다.
+            /// </summary>
+            public string endingTag = "";
+            public int score;
         }
 
         // 인스펙터에서 디버깅으로 볼 수 있게 노출(읽기 전용처럼 취급 — 값 변경은 API로만)
@@ -219,7 +227,7 @@ namespace IMUNROK.Common
             var rec = GetRecord(id);
             rec.verdict = verdict;
             rec.status = CaseStatus.Completed;
-            Debug.Log($"[GameState] {id} 판결 기록: {verdict} → Completed");
+            DevLog.Note($"[GameState] {id} 판결 기록: {verdict} → Completed");
 
             RaiseChanged(id);
             CheckAllCompleted();
@@ -234,14 +242,28 @@ namespace IMUNROK.Common
         /// 수첩은 여기서 건드리지 않는다 — 지울지 말지는 부르는 쪽이 정한다.
         /// (<see cref="Journal.ClearCase"/>)
         /// </summary>
+        /// <summary>장계가 매긴 끝의 결과 점수를 적는다(판결은 <see cref="SetVerdict"/> 로 따로).</summary>
+        public void SetEnding(CaseId id, string tag, int score)
+        {
+            var rec = GetRecord(id);
+            rec.endingTag = tag ?? "";
+            rec.score = score;
+            RaiseChanged(id);
+        }
+
+        public string GetEndingTag(CaseId id) { return GetRecord(id).endingTag ?? ""; }
+        public int GetScore(CaseId id) { return GetRecord(id).score; }
+
         public void ResetCase(CaseId id)
         {
             var rec = GetRecord(id);
             rec.status = CaseStatus.NotStarted;
             rec.verdict = Verdict.None;
+            rec.endingTag = "";
+            rec.score = 0;
             if (_currentCase.HasValue && _currentCase.Value == id) _currentCase = null;
             _allCompletedFired = false;
-            Debug.Log($"[GameState] {id} 를 처음으로 되돌림");
+            DevLog.Note($"[GameState] {id} 를 처음으로 되돌림");
             RaiseChanged(id);
         }
 
@@ -250,7 +272,7 @@ namespace IMUNROK.Common
         {
             EnsureInitialized();
             _gapriHandled = handled;
-            Debug.Log($"[GameState] 갑리 처리 여부: {handled}");
+            DevLog.Note($"[GameState] 갑리 처리 여부: {handled}");
         }
 
         // ── 플레이어의 신분 ──
@@ -269,7 +291,30 @@ namespace IMUNROK.Common
         {
             EnsureInitialized();
             _identityRevealed = revealed;
-            Debug.Log($"[GameState] 암행어사 신분 드러남: {revealed}");
+            DevLog.Note($"[GameState] 암행어사 신분 드러남: {revealed}");
+        }
+
+        // ── 어떻게 2막에 왔나 ──
+        //
+        // 두 길이 있다. <b>제 발로</b> 마패를 내보이고 출도한 길과, 밤중에 뒤지다
+        // <b>붙들려 온</b> 길이다. 뒤엣것은 필수 단서를 다 못 캐고도 넘어오므로,
+        // 2막에서 서리가 맞는 낯이 달라야 한다 — 기별을 받은 관아와, 웬 사내가
+        // 끌려온 관아는 같은 아침이 아니다.
+
+        private bool _caughtInStealth;
+
+        /// <summary>1막에서 <b>붙들려</b> 2막으로 넘어왔나.</summary>
+        public bool CaughtInStealth
+        {
+            get { EnsureInitialized(); return _caughtInStealth; }
+        }
+
+        /// <summary>붙들렸다. 밤에 세 번 사람을 부르면 이 길로 넘어간다.</summary>
+        public void SetCaughtInStealth(bool caught = true)
+        {
+            EnsureInitialized();
+            _caughtInStealth = caught;
+            DevLog.Note("[GameState] 1막에서 붙들려 넘어옴: " + caught);
         }
 
         /// <summary>대화 기록·자막에 찍히는 플레이어의 이름표.</summary>
@@ -295,14 +340,14 @@ namespace IMUNROK.Common
         public void EnterCase(CaseId id)
         {
             _currentCase = id;
-            Debug.Log($"[GameState] 사건 진입: {id}");
+            DevLog.Note($"[GameState] 사건 진입: {id}");
         }
 
         /// <summary>조사청(사건 밖)으로 나올 때 호출.</summary>
         public void ExitToHub()
         {
             _currentCase = null;
-            Debug.Log("[GameState] 조사청(사건 밖)으로 이동");
+            DevLog.Note("[GameState] 조사청(사건 밖)으로 이동");
         }
 
         /// <summary>모든 상태를 초기화(디버그/재시작용).</summary>
@@ -313,12 +358,16 @@ namespace IMUNROK.Common
             {
                 rec.status = CaseStatus.NotStarted;
                 rec.verdict = Verdict.None;
+                rec.endingTag = "";      // 새 판에 지난 판의 끝이 남아 복명·엔딩이 그것을 읽었다
+                rec.score = 0;
             }
+            _endingPending = false;
             _gapriHandled = false;
             _identityRevealed = false;
+            _caughtInStealth = false;
             _allCompletedFired = false;
             _currentCase = null;   // 초기화 후에도 이전 사건에 들어가 있는 것으로 남으면 수첩 필터가 어긋난다
-            Debug.Log("[GameState] 전체 상태 초기화");
+            DevLog.Note("[GameState] 전체 상태 초기화");
 
             foreach (CaseId id in Enum.GetValues(typeof(CaseId)))
                 RaiseChanged(id);
@@ -383,13 +432,20 @@ namespace IMUNROK.Common
         // ─────────────────────────────────────────────
 
         [Serializable]
-        private class SaveDTO { public List<CaseRecord> cases; public bool gapri; public bool identity; }
+        private class SaveDTO { public List<CaseRecord> cases; public bool gapri; public bool identity; public bool caught; public bool endingPending; }
+
+        /// <summary>
+        /// <b>장계를 봉하고 아직 마지막 걸음(HubEnding)을 못 본 판.</b> 봉한 직후에 끄면 여태 엔딩을 영영
+        /// 못 봤다(대기 표시가 메모리에만 있었다). 이어하기로 조사청에 들어서면 이것을 보고 튼다.
+        /// </summary>
+        public bool EndingPending { get { return _endingPending; } set { _endingPending = value; } }
+        private bool _endingPending;
 
         /// <summary>현재 상태를 JSON 문자열로 반환.</summary>
         public string ToJson()
         {
             EnsureInitialized();
-            return JsonUtility.ToJson(new SaveDTO { cases = _cases, gapri = _gapriHandled, identity = _identityRevealed });
+            return JsonUtility.ToJson(new SaveDTO { cases = _cases, gapri = _gapriHandled, identity = _identityRevealed, caught = _caughtInStealth, endingPending = _endingPending });
         }
 
         /// <summary>JSON 문자열에서 상태를 복원.</summary>
@@ -402,6 +458,8 @@ namespace IMUNROK.Common
             _cases = d.cases;
             _gapriHandled = d.gapri;
             _identityRevealed = d.identity;
+            _caughtInStealth = d.caught;
+            _endingPending = d.endingPending;
             _initialized = false;      // _lookup 재구성 강제
             _allCompletedFired = false;
             EnsureInitialized();
@@ -428,7 +486,7 @@ namespace IMUNROK.Common
             if (AllCasesCompleted)
             {
                 _allCompletedFired = true;
-                Debug.Log("[GameState] 세 사건 모두 완료 — 세계가 열립니다.");
+                DevLog.Note("[GameState] 세 사건 모두 완료 — 세계가 열립니다.");
                 OnAllCasesCompleted?.Invoke();
             }
         }

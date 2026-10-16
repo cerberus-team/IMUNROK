@@ -26,10 +26,21 @@ namespace IMUNROK.Common
         [Header("애니메이터 / 상태 이름")]
         [SerializeField] private Animator _animator;
         [SerializeField] private string _openState = "opening_door";
+        [Tooltip("<b>문 닫는 동작</b>. 전용 클립이 없으므로, 조종틀에 여는 클립을 얹고 " +
+                 "<b>상태 속도를 −1</b> 로 준 상태를 하나 두고 그 이름을 적는다.\n\n" +
+                 "왜 이렇게 하나: 유니티 6 은 <b>Animator.speed 의 음수를 0 으로 깎는다</b>. " +
+                 "그래서 코드에서 거꾸로 돌리려 하면 동작이 <b>얼어붙는다</b>. " +
+                 "상태 자체의 속도는 음수가 먹는다.\n" +
+                 "비워 두거나 조종틀에 없으면 여는 동작을 그냥 앞으로 튼다")]
+        [SerializeField] private string _closeState = "OpenDoor_거꾸로";
         [SerializeField] private string _walkState = "Walking";
         [Tooltip("서 있을 때 멈춰 세울 클립. 그 클립의 첫 프레임이 '선 자세'가 된다. " +
                  "비우면 걷기 클립을 쓴다(문 여는 클립은 손을 뻗은 자세라 안 어울린다)")]
         [SerializeField] private string _standPoseState = "";
+        [Tooltip("걷기 클립이 한 바퀴에 <b>실제로 나아가는</b> 빠르기(m/초). " +
+                 "동작을 이 값에 맞춰 늦추거나 재촉해 <b>발이 미끄러지지 않게</b> 한다 — " +
+                 "믹사모 걷기는 1.03초에 1.92m 라 1.87 이다. 0 이면 안 맞춘다")]
+        [SerializeField] private float _walkStride = 1.87f;
 
         [Header("경로")]
         [Tooltip("문 열고 걸어가서 설/앉을 자리(이 오브젝트의 회전 = 도착 방향). 비우면 이동 없음.")]
@@ -52,7 +63,11 @@ namespace IMUNROK.Common
         [Header("도착 후 앉기(앉아 졸기)")]
         [Tooltip("도착하면 앉을지. 끄면 그냥 서있음")]
         [SerializeField] private bool _sitOnArrive = true;
-        [Tooltip("이 상태를 '거꾸로' 재생해 앉는 동작으로 씀(일어서기 애니 역재생)")]
+        [Tooltip("<b>앉는 동작</b> 클립. 새 뼈대에는 이것이 있다(Stand_To_Sit).\n" +
+                 "비워 두면 예전처럼 아래 <b>일어서기</b> 클립을 거꾸로 긁어 쓴다 — " +
+                 "그쪽은 발이 뒤로 미끄러지고 섞임도 안 먹는다")]
+        [SerializeField] private string _sitDownState = "Stand_To_Sit";
+        [Tooltip("앉는 클립이 없을 때만 쓴다 — 이 상태를 '거꾸로' 긁어 앉는 동작으로 삼는다")]
         [SerializeField] private string _sitDownReverseState = "Sit_to_Stand_Transition_M";
         [Tooltip("앉은 뒤 반복할 상태(앉아 졸기)")]
         [SerializeField] private string _sitIdleState = "Sit_and_Doze_Off";
@@ -100,8 +115,10 @@ namespace IMUNROK.Common
         [Header("속도")]
         [Tooltip("문 여는 동작 재생 속도(1=정상, 낮을수록 느림). 문짝 속도는 대문 DoorController의 _openDuration에서.")]
         [SerializeField] private float _openSpeed = 1f;
-        [Tooltip("동작 전환 섞기 시간(초). 클수록 부드럽게 이어짐(끊김 감소). 0이면 하드컷")]
-        [SerializeField] private float _blend = 0.2f;
+        [Tooltip("동작 전환 섞기 시간(초). 클수록 부드럽게 이어짐(끊김 감소). 0이면 하드컷.\n" +
+                 "0.2 는 <b>짧았다</b> — 걷다 서고 서다 앉는 대목마다 자세가 툭 갈아 끼워졌다. " +
+                 "0.3 쯤이면 한 걸음이 다음 걸음으로 넘어가는 만큼은 된다")]
+        [SerializeField] private float _blend = 0.3f;
         [SerializeField] private float _moveSpeed = 1.1f;
         [SerializeField] private float _turnSpeed = 540f;
         [SerializeField] private float _arriveDist = 0.12f;
@@ -115,6 +132,12 @@ namespace IMUNROK.Common
         [Tooltip("문 열어주는 일이 끝나고 제자리에 앉거나 선 순간 한 번 실행. " +
                  "여기에 마름의 InterrogationController.Unlock 을 걸면 '굳이 다시 찾아왔을 때만' 말을 걸 수 있게 된다")]
         [SerializeField] private UnityEvent _onSettled;
+
+        [Header("클립에 구워진 이동 걷어내기")]
+        [Tooltip("믹사모 걷기는 <b>제자리가 아니다</b> — 한 바퀴에 엉덩이뼈가 1.9m 앞으로 나갔다가 " +
+                 "되돌아온다. 켜 두면 매 칸 그만큼 뼈대를 되밀어 <b>보이는 몸을 제 발치에</b> 붙든다.\n" +
+                 "끄면 몸이 제 자리보다 1m 앞서 떠 다니고, 말 거는 판정도 몸과 어긋난다")]
+        [SerializeField] private bool _cancelBakedTravel = true;
 
         [Header("바닥 붙이기")]
         [Tooltip("켜면 매 프레임 바닥을 훑어 따라감(평지용). 돌담·계단은 끄고 경유점 높이를 쓰는 게 자연스러움")]
@@ -152,9 +175,22 @@ namespace IMUNROK.Common
         private float _wait;
         private System.Action _then;
 
+        /// <summary>클립에 구워진 앞뒤 이동을 걷어내는 장치. 까닭은 <see cref="BakedTravel"/> 에.</summary>
+        private readonly BakedTravel _travel = new BakedTravel();
+
         private void Awake()
         {
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
+            _travel.Bind(transform, _animator);
+        }
+
+        /// <summary>
+        /// 애니메이터가 포즈를 다 쓴 뒤에 앞뒤로 새어 나간 만큼 되민다.
+        /// <b>Update 가 아니라 LateUpdate</b> 여야 한다 — 그 칸의 어긋남은 포즈가 쓰인 뒤에야 잴 수 있다.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (_cancelBakedTravel) _travel.Cancel();
         }
 
         private void Start()
@@ -242,33 +278,50 @@ namespace IMUNROK.Common
                 return;
             }
 
-            // 문 닫기: 문 여는 클립을 t=1→0으로 긁어 거꾸로 재생한다(= 닫는 동작).
-            // 앉기와 같은 수법 — 전용 클립이 없어 여는 동작을 뒤집어 쓴다.
+            // <b>문 닫기.</b> 닫는 클립이 없으므로 여는 동작을 <b>거꾸로</b> 돌린다.
+            // 앞으로 틀면 닫으면서 여는 시늉을 하게 된다 — 손이 문에서 <b>떨어져</b>
+            // 나가는데 문짝은 닫히니, 미는 것도 당기는 것도 아닌 꼴이 된다.
+            // 거꾸로 돌리면 손이 문을 <b>따라 들어오며</b> 닫는다.
+            // 거꾸로 도는 일은 조종틀의 상태가 맡는다(<see cref="_closeState"/>) —
+            // 여기서는 시계만 센다.
             if (_phase == Phase.Closing)
             {
                 if (_closeBlend > 0f) { _closeBlend -= Time.deltaTime; return; }
-                if (_animator != null) _animator.speed = 0f;
                 _closeTimer -= Time.deltaTime * Mathf.Max(0.01f, _openSpeed);
-                float ct = Mathf.Clamp01(_closeTimer / _closeLen);
-                if (_animator != null) { _animator.Play(_openState, 0, ct); _animator.Update(0f); }
                 if (_closeTimer <= 0f)
                 {
+                    if (_animator != null) _animator.speed = 1f;   // 되돌려 놓는다
                     if (_standSpot != null) DoWalk();
                     else OnArrived();
                 }
                 return;
             }
 
-            // 앉기: ①걷기→선 자세로 블렌드(_sitBlend) → ②일어서기 클립을 t=1→0으로 긁어 거꾸로(=앉기)
+            // <b>앉기.</b> 앉는 클립을 틀면서, 몸을 앉을 자리로 <b>같은 시간에 걸쳐</b> 옮긴다.
+            // 클립이 몸을 뒤로 물려 주던 몫을 몸이 대신 지는 것이다.
             if (_phase == Phase.SittingDown)
             {
                 if (_sitBlend > 0f) { _sitBlend -= Time.deltaTime; return; }   // 블렌드 동안은 애니메이터가 섞음
-                if (_animator != null) _animator.speed = 0f;                   // 스크럽 모드
                 _sitTimer -= Time.deltaTime;
-                float t = Mathf.Clamp01(_sitTimer / _sitDownLen);             // 1 → 0
-                if (_animator != null) { _animator.Play(_sitDownReverseState, 0, t); _animator.Update(0f); }
+                if (_sitTarget != null)
+                {
+                    float k = Mathf.SmoothStep(0f, 1f, 1f - Mathf.Clamp01(_sitTimer / Mathf.Max(0.01f, _sitDownLen)));
+                    transform.position = Vector3.Lerp(_sitFromPos, _sitTarget.position, k);
+                    transform.rotation = Quaternion.Slerp(_sitFromRot, _sitTarget.rotation, k);
+                }
+                if (_animator != null && !_sitForward)
+                {
+                    // ⚠️ <b>긁는 길</b>(옛 뼈대). 애니메이터를 세워 두고 프레임을 손으로
+                    //    되돌리므로 섞임이 아예 안 먹는다 — 들어올 때도 나갈 때도 툭 끊긴다.
+                    _animator.speed = 0f;
+                    float t = Mathf.Clamp01(_sitTimer / _sitDownLen);          // 1 → 0
+                    _animator.Play(_sitDownReverseState, 0, t);
+                    _animator.Update(0f);
+                }
                 if (_sitTimer <= 0f)
                 {
+                    if (_sitTarget != null)            // 끝은 어긋남 없이 딱 맞춘다
+                        transform.SetPositionAndRotation(_sitTarget.position, _sitTarget.rotation);
                     CrossTo(_sitIdleState);            // 앉기→졸기 부드럽게
                     if (_dozeSpot == null) { _phase = Phase.Sitting; Settle(); return; }
                     // 졸기 자리로 '순간이동' 시키면, 몸이 뒤로 훌쩍 갔다가 졸기 동작의
@@ -427,9 +480,16 @@ namespace IMUNROK.Common
             _closeLen = ClipLength(_openState, 1.5f);
             if (_animator != null)
             {
-                _animator.speed = 1f;
-                // 문을 연 '끝 자세'로 먼저 붙였다가, 다음 Update부터 t=1→0으로 긁는다.
-                _animator.CrossFadeInFixedTime(_openState, _blend, 0, _closeLen);
+                _animator.speed = Mathf.Max(0.01f, _openSpeed);
+                bool back = !string.IsNullOrEmpty(_closeState) && HasState(_closeState);
+                if (back)
+                    // 거꾸로 도는 상태는 <b>0 에서 시작한다</b>. 속도가 음수인 상태에서는
+                    // 유니티가 0~1 을 <b>끝에서 처음으로</b> 세기 때문이다 — 여기에
+                    // 클립 길이를 넣으면 이미 다 지난 자리라 <b>얼어붙는다</b>(그렇게 얼렸다).
+                    _animator.CrossFadeInFixedTime(_closeState, _blend, 0, 0f);
+                else
+                    // 거꾸로 도는 상태를 안 만들어 두었으면 어쩔 수 없이 앞으로 튼다.
+                    _animator.CrossFadeInFixedTime(_openState, _blend, 0, 0f);
             }
             _closeBlend = _blend;
             _closeTimer = _closeLen;
@@ -453,17 +513,37 @@ namespace IMUNROK.Common
         }
 
         // 일어서기 클립을 프레임 직접 스크럽으로 거꾸로 재생 → 앉는 동작(클립 원래 속도).
+        /// <summary>앉는 클립을 <b>앞으로</b> 트는가. 거꾸로 긁던 옛 길과 갈린다.</summary>
+        private bool _sitForward;
+
+        /// <summary>앉는 동안 몸이 옮겨 갈 자리와, 떠나온 자리.</summary>
+        private Transform _sitTarget;
+        private Vector3 _sitFromPos;
+        private Quaternion _sitFromRot;
+
         private void DoSitDown()
         {
-            if (_sitDownSpot != null)   // 앉는 동작 자리로
-                transform.SetPositionAndRotation(_sitDownSpot.position, _sitDownSpot.rotation);
+            // 예전에는 여기서 앉을 자리로 <b>순간이동</b>시켰다. 앉는 클립이 몸을 저 혼자
+            // 0.49m 뒤로 물려 주던 시절의 잔재인데, 그 이동을 걷어낸 지금은 순간이동만
+            // 덩그러니 남아 <b>툭 하고 뒤로 밀리는</b> 것으로 보인다.
+            // 대신 앉는 <b>동안</b> 같은 거리를 흘려 보낸다(위 SittingDown 처리).
+            _sitTarget = _sitDownSpot != null ? _sitDownSpot : _standSpot;
+            _sitFromPos = transform.position;
+            _sitFromRot = transform.rotation;
 
-            _sitDownLen = ClipLength(_sitDownReverseState, 1.2f);   // 재생 안 하고 길이만 조회(블렌드 유지)
+            // <b>앉는 클립이 있으면 그냥 튼다.</b> 옛 뼈대에는 앉는 동작이 없어 일어서기를
+            // 거꾸로 긁어 썼는데(발이 뒤로 미끄러지고 섞임도 안 먹는다), 새 뼈대에는
+            // Stand_To_Sit 이 들어 있다. 있는 것을 두고 뒤집어 쓸 까닭이 없다.
+            _sitForward = !string.IsNullOrEmpty(_sitDownState) && HasState(_sitDownState);
+            string use = _sitForward ? _sitDownState : _sitDownReverseState;
+
+            _sitDownLen = ClipLength(use, 1.2f);   // 재생 안 하고 길이만 조회(블렌드 유지)
             if (_animator != null)
             {
                 _animator.speed = 1f;
-                // 걷기 → 일어서기의 '끝(선 자세)'으로 부드럽게 블렌드. 그다음 Update에서 거꾸로 스크럽.
-                _animator.CrossFadeInFixedTime(_sitDownReverseState, _blend, 0, _sitDownLen);
+                if (_sitForward) _animator.CrossFadeInFixedTime(use, _blend, 0, 0f);
+                // 거꾸로 긁는 길은 <b>끝(선 자세)</b>으로 붙였다가 Update 에서 되돌린다.
+                else _animator.CrossFadeInFixedTime(use, _blend, 0, _sitDownLen);
             }
             _sitBlend = _blend;
             _sitTimer = _sitDownLen;
@@ -479,16 +559,32 @@ namespace IMUNROK.Common
             return fallback;
         }
 
-        // 서있는 idle이 없어 어떤 클립의 첫 프레임에서 멈춰 세워 '서있기'로 쓴다.
-        // 문 여는 클립의 첫 프레임은 이미 문에 손을 뻗는 자세라 가만히 서 있는 것으로 안 읽힌다 —
-        // 걷기 클립의 첫 프레임이 훨씬 자연스럽다.
+        /// <summary>
+        /// 서서 기다리게 한다.
+        ///
+        /// <b>서 있는 idle 이 있으면 그냥 튼다.</b> 없을 때만 걷기 클립의 첫 프레임에
+        /// 멈춰 세워 서 있는 것처럼 쓴다 — 옛 뼈대에 idle 이 없어서 짜낸 수였다.
+        /// (문 여는 클립의 첫 프레임은 이미 문에 손을 뻗은 자세라 서 있는 것으로 안 읽힌다.)
+        ///
+        /// 새 뼈대에는 진짜 idle 이 들어와 <see cref="_standPoseState"/> 에 적어 두었는데,
+        /// 그것까지 첫 프레임에 얼려 버리는 바람에 마름이 <b>대문 앞에서 팔을 벌린 채</b>
+        /// 굳어 있었다. 얼어 있으니 다음 차례로 넘어가지도 못해, 손을 맞이하는 순서가
+        /// 통째로 멈추고 안에서 기다리던 복동까지 영영 안 움직였다.
+        /// </summary>
         private void HoldStand()
         {
             if (_animator == null) return;
-            string pose = string.IsNullOrEmpty(_standPoseState) ? _walkState : _standPoseState;
-            if (string.IsNullOrEmpty(pose)) return;
+
+            if (!string.IsNullOrEmpty(_standPoseState))
+            {
+                _animator.speed = 1f;
+                _animator.Play(_standPoseState, 0, 0f);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(_walkState)) return;
             _animator.speed = 1f;
-            _animator.Play(pose, 0, 0f);
+            _animator.Play(_walkState, 0, 0f);
             _animator.Update(0f);
             _animator.speed = 0f;
         }
@@ -568,30 +664,63 @@ namespace IMUNROK.Common
         }
         private bool _groundInit;
 
-        // 이동 중 걷기 애니가 끊기지 않게 유지(클립이 Loop 아니어도 다시 재생).
+        /// <summary>
+        /// <b>걷기가 끊기지 않게 붙든다 — 다만 반복 클립은 건드리지 않는다.</b>
+        ///
+        /// 이 자리가 마름을 <b>제자리 걸음</b>으로 만들고 있었다.
+        ///
+        /// <c>normalizedTime</c> 은 <b>반복 클립에서도 계속 자란다</b>(1.0 에서 0 으로
+        /// 돌아가지 않는다 — 2.7 은 세 바퀴째 한복판이라는 뜻이다). 그래서 「1 을 넘었으면
+        /// 다시 틀어라」는 규칙은, 걷기 클립이 <b>Loop 로 들어온 순간</b> 한 바퀴째가
+        /// 끝난 뒤로 <b>매 프레임</b> 참이 된다. 매 프레임 첫 프레임으로 되감기니
+        /// 다리는 첫 자세에서 부들거리고 몸만 미끄러진다.
+        ///
+        /// 새 뼈대(Mareum_v2·Villager)를 들일 때 걷기 클립에 Loop 를 켠 것이 이것을
+        /// 깨웠다. Loop 가 켜진 클립은 애니메이터가 알아서 잇는다 — <b>붙들 까닭이 없다</b>.
+        /// 붙드는 것은 Loop 가 아닌 클립이 끝에서 멎어 버릴 때뿐이다.
+        /// </summary>
         private void KeepWalking()
         {
             if (_animator == null) return;
             if (_animator.IsInTransition(0)) return;   // 전환(블렌드) 중엔 안 건드림 → CrossFade 안 끊김
             var st = _animator.GetCurrentAnimatorStateInfo(0);
-            if (_animator.speed == 0f || !st.IsName(_walkState) || st.normalizedTime >= 1f)
+            bool ended = !st.loop && st.normalizedTime >= 1f;
+            if (_animator.speed == 0f || !st.IsName(_walkState) || ended)
                 Play(_walkState);
         }
 
         private void Play(string state)
         {
             if (_animator == null || string.IsNullOrEmpty(state)) return;
-            _animator.speed = 1f;
+            _animator.speed = SpeedFor(state);
             _animator.Play(state, 0, 0f);
+        }
+
+        /// <summary>
+        /// <b>걸음과 동작을 맞춘다.</b> 걷기 클립은 1.87m/초로 걷는 사람의 것인데 몸은
+        /// <see cref="_moveSpeed"/> 로 나아간다 — 그 차이가 고스란히 <b>미끄러지는 발</b>이
+        /// 된다. 걷기 클립을 틀 때만 그 비만큼 늦춘다(다른 동작은 제 속도 그대로).
+        /// </summary>
+        private float SpeedFor(string state)
+        {
+            if (_walkStride <= 0.01f || state != _walkState) return 1f;
+            return Mathf.Clamp(_moveSpeed / _walkStride, 0.2f, 2.5f);
         }
 
         // 부드럽게 섞어 전환(끊김 방지). _blend=0이면 하드컷.
         private void CrossTo(string state)
         {
             if (_animator == null || string.IsNullOrEmpty(state)) return;
-            _animator.speed = 1f;
+            _animator.speed = SpeedFor(state);
             if (_blend <= 0f) _animator.Play(state, 0, 0f);
             else _animator.CrossFadeInFixedTime(state, _blend, 0);
+        }
+
+        /// <summary>조종틀에 이 상태가 있는가. 없는 이름을 틀면 아무 일도 안 난다.</summary>
+        private bool HasState(string state)
+        {
+            if (_animator == null || string.IsNullOrEmpty(state)) return false;
+            return _animator.HasState(0, Animator.StringToHash(state));
         }
 
         private bool StateDone(string state)
