@@ -62,7 +62,7 @@ namespace IMUNROK.Onggojip
             // ── 2부 공개 (G) — 출도한 뒤 관아에서만 ──
             // G01·G02 는 관아가 보관한 원본이다. 집에서 나온 J12·J13 을 여기 원본과
             // 대조해야 위조가 확정된다.
-            new ClueDef { key = "G01", text = "관아 호적대장 원본 — \"노 복동, 왼팔 안쪽 데인 자국 두 치 남짓\"", stealth = false },
+            new ClueDef { key = "G01", text = "관아 호적대장 원본 — \"노 복동, 왼팔 안쪽 흉터 두 치 남짓\"", stealth = false },
             new ClueDef { key = "G02", text = "관아가 받은 호구단자 — 집에서 나온 것과 같은 필적", stealth = false },
             new ClueDef { key = "G03", text = "입안 대장 — 별급문기 사본, 수취인 \"종 복동\"", stealth = false },
             new ClueDef { key = "G04", text = "환곡·소작 대장 — 한 달간 소작료 인하", stealth = false },
