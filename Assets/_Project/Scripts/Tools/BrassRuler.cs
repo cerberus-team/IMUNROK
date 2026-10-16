@@ -44,6 +44,9 @@ namespace IMUNROK.Common
         {
             if (ToolbeltHud.SelectedToolId != _toolId) { _at = null; _dwell = 0f; return; }
 
+            // 판(물증 보는 자리)이 떠 있으면 거기서 잰다(ArmMeasure). 판 뒤의 세상을 겨누면
+            // 같은 팔을 두 군데서 재는 말이 겹친다.
+            if (DocumentView.IsOpen) { _at = null; _dwell = 0f; return; }
             var cam = Camera.main;
             if (cam == null) return;
 
@@ -58,7 +61,13 @@ namespace IMUNROK.Common
             // 「놋쇠 자다. 잴 것에 대어 본다」로 인물의 대사를 지웠다. 자막은 한 사람 몫이다.
             bool talking = InterrogationController.AnyOpen;
 
-            if (_at == null) { if (!talking) Say(_idleLine, false); return; }
+            // <b>겨눈 것이 없으면 아무 말도 안 한다.</b>
+            //
+            // 여태는 빈 데를 보고 있어도 「놋쇠 자다. 잴 것에 대어 본다」를 띄웠다.
+            // 자를 손에 든 내내 자막판이 서 있는 셈이라, 정작 잴 것을 만났을 때
+            // 뜨는 말과 구별이 안 되고 화면 아래가 늘 가려졌다. 손에 무엇을 들었는지는
+            // 도구띠가 이미 말하고 있다 — 자가 제 이름을 다시 댈 까닭이 없다.
+            if (_at == null) { _last = null; return; }
             if (_at.Measured) { if (!talking) Say(_at.ResultLine(), true); return; }
 
             _dwell += Time.deltaTime;

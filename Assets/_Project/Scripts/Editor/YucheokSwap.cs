@@ -53,7 +53,14 @@ namespace IMUNROK.Common.EditorTools
                     var modelProp = so.FindProperty("_model");
                     var old = modelProp.objectReferenceValue as GameObject;
                     if (old == null) { skipped++; continue; }
-                    if (old.name == src.name) { skipped++; continue; }   // 이미 갈아 끼웠다
+
+                    // <b>이름으로 가리면 안 된다.</b> obj 와 fbx 는 같은 파일 이름에서 나와
+                    // 씬에 선 뿌리 이름이 둘 다 「유척」이다 — 이름만 보면 옛 몸이 박혀
+                    // 있는데도 「이미 새 것」으로 건너뛰어, 도구를 눌러도 아무 일이 없다.
+                    // 어느 <b>파일</b>에서 나온 것인지를 본다.
+                    var origin = PrefabUtility.GetCorrespondingObjectFromSource(old);
+                    if (origin != null && AssetDatabase.GetAssetPath(origin) == NewModelPath)
+                    { skipped++; continue; }   // 이미 갈아 끼웠다
 
                     // 옛 몸의 자리와 크기를 받아 둔다
                     var t = old.transform;
@@ -61,16 +68,33 @@ namespace IMUNROK.Common.EditorTools
                     Quaternion lr = t.localRotation;
                     bool wasOn = old.activeSelf;
                     float oldLongest = LongestSide(old);
+                    var oldBox = LocalBox(old, held.transform);
+                    Vector3 oldCenter = oldBox.center;
+                    int oldAxis = LongAxis(oldBox.size);
 
                     // 새 몸을 같은 껍데기 밑에 앉힌다
                     var fresh = (GameObject)PrefabUtility.InstantiatePrefab(src, held.transform);
                     Undo.RegisterCreatedObjectUndo(fresh, "유척 갈아 끼우기");
                     fresh.transform.SetLocalPositionAndRotation(lp, lr);
-                    fresh.transform.localScale = Vector3.one;
 
+                    // <b>제 배율을 지우지 않는다.</b> 여기서 Vector3.one 으로 깎았더니
+                    // 모델이 제 뿌리에 지니고 온 100배가 함께 날아갔다 — 자가 3mm 가 된다.
+                    // 프리팹이 들고 온 크기에서 <b>모자라거나 넘치는 만큼만</b> 곱한다.
                     float newLongest = LongestSide(fresh);
                     if (oldLongest > 0.0001f && newLongest > 0.0001f)
-                        fresh.transform.localScale = Vector3.one * (oldLongest / newLongest);
+                        fresh.transform.localScale *= (oldLongest / newLongest);
+
+                    // <b>누운 축을 맞춘다.</b> 옛 몸과 새 몸이 같은 축으로 길다는 보장이
+                    // 없다 — Meshy 것은 X 로 길고 옛 obj 는 Z 로 길었다. 그대로 두면
+                    // 자를 가로로 쥔 꼴이 된다. 긴 축이 같은 쪽을 보게 돌린다.
+                    AlignLongAxis(fresh, oldAxis);
+
+                    // <b>꼭지 자리도 맞춘다.</b> 옛 obj 는 한쪽 끝이 원점이고 새 fbx 는
+                    // 가운데가 원점이라, 돌리기만 하면 자가 반 자루만큼 밀려 난다.
+                    // 옛 몸이 차지하던 상자의 한가운데로 민다.
+                    var box = LocalBox(fresh, held.transform);
+                    if (box.size.sqrMagnitude > 0f)
+                        fresh.transform.localPosition += (oldCenter - box.center);
 
                     fresh.name = src.name;
                     fresh.SetActive(wasOn);
@@ -95,14 +119,72 @@ namespace IMUNROK.Common.EditorTools
                 "\n\n씬 저장을 잊지 마십시오.", "예");
         }
 
-        /// <summary>그려지는 몸의 가장 긴 변(월드 기준).</summary>
+        /// <summary>
+        /// 그려지는 몸의 가장 긴 변.
+        ///
+        /// <b>월드 AABB 를 쓰면 안 된다.</b> 유척은 껍데기가 (344, 332, 4)도로 비스듬히
+        /// 뉘어 있어서, 돌아간 막대를 감싸는 상자는 막대보다 <b>짧다</b> — 0.310m 짜리
+        /// 자가 0.282m 로 읽혔다. 그 값으로 새 몸을 맞추면 자가 9% 짧아진다.
+        /// 메시 자체를 재고 배율만 곱한다.
+        /// </summary>
         private static float LongestSide(GameObject go)
         {
-            var rs = go.GetComponentsInChildren<Renderer>(true);
-            if (rs.Length == 0) return 0f;
-            var b = rs[0].bounds;
-            for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
-            return Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
+            float best = 0f;
+            foreach (var mf in go.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh == null) continue;
+                Vector3 s = mf.sharedMesh.bounds.size, l = mf.transform.lossyScale;
+                best = Mathf.Max(best, Mathf.Max(s.x * Mathf.Abs(l.x),
+                                 Mathf.Max(s.y * Mathf.Abs(l.y), s.z * Mathf.Abs(l.z))));
+            }
+            return best;
+        }
+
+        /// <summary>몸이 <paramref name="frame"/> 자리에서 차지하는 상자.</summary>
+        private static Bounds LocalBox(GameObject go, Transform frame)
+        {
+            bool first = true;
+            var acc = new Bounds();
+            foreach (var mf in go.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh == null) continue;
+                var mb = mf.sharedMesh.bounds;
+                var toFrame = frame.worldToLocalMatrix * mf.transform.localToWorldMatrix;
+                for (int c = 0; c < 8; c++)
+                {
+                    var corner = mb.center + Vector3.Scale(mb.extents,
+                        new Vector3((c & 1) == 0 ? -1 : 1, (c & 2) == 0 ? -1 : 1, (c & 4) == 0 ? -1 : 1));
+                    var p = toFrame.MultiplyPoint3x4(corner);
+                    if (first) { acc = new Bounds(p, Vector3.zero); first = false; }
+                    else acc.Encapsulate(p);
+                }
+            }
+            return acc;
+        }
+
+        /// <summary>가장 긴 축 — 0=x, 1=y, 2=z.</summary>
+        private static int LongAxis(Vector3 size)
+        {
+            if (size.x >= size.y && size.x >= size.z) return 0;
+            return size.y >= size.z ? 1 : 2;
+        }
+
+        /// <summary>긴 축이 <paramref name="wantAxis"/> 를 보도록 90도 돌린다.</summary>
+        private static void AlignLongAxis(GameObject go, int wantAxis)
+        {
+            var t = go.transform;
+            for (int tries = 0; tries < 3; tries++)
+            {
+                int have = LongAxis(LocalBox(go, t.parent).size);
+                if (have == wantAxis) return;
+                if (have == 0 && wantAxis == 2) { t.localRotation *= Quaternion.Euler(0f, -90f, 0f); continue; }
+                if (have == 2 && wantAxis == 0) { t.localRotation *= Quaternion.Euler(0f, 90f, 0f); continue; }
+                if (have == 0 && wantAxis == 1) { t.localRotation *= Quaternion.Euler(0f, 0f, 90f); continue; }
+                if (have == 1 && wantAxis == 0) { t.localRotation *= Quaternion.Euler(0f, 0f, -90f); continue; }
+                if (have == 1 && wantAxis == 2) { t.localRotation *= Quaternion.Euler(90f, 0f, 0f); continue; }
+                if (have == 2 && wantAxis == 1) { t.localRotation *= Quaternion.Euler(-90f, 0f, 0f); continue; }
+                return;
+            }
         }
 
         private static string Path(Transform t)

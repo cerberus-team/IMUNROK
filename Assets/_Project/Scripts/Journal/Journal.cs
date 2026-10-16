@@ -43,6 +43,22 @@ namespace IMUNROK.Common
         /// (예전에 저장한 파일에는 이 값이 없다 — 그때는 빈 채로 온다.)
         /// </summary>
         public string speaker;
+
+        /// <summary>
+        /// <b>칸에 뜨는 이름 — 한 줄로 줄인 제목.</b> 비어 있으면 아래 <see cref="text"/> 의
+        /// 첫 토막을 잘라 쓴다(옛 방식).
+        ///
+        /// 여태 제목이 없어서 본문의 앞부분을 잘라 붙였다. 그러자 <b>둘 다 망가졌다</b>:
+        /// 칸에 뜨는 이름은 「온 마을이 甲을 주인으로 알고, 담 밖의 사…」처럼 문장이
+        /// 중간에서 끊긴 꼴이 되고, 본문은 <b>칸에 들어갈 길이에 맞추려고</b> 짧게 적혀
+        /// 정작 펼쳐 보면 읽을 것이 없었다. 하나를 둘로 갈라야 둘 다 제 일을 한다 —
+        /// 제목은 <b>무엇에 관한 것인지</b>를 한 눈에 알려 주는 꼬리표(「문 앞 사내의 정체」)고,
+        /// 본문은 <b>들은 말을 그대로</b> 적어 두는 자리다.
+        ///
+        /// 말한 이(<see cref="speaker"/>)는 여기 적지 않는다 — 카드가 「[마을 사람의 증언]」을
+        /// 앞에 붙여 준다. 제목에 또 적으면 두 번 적힌다.
+        /// </summary>
+        public string title;
     }
 
     /// <summary>
@@ -122,6 +138,9 @@ namespace IMUNROK.Common
         /// <summary>새 단서가 기록될 때 발생(UI 갱신 등에 구독).</summary>
         public event Action<ClueEntry> OnClueAdded;
 
+        /// <summary>이미 적힌 줄이 고쳐졌다(덧붙는 한 줄·제목). 자동저장이 이것도 듣는다 — 여태 안 들어 이어하기에 빠졌다.</summary>
+        public event Action<CaseId, string> OnClueChanged;
+
         // ── 쓰기 API ──
 
         // ── 증거 그림(런타임 전용: 에셋 참조라 저장 안 하고, 다시 얻을 때 재설정) ──
@@ -142,13 +161,15 @@ namespace IMUNROK.Common
         /// 남에게서 받아낸 실토를 그 사람에게 도로 내미는 일은 없다.
         /// </summary>
         public bool AddClue(CaseId caseId, string key, string text, Texture2D image = null,
-                            ClueKind kind = ClueKind.물증, bool presentable = true)
+                            ClueKind kind = ClueKind.물증, bool presentable = true,
+                            string title = null)
         {
             if (string.IsNullOrEmpty(key)) key = text;
             if (image != null) _clueImages[ImgKey(caseId, key)] = image;
             if (HasClue(caseId, key)) return false;
 
-            var entry = new ClueEntry { caseId = caseId, key = key, text = text, kind = kind, presentable = presentable };
+            var entry = new ClueEntry { caseId = caseId, key = key, text = text, kind = kind,
+                                        presentable = presentable, title = title };
             _clues.Add(entry);
             DevLog.Note($"[Journal] 단서 기록: [{caseId}] {text}");
             OnClueAdded?.Invoke(entry);
@@ -170,6 +191,7 @@ namespace IMUNROK.Common
             var e = _clues.Find(c => c.caseId == caseId && c.key == key);
             if (e == null || string.IsNullOrEmpty(text) || e.text == text) return false;
             e.text = text;
+            OnClueChanged?.Invoke(caseId, key);
             DevLog.Note($"[Journal] 단서를 고쳐 적음: [{caseId}] {text}");
             JournalPanel.Refresh();
             return true;
@@ -192,6 +214,16 @@ namespace IMUNROK.Common
             public string body;
             public string fine;    // 돋보기로만 읽히는 잔글씨
             public Texture2D back;  // 뒤에 새겨진 것 — 뒤집어야 나온다
+
+            /// <summary>
+            /// <b>같은 종이의 겹</b> — 한글 벌·등불 면·등불 글. 방의 종이가 사라진 뒤(2막에서 1막 종이를
+            /// 수첩으로 펼 때)에도 돋보기·등불이 먹게 함께 적어 둔다. 여태 그림 한 장만 적어, 2막에서
+            /// 호구단자를 원본과 맞대 보려고 돋보기를 대도 한자만 보였다(2026-09-15).
+            /// </summary>
+            public Texture2D ko;
+            public Texture2D lit;
+            public string litText;
+            public string litGlyphs;
 
             /// <summary>종이가 아닌 것 — 무대에 세워 돌려 보는 3D 모델(있으면).</summary>
             public GameObject model;
@@ -231,6 +263,17 @@ namespace IMUNROK.Common
             _clueDocs[ImgKey(caseId, key)] = new ClueDocument
             { page = page, title = title, body = body, fine = fine, back = back,
               model = model, modelEuler = modelEuler, caseSheet = caseSheet, caseId = caseId };
+        }
+
+        /// <summary>이미 적어 둔 종이에 한글 벌·등불 겹을 붙인다.</summary>
+        public void SetDocumentLayers(CaseId caseId, string key, Texture2D ko, Texture2D lit, string litText, string litGlyphs)
+        {
+            var d = GetDocument(caseId, key);
+            if (d == null) return;
+            if (ko != null) d.ko = ko;
+            if (lit != null) d.lit = lit;
+            if (!string.IsNullOrEmpty(litText)) d.litText = litText;
+            if (!string.IsNullOrEmpty(litGlyphs)) d.litGlyphs = litGlyphs;
         }
 
         /// <summary>
@@ -297,6 +340,14 @@ namespace IMUNROK.Common
         }
 
         // ── 읽기 API ──
+
+        /// <summary>칸에 뜰 제목을 적어 둔다(이미 적혀 있으면 안 덮는다).</summary>
+        public void SetTitle(CaseId caseId, string key, string title)
+        {
+            if (string.IsNullOrEmpty(key) || string.IsNullOrWhiteSpace(title)) return;
+            var e = _clues.Find(c => c != null && c.caseId == caseId && c.key == key);
+            if (e != null && string.IsNullOrEmpty(e.title)) e.title = title.Trim();
+        }
 
         /// <summary>말한 이를 적어 둔다(이미 적혀 있으면 안 덮는다).</summary>
         public void SetSpeaker(CaseId caseId, string key, string who)
@@ -389,10 +440,45 @@ namespace IMUNROK.Common
 
         // ── 저장 / 불러오기 (SaveSystem이 호출) ──
 
+        /// <summary>그림·종이는 <b>이름</b>으로 저장한다(<see cref="ClueArtIndex"/> 가 되찾는다).</summary>
         [Serializable]
-        private class SaveDTO { public List<ClueEntry> clues; }
+        private class ArtDTO
+        {
+            public int caseId; public string key;
+            public string image, page, back, ko, lit, model;
+            public string title, body, fine, litText, litGlyphs;
+            public Vector3 modelEuler; public bool caseSheet;
+        }
 
-        public string ToJson() => JsonUtility.ToJson(new SaveDTO { clues = _clues });
+        [Serializable]
+        private class SaveDTO { public List<ClueEntry> clues; public List<ArtDTO> art; }
+
+        public string ToJson()
+        {
+            var art = new List<ArtDTO>();
+            var keys = new HashSet<string>();
+            foreach (var kv in _clueImages) keys.Add(kv.Key);
+            foreach (var kv in _clueDocs) keys.Add(kv.Key);
+            foreach (var k in keys)
+            {
+                int bar = k.IndexOf(':');
+                if (bar <= 0) continue;
+                int cid; if (!int.TryParse(k.Substring(0, bar), out cid)) continue;
+                var a = new ArtDTO { caseId = cid, key = k.Substring(bar + 1) };
+                Texture2D img; if (_clueImages.TryGetValue(k, out img) && img != null) a.image = img.name;
+                ClueDocument d;
+                if (_clueDocs.TryGetValue(k, out d) && d != null)
+                {
+                    a.page = d.page != null ? d.page.name : null; a.back = d.back != null ? d.back.name : null;
+                    a.ko = d.ko != null ? d.ko.name : null; a.lit = d.lit != null ? d.lit.name : null;
+                    a.model = d.model != null ? d.model.name : null; a.modelEuler = d.modelEuler;
+                    a.title = d.title; a.body = d.body; a.fine = d.fine; a.litText = d.litText; a.litGlyphs = d.litGlyphs;
+                    a.caseSheet = d.caseSheet;
+                }
+                art.Add(a);
+            }
+            return JsonUtility.ToJson(new SaveDTO { clues = _clues, art = art });
+        }
 
         public void FromJson(string json)
         {
@@ -401,6 +487,25 @@ namespace IMUNROK.Common
             if (d == null || d.clues == null) return;
             _clues.Clear();
             _clues.AddRange(d.clues);
+            if (d.art == null) return;
+            var idx = ClueArtIndex.Index;
+            if (idx == null) return;
+            foreach (var a in d.art)
+            {
+                if (a == null || string.IsNullOrEmpty(a.key)) continue;
+                var cid = (CaseId)a.caseId;
+                string k = ImgKey(cid, a.key);
+                var img = idx.Texture(a.image);
+                if (img != null) _clueImages[k] = img;
+                var page = idx.Texture(a.page); var model = idx.Model(a.model);
+                if (page == null && model == null) continue;
+                _clueDocs[k] = new ClueDocument
+                {
+                    page = page, back = idx.Texture(a.back), ko = idx.Texture(a.ko), lit = idx.Texture(a.lit),
+                    model = model, modelEuler = a.modelEuler, title = a.title, body = a.body, fine = a.fine,
+                    litText = a.litText, litGlyphs = a.litGlyphs, caseSheet = a.caseSheet, caseId = cid,
+                };
+            }
         }
     }
 }

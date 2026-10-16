@@ -68,6 +68,7 @@ namespace IMUNROK.Common
         private RectTransform _detailShotRt;
         private DetailTurner _turner;
         private TextMeshProUGUI _detailName, _detailBody;
+        private DetailScroll _detailScroll;
         private readonly List<GameObject> _detailChips = new List<GameObject>();
 
         /// <summary>지금 상세를 보고 있나. 그동안에는 휠도 쪽을 안 넘긴다.</summary>
@@ -405,12 +406,26 @@ namespace IMUNROK.Common
             var nameRule = NewRect("이름줄", new Vector2(TextX, 252f), new Vector2(TextW, 4f), _detail);
             Skin(nameRule.gameObject.AddComponent<Image>(), _skin.Wood_, UiLook.Wood);
 
-            var box = NewRect("글틀", new Vector2(TextX, 20f), new Vector2(TextW, 420f), _detail);
+            // 설명이 길어졌다(견우 판처럼 무엇·생김새·유리로 읽은 것·이상한 점). 칸을 단추줄
+            // 바로 위까지 내리고, 그래도 넘치면 휠로 굴린다 — 글씨를 줄여 우겨넣지 않는다.
+            var box = NewRect("글틀", new Vector2(TextX, -50f), new Vector2(TextW, 560f), _detail);
             box.gameObject.AddComponent<RectMask2D>();
-            _detailBody = NewText("글", "", Vector2.zero, new Vector2(TextW - 20f, 420f), box,
-                                  _clueFontSize, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.92f));
+            var wheel = box.gameObject.AddComponent<Image>();   // 휠을 받을 자리 — 보이지 않는다
+            wheel.color = new Color(0f, 0f, 0f, 0f);
+            _detailBody = NewText("글", "", Vector2.zero, new Vector2(TextW - 20f, 560f), box,
+                                  _clueFontSize - 2, new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.92f));
             _detailBody.alignment = TextAlignmentOptions.TopLeft;
+            _detailBody.raycastTarget = false;
             UiText.Wrap(_detailBody, true);
+            _detailScroll = box.gameObject.AddComponent<DetailScroll>();
+            _detailScroll.Text = _detailBody;
+            var more = NewText("더읽기", "▼ 휠로 더 읽기", new Vector2(TextX + TextW * 0.5f - 130f, -345f),
+                               new Vector2(260f, 30f), _detail, _clueFontSize - 12,
+                               new Color(_inkColor.r, _inkColor.g, _inkColor.b, 0.55f));
+            more.alignment = TextAlignmentOptions.Right;
+            more.raycastTarget = false;
+            more.gameObject.SetActive(false);
+            _detailScroll.More = more;
 
             _detailButtons = NewRect("단추줄", new Vector2(0f, -420f), new Vector2(1712f, 80f), _detail);
 
@@ -453,15 +468,23 @@ namespace IMUNROK.Common
             bool talking = InterrogationController.AnyOpen && InterrogationController.Active != null;
 
             // <b>못 내미는 까닭을 적는다.</b> 단추가 그냥 없으면 「왜 없지」로 남는다.
-            if (talking && present != null && !present.presentable)
+            bool canShow = CanPresent(present, talking);
+            if (talking && present != null && !canShow)
+            {
+                string why = !present.presentable
+                    ? "*이것은 내밀 것이 못 된다* — 처음부터 지니고 있던 것이거나, 받아낸 말이다. "
+                      + "들이밀 수 있는 것은 <b>뒤져서 찾아낸 종이</b>다."
+                    : "*이 말은 이 사람에게서 들은 것이다* — 제 말을 제 앞에 도로 꺼내 보여야 "
+                      + "「그건 소인이 한 말입지요」로 끝난다. <b>남에게 들은 말</b>이라야 짚을 것이 된다.";
                 _detailBody.text = Emphasis.Rich(
-                    (string.IsNullOrEmpty(body) ? "" : body + "\n\n")
-                    + "*이것은 내밀 것이 못 된다* — 처음부터 지니고 있던 것이거나, 받아낸 말이다. "
-                    + "들이밀 수 있는 것은 <b>뒤져서 찾아낸 종이</b>다.", Emphasis.OnPaper);
+                    (string.IsNullOrEmpty(body) ? "" : body + "\n\n") + why, Emphasis.OnPaper);
+            }
+
+            if (_detailScroll != null) _detailScroll.ResetTop();
 
             var row = new List<KeyValuePair<string, System.Action>>();
             if (onHold != null) row.Add(new KeyValuePair<string, System.Action>("손에 들고 본다", onHold));
-            if (talking && present != null && present.presentable)
+            if (canShow)
             {
                 var captured = present;
                 row.Add(new KeyValuePair<string, System.Action>("들이밀기", () =>
@@ -626,7 +649,7 @@ namespace IMUNROK.Common
                 // 눌러 봐야 아는 것은 <b>막은 것</b>이 아니라 <b>고장난 것</b>으로 읽힌다.
                 // 내밀 자리(심문)에서는 못 내미는 칸을 <b>한 켜 묽게</b> 깔아,
                 // 손이 그리로 가기 전에 눈이 먼저 가린다.
-                bool blocked = talking && !c.presentable;
+                bool blocked = talking && !CanPresent(c, true);
                 Skin(bg, _skin.Wood_, blocked ? UiLook.With(UiLook.Wood, 0.45f) : UiLook.Wood);
                 var faceColor = heard
                               ? new Color(_cardColor.r, _cardColor.g, _cardColor.b, _cardColor.a * 0.7f)
@@ -636,7 +659,8 @@ namespace IMUNROK.Common
                 _cards.Add(card.gameObject);
 
                 var doc = Journal.Instance.GetDocument(caseId, c.key);
-                Texture2D shot = doc != null ? doc.page : Journal.Instance.GetClueImage(caseId, c.key);
+                // 모형만 걸린 물증(자물쇠·팔)은 종이가 없다 — 그때는 단서 그림으로 물러선다. 여태 page 가 비어 「?」가 떴다.
+                Texture2D shot = doc != null && doc.page != null ? doc.page : Journal.Instance.GetClueImage(caseId, c.key);
 
                 // 생김새 — 속지 안에 들어가는 크기로.
                 var shotRt = NewRect("모양", new Vector2(0f, ShotY), new Vector2(Shot, Shot), card);
@@ -676,13 +700,17 @@ namespace IMUNROK.Common
                 int at = i;
                 var captured2 = c;
                 var doc2 = doc;
+                bool heard2 = heard;
                 btn.onClick.AddListener(() =>
                 {
                     // <b>판 안에서 먼저 크게 본다.</b> 손에 드는 것은 그다음이다.
+                    // <b>손에 드는 것은 물증뿐이다.</b> 들은 말은 종이가 아니라 기억이라
+                    // 집어 들 것이 없는데도 단추가 떠서, 눌러 보면 아무 일도 안 났다.
+                    System.Action hold = heard2 ? null : (System.Action)(() => { OpenAt(at); _owner?.Close(); });
                     ShowDetail(shot,
                                ShortName(doc2, captured2),
-                               doc2 != null && !string.IsNullOrEmpty(doc2.body) ? doc2.body : Body(captured2),
-                               () => { OpenAt(at); _owner?.Close(); },   // 수첩을 덮어야 두 손이 빈다
+                               DetailBody(doc2, captured2),
+                               hold,   // 수첩을 덮어야 두 손이 빈다
                                captured2,
                                doc2 != null ? doc2.back : null);
                 });
@@ -690,7 +718,7 @@ namespace IMUNROK.Common
                 // 심문 중이면 들이밀 수 있다
                 // 들이밀 수 있는가는 <b>presentable</b> 하나가 정한다. 여태 key 가
                 // "_revealed" 로 끝나는지도 보았는데, 그런 key 를 만드는 곳이 없어진 지 오래다.
-                bool canPresent = talking && c.presentable;
+                bool canPresent = CanPresent(c, talking);
                 if (!canPresent) continue;
                 var b = NewRect("들이밀기", new Vector2(0f, -ch * 0.5f + 22f), new Vector2(cw - 44f, 36f), card);
                 var pbg = b.gameObject.AddComponent<Image>();
@@ -810,20 +838,53 @@ namespace IMUNROK.Common
             if (_shown == null || i < 0 || i >= _shown.Count) return;
             var c = _shown[i];
             var doc = Journal.Instance.GetDocument(_shownCase, c.key);
-            Texture2D shot = doc != null ? doc.page : Journal.Instance.GetClueImage(_shownCase, c.key);
+            Texture2D shot = doc != null && doc.page != null ? doc.page : Journal.Instance.GetClueImage(_shownCase, c.key);
 
             // 수첩에서 꺼내 든 것은 어둠 위에 놓는다(dim) — 둘레가 비어야 그 하나만 보인다
-            if (doc != null)
+            // 방에서 집었던 그 종이가 아직 씬에 있으면 <b>그 종이로</b> 편다 — 한글 벌·등불·
+            // 「다 읽으면 수첩에 덧붙이기」까지 방에서와 똑같이(InspectableNote.OpenFromJournal).
+            if (doc != null && doc.model == null && InspectableNote.OpenFromJournal(_shownCase, c.key))
             {
+                DocumentView.SetStageModel(null, Vector3.zero);
+            }
+            else if (doc != null)
+            {
+                // 방의 종이가 없어도 한글 벌·등불 겹은 수첩이 들고 있다 — 돋보기·등불이 그대로 먹는다
                 DocumentView.Show(doc.page, doc.title, doc.body, doc.fine, null, true,
-                                  null, null, null, null, doc.back);
+                                  doc.lit, doc.litText, null, doc.litGlyphs, doc.back, doc.ko);
                 DocumentView.SetStageModel(doc.model, doc.modelEuler);   // 종이가 아니면 무대로
             }
             else
                 DocumentView.Show(shot, ShortName(null, c), c.text, null, null, true);
 
-            DocumentView.SetNeighbors(i > 0 ? new System.Action(() => OpenAt(i - 1)) : null,
-                                      i < _shown.Count - 1 ? new System.Action(() => OpenAt(i + 1)) : null);
+            // <b>이웃은 물증끼리만 잇는다.</b>
+            //
+            // 저쪽 꾸러미(견우)의 좌우 짝은 <b>소지품</b> 사이를 넘긴다 — 거기 목록에 있는
+            // 것이 다 물건이라 그 말이 곧 「손에 쥘 수 있는 것」이다. 우리 수첩에는 그 뒤에
+            // <b>들은 말</b>이 함께 눕는데, 증언은 쥘 종이가 없다. 그래서 넘기다 증언에
+            // 닿으면 종이도 없는 것이 종이 자리에 펴졌다 — 카드로 누르면 안 펴지는 것이
+            // 옆으로 넘기면 펴지니, 같은 물건이 길에 따라 달라 보인다.
+            //
+            // 증언은 <b>건너뛴다</b>. 넘기는 손은 견주어 보려는 손이고, 견줄 수 있는 것은
+            // 종이뿐이다.
+            DocumentView.SetNeighbors(StepTo(i, -1), StepTo(i, +1));
+        }
+
+        /// <summary>
+        /// <paramref name="from"/> 에서 <paramref name="dir"/> 쪽으로 <b>가장 가까운 물증</b>으로
+        /// 가는 손짓. 그쪽에 물증이 없으면 null — 그러면 그 짝은 안 뜬다.
+        /// </summary>
+        private System.Action StepTo(int from, int dir)
+        {
+            if (_shown == null) return null;
+            for (int k = from + dir; k >= 0 && k < _shown.Count; k += dir)
+            {
+                var c = _shown[k];
+                if (c == null || c.kind != ClueKind.물증) continue;   // 들은 말은 건너뛴다
+                int at = k;
+                return () => OpenAt(at);
+            }
+            return null;
         }
 
         /// <summary>
@@ -883,15 +944,77 @@ namespace IMUNROK.Common
         /// 그리고 <b>들은 말에는 말한 이를 앞세운다</b>. 증언은 누가 했는지가 곧 그 무게라,
         /// 「[마을 사람의 증언] 미친 사내」처럼 임자를 앞에 두면 열 장이 깔려도 갈린다.
         /// </summary>
+        /// <summary>
+        /// <b>이것을 지금 이 사람에게 내밀 수 있나.</b>
+        ///
+        /// 여태 <c>presentable</c> 하나만 보았다. 그런데 증언은 <b>누구에게서 들은
+        /// 말인지</b>가 함께 적혀 있고(<see cref="ClueEntry.speaker"/>), 그 말을
+        /// <b>그 사람 앞에 도로 꺼내 보이는 것</b>은 증거를 대는 것이 아니다 —
+        /// 마을 사람이 한 말을 마을 사람에게 들이밀면 "그건 제가 한 말입지요" 로 끝난다.
+        /// 남의 말을 옮겨 짚을 때라야 증언이 증거가 된다.
+        /// </summary>
+        private static bool CanPresent(ClueEntry c, bool talking)
+        {
+            if (!talking || c == null) return false;
+            // 마주한 사람에게 <b>이것을 기다리는 게이트</b>가 있으면 누구의 말이든 내민다(2026-09-15)
+            if (InterrogationController.ActiveWants(c.key)) return true;
+            if (!c.presentable) return false;
+            if (string.IsNullOrEmpty(c.speaker)) return true;          // 주워 온 것은 누구에게든
+            string now = InterrogationController.ActiveName;
+            if (string.IsNullOrEmpty(now)) return true;
+            return c.speaker.Trim() != now.Trim();
+        }
+
+        /// <summary>
+        /// 칸에 뜨는 이름.
+        ///
+        /// <b>적어 둔 제목이 있으면 그것이 먼저다</b>(<see cref="ClueEntry.title"/>). 없을
+        /// 때에만 본문의 첫 토막을 잘라 쓴다 — 그 잘라 쓰기가 증언 카드를 죄 망가뜨렸다.
+        /// 「온 마을이 甲을 주인으로 알고, 담 밖의 사…」는 제목이 아니라 <b>중간에서 끊긴
+        /// 문장</b>이고, 그것을 그럴듯하게 보이려고 본문까지 짧게 적히게 만들었다.
+        ///
+        /// <b>말한 이는 여기서 붙인다.</b> 「[마을 사람의 증언] 문 앞 사내의 정체」 —
+        /// 앞은 수첩이 알고 있는 것(<see cref="ClueEntry.speaker"/>)이고 뒤가 적어 둔 제목이다.
+        /// 그래서 제목에 말한 이를 또 적으면 두 번 적힌다.
+        /// </summary>
         private static string ShortName(Journal.ClueDocument doc, ClueEntry c)
         {
             if (doc != null && !string.IsNullOrEmpty(doc.title)) return Emphasis.Plain(doc.title);
 
-            string t = Body(c);
-            // 칸은 두 줄이다. 열대여섯 자를 넘기면 셋째 줄이 나서 칸 밖으로 흐른다.
-            int room = string.IsNullOrEmpty(c.speaker) ? 26 : 18;
-            if (t.Length > room) t = t.Substring(0, room).TrimEnd() + "…";
+            string t;
+            if (c != null && !string.IsNullOrWhiteSpace(c.title))
+            {
+                t = Emphasis.Plain(c.title.Trim());
+            }
+            else
+            {
+                t = Body(c);
+                // 칸은 두 줄이다. 열대여섯 자를 넘기면 셋째 줄이 나서 칸 밖으로 흐른다.
+                int room = string.IsNullOrEmpty(c.speaker) ? 26 : 18;
+                if (t.Length > room) t = t.Substring(0, room).TrimEnd() + "…";
+            }
             return string.IsNullOrEmpty(c.speaker) ? t : "[" + c.speaker + "의 증언] " + t;
+        }
+
+        /// <summary>
+        /// 상세 칸의 본문 — <b>수첩에 적힌 줄이 먼저다.</b>
+        ///
+        /// 여태 종이가 걸려 있으면 그 종이의 <c>body</c>(방에서 집을 때 뜨는 한 줄 —
+        /// 「받은 물건을 적은 물목기다」)를 보였다. 그러면 돋보기로 읽어 덧붙인 것, 무엇이
+        /// 이상한지 적어 둔 것이 상세에서 <b>통째로 빠진다</b> — 증거 설명이 한 줄뿐인
+        /// 까닭이 이것이었다. 적힌 줄이 없을 때만 종이의 한 줄로 물러선다.
+        /// 강조 서식은 살린다(이름표 [J07] 만 걷는다).
+        /// </summary>
+        private static string DetailBody(Journal.ClueDocument doc, ClueEntry c)
+        {
+            string t = c != null ? (c.text ?? "") : "";
+            if (t.StartsWith("["))
+            {
+                int close = t.IndexOf(']');
+                if (close > 0 && close <= 6 && close + 1 < t.Length) t = t.Substring(close + 1).Trim();
+            }
+            if (!string.IsNullOrWhiteSpace(t)) return t;
+            return doc != null && !string.IsNullOrEmpty(doc.body) ? doc.body : Body(c);
         }
 
         /// <summary>

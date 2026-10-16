@@ -41,7 +41,20 @@ namespace IMUNROK.Common
         public void ResetView()
         {
             _yaw = 0f; _pitch = 0f;
+            // <b>뒤집힌 채로 넘어가지 않게 앞면을 손으로 되돌린다.</b>
+            //
+            // 여태 _showingBack 만 거짓으로 돌리고 Apply 에 맡겼다. 그런데 Apply 는 앞뒤가
+            // <b>바뀔 때만</b> 그림과 좌우를 고친다 — 둘 다 이미 「앞」이라 곧장 돌아 나가고,
+            // 앞 물건을 뒤집어 둔 좌우 뒤집기(scale.x −1)가 그대로 남았다. 그래서 다음 물건이
+            // 거울에 비친 글씨로 떴다(호구단자). 여기서 그림·빛·좌우를 다 앞면으로 놓는다.
             _showingBack = false;
+            if (Image != null) { Image.texture = Front; Image.color = Color.white; }
+            if (Page != null)
+            {
+                var s = Page.localScale;
+                s.x = Mathf.Abs(s.x);
+                Page.localScale = s;
+            }
             Apply();
         }
 
@@ -76,8 +89,23 @@ namespace IMUNROK.Common
             if (back == _showingBack || Image == null) return;
             _showingBack = back;
 
-            if (back && Back != null) Image.texture = Back;
-            else Image.texture = Front;
+            // <b>뒤가 없는 종이는 민면이다.</b>
+            //
+            // 여태 뒷그림이 없으면 앞면을 그대로 두고 좌우만 한 번 더 뒤집었다. 그런데
+            // 반 바퀴 돌린 것과 좌우를 뒤집은 것은 서로 상쇄되어, <b>뒤집기 전과 똑같은
+            // 그림</b>이 나왔다 — 「눌러서 뒤집는다」고 일러 놓고 눌러도 아무 일이 없으니
+            // 판이 고장 난 것으로 읽힌다. 대개의 종이는 뒤가 비어 있는 것이 맞으므로,
+            // 없으면 <b>빈 한지</b>를 보인다. 뒤집었다는 것이 그것으로 보인다.
+            if (back)
+            {
+                Image.texture = Back;                       // 없으면 null — 민 바탕이 남는다
+                Image.color = Back != null ? Color.white : UiLook.Paper;
+            }
+            else
+            {
+                Image.texture = Front;
+                Image.color = Color.white;
+            }
 
             // 뒷면일 때는 글씨가 거울처럼 뒤집히지 않게 한 번 더 뒤집어 준다.
             var s = Page.localScale;

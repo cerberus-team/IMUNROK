@@ -33,6 +33,49 @@ if (-not $ProjectRoot) { $ProjectRoot = (Resolve-Path (Join-Path $here '..\..'))
 
 $docs = Get-Content (Join-Path $here 'docs.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 
+# ---------------------------------------------------------------------------
+# The same sheet, read out in Hangul.
+#
+# The player is handed a page of hanja and cannot read it. Printing a Korean
+# line underneath turns the document into a subtitle, and writing Korean ON the
+# paper wrecks it as a Joseon document. So we bake the sheet TWICE - once in
+# hanja and once, in exactly the same layout, in Korean - and the game shows the
+# Korean twin only through the magnifier. Look through the glass and the column
+# you are over turns into Korean; take the glass away and the hanja is back.
+#
+# A twin is baked for any document whose entries carry "ko" (and/or "titleKo").
+# Everything else about it - the ruling, the seal, the marks - is drawn by the
+# same code from the same fields, so the two sheets line up character-cell for
+# character-cell without anybody keeping two layouts in step by hand.
+$koDocs = @()
+foreach ($d in $docs) {
+    $hasKo = $false
+    if ($d.PSObject.Properties.Name -contains 'titleKo'    -and $d.titleKo)    { $hasKo = $true }
+    if ($d.PSObject.Properties.Name -contains 'columnsKo'  -and $d.columnsKo)  { $hasKo = $true }
+    if ($d.PSObject.Properties.Name -contains 'entries'    -and $d.entries) {
+        foreach ($e in $d.entries) {
+            if ($e.PSObject.Properties.Name -contains 'ko' -and $e.ko) { $hasKo = $true }
+        }
+    }
+    if (-not $hasKo) { continue }
+
+    $c = $d | ConvertTo-Json -Depth 12 | ConvertFrom-Json
+    $c.file = $d.file + '_ko'
+    if ($d.PSObject.Properties.Name -contains 'titleKo'   -and $d.titleKo)   { $c.title = $d.titleKo }
+    if ($d.PSObject.Properties.Name -contains 'columnsKo' -and $d.columnsKo) { $c.columns = $d.columnsKo }
+    if ($c.PSObject.Properties.Name -contains 'entries' -and $c.entries) {
+        for ($i = 0; $i -lt @($c.entries).Count; $i++) {
+            $src = @($d.entries)[$i]
+            if ($src.PSObject.Properties.Name -contains 'ko' -and $src.ko) { @($c.entries)[$i].text = $src.ko }
+        }
+    }
+    $koDocs += $c
+}
+if ($koDocs.Count -gt 0) {
+    Write-Host ("  hangul twins: {0}" -f $koDocs.Count)
+    $docs = @($docs) + $koDocs
+}
+
 # Where a document lands depends on whether it belongs to one case or to everybody.
 # No "case" field  -> shared props (the three petition sheets on the 조사청 board).
 # "case": "X"      -> that case's own art folder, so 옹고집 clues do not pile up in the shared bin.
@@ -126,6 +169,30 @@ foreach ($d in $docs) {
     }
 }
 
+# The two brushes never draw Hangul.
+#
+# The hands sign the LEDGER ENTRIES, and those are hanja from end to end. The Hangul
+# in this pile belongs to the case sheets, which are print and are drawn by $fontName.
+# Testing a brush against all of it therefore asks it for letters it will never be
+# handed - and every brush face here was cut for Chinese, so it carries no Hangul at
+# all. It fails on the first syllable, HCR Batang covers everything, and the picker
+# hands Deok-gu's brush to the same face that prints the office ledgers.
+#
+# Which quietly ate the clue. J06 is "the hand changes a month ago"; if the trained
+# hand and the printed hand are one font, the sheet has nothing to show. So the
+# brushes are measured against the hanja only.
+$handText = @()
+foreach ($t in $allText) {
+    $sb = New-Object System.Text.StringBuilder
+    foreach ($ch in $t.ToCharArray()) {
+        $c = [int]$ch
+        if ($c -ge 0xAC00 -and $c -le 0xD7A3) { continue }   # 가~힣
+        if ($c -ge 0x3130 -and $c -le 0x318F) { continue }   # ㄱ~ㅣ
+        [void]$sb.Append($ch)
+    }
+    if ($sb.Length -gt 0) { $handText += $sb.ToString() }
+}
+
 # Which of those characters a face cannot draw. Repo fonts were read straight from
 # the file while loading; for installed ones ask WPF once and keep the answer.
 function Get-Missing($familyName, $texts) {
@@ -198,10 +265,10 @@ function Pick-Face($cands, $texts, $exclude, $mustCoverAll) {
 $fontName = Pick-Face @('tkFangSong','LXGW WenKai KR','LXGW WenKai TC','Ma Shan Zheng','HCR Batang','Batang','Gungsuh') $allText $null $false
 if (-not $fontName) { $fontName = 'Batang' }
 
-$fontHand = Pick-Face @('Bakudai','LXGW WenKai KR','Ma Shan Zheng','HCR Batang','Batang') $allText $null $false
+$fontHand = Pick-Face @('Bakudai','LXGW WenKai KR','Ma Shan Zheng','HCR Batang','Batang') $handText $null $false
 if (-not $fontHand) { $fontHand = $fontName }
 
-$fontAlt = Pick-Face @('AbbrFesFont','Long Cang','Liu Jian Mao Cao','Zhi Mang Xing','Yuji Mai','LXGW WenKai TC','BatangChe') $allText $fontHand $false
+$fontAlt = Pick-Face @('AbbrFesFont','Long Cang','Liu Jian Mao Cao','Zhi Mang Xing','Yuji Mai','LXGW WenKai TC','BatangChe') $handText $fontHand $false
 if (-not $fontAlt) {
     $fontAlt = $fontName
     Write-Host "  ! only one face draws every character - the two hands will differ by wobble alone."
@@ -227,7 +294,59 @@ Report-MissingGlyphs $fontName $allText
 if ($fontHand -ne $fontName) { Report-MissingGlyphs $fontHand $allText }
 if ($fontAlt -ne $fontName -and $fontAlt -ne $fontHand) { Report-MissingGlyphs $fontAlt $allText }
 
+# ---------------------------------------------------------------------------
+# The same two hands, in Hangul.
+#
+# The hanja brushes (Bakudai, AbbrFesFont) were cut for Chinese and carry no Hangul
+# at all. On the Korean twin every glyph therefore fell back to ONE substitute face -
+# so the forged stretch and the master's stretch came out in the same letters, and the
+# whole clue of J06 ("the hand changes a month ago") was invisible exactly where the
+# player can finally read the sheet.
+#
+# The wobble still differed (size, drift, watery ink, double-stamping), but wobble
+# alone on identical letters reads as "badly printed", not as "a different person".
+#
+# So the Korean twin gets its own three faces, chosen against Hangul:
+#   ko print    - the office's own book. Even, set, no wobble.
+#   ko Deok-gu  - a brush face (Gungsuh is 궁서: a writing-brush hand).
+#   ko Bok-dong - a DIFFERENT face from Deok-gu's, whatever else is on the machine.
+#                 Paired with the wobble it already gets, two people now show.
+$koText = @()
+foreach ($t in $allText) {
+    $sb = New-Object System.Text.StringBuilder
+    foreach ($ch in $t.ToCharArray()) {
+        $c = [int]$ch
+        if (($c -ge 0xAC00 -and $c -le 0xD7A3) -or ($c -ge 0x3130 -and $c -le 0x318F) -or $c -lt 0x80) {
+            [void]$sb.Append($ch)
+        }
+    }
+    if ($sb.Length -gt 0) { $koText += $sb.ToString() }
+}
+# NOTE: font family names come back LOCALISED. On this Korean Windows the collection
+# reports 궁서 / 바탕체 / 함초롬바탕 - never Gungsuh / BatangChe / HCR Batang. Listing
+# only the English spellings found nothing, every pick fell through to the print face,
+# and the twin came out in one hand again. Both spellings are listed; Pick-Face skips
+# whatever is not installed, so the same list works on either machine.
+# The office face is 궁서 too. 조선100년체 read as a typeface - even, geometric, a
+# sign-painter's letter - and on a deed title (별급문기) it stood out as "a font" rather
+# than as brushwork. 궁서 is the palace brush script the office would actually have used.
+$script:fontNameKo = Pick-Face @('궁서','Gungsuh','조선100년체','Chosun Centennial','함초롬바탕','HCR Batang','바탕','Batang') $koText $null $false
+if (-not $script:fontNameKo) { $script:fontNameKo = $fontName }
+
+# Deok-gu: 궁서 is a writing-brush face - twenty years of a trained hand.
+$script:fontHandKo = Pick-Face @('궁서','Gungsuh','조선100년체','Chosun Centennial','바탕','Batang') $koText $null $false
+if (-not $script:fontHandKo) { $script:fontHandKo = $script:fontNameKo }
+
+# Bok-dong: a plain block serif, not a brush. He never had a scholar's schooling, and
+# it is the wobble (size, drift, watery ink) that finishes the difference.
+$script:fontAltKo = Pick-Face @('바탕체','BatangChe','함초롬바탕','HCR Batang','조선100년체','굴림체','Gulim') $koText $script:fontHandKo $false
+if (-not $script:fontAltKo) {
+    $script:fontAltKo = $script:fontHandKo
+    Write-Host "  ! only one Hangul face here - the two hands on the Korean twin differ by wobble alone."
+}
+
 Write-Host "print: $fontName   Deok-gu: $fontHand   Bok-dong: $fontAlt"
+Write-Host ("ko   : {0}   Deok-gu: {1}   Bok-dong: {2}" -f $script:fontNameKo, $script:fontHandKo, $script:fontAltKo)
 Write-Host "out : $sharedDir  (+ per-case folders)"
 
 $px = [System.Drawing.GraphicsUnit]::Pixel
@@ -388,6 +507,9 @@ function Paint-Seal($g, $seal, $sx, $sy, $size, $fontName, $rng) {
 # ---------------------------------------------------------------- kinds
 
 function Draw-Doc($g, $doc, $w, $h, $fontName, $rng) {
+    # The hanja faces carry no Hangul. Without this the Korean twin of a deed fell back to
+    # whatever sans face GDI+ found (a plain gothic), so 별급문기 printed like a signboard.
+    if ($doc.file -like '*_ko') { $fontName = $script:fontNameKo }
     $ink     = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(238, 38, 30, 24))
     $inkSoft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(210, 52, 42, 32))
 
@@ -666,6 +788,15 @@ function Draw-File($g, $doc, $w, $h, $fontName, $rng) {
 # Account book. Entries run right to left, one per ruled column.
 # hand 1 is a different font, size and jitter - that difference IS the clue.
 function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontHand, $fontAlt, $rng) {
+    # The Korean twin is drawn by the same code from the same fields - only the three
+    # faces change. Swapping here (and not at the call) keeps the ruling, the column
+    # steps and the marks identical between the two sheets, which is what lets the
+    # magnifier lay one over the other.
+    if ($doc.file -like '*_ko') {
+        $fontName = $script:fontNameKo
+        $fontHand = $script:fontHandKo
+        $fontAlt  = $script:fontAltKo
+    }
     $ink     = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(238, 38, 30, 24))
     $inkSoft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(210, 52, 42, 32))
     # Bok-dong writes with a thinner, waterier brush than the master's - it is not
@@ -689,6 +820,10 @@ function Draw-Ledger($g, $doc, $w, $h, $fontName, $fontHand, $fontAlt, $rng) {
     foreach ($e in $entries) { $texts += $e.text }
     $maxUnits = Measure-Units $texts
     $charStep = [Math]::Min(66.0, ($gridBottom - $gridTop - 90) / $maxUnits)
+    # Bok-dong's hand steps 1.10x wider (below). Fit the grid to HIS pace when he wrote
+    # any of it, or his longest column runs out through the bottom rule - the Korean
+    # twin of the household return did exactly that once 본관 was added to the head line.
+    foreach ($e in $entries) { if ((Get-Field $e 'hand' 0) -eq 1) { $charStep = $charStep / 1.10; break } }
     $fontSize = [Math]::Max(16.0, $charStep * 0.80)
     Write-Host ("  {0}: ledger, {1} entries, charStep {2:N1}, font {3:N1}" -f $doc.file, $count, $charStep, $fontSize)
 
@@ -865,6 +1000,19 @@ foreach ($doc in $docs) {
 
     # burnt: keep only what is inside the fragment outline, and scorch the rim.
     if ($kind -eq 'burnt') {
+        # <b>The outline must be the same sheet on every pass.</b>
+        #
+        # New-FragmentPath draws from the running rng, and how many draws have happened
+        # by now depends on how much text this page had. So the front, its Korean twin
+        # and its BACK each got a different tear - flip the scrap over and the hole was
+        # somewhere else, which reads as two pieces of paper rather than two sides of one.
+        #
+        # Seed from the base name (with _ko / _back taken off) so every face of one
+        # scrap tears the same way.
+        $baseName = $doc.file -replace '_(ko|back)$', ''
+        $seed = 0
+        foreach ($ch in $baseName.ToCharArray()) { $seed = ($seed * 31 + [int]$ch) % 2147483647 }
+        $rng = New-Object System.Random($seed)
         $path = New-FragmentPath $W $H $rng
         $frag = New-Object System.Drawing.Bitmap($W, $H)
         $fg   = [System.Drawing.Graphics]::FromImage($frag)

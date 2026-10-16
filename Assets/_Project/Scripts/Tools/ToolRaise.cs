@@ -27,9 +27,8 @@ namespace IMUNROK.Common
     /// 여기서는 <b>지금 들어 올리고 있는가</b>만 답한다. 무엇이 어떻게 움직일지는
     /// 도구마다 제가 정한다.
     ///
-    /// <b>오른쪽 단추는 종이를 쥐고 있을 때만</b> 이 손짓이 된다. 평소에는 시점
-    /// 회전이 물고 있어서, 둘이 겹치면 도구를 올리려다 화면이 같이 돌아간다.
-    /// 종이를 쥔 동안에는 어차피 걷지도 방을 짚지도 않으므로 겹칠 일이 없다.
+    /// <b>오른쪽 단추로는 올리지 않는다.</b> 평소엔 시점 회전이 물고 있고, 종이를 쥔
+    /// 동안에만 내주던 것도 거뒀다 — 원치 않을 때 돋보기가 튀어나왔다.
     /// </summary>
     public static class ToolRaise
     {
@@ -43,9 +42,8 @@ namespace IMUNROK.Common
             {
                 if (Typing.Now) return false;   // 치는 동안에는 도구가 안 올라온다
 #if ENABLE_INPUT_SYSTEM
-                var mouse = Mouse.current;
-                if (mouse != null && mouse.rightButton.isPressed && DocumentView.IsOpen) return true;
-
+                // 오른쪽 단추는 <b>안 쓴다</b>. 종이를 쥔 동안만 내주었는데, 종이를 돌려 보다
+                // 손이 스치면 돋보기가 불쑥 올라왔다. 들어 올리는 손짓은 F 하나다.
                 var kb = Keyboard.current;
                 if (kb != null)
                 {

@@ -1118,6 +1118,11 @@ namespace IMUNROK.Common
             {
                 if (c == null || !c.enabled) continue;
                 if (DocumentView.IsPageCanvas(c)) continue;   // 종이는 남긴다
+                // <b>화면 덮개(Overlay) 판은 건드리지 않는다.</b> 그것은 카메라 그림에 안 들어가고
+                // 맨 끝에 화면에 따로 얹히므로 유리에 찍힐 일이 없다. 그런데 매 프레임 껐다 켜면
+                // 판 위 그림들의 깊이 값이 풀려 <b>누름이 하나도 안 닿았다</b> — 돋보기를 쥔 채로는
+                // 요 위의 「출도」 단추가 안 눌렸다(맨손으로만 눌렸다).
+                if (c.renderMode == RenderMode.ScreenSpaceOverlay) continue;
                 c.enabled = false;
                 _hiddenCanvases.Add(c);
             }

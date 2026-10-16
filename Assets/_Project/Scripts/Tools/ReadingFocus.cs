@@ -60,6 +60,8 @@ namespace IMUNROK.Common
             }
             _current = who;
             _closeCurrent = closeMe;
+            // 종이를 펴는 동안 형편 줄은 물러난다 — 급한 줄(인기척)만 남는다.
+            StatusPanel.Quiet(true);
         }
 
         /// <summary>자리를 놓는다. 이미 다른 창이 가져갔으면 아무 일도 하지 않는다.</summary>
@@ -68,6 +70,7 @@ namespace IMUNROK.Common
             if (_current != who) return;
             _current = Panel.None;
             _closeCurrent = null;
+            StatusPanel.Quiet(false);
         }
 
         /// <summary>씬을 갈아 끼울 때처럼 통째로 비워야 할 때.</summary>
@@ -75,6 +78,7 @@ namespace IMUNROK.Common
         {
             _current = Panel.None;
             _closeCurrent = null;
+            StatusPanel.Quiet(false);
         }
     }
 }

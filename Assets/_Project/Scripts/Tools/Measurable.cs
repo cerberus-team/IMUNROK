@@ -42,6 +42,14 @@ namespace IMUNROK.Common
         [TextArea(2, 3)] [SerializeField] private string _clueText = "";
         [Tooltip("치수가 맞아떨어진 순간 한 번")]
         [SerializeField] private UnityEvent _onMatched;
+        [Tooltip("재고 나서 <b>맞든 안 맞든</b> 한 번 — 말끔한 팔(乙)도 재면 반응이 있어야 한다(2026-09-15)")]
+        [SerializeField] private UnityEvent _onMeasured;
+
+        /// <summary>잰 뒤 수첩에 적을 열쇠.</summary>
+        public string ClueKey => _clueKey;
+
+        /// <summary>어느 사건의 것인가.</summary>
+        public CaseId Case => _case;
 
         /// <summary>이미 쟀나.</summary>
         public bool Measured { get; private set; }
@@ -68,6 +76,7 @@ namespace IMUNROK.Common
                     string.IsNullOrEmpty(_clueText) ? ResultLine() : _clueText);
 
             if (Matched) _onMatched?.Invoke();
+            _onMeasured?.Invoke();
         }
 
         /// <summary>잰 결과를 사람 말로.</summary>

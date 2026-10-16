@@ -86,18 +86,52 @@ namespace IMUNROK.Common
         private void HangFromHook()
         {
             if (_model == null) return;
-            var rs = _model.GetComponentsInChildren<Renderer>(true);
-            if (rs.Length == 0) return;
 
-            var b = rs[0].bounds;
-            for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+            // <b>월드 상자(Renderer.bounds)로 재면 안 된다.</b> 그것은 축에 나란한 상자라,
+            // 고개를 숙이거나 돌린 채로 재면 몸보다 큰 상자가 잡히고 「윗면 한가운데」도
+            // 몸의 고리가 아닌 데를 가리킨다 — 조사청에서 2.7cm 어긋났고, 그 값이
+            // <b>Awake 때 카메라가 어디를 보고 있었나</b>에 따라 매번 달라졌다.
+            // 이 오브젝트 자리에서 메시를 직접 재면 어느 쪽을 보든 같은 값이 나온다.
+            Bounds b = default(Bounds);
+            bool any = false;
+            foreach (var mf in _model.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh == null) continue;
+                Bounds mb = mf.sharedMesh.bounds;
+                Matrix4x4 toHere = transform.worldToLocalMatrix * mf.transform.localToWorldMatrix;
+                for (int c = 0; c < 8; c++)
+                {
+                    Vector3 corner = mb.center + Vector3.Scale(mb.extents,
+                        new Vector3((c & 1) == 0 ? -1f : 1f, (c & 2) == 0 ? -1f : 1f, (c & 4) == 0 ? -1f : 1f));
+                    Vector3 pt = toHere.MultiplyPoint3x4(corner);
+                    if (!any) { b = new Bounds(pt, Vector3.zero); any = true; }
+                    else b.Encapsulate(pt);
+                }
+            }
+            if (!any) return;
 
-            // 윗면 한가운데 — 세계 자리로 잡아 이 오브젝트 기준으로 옮긴다
-            Vector3 hook = new Vector3(b.center.x, b.max.y, b.center.z);
-            Vector3 local = transform.InverseTransformPoint(hook);
+            // 윗면 한가운데 — 이미 이 오브젝트 자리로 잰 값이다
+            Vector3 local = new Vector3(b.center.x, b.max.y, b.center.z);
+
+            // ① 몸을 내려 고리가 이 오브젝트의 원점에 오게 한다 — 이제 축이 고리다.
             _model.transform.localPosition -= local;
 
-            DevLog.Note("[등불] 걸린 자리를 축으로 맞췄다 — 모델을 " + (-local).ToString("F3") + " 만큼 밀었다.", this);
+            // ② <b>내린 만큼 매단 자리를 올린다.</b> 이것을 안 하면 축만 바꾼 것이 아니라
+            //    등불이 통째로 내려앉는다 — 조사청에서 재어 보니 몸이 26cm 인데 10.6cm 를
+            //    내려 화면 아래로 빠졌다. 바꾸려는 것은 <b>도는 자리</b>이지 보이는 자리가
+            //    아니다. 올려 주면 눈에 보이는 등불은 한 치도 안 움직이고, 손이 돌 때
+            //    도는 중심만 배꼽에서 고리로 옮겨 간다.
+            Vector3 deltaWorld = transform.TransformVector(local);
+            transform.localPosition += transform.parent != null
+                ? transform.parent.InverseTransformVector(deltaWorld)
+                : deltaWorld;
+
+            // ③ 종이 뒤로 들어 올리는 자리도 같이 내린다 — 몸의 기준이 내려갔으므로
+            //    그대로 두면 올리는 거리가 내린 만큼 더 길어진다.
+            _upPose -= local;
+
+            DevLog.Note("[등불] 걸린 자리를 축으로 맞췄다 — 몸을 " + (-local).ToString("F3") +
+                        " 만큼 내리고 매단 자리를 그만큼 올렸다(보이는 자리는 그대로).", this);
         }
 
         private void Start()

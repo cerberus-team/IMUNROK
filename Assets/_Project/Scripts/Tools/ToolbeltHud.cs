@@ -75,7 +75,7 @@ namespace IMUNROK.Common
         public event Action OnChanged;
 
         /// <summary>지금 벨트를 감춰야 하는가(심문·수첩 중엔 숨긴다).</summary>
-        public bool Hidden => InterrogationController.AnyOpen || JournalView.AnyOpen;
+        public bool Hidden => InterrogationController.AnyOpen || JournalView.AnyOpen || HubEnding.Playing || BadukBoard.Playing || VerdictReport.IsOpen;   // 마지막 걸음 동안에는 손에 쥘 것이 없다
 
         /// <summary>슬롯 i의 표시 이름("맨손" 포함).</summary>
         public string SlotName(int i)
@@ -135,6 +135,28 @@ namespace IMUNROK.Common
             OnChanged?.Invoke();
             return true;
         }
+
+        /// <summary>
+        /// 잠깐 뺐던 도구를 <b>제자리에</b> 도로 넣는다.
+        ///
+        /// <see cref="Grant"/> 는 늘 뒤에 붙인다 — 새로 받는 물건은 뒤에 붙는 것이 맞다.
+        /// 그런데 등경에 얹었다 도로 집는 등불처럼 <b>잠깐 뺐다 넣는</b> 것까지 뒤로 가면,
+        /// 돌아올 때마다 띠의 차례가 바뀐다. 맨손·등불·돋보기·마패·유척으로 외워 둔 손이
+        /// 휠을 굴릴 때마다 딴것을 집게 되니, 차례가 <b>아무렇게나</b> 도는 것으로 읽힌다.
+        /// 도구띠의 차례는 <b>물건의 차례</b>여야지 집었다 놓은 내력이어서는 안 된다.
+        /// </summary>
+        /// <param name="at">돌려놓을 자리(0 부터). 범위를 벗어나면 뒤에 붙인다.</param>
+        public bool GrantAt(ToolDef def, int at)
+        {
+            if (def == null || _tools.Contains(def)) return false;
+            if (at < 0 || at > _tools.Count) _tools.Add(def);
+            else _tools.Insert(at, def);
+            OnChanged?.Invoke();
+            return true;
+        }
+
+        /// <summary>이 도구가 띠의 몇째 자리인가(0 부터). 없으면 -1.</summary>
+        public int IndexOf(ToolDef def) => def == null ? -1 : _tools.IndexOf(def);
 
         /// <summary>
         /// 도구를 벨트에서 <b>도로 뺀다</b>.
@@ -233,11 +255,20 @@ namespace IMUNROK.Common
 
             // 치는 동안에는 Q 가 도구가 아니라 <b>글자</b>다.
             if (kb != null && !Typing.Now && kb.qKey.wasPressedThisFrame) { Next(); return; }
-            if (mouse != null)
+            // <b>판이 떠 있으면 휠은 판의 것이다.</b> 수첩 상세를 휠로 내려 읽거나 물증 무대를
+            // 당겨 보는 동안 도구띠까지 같이 굴러, 수첩을 덮고 나면 손에 딴 도구가 들려 있었다.
+            bool wheelBusy = JournalView.AnyOpen || DocumentView.IsOpen;
+            if (mouse != null && !wheelBusy)
             {
+                // <b>휠을 내리면 목록도 내려간다.</b>
+                //
+                // 띠는 위에서부터 맨손·등불·돋보기·마패·유척으로 <b>내려</b> 그린다(RowY).
+                // 그런데 휠을 <b>올릴</b> 때 그 차례로 내려갔다 — 손가락이 가는 쪽과 눈이
+                // 따라가는 쪽이 반대라, 한 칸 건너뛴 것처럼 읽히고 매번 되짚게 된다.
+                // 굴리는 쪽과 짚히는 쪽을 같게 둔다.
                 float sy = mouse.scroll.ReadValue().y;
-                if (sy > 0f) Next();
-                else if (sy < 0f) Prev();
+                if (sy < 0f) Next();
+                else if (sy > 0f) Prev();
             }
 #endif
         }
@@ -273,6 +304,7 @@ namespace IMUNROK.Common
 
         private void LateUpdate()
         {
+            SyncBelt();                 // 도구가 늘거나 줄었으면 칸도 따라간다
             if (_root == null) return;
             bool show = !Hidden;
             if (_root.gameObject.activeSelf != show) _root.gameObject.SetActive(show);
@@ -363,8 +395,31 @@ namespace IMUNROK.Common
             return topOfStack - CellSize * 0.5f - i * (CellSize + Gap);
         }
 
+        /// <summary>
+        /// <b>칸 수가 달라졌으면 띠를 다시 짓는다.</b>
+        ///
+        /// 여태 <see cref="BuildBelt"/> 는 Awake 에 <b>한 번</b>만 돌았다. 그런데 도구는
+        /// 그 뒤에도 는다 — 관아의 유척은 <see cref="ToolIssue"/> 가 Start 에서 내주고,
+        /// 등경에 등불을 얹으면 하나가 <b>빠진다</b>. 칸이 Awake 때 굳어 있으니 늘어난
+        /// 도구는 <b>띠에 자리가 없어 안 보였다</b> — 유척은 Q 로 돌리면 손에는 들리는데
+        /// 화면 오른쪽 목록에는 없었다. 있는데 없는 것으로 보이는 것이 가장 나쁘다.
+        ///
+        /// 칸을 통째로 다시 짓는 까닭: 칸의 높이(<see cref="RowY"/>)가 <b>전체 칸 수</b>로
+        /// 정해지므로, 한 칸을 덧붙이면 나머지도 다 옮겨 앉아야 한다.
+        /// </summary>
+        private void SyncBelt()
+        {
+            if (_cells.Count == SlotCount) return;
+            BuildBelt();
+        }
+
         private void BuildBelt()
         {
+            // 다시 지을 때는 먼저 헌 것을 걷는다 — 안 걷으면 띠가 겹쳐 그려진다.
+            if (_root != null) Destroy(_root.gameObject);
+            _cells.Clear(); _names.Clear(); _icons.Clear();
+            _wheelHint = null; _howToText = null;
+
             var go = new GameObject("도구띠", typeof(RectTransform));
             ScreenPanel.Raise(go, ScreenPanel.LayerBar - 20);
             _root = (RectTransform)go.transform;
